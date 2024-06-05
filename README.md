@@ -1,4 +1,4 @@
-# OPNet - Smart Contracts on Bitcoin L1
+# OPNet - Transaction Builder
 
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
@@ -11,12 +11,7 @@
 
 ## Introduction
 
-A complete, compact and simple library for the Bitcoin ecosystem, written in
-TypeScript. This library is designed to be easy to use and understand, while
-providing a comprehensive set of functions for creating, reading and
-manipulating Bitcoin transactions. This library is designed to be able to
-manipulate anything related to BSI (Bitcoin Smart Inscription), smart contracts,
-and other Bitcoin-related technologies.
+The OPNet Transaction Builder library allows you to create and sign transactions for the OPNet network. Written in TypeScript, this library provides a comprehensive set of functions to facilitate the creation, reading, and manipulation of OPNet transactions, smart contracts, and other OPNet-related technologies.
 
 ## Getting Started
 
@@ -28,37 +23,42 @@ and other Bitcoin-related technologies.
 ### Installation
 
 ```shell
-npm i opnet
+npm i @btc-vision/transaction
 ```
 
 ### Documentation
 
-Documentation available at [https://dev.opnet.org](https://dev.opnet.org) or in
-the `docs/` directory of the repository.
+Documentation is available at [https://transaction.opnet.org](https://transaction.opnet.org) or in the `docs/` directory of the repository.
 
 #### Development
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/btc-vision/opnet.git
+   git clone https://github.com/btc-vision/transaction.git
    ```
 2. Navigate to the repository directory:
    ```bash
-   cd opnet
+   cd transaction
    ```
 3. Install the required dependencies:
    ```bash
    npm i
    ```
 
+## Usage
+
+Here's a basic example of how to use the OPNet Transaction Builder library to create and sign a transaction:
+
+```typescript
+import { TransactionBuilder } from '@btc-vision/transaction';
+
+TODO
+```
+
 ## Contribution
 
-Contributions are welcome! Please read through the `CONTRIBUTING.md` file for
-guidelines on how to submit issues, feature requests, and pull requests. We
-appreciate your input and encourage you to help us improve OPNet.
+Contributions are welcome! Please read through the `CONTRIBUTING.md` file for guidelines on how to submit issues, feature requests, and pull requests. We appreciate your input and encourage you to help us improve OPNet.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE). If
-you have any suggestions or contributions, please feel free to submit a pull
-request.
+This project is open source and available under the [MIT License](LICENSE). If you have any suggestions or contributions, please feel free to submit a pull request.
