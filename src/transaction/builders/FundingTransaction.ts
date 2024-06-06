@@ -15,7 +15,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.internalInit();
     }
-
+    
     protected override buildTransaction(): void {
         this.addInputsFromUTXO();
 
