@@ -70,6 +70,7 @@ import {
 import { networks } from 'bitcoinjs-lib';
 import { BitcoinRPC } from '@btc-vision/bsi-bitcoin-rpc';
 import { ABICoder, BinaryWriter } from '@btc-vision/bsi-binary';
+import { BitcoinNetwork } from '@btc-vision/bsi-common';
 ```
 
 ### Setting Up configurations
