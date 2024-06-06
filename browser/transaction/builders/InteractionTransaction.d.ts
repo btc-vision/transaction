@@ -1,0 +1,47 @@
+/// <reference types="node" />
+import { PsbtInput } from 'bip174/src/lib/interfaces.js';
+import { Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { Taptree } from 'bitcoinjs-lib/src/types.js';
+import { ECPairInterface } from 'ecpair';
+import { TransactionBuilder } from './TransactionBuilder.js';
+import { TransactionType } from '../enums/TransactionType.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
+import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
+import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
+export declare class InteractionTransaction extends TransactionBuilder<TransactionType.INTERACTION> {
+    type: TransactionType.INTERACTION;
+    readonly randomBytes: Buffer;
+    protected targetScriptRedeem: Payment | null;
+    protected leftOverFundsScriptRedeem: Payment | null;
+    protected readonly compiledTargetScript: Buffer;
+    protected readonly scriptTree: Taptree;
+    protected tapLeafScript: TapLeafScript | null;
+    protected calldataGenerator: CalldataGenerator;
+    protected readonly calldata: Buffer;
+    protected readonly contractSecret: Buffer;
+    protected tweakedSigner?: Signer;
+    protected readonly scriptSigner: Signer;
+    protected readonly interactionPubKeys: Buffer[];
+    protected readonly minimumSignatures: number;
+    constructor(parameters: IInteractionParameters);
+    getContractSecret(): Buffer;
+    getRndBytes(): Buffer;
+    protected generateSecret(): Buffer;
+    protected tweakSigner(): void;
+    protected scriptSignerXOnlyPubKey(): Buffer;
+    protected generateKeyPairFromSeed(): ECPairInterface;
+    protected addInputsFromUTXO(): void;
+    protected buildTransaction(): void;
+    protected signInputs(transaction: Psbt): void;
+    protected getSignerKey(): Signer;
+    protected generateScriptAddress(): Payment;
+    protected generateTapData(): Payment;
+    protected getScriptSolution(input: PsbtInput): Buffer[];
+    private getPubKeys;
+    private customFinalizer;
+    private getTweakerHash;
+    private getTweakedSigner;
+    private generateRedeemScripts;
+    private getLeafScript;
+    private getScriptTree;
+}
