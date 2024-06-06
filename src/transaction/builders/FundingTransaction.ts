@@ -15,14 +15,14 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.internalInit();
     }
-    
+
     protected override buildTransaction(): void {
         this.addInputsFromUTXO();
 
         const amountSpent: bigint =
             this.getTransactionOPNetFee() + this.childTransactionRequiredFees;
 
-        this.setFeeOutput({
+        this.addOutput({
             value: Number(amountSpent),
             address: this.to,
         });

@@ -24,7 +24,7 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
      * Random salt for the interaction
      * @type {Buffer}
      */
-    public readonly randomBytes: Buffer = BitcoinUtils.rndBytes();
+    public readonly randomBytes: Buffer;
 
     protected targetScriptRedeem: Payment | null = null;
     protected leftOverFundsScriptRedeem: Payment | null = null;
@@ -57,7 +57,7 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
      * Script signer for the interaction
      * @protected
      */
-    protected readonly scriptSigner: Signer = this.generateKeyPairFromSeed();
+    protected readonly scriptSigner: Signer;
 
     /**
      * Public keys specified in the interaction
@@ -82,6 +82,9 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         this.interactionPubKeys = parameters.pubKeys || [];
         this.minimumSignatures = parameters.minimumSignatures || 0;
 
+        this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
+        this.scriptSigner = this.generateKeyPairFromSeed();
+
         this.calldataGenerator = new CalldataGenerator(
             this.internalPubKeyToXOnly(),
             this.scriptSignerXOnlyPubKey(),
@@ -100,6 +103,22 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
     }
 
     /**
+     * Get the contract secret
+     * @returns {Buffer} The contract secret
+     */
+    public getContractSecret(): Buffer {
+        return this.contractSecret;
+    }
+
+    /**
+     * Get the random bytes used for the interaction
+     * @returns {Buffer} The random bytes
+     */
+    public getRndBytes(): Buffer {
+        return this.randomBytes;
+    }
+
+    /**
      * Generate the secret for the interaction
      * @protected
      * @returns {Buffer} The secret
@@ -109,18 +128,39 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         return address.fromBech32(this.to).data;
     }
 
+    /**
+     * Tweak the signer for the interaction
+     * @protected
+     */
     protected tweakSigner(): void {
         this.tweakedSigner = this.getTweakedSigner();
     }
 
+    /**
+     * Get the internal pubkey as an x-only key
+     * @protected
+     * @returns {Buffer} The internal pubkey as an x-only key
+     */
     protected scriptSignerXOnlyPubKey(): Buffer {
         return toXOnly(this.scriptSigner.publicKey);
     }
 
+    /**
+     * Generate a key pair from the seed
+     * @protected
+     *
+     * @returns {ECPairInterface} The key pair
+     */
     protected generateKeyPairFromSeed(): ECPairInterface {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
 
+    /**
+     * Add inputs from the UTXO
+     * @protected
+     *
+     * @throws {Error} If the tap leaf script is required
+     */
     protected override addInputsFromUTXO(): void {
         if (!this.tapLeafScript) throw new Error('Tap leaf script is required');
 
@@ -139,6 +179,14 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         }
     }
 
+    /**
+     * Build the transaction
+     * @protected
+     *
+     * @throws {Error} If the left over funds script redeem is required
+     * @throws {Error} If the left over funds script redeem version is required
+     * @throws {Error} If the left over funds script redeem output is required
+     */
     protected override buildTransaction(): void {
         const selectedRedeem = !!this.scriptSigner
             ? this.targetScriptRedeem
@@ -173,6 +221,11 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         this.addRefundOutput(amountSpent);
     }
 
+    /**
+     * Sign the inputs
+     * @param {Psbt} transaction The transaction to sign
+     * @protected
+     */
     protected signInputs(transaction: Psbt): void {
         if (!this.scriptSigner) {
             super.signInputs(transaction);
@@ -186,6 +239,12 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         transaction.finalizeInput(0, this.customFinalizer);
     }
 
+    /**
+     * Get the signer
+     * @protected
+     *
+     * @returns {Signer} The signer
+     */
     protected getSignerKey(): Signer {
         if (this.tweakedSigner) {
             return this.tweakedSigner;
@@ -223,6 +282,13 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         };
     }
 
+    /**
+     * Generate the script solution
+     * @param {PsbtInput} input The input
+     * @protected
+     *
+     * @returns {Buffer[]} The script solution
+     */
     protected getScriptSolution(input: PsbtInput): Buffer[] {
         if (!input.tapScriptSig) {
             throw new Error('Tap script signature is required');
@@ -236,6 +302,12 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         ];
     }
 
+    /**
+     * Get the public keys
+     * @private
+     *
+     * @returns {Buffer[]} The public keys
+     */
     private getPubKeys(): Buffer[] {
         const pubkeys = [this.signer.publicKey];
 
@@ -246,6 +318,11 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         return pubkeys;
     }
 
+    /**
+     * Transaction finalizer
+     * @param {number} _inputIndex The input index
+     * @param {PsbtInput} input The input
+     */
     private customFinalizer = (_inputIndex: number, input: PsbtInput) => {
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
@@ -270,10 +347,23 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         };
     };
 
+    /**
+     * Get the tweaked hash
+     * @private
+     *
+     * @returns {Buffer | undefined} The tweaked hash
+     */
     private getTweakerHash(): Buffer | undefined {
         return this.tapData?.hash;
     }
 
+    /**
+     * Get the tweaked signer
+     * @param {boolean} useTweakedHash Whether to use the tweaked hash
+     * @private
+     *
+     * @returns {Signer} The tweaked signer
+     */
     private getTweakedSigner(useTweakedHash: boolean = false): Signer {
         const settings: TweakSettings = {
             network: this.network,
@@ -286,6 +376,16 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         return TweakedSigner.tweakSigner(this.signer, settings);
     }
 
+    /**
+     * Generate the redeem scripts
+     * @private
+     *
+     * @throws {Error} If the public keys are required
+     * @throws {Error} If the leaf script is required
+     * @throws {Error} If the leaf script version is required
+     * @throws {Error} If the leaf script output is required
+     * @throws {Error} If the target script redeem is required
+     */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
             pubkeys: this.getPubKeys(),
@@ -300,11 +400,23 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
         };
     }
 
+    /**
+     * Get the second leaf script
+     * @private
+     *
+     * @returns {Buffer} The leaf script
+     */
     private getLeafScript(): Buffer {
         // For now, we disable this.
         return InteractionTransaction.LOCK_LEAF_SCRIPT;
     }
 
+    /**
+     * Get the script tree
+     * @private
+     *
+     * @returns {Taptree} The script tree
+     */
     private getScriptTree(): Taptree {
         if (!this.calldata) {
             throw new Error('Calldata is required');

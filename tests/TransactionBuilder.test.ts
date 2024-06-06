@@ -1,13 +1,16 @@
 import 'jest';
-import { Wallet } from '../src/keypair/Wallet.js';
 import { Regtest } from '../src/scripts/Regtest.js';
 import { Logger } from '@btc-vision/logger';
-import { wBTC } from '../src/metadata/contracts/wBTC.js';
 import { networks } from 'bitcoinjs-lib';
-import { UTXOManager } from '../src/utxo/UTXOManager.js';
-import { FetchUTXOParams, UTXO } from '../src/utxo/interfaces/IUTXO.js';
-import { IInteractionParameters } from '../src/transaction/interfaces/ITransactionParameters.js';
-import { InteractionTransaction } from '../src/transaction/builders/InteractionTransaction.js';
+import {
+    FetchUTXOParams,
+    IInteractionParameters,
+    TransactionFactory,
+    UTXO,
+    UTXOManager,
+    Wallet,
+    wBTC,
+} from '../src/index.js';
 
 const logger: Logger = new Logger();
 const network: networks.Network = networks.regtest;
@@ -19,6 +22,7 @@ describe('Transaction Builder', () => {
     logger.log(`Loaded wallet: ${wallet.p2tr} - ${wallet.p2wpkh}`);
 
     const utxoManager: UTXOManager = new UTXOManager('http://localhost:9001');
+    const factory: TransactionFactory = new TransactionFactory();
 
     /** @test {TransactionBuilder#build} */
     test('should be able to build a transaction', async () => {
@@ -48,10 +52,7 @@ describe('Transaction Builder', () => {
             calldata: Buffer.from('test'),
         };
 
-        const interactionTransaction: InteractionTransaction = new InteractionTransaction(
-            interactionParameters,
-        );
-
-        console.log(`Transaction:`, interactionTransaction);
+        const finalTx = factory.signInteraction(interactionParameters);
+        console.log(`Transaction:`, finalTx);
     });
 });

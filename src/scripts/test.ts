@@ -16,8 +16,20 @@ const wallet: Wallet = new Wallet(Regtest.wallet, network);
 const utxoManager: UTXOManager = new UTXOManager('http://localhost:9001');
 const factory: TransactionFactory = new TransactionFactory();
 
+const mineBlock: boolean = true;
+
 (async () => {
     await rpc.init(Regtest.config);
+
+    if (mineBlock) {
+        // lets mine 1 block.
+        const ok = await rpc.generateToAddress(1, wallet.p2wpkh, 'default');
+        if (!ok) {
+            throw new Error('Could not mine block');
+        }
+
+        console.log(`Mined block`, ok);
+    }
 
     const utxoSetting: FetchUTXOParams = {
         address: wallet.p2wpkh,
@@ -44,6 +56,23 @@ const factory: TransactionFactory = new TransactionFactory();
     };
 
     const finalTx = factory.signInteraction(interactionParameters);
+    const firstTxBroadcast = await rpc.sendRawTransaction({
+        hexstring: finalTx[0],
+    });
 
-    console.log(`Transaction:`, finalTx);
+    console.log(`First transaction broadcasted: ${firstTxBroadcast}`);
+
+    if (!firstTxBroadcast) {
+        throw new Error('Could not broadcast first transaction');
+    }
+
+    const secondTxBroadcast = await rpc.sendRawTransaction({
+        hexstring: finalTx[1],
+    });
+
+    console.log(`Second transaction broadcasted: ${secondTxBroadcast}`);
+
+    if (!secondTxBroadcast) {
+        throw new Error('Could not broadcast second transaction');
+    }
 })();

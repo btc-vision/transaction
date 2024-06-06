@@ -24,6 +24,8 @@ export declare class InteractionTransaction extends TransactionBuilder<Transacti
     protected readonly interactionPubKeys: Buffer[];
     protected readonly minimumSignatures: number;
     constructor(parameters: IInteractionParameters);
+    getContractSecret(): Buffer;
+    getRndBytes(): Buffer;
     protected generateSecret(): Buffer;
     protected tweakSigner(): void;
     protected scriptSignerXOnlyPubKey(): Buffer;

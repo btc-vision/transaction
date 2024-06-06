@@ -23,6 +23,8 @@ export interface IInteractionParameters extends ITransactionParameters {
 
     readonly pubKeys?: Buffer[];
     readonly minimumSignatures?: number;
+    
+    readonly randomBytes?: Buffer;
 }
 
 export interface ITransactionDataContractInteractionWrap extends IInteractionParameters {

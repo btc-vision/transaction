@@ -239,6 +239,12 @@ export abstract class TransactionBuilder<T extends TransactionType> {
      * @returns {void}
      */
     public addOutput(output: PsbtOutputExtended): void {
+        if (output.value < TransactionBuilder.MINIMUM_DUST) {
+            throw new Error(
+                `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,
+            );
+        }
+
         this.outputs.push(output);
     }
 
@@ -454,10 +460,8 @@ export abstract class TransactionBuilder<T extends TransactionType> {
      * @returns {PsbtOutputExtended[]}
      */
     protected getOutputs(): PsbtOutputExtended[] {
-        if (!this.feeOutput) throw new Error('Fee output is required');
-
         const outputs: PsbtOutputExtended[] = [...this.outputs];
-        outputs.push(this.feeOutput);
+        if (this.feeOutput) outputs.push(this.feeOutput);
 
         return outputs;
     }
@@ -481,14 +485,20 @@ export abstract class TransactionBuilder<T extends TransactionType> {
      * @returns {void}
      */
     protected setFeeOutput(output: PsbtOutputExtended): void {
+        const initialValue = output.value;
+
         this.feeOutput = output;
 
         const fee = this.estimateTransactionFees();
-        if (fee > BigInt(output.value)) {
+        if (fee > BigInt(initialValue)) {
             throw new Error('Insufficient funds');
         }
 
-        this.feeOutput.value = this.feeOutput.value - Number(fee);
+        this.feeOutput.value = initialValue - Number(fee);
+
+        if (this.feeOutput.value < TransactionBuilder.MINIMUM_DUST) {
+            this.feeOutput = null;
+        }
     }
 
     /**

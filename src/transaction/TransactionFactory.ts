@@ -24,8 +24,6 @@ export class TransactionFactory {
         const parameters: IFundingTransactionParameters =
             preTransaction.getFundingTransactionParameters();
 
-        console.log('funding transaction parameters:', parameters);
-
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = fundingTransaction.signTransaction();
         if (!signedTransaction) {
@@ -38,16 +36,18 @@ export class TransactionFactory {
             outputIndex: 0,
             scriptPubKey: {
                 hex: out.script.toString('hex'),
+                address: preTransaction.getScriptAddress(),
             },
             value: BigInt(out.value),
         };
 
-        interactionParameters.utxos = [newUtxo];
-        console.log(`new utxo`, newUtxo);
+        const newParams: IInteractionParameters = {
+            ...interactionParameters,
+            utxos: [newUtxo],
+            randomBytes: preTransaction.getRndBytes(),
+        };
 
-        const finalTransaction: InteractionTransaction = new InteractionTransaction(
-            interactionParameters,
-        );
+        const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
 
         // We have to regenerate using the new utxo
         const outTx: Transaction = finalTransaction.signTransaction();
