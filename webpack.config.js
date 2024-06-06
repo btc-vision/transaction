@@ -2,7 +2,11 @@ import webpack from 'webpack';
 
 export default {
     mode: 'production',
-    entry: './src/index.ts',
+    entry: {
+        index: {
+            import: './src/index.ts',
+        },
+    },
     watch: false,
     output: {
         filename: 'index.js',
@@ -33,6 +37,7 @@ export default {
             os: import.meta.resolve('os-browserify/browser/'),
             stream: import.meta.resolve('stream-browserify'),
             process: import.meta.resolve('process/browser'),
+            zlib: import.meta.resolve('browserify-zlib'),
         },
     },
     cache: false,
@@ -66,6 +71,7 @@ export default {
             Buffer: ['buffer', 'Buffer'],
             process: 'process/browser',
             stream: 'stream-browserify',
+            zlib: 'browserify-zlib',
         }),
     ],
 };
