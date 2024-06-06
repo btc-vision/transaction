@@ -35,6 +35,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> {
     signTransaction(): Transaction;
     getTransaction(): Transaction;
     getScriptAddress(): string;
+    disableRBF(): void;
     getTapAddress(): string;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
