@@ -1,4 +1,4 @@
-# OPNet - Transaction Builder
+# OP_NET - Transaction Builder
 
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
@@ -11,9 +11,9 @@
 
 ## Introduction
 
-The OPNet Transaction Builder library allows you to create and sign transactions for the OPNet network. Written in
+The OP_NET Transaction Builder library allows you to create and sign transactions for the OP_NET network. Written in
 TypeScript, this library provides a comprehensive set of functions to facilitate the creation, reading, and manipulation
-of OPNet transactions, smart contracts, and other OPNet-related technologies.
+of OP_NET transactions, smart contracts, and other OP_NET-related technologies.
 
 ## Getting Started
 
@@ -50,7 +50,7 @@ of the repository.
 
 ## Usage
 
-Here's a basic example of how to use the OPNet Transaction Builder library to create and sign a transaction:
+Here's a basic example of how to use the OP_NET Transaction Builder library to create and sign a transaction:
 The following example demonstrates how to create a wBTC transfer transaction.
 
 ### Import Statements
@@ -77,7 +77,7 @@ import { BitcoinNetwork } from '@btc-vision/bsi-common';
 
 We must provide the necessary configurations for the network, wallet, and RPC connection:
 
-- The opnetNode variable is the URL of the OPNet node.
+- The opnetNode variable is the URL of the OP_NET node.
 - The Testnet variable contains the wallet address, public key, and private key.
 - The config variable inside the testnet object contains the network, host, port, username, and password for the RPC
   connection.
@@ -201,12 +201,12 @@ if (!secondTxBroadcast) {
 }
 ```
 
-That's it! You have successfully created and broadcasted a transaction using OPNet.
+That's it! You have successfully created and broadcasted a transaction using OP_NET.
 
 ## Contribution
 
 Contributions are welcome! Please read through the `CONTRIBUTING.md` file for guidelines on how to submit issues,
-feature requests, and pull requests. We appreciate your input and encourage you to help us improve OPNet.
+feature requests, and pull requests. We appreciate your input and encourage you to help us improve OP_NET.
 
 ## License
 
