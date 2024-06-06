@@ -210,6 +210,17 @@ export abstract class TransactionBuilder<T extends TransactionType> {
     }
 
     /**
+     * @description Disables replace by fee on the transaction
+     */
+    public disableRBF(): void {
+        if (this.signed) throw new Error('Transaction is already signed');
+
+        for (let input of this.inputs) {
+            input.sequence = 0xffffffff;
+        }
+    }
+
+    /**
      * @description Returns the tap address
      * @returns {string}
      * @throws {Error} - If tap data is not set
@@ -326,6 +337,7 @@ export abstract class TransactionBuilder<T extends TransactionType> {
                     value: Number(utxo.value),
                     script: Buffer.from(utxo.scriptPubKey.hex, 'hex'),
                 },
+                sequence: 0xfffffffd,
             };
 
             this.addInput(input);

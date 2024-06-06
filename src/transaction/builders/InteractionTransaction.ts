@@ -173,6 +173,7 @@ export class InteractionTransaction extends TransactionBuilder<TransactionType.I
                     script: this.getTapOutput(),
                 },
                 tapLeafScript: [this.tapLeafScript],
+                sequence: 0xfffffffd,
             };
 
             this.addInput(input);
