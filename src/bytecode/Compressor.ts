@@ -3,7 +3,7 @@ import zlib, { ZlibOptions } from 'zlib';
 /** Compressor class for compressing and decompressing data. */
 export class Compressor {
     private static readonly zlibOptions: ZlibOptions = {
-        level: zlib.constants.Z_MAX_LEVEL,
+        level: 9,
         maxOutputLength: 1024 * 1024 * 16, // 16mb, limit it to 16mb.
     };
 
