@@ -18,8 +18,12 @@ import { Logger } from '@btc-vision/logger';
  * @class TransactionBuilder
  */
 export abstract class TransactionBuilder<T extends TransactionType> extends Logger {
-    protected static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([opcodes.OP_0]);
-    protected static readonly MINIMUM_DUST: bigint = 330n;
+    public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
+        opcodes.OP_0,
+        opcodes.OP_VERIFY,
+    ]);
+
+    public static readonly MINIMUM_DUST: bigint = 330n;
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';
