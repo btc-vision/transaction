@@ -1,7 +1,7 @@
 import { initEccLib, Network, opcodes, Payment, payments, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import * as ecc from 'tiny-secp256k1';
+import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';

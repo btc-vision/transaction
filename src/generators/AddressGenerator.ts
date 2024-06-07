@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { bech32 } from 'bech32';
 import { initEccLib, Network } from 'bitcoinjs-lib';
-import * as ecc from 'tiny-secp256k1';
+import * as ecc from '@bitcoinerlab/secp256k1';
 
 initEccLib(ecc);
 
