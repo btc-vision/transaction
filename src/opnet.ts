@@ -8,6 +8,10 @@ export * from './generators/Generator.js';
 export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 
+/** Address */
+export * from './generators/AddressGenerator.js';
+export * from './verification/TapscriptVerificator.js';
+
 /** Key Pair */
 export * from './keypair/EcKeyPair.js';
 export * from './keypair/Wallet.js';

@@ -18,7 +18,7 @@ export default {
     },
     experiments: {
         outputModule: true,
-        asyncWebAssembly: true,
+        asyncWebAssembly: false,
         syncWebAssembly: true,
     },
     resolve: {
@@ -72,6 +72,7 @@ export default {
             process: 'process/browser',
             stream: 'stream-browserify',
             zlib: 'browserify-zlib',
+            bitcoin: 'bitcoinjs-lib',
         }),
     ],
 };

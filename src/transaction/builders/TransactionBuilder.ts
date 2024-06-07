@@ -1,7 +1,7 @@
 import { initEccLib, Network, opcodes, Payment, payments, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import * as ecc from 'tiny-secp256k1';
+import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
@@ -18,8 +18,12 @@ import { Logger } from '@btc-vision/logger';
  * @class TransactionBuilder
  */
 export abstract class TransactionBuilder<T extends TransactionType> extends Logger {
-    protected static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([opcodes.OP_0]);
-    protected static readonly MINIMUM_DUST: bigint = 330n;
+    public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
+        opcodes.OP_0,
+        //opcodes.OP_VERIFY, - verify that this is not needed.
+    ]);
+
+    public static readonly MINIMUM_DUST: bigint = 330n;
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';

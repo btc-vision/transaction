@@ -1,7 +1,7 @@
 import bip32, { BIP32Interface } from 'bip32';
 import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib';
 import { ECPairFactory, ECPairInterface } from 'ecpair';
-import * as ecc from 'tiny-secp256k1';
+import * as ecc from '@bitcoinerlab/secp256k1';
 import { Address } from '@btc-vision/bsi-binary';
 import { IWallet } from './interfaces/IWallet.js';
 

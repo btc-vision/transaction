@@ -1,7 +1,7 @@
 import { initEccLib, Network, Signer } from 'bitcoinjs-lib';
 import { tapTweakHash } from 'bitcoinjs-lib/src/payments/bip341.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import * as ecc from 'tiny-secp256k1';
+import * as ecc from '@bitcoinerlab/secp256k1';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
 
 initEccLib(ecc);

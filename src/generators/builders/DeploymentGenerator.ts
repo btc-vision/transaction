@@ -17,9 +17,24 @@ export class DeploymentGenerator extends Generator {
      * @returns {Buffer} - The compiled script
      */
     public compile(contractBytecode: Buffer, contractSalt: Buffer): Buffer {
+        const asm = this.getAsm(contractBytecode, contractSalt);
+        const compiled = script.compile(asm);
+
+        /**
+         * Verify that the script can be decompiled
+         */
+        const decompiled = script.decompile(compiled);
+        if (!decompiled) {
+            throw new Error('Failed to decompile script??');
+        }
+
+        return compiled;
+    }
+
+    private getAsm(contractBytecode: Buffer, contractSalt: Buffer): (number | Buffer)[] {
         const dataChunks = this.splitBufferIntoChunks(contractBytecode);
 
-        const asm = [
+        return [
             this.senderPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
@@ -47,17 +62,5 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_1,
             opcodes.OP_ENDIF,
         ].flat();
-
-        const compiled = script.compile(asm);
-
-        /**
-         * Verify that the script can be decompiled
-         */
-        const decompiled = script.decompile(compiled);
-        if (!decompiled) {
-            throw new Error('Failed to decompile script??');
-        }
-
-        return compiled;
     }
 }

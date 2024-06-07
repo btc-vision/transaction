@@ -3,6 +3,7 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
 import { Network, networks } from 'bitcoinjs-lib';
 import { Address } from '@btc-vision/bsi-binary';
+import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 
 /**
  * Wallet class
@@ -71,5 +72,16 @@ export class Wallet {
         if (!this.keypair) throw new Error('Keypair not set');
 
         return this.keypair.publicKey;
+    }
+
+    /**
+     * Get the x-only public key for the wallet
+     * @public
+     * @returns {Buffer}
+     */
+    public get xOnly(): Buffer {
+        if (!this.keypair) throw new Error('Keypair not set');
+
+        return toXOnly(this.keypair.publicKey);
     }
 }
