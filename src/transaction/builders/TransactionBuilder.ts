@@ -9,6 +9,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
+import { Logger } from '@btc-vision/logger';
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -16,7 +17,7 @@ import { ECPairInterface } from 'ecpair';
  * @abstract
  * @class TransactionBuilder
  */
-export abstract class TransactionBuilder<T extends TransactionType> {
+export abstract class TransactionBuilder<T extends TransactionType> extends Logger {
     protected static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([opcodes.OP_0]);
     protected static readonly MINIMUM_DUST: bigint = 330n;
 
@@ -105,6 +106,8 @@ export abstract class TransactionBuilder<T extends TransactionType> {
      * @param {ITransactionParameters} parameters - The transaction parameters
      */
     protected constructor(parameters: ITransactionParameters) {
+        super();
+
         this.signer = parameters.signer;
         this.network = parameters.network;
         this.feeRate = parameters.feeRate;
@@ -277,7 +280,7 @@ export abstract class TransactionBuilder<T extends TransactionType> {
             return;
         }
 
-        console.warn(
+        this.warn(
             `Amount to send back is less than the minimum dust, will be consumed in fees instead.`,
         );
     }
@@ -568,7 +571,7 @@ export abstract class TransactionBuilder<T extends TransactionType> {
         } catch (e) {
             const err: Error = e as Error;
 
-            console.error(
+            this.error(
                 `[internalBuildTransaction] Something went wrong while getting building the transaction: ${err.stack}`,
             );
         }
