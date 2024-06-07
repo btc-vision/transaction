@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -39,7 +39,7 @@
         "smart inscriptions",
         "ordinals"
     ],
-    "license": "MIT",
+    "license": "LICENSE.MD",
     "main": "build/index.js",
     "types": "build/index.d.ts",
     "typings": "build/index.d.ts",
@@ -60,7 +60,7 @@
         "setup": "npm npm i && npm run build",
         "browserBuild": "webpack --mode production",
         "cjs": "gulp cjs",
-        "docs": "typedoc --out docs --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/scripts/test.ts --exclude src/index.ts src",
+        "docs": "typedoc --out docs --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
         "install": "gulp && gulp cjs"
     },
     "devDependencies": {
@@ -101,7 +101,7 @@
         "babel-preset-react": "^6.24.1",
         "babelify": "^10.0.0",
         "bip32": "^4.0.0",
-        "bitcoinjs-lib": "^6.1.5",
+        "bitcoinjs-lib": "github:btc-vision/bitcoinjs-lib",
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
         "gulp": "^4.0.2",
