@@ -1,5 +1,5 @@
 import 'jest';
-import { Regtest } from '../src/scripts/Regtest.js';
+import { Regtest } from '../src/tests/Regtest.js';
 import { Logger } from '@btc-vision/logger';
 import { networks } from 'bitcoinjs-lib';
 import {

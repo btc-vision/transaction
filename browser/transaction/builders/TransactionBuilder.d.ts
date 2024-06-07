@@ -5,7 +5,8 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-export declare abstract class TransactionBuilder<T extends TransactionType> {
+import { Logger } from '@btc-vision/logger';
+export declare abstract class TransactionBuilder<T extends TransactionType> extends Logger {
     protected static readonly LOCK_LEAF_SCRIPT: Buffer;
     protected static readonly MINIMUM_DUST: bigint;
     abstract readonly type: T;
