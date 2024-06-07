@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -53,6 +53,13 @@
         "type": "git",
         "url": "git://github.com/btc-vision/transaction.git"
     },
+    "files": [
+        "build",
+        "cjs",
+        "browser",
+        "LICENSE.MD",
+        "README.md"
+    ],
     "scripts": {
         "watch": "gulp watch",
         "build": "gulp",
