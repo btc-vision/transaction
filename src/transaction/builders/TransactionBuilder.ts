@@ -20,7 +20,7 @@ import { Logger } from '@btc-vision/logger';
 export abstract class TransactionBuilder<T extends TransactionType> extends Logger {
     public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
         opcodes.OP_0,
-        opcodes.OP_VERIFY,
+        //opcodes.OP_VERIFY, - verify that this is not needed.
     ]);
 
     public static readonly MINIMUM_DUST: bigint = 330n;
