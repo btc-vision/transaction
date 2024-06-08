@@ -1,0 +1,46 @@
+/// <reference types="node" />
+import { PsbtInput } from 'bip174/src/lib/interfaces.js';
+import { Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { Taptree } from 'bitcoinjs-lib/src/types.js';
+import { ECPairInterface } from 'ecpair';
+import { TransactionBuilder } from './TransactionBuilder.js';
+import { TransactionType } from '../enums/TransactionType.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
+import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
+import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
+export declare abstract class SharedInteractionTransaction<T extends TransactionType> extends TransactionBuilder<T> {
+    readonly randomBytes: Buffer;
+    protected targetScriptRedeem: Payment | null;
+    protected leftOverFundsScriptRedeem: Payment | null;
+    protected abstract readonly compiledTargetScript: Buffer;
+    protected abstract readonly scriptTree: Taptree;
+    protected tapLeafScript: TapLeafScript | null;
+    protected readonly calldataGenerator: CalldataGenerator;
+    protected readonly calldata: Buffer;
+    protected abstract readonly contractSecret: Buffer;
+    protected tweakedSigner?: Signer;
+    protected readonly scriptSigner: Signer;
+    protected readonly interactionPubKeys: Buffer[];
+    protected readonly minimumSignatures: number;
+    protected constructor(parameters: SharedInteractionParameters);
+    getContractSecret(): Buffer;
+    getRndBytes(): Buffer;
+    protected generateSecret(): Buffer;
+    protected tweakSigner(): void;
+    protected scriptSignerXOnlyPubKey(): Buffer;
+    protected generateKeyPairFromSeed(): ECPairInterface;
+    protected addInputsFromUTXO(): void;
+    protected buildTransaction(): void;
+    protected signInputs(transaction: Psbt): void;
+    protected getSignerKey(): Signer;
+    protected generateScriptAddress(): Payment;
+    protected generateTapData(): Payment;
+    protected getScriptSolution(input: PsbtInput): Buffer[];
+    protected getScriptTree(): Taptree;
+    private getPubKeys;
+    private customFinalizer;
+    private getTweakerHash;
+    private getTweakedSigner;
+    private generateRedeemScripts;
+    private getLeafScript;
+}

@@ -1,0 +1,40 @@
+/// <reference types="node" />
+import { TransactionType } from '../enums/TransactionType.js';
+import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
+import { Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { TransactionBuilder } from './TransactionBuilder.js';
+import { Address } from '@btc-vision/bsi-binary';
+export declare class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
+    type: TransactionType.DEPLOYMENT;
+    protected readonly _contractAddress: Address;
+    private targetScriptRedeem;
+    private leftOverFundsScriptRedeem;
+    private readonly compiledTargetScript;
+    private readonly scriptTree;
+    private readonly tweakedSigner;
+    private tapLeafScript;
+    private deploymentGenerator;
+    private readonly contractSeed;
+    private readonly bytecode;
+    private readonly contractSigner;
+    private readonly randomBytes;
+    constructor(parameters: IDeploymentParameters);
+    get contractAddress(): Address;
+    get p2trAddress(): Address;
+    getRndBytes(): Buffer;
+    protected contractSignerXOnlyPubKey(): Buffer;
+    protected addInputsFromUTXO(): void;
+    protected buildTransaction(): void;
+    protected signInputs(transaction: Psbt): void;
+    protected getSignerKey(): Signer;
+    protected generateScriptAddress(): Payment;
+    protected generateTapData(): Payment;
+    private getContractSeed;
+    private customFinalizer;
+    private getTweakerHash;
+    private getTweakedSigner;
+    private getPubKeys;
+    private generateRedeemScripts;
+    private getLeafScript;
+    private getScriptTree;
+}

@@ -48,6 +48,10 @@ of the repository.
    npm i
    ```
 
+## wBTC
+
+To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to the [Wrap.md](./Wrap.md) guide.
+
 ## Usage
 
 Here's a basic example of how to use the OP_NET Transaction Builder library to create and sign a transaction:
