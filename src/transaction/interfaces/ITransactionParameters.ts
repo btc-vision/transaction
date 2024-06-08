@@ -2,10 +2,11 @@ import { Signer } from 'bitcoinjs-lib';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { Network } from 'bitcoinjs-lib/src/networks.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 
 export interface ITransactionParameters {
     readonly from?: Address;
-    readonly to: Address;
+    readonly to?: Address | undefined;
     utxos: UTXO[];
 
     readonly signer: Signer;
@@ -15,27 +16,33 @@ export interface ITransactionParameters {
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {
-    readonly childTransactionRequiredFees: bigint;
+    childTransactionRequiredValue: bigint;
 }
 
-export interface IInteractionParameters extends ITransactionParameters {
-    readonly calldata: Buffer;
+export interface SharedInteractionParameters extends ITransactionParameters {
+    calldata?: Buffer | undefined;
 
-    readonly pubKeys?: Buffer[];
-    readonly minimumSignatures?: number;
-    
     readonly randomBytes?: Buffer;
 }
 
-export interface ITransactionDataContractInteractionWrap extends IInteractionParameters {
-    readonly amount: bigint;
-    readonly minimumSignatures: number;
-    readonly pubKeys: Buffer[];
+export interface IInteractionParameters extends SharedInteractionParameters {
+    readonly calldata: Buffer;
+
+    readonly to: Address;
 }
 
-export interface ITransactionDataContractDeployment extends ITransactionParameters {
-    readonly bytecode: Buffer;
-    readonly salt: Buffer; // sha256
+export interface IWrapParameters extends SharedInteractionParameters {
+    readonly to?: undefined;
 
-    readonly customSigner: Signer;
+    readonly amount: bigint;
+    readonly receiver?: Address;
+
+    readonly generationParameters: WrappedGeneration;
+}
+
+export interface IDeploymentParameters extends ITransactionParameters {
+    readonly bytecode: Buffer;
+
+    readonly to?: undefined;
+    readonly randomBytes?: Buffer;
 }

@@ -1,0 +1,286 @@
+import { Taptree } from 'bitcoinjs-lib/src/types.js';
+import { TransactionType } from '../enums/TransactionType.js';
+import { PsbtOutputExtendedAddress, TapLeafScript } from '../interfaces/Tap.js';
+import { IWrapParameters } from '../interfaces/ITransactionParameters.js';
+import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
+import { wBTC } from '../../metadata/contracts/wBTC.js';
+import { ABICoder, Address, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
+import { TransactionBuilder } from './TransactionBuilder.js';
+import { ECPairInterface } from 'ecpair';
+import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
+
+const abiCoder: ABICoder = new ABICoder();
+
+/**
+ * Wrapped Bitcoin transaction wrap interaction
+ * @class InteractionTransaction
+ */
+export class WrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_WRAP> {
+    private static readonly WRAP_SELECTOR: Selector = Number(
+        '0x' + abiCoder.encodeSelector('mint'),
+    );
+
+    public type: TransactionType.WBTC_WRAP = TransactionType.WBTC_WRAP;
+
+    /**
+     * The vault address
+     * @private
+     * @readonly
+     */
+    public readonly vault: Address;
+
+    /**
+     * The amount to wrap
+     * @private
+     */
+    public readonly amount: bigint;
+
+    /**
+     * The receiver of the wrapped tokens
+     * @private
+     */
+    public readonly receiver: Address;
+
+    /**
+     * The compiled target script
+     * @protected
+     */
+    protected readonly compiledTargetScript: Buffer;
+
+    /**
+     * Tap tree for the interaction
+     * @protected
+     */
+    protected readonly scriptTree: Taptree;
+
+    /**
+     * Tap leaf script
+     * @protected
+     */
+    protected tapLeafScript: TapLeafScript | null = null;
+
+    /**
+     * Contract secret for the interaction
+     * @protected
+     */
+    protected readonly contractSecret: Buffer;
+
+    /**
+     * The wBTC contract
+     * @private
+     */
+    private readonly wbtc: wBTC;
+
+    public constructor(parameters: IWrapParameters) {
+        if (parameters.amount < TransactionBuilder.MINIMUM_DUST) {
+            throw new Error('Amount is below dust limit');
+        }
+
+        const receiver: Address =
+            parameters.receiver ||
+            TransactionBuilder.getFrom(
+                parameters.from,
+                parameters.signer as ECPairInterface,
+                parameters.network,
+            );
+
+        parameters.calldata = WrapTransaction.generateMintCalldata(parameters.amount, receiver);
+
+        super(parameters);
+
+        this.wbtc = new wBTC(parameters.network);
+        this.vault = parameters.generationParameters.vault;
+
+        this.to = this.wbtc.getAddress();
+        this.receiver = receiver;
+        this.amount = parameters.amount;
+
+        this.contractSecret = this.generateSecret();
+
+        if (!this.verifyPublicKeysConstraints(parameters.generationParameters)) {
+            throw new Error(
+                'Oops. Your wrapping request have been decline! It failed security checks!',
+            );
+        }
+
+        this.compiledTargetScript = this.calldataGenerator.compile(
+            this.calldata,
+            this.contractSecret,
+            this.interactionPubKeys,
+            this.minimumSignatures,
+        );
+
+        this.scriptTree = this.getScriptTree();
+        this.internalInit();
+    }
+
+    /**
+     * Generate a valid wBTC calldata
+     * @param {bigint} amount - The amount to wrap
+     * @param {Address} to - The address to send the wrapped tokens to
+     * @private
+     * @returns {Buffer} - The calldata
+     */
+    private static generateMintCalldata(amount: bigint, to: Address): Buffer {
+        if (!amount) throw new Error('Amount is required');
+        if (!to) throw new Error('To address is required');
+
+        const bufWriter: BinaryWriter = new BinaryWriter();
+        bufWriter.writeSelector(WrapTransaction.WRAP_SELECTOR);
+        bufWriter.writeAddress(to);
+        bufWriter.writeU256(amount);
+
+        return Buffer.from(bufWriter.getBuffer());
+    }
+
+    /**
+     * Verify the data integrity received by the client.
+     * @param {WrappedGeneration} generation - The generation parameters
+     * @returns {boolean} - True if the data is valid
+     * @throws {Error} - If the data is invalid
+     */
+    public verifyPublicKeysConstraints(generation: WrappedGeneration): boolean {
+        if (generation.constraints.minimum < 2) {
+            throw new Error('Minimum signatures must be at least 2');
+        }
+
+        if (
+            generation.keys.length < generation.constraints.transactionMinimum ||
+            generation.keys.length < generation.constraints.minimum
+        ) {
+            throw new Error('Not enough pub keys');
+        }
+
+        if (generation.keys.length > 255) {
+            throw new Error('Too many pub keys');
+        }
+
+        const generatedVault: string = this.generateVaultAddress(
+            generation.pubKeys,
+            generation.constraints.minimum,
+        );
+        if (generatedVault !== generation.vault) {
+            throw new Error(
+                `Invalid vault address. Expected: ${generatedVault} Got: ${generation.vault}`,
+            );
+        }
+
+        const passChecksum: Buffer = this.generateChecksumSalt(
+            generation,
+            this.amount,
+            generation.vault,
+        );
+
+        const checksum: string = BitcoinUtils.opnetHash(passChecksum);
+        if (checksum !== generation.signature) {
+            throw new Error(`Invalid checksum. Expected: ${checksum} Got: ${generation.signature}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Build the transaction
+     * @protected
+     *
+     * @throws {Error} If the leftover funds script redeem is required
+     * @throws {Error} If the leftover funds script redeem version is required
+     * @throws {Error} If the leftover funds script redeem output is required
+     * @throws {Error} If the to address is required
+     */
+    protected override buildTransaction(): void {
+        if (!this.to) throw new Error('To address is required');
+
+        const selectedRedeem = !!this.scriptSigner
+            ? this.targetScriptRedeem
+            : this.leftOverFundsScriptRedeem;
+
+        if (!selectedRedeem) {
+            throw new Error('Left over funds script redeem is required');
+        }
+
+        if (!selectedRedeem.redeemVersion) {
+            throw new Error('Left over funds script redeem version is required');
+        }
+
+        if (!selectedRedeem.output) {
+            throw new Error('Left over funds script redeem output is required');
+        }
+
+        this.tapLeafScript = {
+            leafVersion: selectedRedeem.redeemVersion,
+            script: selectedRedeem.output,
+            controlBlock: this.getWitness(),
+        };
+
+        this.addInputsFromUTXO();
+
+        const amountSpent: bigint = this.getTransactionOPNetFee();
+        this.addOutput({
+            value: Number(amountSpent),
+            address: this.to,
+        });
+
+        this.addVaultOutput();
+        this.addRefundOutput(amountSpent + this.amount);
+    }
+
+    /**
+     * Add the vault output
+     * @private
+     * @throws {Error} If no vault address is provided
+     * @throws {Error} If the amount is not a number
+     */
+    private addVaultOutput(): void {
+        if (!this.vault) {
+            throw new Error(`No vault address provided`);
+        }
+
+        const amountOutput: PsbtOutputExtendedAddress = {
+            address: this.vault,
+            value: Number(this.amount),
+        };
+
+        this.addOutput(amountOutput);
+    }
+
+    /**
+     * Generate a vault address
+     * @param {Buffer[]} keys
+     * @param {number} minimumSignatureRequired
+     * @private
+     * @returns {string}
+     */
+    private generateVaultAddress(keys: Buffer[], minimumSignatureRequired: number): string {
+        return EcKeyPair.generateMultiSigAddress(keys, minimumSignatureRequired, this.network);
+    }
+
+    /**
+     * Generate a wrapped checksum hash
+     * @param {WrappedGeneration} param
+     * @param {bigint} amount
+     * @param {string} vault
+     * @private
+     * @returns {Buffer}
+     */
+    private generateChecksumSalt(param: WrappedGeneration, amount: bigint, vault: string): Buffer {
+        const version: string = param.constraints.version;
+        const timestamp: number = param.constraints.timestamp;
+
+        const params: Buffer = Buffer.alloc(12 + version.length);
+        params.writeBigInt64BE(BigInt(timestamp), 0);
+        params.writeInt16BE(param.constraints.minimum, 8);
+        params.writeInt16BE(param.constraints.transactionMinimum, 10);
+        params.write(version, 12, version.length, 'utf-8');
+
+        return Buffer.concat([
+            ...param.pubKeys,
+            ...param.entities.map((entity: string) => Buffer.from(entity, 'utf-8')),
+            params,
+            Buffer.from(amount.toString(), 'utf-8'),
+            Buffer.from(vault, 'utf-8'),
+        ]);
+    }
+}

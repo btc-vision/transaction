@@ -37,10 +37,17 @@ export * from './transaction/enums/TransactionType.js';
 export * from './transaction/builders/InteractionTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
+export * from './transaction/builders/WrapTransaction.js';
+export * from './transaction/builders/SharedInteractionTransaction.js';
+export * from './transaction/builders/DeploymentTransaction.js';
+
+/** wBTC */
+export * from './wbtc/WrappedGenerationParameters.js';
+export * from './wbtc/Generate.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';
 
 /** UTXO */
 export * from './utxo/interfaces/IUTXO.js';
-export * from './utxo/UTXOManager.js';
+export * from './utxo/OPNetLimitedProvider.js';
