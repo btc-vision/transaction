@@ -11,12 +11,16 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
     constructor(parameters: IFundingTransactionParameters) {
         super(parameters);
 
-        this.childTransactionRequiredFees = parameters.childTransactionRequiredFees;
+        this.childTransactionRequiredFees = parameters.childTransactionRequiredValue;
 
         this.internalInit();
     }
 
     protected override buildTransaction(): void {
+        if (!this.to) {
+            throw new Error('Recipient address is required');
+        }
+
         this.addInputsFromUTXO();
 
         const amountSpent: bigint =

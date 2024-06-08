@@ -48,6 +48,11 @@ of the repository.
    npm i
    ```
 
+## Deployments and Wrapping
+
+To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to the [Wrap.md](./Wrap.md) guide.
+To learn how to deploy smart contracts on OP_NET, please refer to the [Deploy.md](./Deploy.md) guide.
+
 ## Usage
 
 Here's a basic example of how to use the OP_NET Transaction Builder library to create and sign a transaction:

@@ -12,6 +12,14 @@ import { ECPairInterface } from 'ecpair';
 import { Logger } from '@btc-vision/logger';
 
 /**
+ * The transaction sequence
+ */
+export enum TransactionSequence {
+    REPLACE_BY_FEE = 0xfffffffd,
+    FINAL = 0xffffffff,
+}
+
+/**
  * Allows to build a transaction like you would on Ethereum.
  * @description The transaction builder class
  * @abstract
@@ -27,11 +35,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';
-
     /**
      * @description Cost in satoshis of the transaction fee
      */
     public transactionFee: bigint = 0n;
+    /**
+     * @description The sequence of the transaction
+     * @protected
+     */
+    protected sequence: number = TransactionSequence.REPLACE_BY_FEE;
     /**
      * @description The transaction itself.
      */
@@ -93,7 +105,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @description The address where the transaction is sent to
      * @protected
      */
-    protected to: Address;
+    protected to: Address | undefined;
 
     /**
      * @description The address where the transaction is sent from
@@ -117,10 +129,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.feeRate = parameters.feeRate;
         this.priorityFee = parameters.priorityFee;
         this.utxos = parameters.utxos;
-        this.to = parameters.to;
-        this.from =
-            parameters.from ||
-            EcKeyPair.getTaprootAddress(this.signer as ECPairInterface, this.network);
+        this.to = parameters.to || undefined;
+
+        this.from = TransactionBuilder.getFrom(
+            parameters.from,
+            this.signer as ECPairInterface,
+            this.network,
+        );
 
         this.totalInputAmount = this.calculateTotalUTXOAmount();
         const totalVOut: bigint = this.calculateTotalVOutAmount();
@@ -138,6 +153,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         });
     }
 
+    public static getFrom(
+        from: string | undefined,
+        keypair: ECPairInterface,
+        network: Network,
+    ): Address {
+        return from || EcKeyPair.getTaprootAddress(keypair, network);
+    }
+
     public getFundingTransactionParameters(): IFundingTransactionParameters {
         return {
             utxos: this.utxos,
@@ -147,7 +170,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
             feeRate: this.feeRate,
             priorityFee: this.priorityFee,
             from: this.from,
-            childTransactionRequiredFees: this.transactionFee,
+            childTransactionRequiredValue: this.transactionFee,
         };
     }
 
@@ -175,12 +198,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @throws {Error} - If something went wrong
      */
     public signTransaction(): Transaction {
-        if (!this.to) throw new Error('Transaction must have a recipient');
-
-        if (!EcKeyPair.verifyContractAddress(this.to, this.network)) {
-            throw new Error(
-                'Invalid contract address. The contract address must be a taproot address.',
-            );
+        if (this.to) {
+            if (!EcKeyPair.verifyContractAddress(this.to, this.network)) {
+                throw new Error(
+                    'Invalid contract address. The contract address must be a taproot address.',
+                );
+            }
         }
 
         if (this.signed) throw new Error('Transaction is already signed');
@@ -222,8 +245,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     public disableRBF(): void {
         if (this.signed) throw new Error('Transaction is already signed');
 
+        this.sequence = TransactionSequence.FINAL;
+
         for (let input of this.inputs) {
-            input.sequence = 0xffffffff;
+            input.sequence = TransactionSequence.FINAL;
         }
     }
 
@@ -344,7 +369,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
                     value: Number(utxo.value),
                     script: Buffer.from(utxo.scriptPubKey.hex, 'hex'),
                 },
-                sequence: 0xfffffffd,
+                sequence: this.sequence,
             };
 
             this.addInput(input);

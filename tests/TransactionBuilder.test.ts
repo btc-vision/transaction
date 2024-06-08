@@ -5,9 +5,9 @@ import { networks } from 'bitcoinjs-lib';
 import {
     FetchUTXOParams,
     IInteractionParameters,
+    OPNetLimitedProvider,
     TransactionFactory,
     UTXO,
-    UTXOManager,
     Wallet,
     wBTC,
 } from '../src/index.js';
@@ -21,7 +21,7 @@ describe('Transaction Builder', () => {
     const wallet: Wallet = new Wallet(Regtest.wallet, network);
     logger.log(`Loaded wallet: ${wallet.p2tr} - ${wallet.p2wpkh}`);
 
-    const utxoManager: UTXOManager = new UTXOManager('http://localhost:9001');
+    const utxoManager: OPNetLimitedProvider = new OPNetLimitedProvider('http://localhost:9001');
     const factory: TransactionFactory = new TransactionFactory();
 
     /** @test {TransactionBuilder#build} */

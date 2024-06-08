@@ -5,13 +5,19 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import { ECPairInterface } from 'ecpair';
 import { Logger } from '@btc-vision/logger';
+export declare enum TransactionSequence {
+    REPLACE_BY_FEE = 4294967293,
+    FINAL = 4294967295
+}
 export declare abstract class TransactionBuilder<T extends TransactionType> extends Logger {
     static readonly LOCK_LEAF_SCRIPT: Buffer;
     static readonly MINIMUM_DUST: bigint;
     abstract readonly type: T;
     readonly logColor: string;
     transactionFee: bigint;
+    protected sequence: number;
     protected readonly transaction: Psbt;
     protected readonly inputs: PsbtInputExtended[];
     protected readonly updateInputs: UpdateInput[];
@@ -26,10 +32,11 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected readonly feeRate: number;
     protected readonly priorityFee: bigint;
     protected utxos: UTXO[];
-    protected to: Address;
+    protected to: Address | undefined;
     protected from: Address;
     private _maximumFeeRate;
     protected constructor(parameters: ITransactionParameters);
+    static getFrom(from: string | undefined, keypair: ECPairInterface, network: Network): Address;
     getFundingTransactionParameters(): IFundingTransactionParameters;
     setDestinationAddress(address: Address): void;
     setMaximumFeeRate(feeRate: number): void;
