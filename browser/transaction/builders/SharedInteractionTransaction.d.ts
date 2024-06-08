@@ -20,8 +20,6 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected abstract readonly contractSecret: Buffer;
     protected tweakedSigner?: Signer;
     protected readonly scriptSigner: Signer;
-    protected readonly interactionPubKeys: Buffer[];
-    protected readonly minimumSignatures: number;
     protected constructor(parameters: SharedInteractionParameters);
     getContractSecret(): Buffer;
     getRndBytes(): Buffer;

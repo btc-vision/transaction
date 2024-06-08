@@ -17,6 +17,8 @@ export declare class WrapTransaction extends SharedInteractionTransaction<Transa
     protected tapLeafScript: TapLeafScript | null;
     protected readonly contractSecret: Buffer;
     private readonly wbtc;
+    protected readonly interactionPubKeys: Buffer[];
+    protected readonly minimumSignatures: number;
     constructor(parameters: IWrapParameters);
     private static generateMintCalldata;
     verifyPublicKeysConstraints(generation: WrappedGeneration): boolean;

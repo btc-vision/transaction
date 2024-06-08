@@ -73,6 +73,18 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      */
     private readonly wbtc: wBTC;
 
+    /**
+     * Public keys specified in the interaction
+     * @protected
+     */
+    protected readonly interactionPubKeys: Buffer[] = [];
+
+    /**
+     * Minimum signatures required for the interaction
+     * @protected
+     */
+    protected readonly minimumSignatures: number = 0;
+
     public constructor(parameters: IWrapParameters) {
         if (parameters.amount < TransactionBuilder.MINIMUM_DUST) {
             throw new Error('Amount is below dust limit');
@@ -96,6 +108,9 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         this.to = this.wbtc.getAddress();
         this.receiver = receiver;
         this.amount = parameters.amount;
+
+        this.interactionPubKeys = parameters.generationParameters.pubKeys;
+        this.minimumSignatures = parameters.generationParameters.constraints.minimum;
 
         this.contractSecret = this.generateSecret();
 
