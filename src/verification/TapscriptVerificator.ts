@@ -1,4 +1,4 @@
-import bitcoin, { Network, networks, Payment, payments } from 'bitcoinjs-lib';
+import { crypto as bitCrypto, Network, networks, Payment, payments } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
@@ -50,10 +50,10 @@ export class TapscriptVerificator {
         bytecode: Buffer,
         saltHash: Buffer,
     ): Buffer {
-        const sha256OfBytecode: Buffer = bitcoin.crypto.hash256(bytecode);
+        const sha256OfBytecode: Buffer = bitCrypto.hash256(bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, saltHash, sha256OfBytecode]);
 
-        return bitcoin.crypto.hash256(buf);
+        return bitCrypto.hash256(buf);
     }
 
     public static generateContractVirtualAddress(

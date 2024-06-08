@@ -1,6 +1,6 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
-import bitcoin, { Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { crypto as bitCrypto, Payment, Psbt, Signer } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
@@ -290,12 +290,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         }
 
         const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
-        const salt: Buffer = bitcoin.crypto.hash256(this.randomBytes);
-        const sha256OfBytecode: Buffer = bitcoin.crypto.hash256(this.bytecode);
+        const salt: Buffer = bitCrypto.hash256(this.randomBytes);
+        const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
 
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
 
-        return bitcoin.crypto.hash256(buf);
+        return bitCrypto.hash256(buf);
     }
 
     /**
