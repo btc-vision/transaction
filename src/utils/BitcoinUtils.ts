@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto, { createHash } from 'crypto';
 
 /**
  * Utility class for Bitcoin related functions
@@ -19,9 +19,31 @@ export class BitcoinUtils {
      * @returns {Buffer} The random bytes
      */
     public static rndBytes(): Buffer {
-        const buf = crypto.getRandomValues(new Uint8Array(64));
+        const buf = BitcoinUtils.getRandomValues(64);
 
         return Buffer.from(buf);
+    }
+
+    public static getRandomValues(length: number): Buffer {
+        if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+            const array = new Uint8Array(length);
+            window.crypto.getRandomValues(array);
+
+            return Buffer.from(array);
+        } else if (crypto && typeof crypto.getRandomValues === 'function') {
+            const array = new Uint8Array(length);
+            crypto.getRandomValues(array);
+
+            return Buffer.from(array);
+        } else {
+            // Fallback to Math.random() if window.crypto is not available
+            const randomValues = [];
+            for (let i = 0; i < length; i++) {
+                randomValues.push(Math.floor(Math.random() * 256));
+            }
+
+            return Buffer.from(randomValues);
+        }
     }
 
     /**
@@ -30,7 +52,7 @@ export class BitcoinUtils {
      * @returns {string} The hashed data
      */
     public static opnetHash(data: Buffer): string {
-        const hashed = crypto.createHash('sha512');
+        const hashed = createHash('sha512');
         hashed.update(data);
 
         const hash = hashed.digest();

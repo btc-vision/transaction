@@ -50,8 +50,10 @@ of the repository.
 
 ## Deployments and Wrapping
 
-To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to the [Wrap.md](./Wrap.md) guide.
-To learn how to deploy smart contracts on OP_NET, please refer to the [Deploy.md](./Deploy.md) guide.
+To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to
+the [Wrap.md](https://github.com/btc-vision/transaction/blob/main/Wrap.md) guide.
+To learn how to deploy smart contracts on OP_NET, please refer to
+the [Deploy.md](https://github.com/btc-vision/transaction/blob/main/Deploy.md) guide.
 
 ## Usage
 
