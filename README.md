@@ -48,9 +48,10 @@ of the repository.
    npm i
    ```
 
-## wBTC
+## Deployments and Wrapping
 
 To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to the [Wrap.md](./Wrap.md) guide.
+To learn how to deploy smart contracts on OP_NET, please refer to the [Deploy.md](./Deploy.md) guide.
 
 ## Usage
 
