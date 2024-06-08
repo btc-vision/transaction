@@ -60,7 +60,7 @@ export class OPNetLimitedProvider {
                 scriptPubKey: utxo.scriptPubKey,
             });
 
-            if (currentAmount + utxoValue > amountRequested) {
+            if (currentAmount > amountRequested) {
                 break;
             }
         }
