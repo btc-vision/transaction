@@ -35,6 +35,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';
+
+    /**
+     * @description The overflow fees of the transaction
+     * @public
+     */
+    public overflowFees: bigint = 0n;
+
     /**
      * @description Cost in satoshis of the transaction fee
      */
@@ -95,7 +102,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     /**
      * @description The opnet priority fee of the transaction
      */
-    protected readonly priorityFee: bigint;
+    protected priorityFee: bigint;
     /**
      * @description The utxos used in the transaction
      */
@@ -131,6 +138,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
+        if (!this.utxos.length) {
+            throw new Error('No UTXOs specified');
+        }
+
         this.from = TransactionBuilder.getFrom(
             parameters.from,
             this.signer as ECPairInterface,
@@ -145,7 +156,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         }
 
         if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
-            throw new Error(`Value is less than the minimum dust`);
+            throw new Error(
+                `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
+            );
         }
 
         this.transaction = new Psbt({
@@ -162,6 +175,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     public getFundingTransactionParameters(): IFundingTransactionParameters {
+        if (!this.transactionFee) {
+            this.transactionFee = this.estimateTransactionFees();
+        }
+
         return {
             utxos: this.utxos,
             to: this.getScriptAddress(),
@@ -292,6 +309,30 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     /**
+     * Estimates the transaction fees.
+     * @public
+     * @returns {bigint} - The estimated transaction fees
+     */
+    public estimateTransactionFees(): bigint {
+        const fakeTx = new Psbt({
+            network: this.network,
+        });
+
+        const builtTx = this.internalBuildTransaction(fakeTx);
+        if (builtTx) {
+            const tx = fakeTx.extractTransaction(false);
+            const size = tx.virtualSize();
+            const fee: number = this.feeRate * size + 1;
+
+            return BigInt(Math.ceil(fee) + 1);
+        } else {
+            throw new Error(
+                `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
+            );
+        }
+    }
+
+    /**
      * @description Adds the refund output to the transaction
      * @param {bigint} amountSpent - The amount spent
      * @protected
@@ -310,8 +351,31 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         }
 
         this.warn(
-            `Amount to send back is less than the minimum dust, will be consumed in fees instead.`,
+            `Amount to send back (${sendBackAmount} sat) is less than the minimum dust (${TransactionBuilder.MINIMUM_DUST} sat), it will be consumed in fees instead.`,
         );
+    }
+
+    /**
+     * @description Adds the value to the output
+     * @param {number | bigint} value - The value to add
+     * @protected
+     * @returns {void}
+     */
+    protected addValueToToOutput(value: number | bigint): void {
+        if (value < TransactionBuilder.MINIMUM_DUST) {
+            throw new Error(
+                `Value to send is less than the minimum dust ${value} < ${TransactionBuilder.MINIMUM_DUST}`,
+            );
+        }
+
+        for (let output of this.outputs) {
+            if ('address' in output && output.address === this.to) {
+                output.value += Number(value);
+                return;
+            }
+        }
+
+        throw new Error('Output not found');
     }
 
     /**
@@ -531,17 +595,35 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     protected setFeeOutput(output: PsbtOutputExtended): void {
         const initialValue = output.value;
 
-        this.feeOutput = output;
+        let fee = this.estimateTransactionFees();
+        output.value = initialValue - Number(fee);
 
-        const fee = this.estimateTransactionFees();
-        if (fee > BigInt(initialValue)) {
-            throw new Error('Insufficient funds');
-        }
-
-        this.feeOutput.value = initialValue - Number(fee);
-
-        if (this.feeOutput.value < TransactionBuilder.MINIMUM_DUST) {
+        if (output.value < TransactionBuilder.MINIMUM_DUST) {
             this.feeOutput = null;
+
+            if (output.value < 0) {
+                throw new Error(
+                    `Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                );
+            }
+        } else {
+            this.feeOutput = output;
+
+            let fee = this.estimateTransactionFees();
+            if (fee > BigInt(initialValue)) {
+                throw new Error(
+                    `Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                );
+            }
+
+            const valueLeft = initialValue - Number(fee);
+            if (valueLeft < TransactionBuilder.MINIMUM_DUST) {
+                this.feeOutput = null;
+            } else {
+                this.feeOutput.value = valueLeft;
+            }
+
+            this.overflowFees = BigInt(valueLeft);
         }
     }
 
@@ -606,29 +688,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         }
 
         return false;
-    }
-
-    /**
-     * Estimates the transaction fees.
-     * @private
-     */
-    private estimateTransactionFees(): bigint {
-        const fakeTx = new Psbt({
-            network: this.network,
-        });
-
-        const builtTx = this.internalBuildTransaction(fakeTx);
-        if (builtTx) {
-            const tx = fakeTx.extractTransaction(false);
-            const size = tx.virtualSize();
-            const fee: number = this.feeRate * size + 1;
-
-            return BigInt(Math.ceil(fee));
-        } else {
-            throw new Error(
-                `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
-            );
-        }
     }
 }
 

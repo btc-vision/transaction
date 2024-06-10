@@ -11,6 +11,12 @@ export interface FetchUTXOParams {
     readonly requestedAmount: bigint;
     readonly optimized?: boolean;
 }
+export interface FetchUTXOParamsMultiAddress {
+    readonly addresses: string[];
+    readonly minAmount: bigint;
+    readonly requestedAmount: bigint;
+    readonly optimized?: boolean;
+}
 export interface RawUTXOResponse {
     readonly transactionId: string;
     readonly outputIndex: number;

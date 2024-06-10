@@ -225,10 +225,17 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             return;
         }
 
-        transaction.signInput(0, this.contractSigner);
-        transaction.signInput(0, this.getSignerKey());
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                transaction.signInput(0, this.contractSigner);
+                transaction.signInput(0, this.getSignerKey());
 
-        transaction.finalizeInput(0, this.customFinalizer);
+                transaction.finalizeInput(0, this.customFinalizer);
+            } else {
+                transaction.signInput(i, this.getSignerKey());
+                transaction.finalizeInput(i);
+            }
+        }
     }
 
     /**

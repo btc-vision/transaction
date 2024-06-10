@@ -1,4 +1,4 @@
-import { FetchUTXOParams, RawUTXOResponse, UTXO } from './interfaces/IUTXO.js';
+import { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO } from './interfaces/IUTXO.js';
 import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
 import { WrappedGenerationParameters } from '../wbtc/Generate.js';
 
@@ -52,6 +52,11 @@ export class OPNetLimitedProvider {
         for (const utxo of meetCriteria) {
             const utxoValue: bigint = BigInt(utxo.value);
 
+            // check if value is greater than 0
+            if (utxoValue <= 0n) {
+                continue;
+            }
+
             currentAmount += utxoValue;
             finalUTXOs.push({
                 transactionId: utxo.transactionId,
@@ -66,6 +71,34 @@ export class OPNetLimitedProvider {
         }
 
         return finalUTXOs;
+    }
+
+    /**
+     * Fetches UTXO data from the OPNET node for multiple addresses
+     * @param {FetchUTXOParamsMultiAddress} settings - The settings to fetch UTXO data
+     * @returns {Promise<UTXO[]>} - The UTXOs fetched
+     * @throws {Error} - If UTXOs could not be fetched
+     */
+    public async fetchUTXOMultiAddr(settings: FetchUTXOParamsMultiAddress): Promise<UTXO[]> {
+        const promises: Promise<UTXO[]>[] = [];
+
+        for (let address of settings.addresses) {
+            const params: FetchUTXOParams = {
+                address: address,
+                minAmount: settings.minAmount,
+                requestedAmount: settings.requestedAmount,
+                optimized: settings.optimized,
+            };
+
+            const promise = this.fetchUTXO(params).catch((e) => {
+                return [];
+            });
+
+            promises.push(promise);
+        }
+
+        const utxos: UTXO[][] = await Promise.all(promises);
+        return utxos.flat();
     }
 
     /**

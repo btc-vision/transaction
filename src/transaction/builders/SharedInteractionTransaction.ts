@@ -153,7 +153,7 @@ export abstract class SharedInteractionTransaction<
                 tapLeafScript: [this.tapLeafScript],
                 sequence: this.sequence,
             };
-
+            
             this.addInput(input);
         }
     }
@@ -215,10 +215,21 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        transaction.signInput(0, this.scriptSigner);
-        transaction.signInput(0, this.getSignerKey());
+        /*if (this.inputs.length !== 1) {
+            throw new Error('Only one input is allowed');
+        }*/
 
-        transaction.finalizeInput(0, this.customFinalizer);
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                transaction.signInput(0, this.scriptSigner);
+                transaction.signInput(0, this.getSignerKey());
+
+                transaction.finalizeInput(0, this.customFinalizer);
+            } else {
+                transaction.signInput(i, this.getSignerKey());
+                transaction.finalizeInput(i);
+            }
+        }
     }
 
     /**

@@ -11,6 +11,7 @@ import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { wBTC } from '../metadata/contracts/wBTC.js';
 import { WrapTransaction } from './builders/WrapTransaction.js';
 
 export interface DeploymentResult {
@@ -33,6 +34,30 @@ export class TransactionFactory {
      * @returns {[Transaction, Transaction]} - The signed transaction
      */
     public signInteraction(interactionParameters: IInteractionParameters): [string, string] {
+        if (!interactionParameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+
+        const transaction: InteractionTransaction = new InteractionTransaction(
+            interactionParameters,
+        );
+
+        transaction.signTransaction();
+
+        // Initial generation
+        const estimatedGas = transaction.estimateTransactionFees();
+        const fundingParameters: IFundingTransactionParameters = {
+            ...interactionParameters,
+            childTransactionRequiredValue: estimatedGas,
+        };
+
+        const preFundingTransaction: Transaction = this.createFundTransaction(fundingParameters);
+        interactionParameters.utxos = this.getUTXOAsTransaction(
+            preFundingTransaction,
+            interactionParameters.to,
+            0,
+        );
+
         const preTransaction: InteractionTransaction = new InteractionTransaction(
             interactionParameters,
         );
@@ -43,26 +68,17 @@ export class TransactionFactory {
         const parameters: IFundingTransactionParameters =
             preTransaction.getFundingTransactionParameters();
 
-        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
-        const signedTransaction: Transaction = fundingTransaction.signTransaction();
+        parameters.utxos = fundingParameters.utxos;
+        parameters.childTransactionRequiredValue = preTransaction.estimateTransactionFees();
+
+        const signedTransaction: Transaction = this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        const out: Output = signedTransaction.outs[0];
-        const newUtxo: UTXO = {
-            transactionId: signedTransaction.getId(),
-            outputIndex: 0, // always 0
-            scriptPubKey: {
-                hex: out.script.toString('hex'),
-                address: preTransaction.getScriptAddress(),
-            },
-            value: BigInt(out.value),
-        };
-
         const newParams: IInteractionParameters = {
             ...interactionParameters,
-            utxos: [newUtxo],
+            utxos: this.getUTXOAsTransaction(signedTransaction, interactionParameters.to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
         };
 
@@ -125,7 +141,25 @@ export class TransactionFactory {
         };
     }
 
+    /**
+     * Basically it's fun to manage UTXOs.
+     * @param {IWrapParameters} warpParameters - The wrap parameters
+     * @returns {WrapResult | undefined} - The signed transaction
+     * @throws {Error} - If the transaction could not be signed
+     */
     public wrap(warpParameters: IWrapParameters): WrapResult {
+        const wbtc: wBTC = new wBTC(warpParameters.network);
+
+        const to = wbtc.getAddress();
+        const fundingParameters: IFundingTransactionParameters = {
+            ...warpParameters,
+            childTransactionRequiredValue: warpParameters.amount,
+            to: to,
+        };
+
+        const preFundingTransaction: Transaction = this.createFundTransaction(fundingParameters);
+        warpParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction, to, 0);
+
         const preTransaction: WrapTransaction = new WrapTransaction(warpParameters);
 
         // Initial generation
@@ -136,27 +170,16 @@ export class TransactionFactory {
 
         // We add the amount
         parameters.childTransactionRequiredValue += warpParameters.amount;
+        parameters.utxos = fundingParameters.utxos;
 
-        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
-        const signedTransaction: Transaction = fundingTransaction.signTransaction();
+        const signedTransaction: Transaction = this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        const out: Output = signedTransaction.outs[0];
-        const newUtxo: UTXO = {
-            transactionId: signedTransaction.getId(),
-            outputIndex: 0, // always 0
-            scriptPubKey: {
-                hex: out.script.toString('hex'),
-                address: preTransaction.getScriptAddress(),
-            },
-            value: BigInt(out.value),
-        };
-
         const newParams: IWrapParameters = {
             ...warpParameters,
-            utxos: [newUtxo],
+            utxos: this.getUTXOAsTransaction(signedTransaction, to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
         };
 
@@ -171,5 +194,30 @@ export class TransactionFactory {
             amount: finalTransaction.amount,
             receiverAddress: finalTransaction.receiver,
         };
+    }
+
+    private getUTXOAsTransaction(tx: Transaction, to: Address, index: number): UTXO[] {
+        const out: Output = tx.outs[index];
+        const newUtxo: UTXO = {
+            transactionId: tx.getId(),
+            outputIndex: index,
+            scriptPubKey: {
+                hex: out.script.toString('hex'),
+                address: to,
+            },
+            value: BigInt(out.value),
+        };
+
+        return [newUtxo];
+    }
+
+    private createFundTransaction(parameters: IFundingTransactionParameters): Transaction {
+        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
+        const signedTransaction: Transaction = fundingTransaction.signTransaction();
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        return signedTransaction;
     }
 }

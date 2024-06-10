@@ -16,6 +16,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     static readonly MINIMUM_DUST: bigint;
     abstract readonly type: T;
     readonly logColor: string;
+    overflowFees: bigint;
     transactionFee: bigint;
     protected sequence: number;
     protected readonly transaction: Psbt;
@@ -30,7 +31,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected readonly signer: Signer;
     protected readonly network: Network;
     protected readonly feeRate: number;
-    protected readonly priorityFee: bigint;
+    protected priorityFee: bigint;
     protected utxos: UTXO[];
     protected to: Address | undefined;
     protected from: Address;
@@ -47,7 +48,9 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     getTapAddress(): string;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
+    estimateTransactionFees(): bigint;
     protected addRefundOutput(amountSpent: bigint): void;
+    protected addValueToToOutput(value: number | bigint): void;
     protected getTransactionOPNetFee(): bigint;
     protected calculateTotalUTXOAmount(): bigint;
     protected calculateTotalVOutAmount(): bigint;
@@ -68,5 +71,4 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected internalPubKeyToXOnly(): Buffer;
     protected signInputs(transaction: Psbt): void;
     private internalBuildTransaction;
-    private estimateTransactionFees;
 }
