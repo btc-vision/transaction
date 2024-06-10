@@ -15,4 +15,6 @@ export declare class TransactionFactory {
     signInteraction(interactionParameters: IInteractionParameters): [string, string];
     signDeployment(deploymentParameters: IDeploymentParameters): DeploymentResult;
     wrap(warpParameters: IWrapParameters): WrapResult;
+    private getUTXOAsTransaction;
+    private createFundTransaction;
 }
