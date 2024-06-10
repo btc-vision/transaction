@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
-import { Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { Payment, Psbt } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { Address } from '@btc-vision/bsi-binary';
 export declare class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
@@ -11,7 +11,6 @@ export declare class DeploymentTransaction extends TransactionBuilder<Transactio
     private leftOverFundsScriptRedeem;
     private readonly compiledTargetScript;
     private readonly scriptTree;
-    private readonly tweakedSigner;
     private tapLeafScript;
     private deploymentGenerator;
     private readonly contractSeed;
@@ -26,13 +25,10 @@ export declare class DeploymentTransaction extends TransactionBuilder<Transactio
     protected addInputsFromUTXO(): void;
     protected buildTransaction(): void;
     protected signInputs(transaction: Psbt): void;
-    protected getSignerKey(): Signer;
     protected generateScriptAddress(): Payment;
     protected generateTapData(): Payment;
     private getContractSeed;
     private customFinalizer;
-    private getTweakerHash;
-    private getTweakedSigner;
     private getPubKeys;
     private generateRedeemScripts;
     private getLeafScript;

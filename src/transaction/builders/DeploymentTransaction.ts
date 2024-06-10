@@ -9,7 +9,6 @@ import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
-import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { Address } from '@btc-vision/bsi-binary';
@@ -46,12 +45,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @private
      */
     private readonly scriptTree: Taptree;
-
-    /**
-     * The tweaked signer
-     * @private
-     */
-    private readonly tweakedSigner: Signer | undefined;
 
     /**
      * The tap leaf script
@@ -227,6 +220,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             if (i === 0) {
+                // multi sig input
                 transaction.signInput(0, this.contractSigner);
                 transaction.signInput(0, this.getSignerKey());
 
@@ -236,18 +230,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 transaction.finalizeInput(i);
             }
         }
-    }
-
-    /**
-     * Get the signer key
-     * @protected
-     */
-    protected getSignerKey(): Signer {
-        if (this.tweakedSigner) {
-            return this.tweakedSigner;
-        }
-
-        return this.signer;
     }
 
     /**
@@ -334,31 +316,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             finalScriptWitness: this.witnessStackToScriptWitness(witness),
         };
     };
-
-    /**
-     * Tweaked hash
-     * @private
-     */
-    private getTweakerHash(): Buffer | undefined {
-        return this.tapData?.hash;
-    }
-
-    /**
-     * Get the tweaked signer
-     * @param {boolean} useTweakedHash
-     * @private
-     */
-    private getTweakedSigner(useTweakedHash: boolean = false): Signer {
-        const settings: TweakSettings = {
-            network: this.network,
-        };
-
-        if (useTweakedHash) {
-            settings.tweakHash = this.getTweakerHash();
-        }
-
-        return TweakedSigner.tweakSigner(this.signer, settings);
-    }
 
     /**
      * Get the public keys for the redeem scripts

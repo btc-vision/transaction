@@ -51,9 +51,9 @@ export class TransactionFactory {
             childTransactionRequiredValue: estimatedGas,
         };
 
-        const preFundingTransaction: Transaction = this.createFundTransaction(fundingParameters);
+        const preFundingTransaction = this.createFundTransaction(fundingParameters);
         interactionParameters.utxos = this.getUTXOAsTransaction(
-            preFundingTransaction,
+            preFundingTransaction.tx,
             interactionParameters.to,
             0,
         );
@@ -71,15 +71,16 @@ export class TransactionFactory {
         parameters.utxos = fundingParameters.utxos;
         parameters.childTransactionRequiredValue = preTransaction.estimateTransactionFees();
 
-        const signedTransaction: Transaction = this.createFundTransaction(parameters);
+        const signedTransaction = this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
         const newParams: IInteractionParameters = {
             ...interactionParameters,
-            utxos: this.getUTXOAsTransaction(signedTransaction, interactionParameters.to, 0), // always 0
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
         };
 
         const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
@@ -87,7 +88,7 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Transaction = finalTransaction.signTransaction();
 
-        return [signedTransaction.toHex(), outTx.toHex()];
+        return [signedTransaction.tx.toHex(), outTx.toHex()];
     }
 
     /**
@@ -157,8 +158,8 @@ export class TransactionFactory {
             to: to,
         };
 
-        const preFundingTransaction: Transaction = this.createFundTransaction(fundingParameters);
-        warpParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction, to, 0);
+        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        warpParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
         const preTransaction: WrapTransaction = new WrapTransaction(warpParameters);
 
@@ -172,14 +173,14 @@ export class TransactionFactory {
         parameters.childTransactionRequiredValue += warpParameters.amount;
         parameters.utxos = fundingParameters.utxos;
 
-        const signedTransaction: Transaction = this.createFundTransaction(parameters);
+        const signedTransaction = this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
         const newParams: IWrapParameters = {
             ...warpParameters,
-            utxos: this.getUTXOAsTransaction(signedTransaction, to, 0), // always 0
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
         };
 
@@ -189,7 +190,7 @@ export class TransactionFactory {
         const outTx: Transaction = finalTransaction.signTransaction();
 
         return {
-            transaction: [signedTransaction.toHex(), outTx.toHex()],
+            transaction: [signedTransaction.tx.toHex(), outTx.toHex()],
             vaultAddress: finalTransaction.vault,
             amount: finalTransaction.amount,
             receiverAddress: finalTransaction.receiver,
@@ -211,13 +212,19 @@ export class TransactionFactory {
         return [newUtxo];
     }
 
-    private createFundTransaction(parameters: IFundingTransactionParameters): Transaction {
+    private createFundTransaction(parameters: IFundingTransactionParameters): {
+        tx: Transaction;
+        original: FundingTransaction;
+    } {
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = fundingTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        return signedTransaction;
+        return {
+            tx: signedTransaction,
+            original: fundingTransaction,
+        };
     }
 }

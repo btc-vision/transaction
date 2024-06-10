@@ -7,6 +7,7 @@ import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { Logger } from '@btc-vision/logger';
+import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 export declare enum TransactionSequence {
     REPLACE_BY_FEE = 4294967293,
     FINAL = 4294967295
@@ -35,6 +36,8 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected utxos: UTXO[];
     protected to: Address | undefined;
     protected from: Address;
+    protected tweakedSigner?: Signer;
+    protected nonWitnessUtxo?: Buffer;
     private _maximumFeeRate;
     protected constructor(parameters: ITransactionParameters);
     static getFrom(from: string | undefined, keypair: ECPairInterface, network: Network): Address;
@@ -48,11 +51,15 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     getTapAddress(): string;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
+    toBase64(): string;
     estimateTransactionFees(): bigint;
     protected addRefundOutput(amountSpent: bigint): void;
     protected addValueToToOutput(value: number | bigint): void;
     protected getTransactionOPNetFee(): bigint;
     protected calculateTotalUTXOAmount(): bigint;
+    protected tweakSigner(): void;
+    protected getTweakerHash(): Buffer | undefined;
+    protected getTweakedSigner(useTweakedHash?: boolean): Signer;
     protected calculateTotalVOutAmount(): bigint;
     protected addInputsFromUTXO(): void;
     protected witnessStackToScriptWitness(witness: Buffer[]): Buffer;
@@ -67,8 +74,10 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected getOutputs(): PsbtOutputExtended[];
     protected verifyUTXOValidity(): void;
     protected setFeeOutput(output: PsbtOutputExtended): void;
-    protected abstract getSignerKey(): Signer;
+    protected getSignerKey(): Signer;
     protected internalPubKeyToXOnly(): Buffer;
     protected signInputs(transaction: Psbt): void;
+    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void;
+    private getP2TRAddressLeafScript;
     private internalBuildTransaction;
 }

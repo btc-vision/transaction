@@ -18,27 +18,22 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected readonly calldataGenerator: CalldataGenerator;
     protected readonly calldata: Buffer;
     protected abstract readonly contractSecret: Buffer;
-    protected tweakedSigner?: Signer;
     protected readonly scriptSigner: Signer;
     protected constructor(parameters: SharedInteractionParameters);
     getContractSecret(): Buffer;
     getRndBytes(): Buffer;
     protected generateSecret(): Buffer;
-    protected tweakSigner(): void;
     protected scriptSignerXOnlyPubKey(): Buffer;
     protected generateKeyPairFromSeed(): ECPairInterface;
     protected addInputsFromUTXO(): void;
     protected buildTransaction(): void;
     protected signInputs(transaction: Psbt): void;
-    protected getSignerKey(): Signer;
     protected generateScriptAddress(): Payment;
     protected generateTapData(): Payment;
     protected getScriptSolution(input: PsbtInput): Buffer[];
     protected getScriptTree(): Taptree;
     private getPubKeys;
     private customFinalizer;
-    private getTweakerHash;
-    private getTweakedSigner;
     private generateRedeemScripts;
     private getLeafScript;
 }

@@ -8,6 +8,7 @@ export interface ITransactionParameters {
     readonly from?: Address;
     readonly to?: Address | undefined;
     utxos: UTXO[];
+    nonWitnessUtxo?: Buffer | undefined;
     readonly signer: Signer;
     readonly network: Network;
     readonly feeRate: number;

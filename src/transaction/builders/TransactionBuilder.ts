@@ -10,6 +10,9 @@ import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { Logger } from '@btc-vision/logger';
+import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
+import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 
 /**
  * The transaction sequence
@@ -119,6 +122,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @protected
      */
     protected from: Address;
+    /**
+     * The tweaked signer for the interaction (if any)
+     * @protected
+     */
+    protected tweakedSigner?: Signer;
+
+    /**
+     * Add a non-witness utxo to the transaction
+     * @protected
+     */
+    protected nonWitnessUtxo?: Buffer;
 
     /**
      * @description The maximum fee rate of the transaction
@@ -137,6 +151,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.priorityFee = parameters.priorityFee;
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
+        this.nonWitnessUtxo = parameters.nonWitnessUtxo;
 
         if (!this.utxos.length) {
             throw new Error('No UTXOs specified');
@@ -309,6 +324,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     /**
+     * Get the transaction PSBT as a base64 string.
+     * @public
+     * @returns {string} - The transaction as a base64 string
+     */
+    public toBase64(): string {
+        return this.transaction.toBase64();
+    }
+
+    /**
      * Estimates the transaction fees.
      * @public
      * @returns {bigint} - The estimated transaction fees
@@ -342,10 +366,18 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         /** Add the refund output */
         const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
-            this.setFeeOutput({
-                value: Number(sendBackAmount),
-                address: this.from,
-            });
+            if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
+                this.setFeeOutput({
+                    value: Number(sendBackAmount),
+                    address: this.from,
+                    tapInternalKey: this.internalPubKeyToXOnly(),
+                });
+            } else {
+                this.setFeeOutput({
+                    value: Number(sendBackAmount),
+                    address: this.from,
+                });
+            }
 
             return;
         }
@@ -406,6 +438,46 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     /**
+     * Tweak the signer for the interaction
+     * @protected
+     */
+    protected tweakSigner(): void {
+        if (this.tweakedSigner) return;
+
+        // tweaked p2tr signer.
+        this.tweakedSigner = this.getTweakedSigner(true);
+    }
+
+    /**
+     * Get the tweaked hash
+     * @private
+     *
+     * @returns {Buffer | undefined} The tweaked hash
+     */
+    protected getTweakerHash(): Buffer | undefined {
+        return this.tapData?.hash;
+    }
+
+    /**
+     * Get the tweaked signer
+     * @param {boolean} useTweakedHash Whether to use the tweaked hash
+     * @private
+     *
+     * @returns {Signer} The tweaked signer
+     */
+    protected getTweakedSigner(useTweakedHash: boolean = false): Signer {
+        const settings: TweakSettings = {
+            network: this.network,
+        };
+
+        if (useTweakedHash) {
+            settings.tweakHash = this.getTweakerHash();
+        }
+
+        return TweakedSigner.tweakSigner(this.signer as ECPairInterface, settings);
+    }
+
+    /**
      * @description Returns the total amount of satoshis in the outputs
      * @protected
      * @returns {bigint}
@@ -425,7 +497,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @returns {void}
      */
     protected addInputsFromUTXO(): void {
-        for (let utxo of this.utxos) {
+        for (let i = 0; i < this.utxos.length; i++) {
+            let utxo = this.utxos[i];
+
             const input: PsbtInputExtended = {
                 hash: utxo.transactionId,
                 index: utxo.outputIndex,
@@ -435,6 +509,21 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
                 },
                 sequence: this.sequence,
             };
+
+            if (i === 0 && this.nonWitnessUtxo) {
+                input.nonWitnessUtxo = this.nonWitnessUtxo;
+                this.log(`Using non-witness utxo for input ${i}`);
+            }
+
+            // automatically detect p2tr inputs.
+            if (
+                utxo.scriptPubKey.address &&
+                AddressVerificator.isValidP2TRAddress(utxo.scriptPubKey.address, this.network)
+            ) {
+                this.tweakSigner();
+
+                input.tapInternalKey = this.internalPubKeyToXOnly();
+            }
 
             this.addInput(input);
         }
@@ -632,7 +721,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @protected
      * @returns {Signer}
      */
-    protected abstract getSignerKey(): Signer;
+    protected getSignerKey(): Signer {
+        return this.signer;
+    }
 
     /**
      * Converts the public key to x-only.
@@ -650,8 +741,35 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @returns {void}
      */
     protected signInputs(transaction: Psbt): void {
-        transaction.signAllInputs(this.getSignerKey());
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            let input: PsbtInput = transaction.data.inputs[i];
+
+            this.signInput(transaction, input, i);
+        }
+
         transaction.finalizeAllInputs();
+    }
+
+    /**
+     * Signs an input of the transaction.
+     * @param {Psbt} transaction - The transaction to sign
+     * @param {PsbtInput} input - The input to sign
+     * @param {number} i - The index of the input
+     * @param {Signer} [signer] - The signer to use
+     * @protected
+     */
+    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
+        if (input.tapInternalKey) {
+            if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
+            transaction.signTaprootInput(i, this.tweakedSigner);
+        } else {
+            transaction.signInput(i, signer || this.getSignerKey());
+        }
+    }
+
+    private getP2TRAddressLeafScript(): Buffer {
+        const leafScriptAsm = `${this.internalPubKeyToXOnly().toString('hex')} OP_CHECKSIG`;
+        return script.fromASM(leafScriptAsm);
     }
 
     /**
