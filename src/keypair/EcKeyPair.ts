@@ -4,6 +4,7 @@ import { ECPairFactory, ECPairInterface } from 'ecpair';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { Address } from '@btc-vision/bsi-binary';
 import { IWallet } from './interfaces/IWallet.js';
+import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 
 initEccLib(ecc);
 
@@ -212,16 +213,16 @@ export class EcKeyPair {
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
     ): Address {
-        const myXOnlyPubkey = keyPair.publicKey.slice(1, 33);
+        const { address } = payments.p2tr({
+            internalPubkey: toXOnly(keyPair.publicKey),
+            network: network,
+        });
 
-        const output = Buffer.concat([
-            // witness v1, PUSH_DATA 32 bytes
-            Buffer.from([0x51, 0x20]),
-            // x-only pubkey (remove 1 byte y parity)
-            myXOnlyPubkey,
-        ]);
+        if (!address) {
+            throw new Error(`Failed to generate sender address for transaction`);
+        }
 
-        return address.fromOutputScript(output, network);
+        return address;
     }
 
     /**

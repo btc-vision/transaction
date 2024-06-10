@@ -59,18 +59,6 @@ export abstract class SharedInteractionTransaction<
      */
     protected readonly scriptSigner: Signer;
 
-    /**
-     * Public keys specified in the interaction
-     * @protected
-     */
-    protected readonly interactionPubKeys: Buffer[] = [];
-
-    /**
-     * Minimum signatures required for the interaction
-     * @protected
-     */
-    protected readonly minimumSignatures: number = 0;
-
     protected constructor(parameters: SharedInteractionParameters) {
         super(parameters);
 
