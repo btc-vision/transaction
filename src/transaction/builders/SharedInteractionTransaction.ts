@@ -11,7 +11,6 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 
 /**
  * Shared interaction transaction
@@ -46,12 +45,6 @@ export abstract class SharedInteractionTransaction<
      * @protected
      */
     protected abstract readonly contractSecret: Buffer;
-
-    /**
-     * The tweaked signer for the interaction (if any)
-     * @protected
-     */
-    protected tweakedSigner?: Signer;
 
     /**
      * Script signer for the interaction
@@ -107,14 +100,6 @@ export abstract class SharedInteractionTransaction<
     }
 
     /**
-     * Tweak the signer for the interaction
-     * @protected
-     */
-    protected tweakSigner(): void {
-        this.tweakedSigner = this.getTweakedSigner();
-    }
-
-    /**
      * Get the internal pubkey as an x-only key
      * @protected
      * @returns {Buffer} The internal pubkey as an x-only key
@@ -142,7 +127,8 @@ export abstract class SharedInteractionTransaction<
     protected override addInputsFromUTXO(): void {
         if (!this.tapLeafScript) throw new Error('Tap leaf script is required');
 
-        for (let utxo of this.utxos) {
+        for (let i = 0; i < this.utxos.length; i++) {
+            let utxo = this.utxos[i];
             const input: PsbtInputExtended = {
                 hash: utxo.transactionId,
                 index: utxo.outputIndex,
@@ -153,7 +139,12 @@ export abstract class SharedInteractionTransaction<
                 tapLeafScript: [this.tapLeafScript],
                 sequence: this.sequence,
             };
-            
+
+            if (i === 0 && this.nonWitnessUtxo) {
+                //input.nonWitnessUtxo = this.nonWitnessUtxo;
+                this.log(`Using non-witness utxo for input ${i}`);
+            }
+
             this.addInput(input);
         }
     }
@@ -215,35 +206,20 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        /*if (this.inputs.length !== 1) {
-            throw new Error('Only one input is allowed');
-        }*/
-
         for (let i = 0; i < transaction.data.inputs.length; i++) {
+            let input: PsbtInput = transaction.data.inputs[i];
+
             if (i === 0) {
-                transaction.signInput(0, this.scriptSigner);
-                transaction.signInput(0, this.getSignerKey());
+                this.signInput(transaction, input, i, this.scriptSigner);
+                this.signInput(transaction, input, i);
 
                 transaction.finalizeInput(0, this.customFinalizer);
             } else {
-                transaction.signInput(i, this.getSignerKey());
+                this.signInput(transaction, input, i);
+
                 transaction.finalizeInput(i);
             }
         }
-    }
-
-    /**
-     * Get the signer
-     * @protected
-     *
-     * @returns {Signer} The signer
-     */
-    protected getSignerKey(): Signer {
-        if (this.tweakedSigner) {
-            return this.tweakedSigner;
-        }
-
-        return this.signer;
     }
 
     protected override generateScriptAddress(): Payment {
@@ -364,35 +340,6 @@ export abstract class SharedInteractionTransaction<
             finalScriptWitness: this.witnessStackToScriptWitness(witness),
         };
     };
-
-    /**
-     * Get the tweaked hash
-     * @private
-     *
-     * @returns {Buffer | undefined} The tweaked hash
-     */
-    private getTweakerHash(): Buffer | undefined {
-        return this.tapData?.hash;
-    }
-
-    /**
-     * Get the tweaked signer
-     * @param {boolean} useTweakedHash Whether to use the tweaked hash
-     * @private
-     *
-     * @returns {Signer} The tweaked signer
-     */
-    private getTweakedSigner(useTweakedHash: boolean = false): Signer {
-        const settings: TweakSettings = {
-            network: this.network,
-        };
-
-        if (useTweakedHash) {
-            settings.tweakHash = this.getTweakerHash();
-        }
-
-        return TweakedSigner.tweakSigner(this.signer, settings);
-    }
 
     /**
      * Generate the redeem scripts
