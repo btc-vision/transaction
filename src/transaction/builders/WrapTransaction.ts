@@ -111,6 +111,12 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         this.to = this.wbtc.getAddress();
         this.receiver = receiver;
         this.amount = parameters.amount;
+        
+        if (this.totalInputAmount < this.amount) {
+            throw new Error(
+                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
+            );
+        }
 
         if (this.totalInputAmount < this.amount) {
             throw new Error(
