@@ -8,6 +8,7 @@ export * from './verification/TapscriptVerificator.js';
 export * from './keypair/EcKeyPair.js';
 export * from './keypair/Wallet.js';
 export * from './keypair/interfaces/IWallet.js';
+export * from './keypair/AddressVerificator.js';
 export * from './metadata/contracts/wBTC.js';
 export * from './metadata/ContractBaseMetadata.js';
 export * from './network/NetworkInformation.js';

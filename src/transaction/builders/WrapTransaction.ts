@@ -10,6 +10,8 @@ import { ECPairInterface } from 'ecpair';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
+import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { Network } from 'bitcoinjs-lib';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -66,24 +68,21 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      * @protected
      */
     protected readonly contractSecret: Buffer;
-
-    /**
-     * The wBTC contract
-     * @private
-     */
-    private readonly wbtc: wBTC;
-
     /**
      * Public keys specified in the interaction
      * @protected
      */
     protected readonly interactionPubKeys: Buffer[] = [];
-
     /**
      * Minimum signatures required for the interaction
      * @protected
      */
     protected readonly minimumSignatures: number = 0;
+    /**
+     * The wBTC contract
+     * @private
+     */
+    private readonly wbtc: wBTC;
 
     public constructor(parameters: IWrapParameters) {
         if (parameters.amount < TransactionBuilder.MINIMUM_DUST) {
@@ -98,7 +97,11 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
                 parameters.network,
             );
 
-        parameters.calldata = WrapTransaction.generateMintCalldata(parameters.amount, receiver);
+        parameters.calldata = WrapTransaction.generateMintCalldata(
+            parameters.amount,
+            receiver,
+            parameters.network,
+        );
 
         super(parameters);
 
@@ -135,12 +138,19 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      * Generate a valid wBTC calldata
      * @param {bigint} amount - The amount to wrap
      * @param {Address} to - The address to send the wrapped tokens to
+     * @param {Network} network - The network to use
      * @private
      * @returns {Buffer} - The calldata
      */
-    private static generateMintCalldata(amount: bigint, to: Address): Buffer {
+    private static generateMintCalldata(amount: bigint, to: Address, network: Network): Buffer {
         if (!amount) throw new Error('Amount is required');
         if (!to) throw new Error('To address is required');
+
+        if (!AddressVerificator.isValidP2TRAddress(to, network)) {
+            throw new Error(
+                `Oops! The address ${to} is not a valid P2TR address! If your wrap at this address, your funds will be lost!`,
+            );
+        }
 
         const bufWriter: BinaryWriter = new BinaryWriter();
         bufWriter.writeSelector(WrapTransaction.WRAP_SELECTOR);
