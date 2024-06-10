@@ -30,12 +30,12 @@ export class wBTC extends ContractBaseMetadata {
     }
 
     public static getAddress(network: Network = networks.bitcoin): Address {
-        switch (network) {
-            case networks.bitcoin:
-                return 'bcrt1pcw0828yjrtlrc6mkp3lkq30j7wc7slsh7k7dyh53mrs4f8d74l6qumhqp4';
-            case networks.regtest:
+        switch (network.bech32) {
+            case networks.bitcoin.bech32:
+                return 'unknown';
+            case networks.regtest.bech32:
                 return 'bcrt1qg8p5h65hffqmczyctrdenjx5e5teaz8a7rvrr2';
-            case networks.testnet:
+            case networks.testnet.bech32:
                 return 'tb1qh9xlcw7ne5u4eky0ylu5j7fzxjkrcumal2zhcr';
             default:
                 throw new Error(`Invalid network: ${network}`);

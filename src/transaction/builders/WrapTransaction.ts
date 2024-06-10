@@ -111,7 +111,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         this.to = this.wbtc.getAddress();
         this.receiver = receiver;
         this.amount = parameters.amount;
-        
+
         if (this.totalInputAmount < this.amount) {
             throw new Error(
                 `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
@@ -154,7 +154,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
 
         if (!AddressVerificator.isValidP2TRAddress(to, network)) {
             throw new Error(
-                `Oops! The address ${to} is not a valid P2TR address! If your wrap at this address, your funds will be lost!`,
+                `Oops! The address ${to} is not a valid P2TR address! If you wrap at this address, your funds will be lost!`,
             );
         }
 
