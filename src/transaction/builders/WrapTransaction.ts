@@ -118,6 +118,12 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
             );
         }
 
+        if (this.totalInputAmount < this.amount) {
+            throw new Error(
+                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
+            );
+        }
+
         this.interactionPubKeys = parameters.generationParameters.pubKeys;
         this.minimumSignatures = parameters.generationParameters.constraints.minimum;
 
@@ -154,7 +160,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
 
         if (!AddressVerificator.isValidP2TRAddress(to, network)) {
             throw new Error(
-                `Oops! The address ${to} is not a valid P2TR address! If your wrap at this address, your funds will be lost!`,
+                `Oops! The address ${to} is not a valid P2TR address! If you wrap at this address, your funds will be lost!`,
             );
         }
 
