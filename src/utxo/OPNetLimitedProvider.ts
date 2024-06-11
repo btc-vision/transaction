@@ -98,7 +98,22 @@ export class OPNetLimitedProvider {
         }
 
         const utxos: UTXO[][] = await Promise.all(promises);
-        return utxos.flat();
+        const all = utxos.flat();
+
+        const finalUTXOs: UTXO[] = [];
+        let currentAmount = 0n;
+        for (let i = 0; i < all.length; i++) {
+            let utxo = all[i];
+
+            if (currentAmount >= settings.requestedAmount) {
+                break;
+            }
+
+            currentAmount += utxo.value;
+            finalUTXOs.push(utxo);
+        }
+
+        return finalUTXOs;
     }
 
     /**

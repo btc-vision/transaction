@@ -15,5 +15,8 @@
             ]
         },
         "moduleResolution": "bundler"
-    }
+    },
+    "exclude": [
+        "./src/tests"
+    ]
 }
