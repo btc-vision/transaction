@@ -52,9 +52,9 @@ export class PsbtTransaction extends TweakedTransaction {
      */
     protected readonly sighashTypes: number[] | undefined = [
         Transaction.SIGHASH_ALL,
-        //Transaction.SIGHASH_ANYONECANPAY,
+        Transaction.SIGHASH_ANYONECANPAY,
     ];
-
+    
     /**
      * @description The receiver
      * @protected
@@ -297,17 +297,18 @@ export class PsbtTransaction extends TweakedTransaction {
         },
     ): void {
         const input: PsbtInputExtended = {
-            hash: Buffer.from(utxo.hash, 'hex'),
+            hash: utxo.hash,
             index: utxo.outputIndex,
             witnessUtxo: {
-                script: witness.witnessUtxo, //Buffer.from(utxo.output, 'base64'),
+                script: Buffer.from(utxo.output, 'base64'),
                 value: Number(utxo.value),
             },
             witnessScript: witness.witnessScript,
-            //redeemScript: witness.redeemScript,
+            sequence: this.sequence,
+            redeemScript: witness.redeemScript,
         };
 
-        console.log('Adding input2', input);
+        console.log('Adding input2', input, utxo);
 
         if (this.sighashTypes) {
             input.sighashType = this.calculateSignHash();
