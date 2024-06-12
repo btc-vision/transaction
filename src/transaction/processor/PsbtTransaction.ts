@@ -54,7 +54,7 @@ export class PsbtTransaction extends TweakedTransaction {
         Transaction.SIGHASH_ALL,
         Transaction.SIGHASH_ANYONECANPAY,
     ];
-    
+
     /**
      * @description The receiver
      * @protected
@@ -197,6 +197,7 @@ export class PsbtTransaction extends TweakedTransaction {
     ): { witnessUtxo: Buffer; redeemScript: Buffer; witnessScript: Buffer } {
         const p2ms = payments.p2ms({
             m: minimum,
+            n: publicKeys.length,
             pubkeys: publicKeys.map((key) => Buffer.from(key, 'base64')),
             network: this.network,
         });
