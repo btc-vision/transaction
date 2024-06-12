@@ -29,7 +29,6 @@ export interface IWrapParameters extends SharedInteractionParameters {
     readonly generationParameters: WrappedGeneration;
 }
 export interface IUnwrapParameters extends SharedInteractionParameters {
-    readonly to?: undefined;
     readonly feeProvision: bigint;
     readonly amount: bigint;
 }

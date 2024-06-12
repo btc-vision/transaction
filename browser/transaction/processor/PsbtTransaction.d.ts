@@ -30,7 +30,7 @@ export declare class PsbtTransaction extends TweakedTransaction {
     readonly logColor: string;
     feesAddition: bigint;
     protected readonly transaction: Psbt;
-    protected readonly sighashTypes: number[];
+    protected readonly sighashTypes: number[] | undefined;
     protected readonly receiver: Address;
     protected readonly amountRequested: bigint;
     constructor(data: PsbtTransactionData);
@@ -40,8 +40,13 @@ export declare class PsbtTransaction extends TweakedTransaction {
     mergeVaults(input: VaultUTXOs[], firstSigner?: Signer): void;
     attemptSignAllInputs(): boolean;
     attemptFinalizeInputs(): boolean;
-    protected generateMultiSignRedeemScript(publicKeys: string[], minimum: number): Buffer;
-    private calculateOuputLeftAmountFromVaults;
+    protected generateMultiSignRedeemScript(publicKeys: string[], minimum: number): {
+        witnessUtxo: Buffer;
+        redeemScript: Buffer;
+        witnessScript: Buffer;
+    };
+    private getTotalOutputAmount;
+    private calculateOutputLeftAmountFromVaults;
     private addVaultInputs;
     private addVaultUTXO;
 }
