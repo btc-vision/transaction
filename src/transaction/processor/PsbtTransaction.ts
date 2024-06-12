@@ -304,6 +304,7 @@ export class PsbtTransaction extends TweakedTransaction {
                 value: Number(utxo.value),
             },
             witnessScript: witness.witnessScript,
+            sequence: this.sequence,
             //redeemScript: witness.redeemScript,
         };
 
