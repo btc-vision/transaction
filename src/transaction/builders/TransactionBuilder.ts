@@ -825,24 +825,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
         const signHash = this.sighashTypes ? [this.calculateSignHash()] : undefined;
 
-        console.log('signing input', i, input);
-
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
             transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
         } else {
-            try {
-                transaction.signInput(i, signer || this.getSignerKey(), signHash);
-            } catch (e) {
-                console.log('Error signing input', e);
-
-                /*this.tweakSigner();
-
-                if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
-                transaction.signInput(i, this.tweakedSigner, signHash);*/
-
-                throw e;
-            }
+            transaction.signInput(i, signer || this.getSignerKey(), signHash);
         }
     }
 

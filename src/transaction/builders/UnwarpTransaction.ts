@@ -3,11 +3,9 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { AddressVerificator } from '../../keypair/AddressVerificator.js';
-import { Network, Transaction } from 'bitcoinjs-lib';
+import { Transaction } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ABICoder, Address, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
-import { ECPairInterface } from 'ecpair';
+import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
 
 const abiCoder: ABICoder = new ABICoder();
@@ -73,17 +71,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('Amount is below dust limit');
         }
 
-        const receiver: Address = TransactionBuilder.getFrom(
-            parameters.from,
-            parameters.signer as ECPairInterface,
-            parameters.network,
-        );
-
-        parameters.calldata = UnwrapTransaction.generateBurnCalldata(
-            parameters.amount,
-            receiver,
-            parameters.network,
-        );
+        parameters.calldata = UnwrapTransaction.generateBurnCalldata(parameters.amount);
 
         super(parameters);
 
@@ -105,24 +93,14 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     /**
      * Generate a valid wBTC calldata
      * @param {bigint} amount - The amount to wrap
-     * @param {Address} to - The address to send the wrapped tokens to
-     * @param {Network} network - The network to use
      * @private
      * @returns {Buffer} - The calldata
      */
-    private static generateBurnCalldata(amount: bigint, to: Address, network: Network): Buffer {
+    private static generateBurnCalldata(amount: bigint): Buffer {
         if (!amount) throw new Error('Amount is required');
-        if (!to) throw new Error('To address is required');
-
-        if (!AddressVerificator.isValidP2TRAddress(to, network)) {
-            throw new Error(
-                `Oops! The address ${to} is not a valid P2TR address! If you wrap at this address, your funds will be lost!`,
-            );
-        }
 
         const bufWriter: BinaryWriter = new BinaryWriter();
         bufWriter.writeSelector(UnwrapTransaction.UNWRAP_SELECTOR);
-        bufWriter.writeAddress(to);
         bufWriter.writeU256(amount);
 
         return Buffer.from(bufWriter.getBuffer());
