@@ -2,7 +2,7 @@ import { initEccLib, Network, opcodes, Payment, payments, Psbt, script, Signer, 
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
+import { PsbtInputExtended, PsbtOutputExtended, TapLeafScript, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -94,6 +94,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @description The signer of the transaction
      */
     protected readonly signer: Signer;
+
+    /**
+     * @description The sighash types of the transaction
+     * @protected
+     */
+    protected readonly sighashTypes: number[] | undefined;
+
     /**
      * @description The network where the transaction will be broadcasted
      */
@@ -133,7 +140,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @protected
      */
     protected nonWitnessUtxo?: Buffer;
-
+    /**
+     * The tap leaf script
+     * @protected
+     */
+    protected tapLeafScript: TapLeafScript | null = null;
     /**
      * @description The maximum fee rate of the transaction
      */
@@ -230,12 +241,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @throws {Error} - If something went wrong
      */
     public signTransaction(): Transaction {
-        if (this.to) {
-            if (!EcKeyPair.verifyContractAddress(this.to, this.network)) {
-                throw new Error(
-                    'Invalid contract address. The contract address must be a taproot address.',
-                );
-            }
+        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
         }
 
         if (this.signed) throw new Error('Transaction is already signed');
@@ -246,6 +255,20 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         const builtTx = this.internalBuildTransaction(this.transaction);
         if (builtTx) {
             return this.transaction.extractTransaction(false);
+        }
+
+        throw new Error('Could not sign transaction');
+    }
+
+    /**
+     * @description Signs the transaction
+     * @public
+     * @returns {Transaction} - The signed transaction in hex format
+     * @throws {Error} - If something went wrong
+     */
+    public signPSBT(): Psbt {
+        if (this.signTransaction()) {
+            return this.transaction;
         }
 
         throw new Error('Could not sign transaction');
@@ -323,6 +346,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.outputs.push(output);
     }
 
+    public toAddress(): string | undefined {
+        return this.to;
+    }
+
     /**
      * Get the transaction PSBT as a base64 string.
      * @public
@@ -385,6 +412,25 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.warn(
             `Amount to send back (${sendBackAmount} sat) is less than the minimum dust (${TransactionBuilder.MINIMUM_DUST} sat), it will be consumed in fees instead.`,
         );
+    }
+
+    /**
+     * Calculate the sign hash number
+     * @description Calculates the sign hash
+     * @protected
+     * @returns {number}
+     */
+    protected calculateSignHash(): number {
+        if (!this.sighashTypes) {
+            throw new Error('Sighash types are required');
+        }
+
+        let signHash: number = 0;
+        for (let sighashType of this.sighashTypes) {
+            signHash |= sighashType;
+        }
+
+        return signHash;
     }
 
     /**
@@ -500,6 +546,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         for (let i = 0; i < this.utxos.length; i++) {
             let utxo = this.utxos[i];
 
+            /*const input: PsbtInputExtended = {
+                hash: utxo.transactionId,
+                index: utxo.outputIndex,
+                witnessUtxo: {
+                    value: Number(utxo.value),
+                    script: Buffer.from(utxo.scriptPubKey.hex, 'hex'),
+                },
+                sequence: this.sequence,
+            };*/
+
             const input: PsbtInputExtended = {
                 hash: utxo.transactionId,
                 index: utxo.outputIndex,
@@ -509,6 +565,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
                 },
                 sequence: this.sequence,
             };
+
+            if (this.sighashTypes) {
+                input.sighashType = this.calculateSignHash();
+            }
+
+            if (this.tapLeafScript) {
+                input.tapLeafScript = [this.tapLeafScript];
+            }
 
             if (i === 0 && this.nonWitnessUtxo) {
                 input.nonWitnessUtxo = this.nonWitnessUtxo;
@@ -759,11 +823,26 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @protected
      */
     protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
+        const signHash = this.sighashTypes ? [this.calculateSignHash()] : undefined;
+
+        console.log('signing input', i, input);
+
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
-            transaction.signTaprootInput(i, this.tweakedSigner);
+            transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
         } else {
-            transaction.signInput(i, signer || this.getSignerKey());
+            try {
+                transaction.signInput(i, signer || this.getSignerKey(), signHash);
+            } catch (e) {
+                console.log('Error signing input', e);
+
+                /*this.tweakSigner();
+
+                if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
+                transaction.signInput(i, this.tweakedSigner, signHash);*/
+
+                throw e;
+            }
         }
     }
 

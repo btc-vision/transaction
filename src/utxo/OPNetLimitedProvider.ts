@@ -1,6 +1,7 @@
 import { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO } from './interfaces/IUTXO.js';
 import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
 import { WrappedGenerationParameters } from '../wbtc/Generate.js';
+import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node
@@ -117,12 +118,32 @@ export class OPNetLimitedProvider {
     }
 
     /**
-     * Fetches the wrap parameters from the OPNET node
-     * @param {bigint} amount - The amount to wrap
-     * @returns {Promise<WrappedGeneration | undefined>} - The wrap parameters fetched
-     * @throws {Error} - If wrap parameters could not be fetched
+     * Broadcasts a transaction to the OPNET node
+     * @param {string} transaction - The transaction to broadcast
+     * @param {boolean} psbt - Whether the transaction is a PSBT
+     * @returns {Promise<BroadcastResponse>} - The response from the OPNET node
      */
-    public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
+    public async broadcastTransaction(
+        transaction: string,
+        psbt: boolean,
+    ): Promise<BroadcastResponse | undefined> {
+        const params = [transaction, psbt];
+        const result = await this.rpcMethod('btc_sendRawTransaction', params);
+
+        if (!result) {
+            return;
+        }
+
+        return result as BroadcastResponse;
+    }
+
+    /**
+     * Fetches to the OPNET node
+     * @param {string} method
+     * @param {unknown[]} paramsMethod
+     * @returns {Promise<unknown>}
+     */
+    public async rpcMethod(method: string, paramsMethod: unknown[]): Promise<unknown> {
         const params = {
             method: 'POST',
             headers: {
@@ -130,8 +151,8 @@ export class OPNetLimitedProvider {
             },
             body: JSON.stringify({
                 jsonrpc: '2.0',
-                method: 'btc_generate',
-                params: [0, amount.toString()],
+                method: method,
+                params: paramsMethod,
                 id: 1,
             }),
         };
@@ -146,7 +167,7 @@ export class OPNetLimitedProvider {
 
             const fetchedData = await resp.json();
             if (!fetchedData) {
-                throw new Error('No wrap parameters found');
+                throw new Error('No data fetched');
             }
 
             const result = fetchedData.result;
@@ -158,9 +179,26 @@ export class OPNetLimitedProvider {
                 throw new Error('Something went wrong while fetching wrap parameters');
             }
 
-            return new WrappedGeneration(result as WrappedGenerationParameters);
+            return result;
         } catch (e) {
             console.error(`Failed to fetch wrap parameters: ${(e as Error).stack}`);
         }
+    }
+
+    /**
+     * Fetches the wrap parameters from the OPNET node
+     * @param {bigint} amount - The amount to wrap
+     * @returns {Promise<WrappedGeneration | undefined>} - The wrap parameters fetched
+     * @throws {Error} - If wrap parameters could not be fetched
+     */
+    public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
+        const params = [0, amount.toString()];
+        const result = await this.rpcMethod('btc_generate', params);
+
+        if (!result) {
+            return;
+        }
+
+        return new WrappedGeneration(result as WrappedGenerationParameters);
     }
 }

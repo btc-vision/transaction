@@ -4,4 +4,5 @@ export enum TransactionType {
     DEPLOYMENT = 2,
     INTERACTION = 3,
     WBTC_WRAP = 4,
+    WBTC_UNWRAP = 5,
 }

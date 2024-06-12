@@ -1,8 +1,9 @@
-import { Transaction } from 'bitcoinjs-lib';
+import { Psbt, Transaction } from 'bitcoinjs-lib';
 import {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
+    IUnwrapParameters,
     IWrapParameters,
 } from './interfaces/ITransactionParameters.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
@@ -13,6 +14,8 @@ import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { wBTC } from '../metadata/contracts/wBTC.js';
 import { WrapTransaction } from './builders/WrapTransaction.js';
+import { UnwrapTransaction } from './builders/UnwarpTransaction.js';
+import { PSBTTypes } from './psbt/PSBTTypes.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -26,6 +29,11 @@ export interface WrapResult {
     readonly vaultAddress: Address;
     readonly amount: bigint;
     readonly receiverAddress: Address;
+}
+
+export interface UnwrapResult {
+    readonly fundingTransaction: string;
+    readonly psbt: string;
 }
 
 export class TransactionFactory {
@@ -128,6 +136,7 @@ export class TransactionFactory {
             ...deploymentParameters,
             utxos: [newUtxo],
             randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.toBuffer(),
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
@@ -182,6 +191,7 @@ export class TransactionFactory {
             ...warpParameters,
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
         };
 
         const finalTransaction: WrapTransaction = new WrapTransaction(newParams);
@@ -195,6 +205,72 @@ export class TransactionFactory {
             amount: finalTransaction.amount,
             receiverAddress: finalTransaction.receiver,
         };
+    }
+
+    public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+        const transaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
+
+        transaction.signTransaction();
+
+        const to = transaction.toAddress();
+        if (!to) throw new Error('To address is required');
+
+        // Initial generation
+        const estimatedGas = transaction.estimateTransactionFees();
+        const fundingParameters: IFundingTransactionParameters = {
+            ...unwrapParameters,
+            childTransactionRequiredValue: estimatedGas + unwrapParameters.feeProvision,
+            to: to,
+        };
+
+        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
+
+        const preTransaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
+
+        // Initial generation
+        preTransaction.signTransaction();
+
+        const parameters: IFundingTransactionParameters =
+            preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = fundingParameters.utxos;
+        parameters.childTransactionRequiredValue =
+            preTransaction.estimateTransactionFees() + unwrapParameters.feeProvision;
+
+        const signedTransaction = this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        const newParams: IUnwrapParameters = {
+            ...unwrapParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+        };
+
+        const finalTransaction: UnwrapTransaction = new UnwrapTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Psbt = finalTransaction.signPSBT();
+        const asBase64 = outTx.toBase64();
+
+        const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
+
+        return {
+            fundingTransaction: signedTransaction.tx.toHex(),
+            psbt: psbt,
+        };
+    }
+
+    private writePSBTHeader(type: PSBTTypes, psbt: string): string {
+        const buf = Buffer.from(psbt, 'base64');
+
+        const header = Buffer.alloc(1);
+        header.writeUInt8(type, 0);
+        
+        return Buffer.concat([header, buf]).toString('hex');
     }
 
     private getUTXOAsTransaction(tx: Transaction, to: Address, index: number): UTXO[] {
