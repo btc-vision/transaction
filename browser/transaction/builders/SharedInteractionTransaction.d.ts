@@ -5,7 +5,6 @@ import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { ECPairInterface } from 'ecpair';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 export declare abstract class SharedInteractionTransaction<T extends TransactionType> extends TransactionBuilder<T> {
@@ -14,7 +13,6 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected leftOverFundsScriptRedeem: Payment | null;
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
-    protected tapLeafScript: TapLeafScript | null;
     protected readonly calldataGenerator: CalldataGenerator;
     protected readonly calldata: Buffer;
     protected abstract readonly contractSecret: Buffer;
@@ -25,7 +23,6 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected generateSecret(): Buffer;
     protected scriptSignerXOnlyPubKey(): Buffer;
     protected generateKeyPairFromSeed(): ECPairInterface;
-    protected addInputsFromUTXO(): void;
     protected buildTransaction(): void;
     protected signInputs(transaction: Psbt): void;
     protected generateScriptAddress(): Payment;

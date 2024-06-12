@@ -1,16 +1,13 @@
 /// <reference types="node" />
-import { Signer } from 'bitcoinjs-lib';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { Network } from 'bitcoinjs-lib/src/networks.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
-export interface ITransactionParameters {
+import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
+export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
     readonly to?: Address | undefined;
     utxos: UTXO[];
     nonWitnessUtxo?: Buffer | undefined;
-    readonly signer: Signer;
-    readonly network: Network;
     readonly feeRate: number;
     readonly priorityFee: bigint;
 }
@@ -30,6 +27,11 @@ export interface IWrapParameters extends SharedInteractionParameters {
     readonly amount: bigint;
     readonly receiver?: Address;
     readonly generationParameters: WrappedGeneration;
+}
+export interface IUnwrapParameters extends SharedInteractionParameters {
+    readonly to?: undefined;
+    readonly feeProvision: bigint;
+    readonly amount: bigint;
 }
 export interface IDeploymentParameters extends ITransactionParameters {
     readonly bytecode: Buffer;

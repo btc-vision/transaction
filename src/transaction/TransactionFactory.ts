@@ -226,7 +226,10 @@ export class TransactionFactory {
         const preFundingTransaction = this.createFundTransaction(fundingParameters);
         unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
-        const preTransaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
+        const preTransaction: UnwrapTransaction = new UnwrapTransaction({
+            ...unwrapParameters,
+            randomBytes: transaction.getRndBytes(),
+        });
 
         // Initial generation
         preTransaction.signTransaction();
@@ -269,7 +272,7 @@ export class TransactionFactory {
 
         const header = Buffer.alloc(1);
         header.writeUInt8(type, 0);
-        
+
         return Buffer.concat([header, buf]).toString('hex');
     }
 

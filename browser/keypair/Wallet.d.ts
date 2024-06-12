@@ -14,4 +14,5 @@ export declare class Wallet {
     get p2tr(): Address;
     get publicKey(): Buffer;
     get xOnly(): Buffer;
+    static fromWif(wif: string, network?: Network): Wallet;
 }

@@ -1,12 +1,11 @@
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { Transaction } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
+import { Transaction } from 'bitcoinjs-lib';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -38,12 +37,6 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected readonly scriptTree: Taptree;
-
-    /**
-     * The tap leaf script
-     * @protected
-     */
-    protected tapLeafScript: TapLeafScript | null = null;
 
     /**
      * The sighash types for the transaction
@@ -96,7 +89,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @private
      * @returns {Buffer} - The calldata
      */
-    private static generateBurnCalldata(amount: bigint): Buffer {
+    public static generateBurnCalldata(amount: bigint): Buffer {
         if (!amount) throw new Error('Amount is required');
 
         const bufWriter: BinaryWriter = new BinaryWriter();

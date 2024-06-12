@@ -84,4 +84,14 @@ export class Wallet {
 
         return toXOnly(this.keypair.publicKey);
     }
+
+    /**
+     * Create a wallet from a WIF
+     * @param {string} wif The WIF
+     * @param {Network} network The network
+     * @returns {Wallet} The wallet
+     */
+    public static fromWif(wif: string, network: Network = networks.bitcoin): Wallet {
+        return new Wallet({ privateKey: wif, address: '', publicKey: '' }, network);
+    }
 }
