@@ -1,26 +1,18 @@
-import { initEccLib, Network, opcodes, Payment, payments, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
+import { initEccLib, Network, opcodes, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
+import {
+    IFundingTransactionParameters,
+    ITransactionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
-import { Logger } from '@btc-vision/logger';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
-import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
-
-/**
- * The transaction sequence
- */
-export enum TransactionSequence {
-    REPLACE_BY_FEE = 0xfffffffd,
-    FINAL = 0xffffffff,
-}
+import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -28,7 +20,7 @@ export enum TransactionSequence {
  * @abstract
  * @class TransactionBuilder
  */
-export abstract class TransactionBuilder<T extends TransactionType> extends Logger {
+export abstract class TransactionBuilder<T extends TransactionType> extends TweakedTransaction {
     public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
         opcodes.OP_0,
         //opcodes.OP_VERIFY, - verify that this is not needed.
@@ -49,19 +41,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @description Cost in satoshis of the transaction fee
      */
     public transactionFee: bigint = 0n;
-    /**
-     * @description The sequence of the transaction
-     * @protected
-     */
-    protected sequence: number = TransactionSequence.REPLACE_BY_FEE;
+
     /**
      * @description The transaction itself.
      */
     protected readonly transaction: Psbt;
-    /**
-     * @description The inputs of the transaction
-     */
-    protected readonly inputs: PsbtInputExtended[] = [];
+
     /**
      * @description Inputs to update later on.
      */
@@ -74,18 +59,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @description Output that will be used to pay the fees
      */
     protected feeOutput: PsbtOutputExtended | null = null;
-    /**
-     * @description Was the transaction signed?
-     */
-    protected signed: boolean = false;
-    /**
-     * @description The tap data of the transaction
-     */
-    protected tapData: Payment | null = null;
-    /**
-     * @description The script data of the transaction
-     */
-    protected scriptData: Payment | null = null;
+
     /**
      * @description The total amount of satoshis in the inputs
      */
@@ -94,6 +68,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @description The signer of the transaction
      */
     protected readonly signer: Signer;
+
     /**
      * @description The network where the transaction will be broadcasted
      */
@@ -122,17 +97,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @protected
      */
     protected from: Address;
-    /**
-     * The tweaked signer for the interaction (if any)
-     * @protected
-     */
-    protected tweakedSigner?: Signer;
-
-    /**
-     * Add a non-witness utxo to the transaction
-     * @protected
-     */
-    protected nonWitnessUtxo?: Buffer;
 
     /**
      * @description The maximum fee rate of the transaction
@@ -143,7 +107,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @param {ITransactionParameters} parameters - The transaction parameters
      */
     protected constructor(parameters: ITransactionParameters) {
-        super();
+        super(parameters);
 
         this.signer = parameters.signer;
         this.network = parameters.network;
@@ -151,7 +115,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.priorityFee = parameters.priorityFee;
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
-        this.nonWitnessUtxo = parameters.nonWitnessUtxo;
 
         if (!this.utxos.length) {
             throw new Error('No UTXOs specified');
@@ -230,12 +193,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @throws {Error} - If something went wrong
      */
     public signTransaction(): Transaction {
-        if (this.to) {
-            if (!EcKeyPair.verifyContractAddress(this.to, this.network)) {
-                throw new Error(
-                    'Invalid contract address. The contract address must be a taproot address.',
-                );
-            }
+        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
         }
 
         if (this.signed) throw new Error('Transaction is already signed');
@@ -252,49 +213,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     /**
-     * @description Returns the transaction
-     * @returns {Transaction}
+     * @description Signs the transaction
+     * @public
+     * @returns {Transaction} - The signed transaction in hex format
+     * @throws {Error} - If something went wrong
      */
-    public getTransaction(): Transaction {
-        return this.transaction.extractTransaction(false);
-    }
-
-    /**
-     * @description Returns the script address
-     * @returns {string}
-     */
-    public getScriptAddress(): string {
-        if (!this.scriptData || !this.scriptData.address) {
-            throw new Error('Tap data is required');
+    public signPSBT(): Psbt {
+        if (this.signTransaction()) {
+            return this.transaction;
         }
 
-        return this.scriptData.address;
-    }
-
-    /**
-     * @description Disables replace by fee on the transaction
-     */
-    public disableRBF(): void {
-        if (this.signed) throw new Error('Transaction is already signed');
-
-        this.sequence = TransactionSequence.FINAL;
-
-        for (let input of this.inputs) {
-            input.sequence = TransactionSequence.FINAL;
-        }
-    }
-
-    /**
-     * @description Returns the tap address
-     * @returns {string}
-     * @throws {Error} - If tap data is not set
-     */
-    public getTapAddress(): string {
-        if (!this.tapData || !this.tapData.address) {
-            throw new Error('Tap data is required');
-        }
-
-        return this.tapData.address;
+        throw new Error('Could not sign transaction');
     }
 
     /**
@@ -323,13 +252,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
         this.outputs.push(output);
     }
 
-    /**
-     * Get the transaction PSBT as a base64 string.
-     * @public
-     * @returns {string} - The transaction as a base64 string
-     */
-    public toBase64(): string {
-        return this.transaction.toBase64();
+    public toAddress(): string | undefined {
+        return this.to;
     }
 
     /**
@@ -438,46 +362,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
     }
 
     /**
-     * Tweak the signer for the interaction
-     * @protected
-     */
-    protected tweakSigner(): void {
-        if (this.tweakedSigner) return;
-
-        // tweaked p2tr signer.
-        this.tweakedSigner = this.getTweakedSigner(true);
-    }
-
-    /**
-     * Get the tweaked hash
-     * @private
-     *
-     * @returns {Buffer | undefined} The tweaked hash
-     */
-    protected getTweakerHash(): Buffer | undefined {
-        return this.tapData?.hash;
-    }
-
-    /**
-     * Get the tweaked signer
-     * @param {boolean} useTweakedHash Whether to use the tweaked hash
-     * @private
-     *
-     * @returns {Signer} The tweaked signer
-     */
-    protected getTweakedSigner(useTweakedHash: boolean = false): Signer {
-        const settings: TweakSettings = {
-            network: this.network,
-        };
-
-        if (useTweakedHash) {
-            settings.tweakHash = this.getTweakerHash();
-        }
-
-        return TweakedSigner.tweakSigner(this.signer as ECPairInterface, settings);
-    }
-
-    /**
      * @description Returns the total amount of satoshis in the outputs
      * @protected
      * @returns {bigint}
@@ -498,32 +382,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      */
     protected addInputsFromUTXO(): void {
         for (let i = 0; i < this.utxos.length; i++) {
-            let utxo = this.utxos[i];
-
-            const input: PsbtInputExtended = {
-                hash: utxo.transactionId,
-                index: utxo.outputIndex,
-                witnessUtxo: {
-                    value: Number(utxo.value),
-                    script: Buffer.from(utxo.scriptPubKey.hex, 'hex'),
-                },
-                sequence: this.sequence,
-            };
-
-            if (i === 0 && this.nonWitnessUtxo) {
-                input.nonWitnessUtxo = this.nonWitnessUtxo;
-                this.log(`Using non-witness utxo for input ${i}`);
-            }
-
-            // automatically detect p2tr inputs.
-            if (
-                utxo.scriptPubKey.address &&
-                AddressVerificator.isValidP2TRAddress(utxo.scriptPubKey.address, this.network)
-            ) {
-                this.tweakSigner();
-
-                input.tapInternalKey = this.internalPubKeyToXOnly();
-            }
+            const utxo = this.utxos[i];
+            const input = this.generatePsbtInputExtended(utxo, i);
 
             this.addInput(input);
         }
@@ -569,11 +429,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * Internal init.
      * @protected
      */
-    protected internalInit(): void {
+    protected override internalInit(): void {
         this.verifyUTXOValidity();
 
-        this.scriptData = payments.p2tr(this.generateScriptAddress());
-        this.tapData = payments.p2tr(this.generateTapData());
+        super.internalInit();
     }
 
     /**
@@ -582,25 +441,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
      * @returns {void}
      */
     protected abstract buildTransaction(): void;
-
-    /**
-     * Generates the script address.
-     * @protected
-     * @returns {Payment}
-     */
-    protected generateScriptAddress(): Payment {
-        return {
-            internalPubkey: this.internalPubKeyToXOnly(),
-            network: this.network,
-        };
-    }
-
-    protected generateTapData(): Payment {
-        return {
-            internalPubkey: this.internalPubKeyToXOnly(),
-            network: this.network,
-        };
-    }
 
     /**
      * Add an input update
@@ -714,62 +554,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Logg
 
             this.overflowFees = BigInt(valueLeft);
         }
-    }
-
-    /**
-     * Returns the signer key.
-     * @protected
-     * @returns {Signer}
-     */
-    protected getSignerKey(): Signer {
-        return this.signer;
-    }
-
-    /**
-     * Converts the public key to x-only.
-     * @protected
-     * @returns {Buffer}
-     */
-    protected internalPubKeyToXOnly(): Buffer {
-        return toXOnly(this.signer.publicKey);
-    }
-
-    /**
-     * Signs all the inputs of the transaction.
-     * @param {Psbt} transaction - The transaction to sign
-     * @protected
-     * @returns {void}
-     */
-    protected signInputs(transaction: Psbt): void {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            let input: PsbtInput = transaction.data.inputs[i];
-
-            this.signInput(transaction, input, i);
-        }
-
-        transaction.finalizeAllInputs();
-    }
-
-    /**
-     * Signs an input of the transaction.
-     * @param {Psbt} transaction - The transaction to sign
-     * @param {PsbtInput} input - The input to sign
-     * @param {number} i - The index of the input
-     * @param {Signer} [signer] - The signer to use
-     * @protected
-     */
-    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
-        if (input.tapInternalKey) {
-            if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
-            transaction.signTaprootInput(i, this.tweakedSigner);
-        } else {
-            transaction.signInput(i, signer || this.getSignerKey());
-        }
-    }
-
-    private getP2TRAddressLeafScript(): Buffer {
-        const leafScriptAsm = `${this.internalPubKeyToXOnly().toString('hex')} OP_CHECKSIG`;
-        return script.fromASM(leafScriptAsm);
     }
 
     /**

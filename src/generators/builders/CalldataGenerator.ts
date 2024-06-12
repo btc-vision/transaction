@@ -97,7 +97,7 @@ export class CalldataGenerator extends Generator {
 
         const asm = compiledData.flat();
         const compiled = script.compile(asm);
-
+        
         /** Verify the validity of the script */
         const decompiled = script.decompile(compiled);
         if (!decompiled) {

@@ -52,3 +52,11 @@ export * from './utils/BitcoinUtils.js';
 /** UTXO */
 export * from './utxo/interfaces/IUTXO.js';
 export * from './utxo/OPNetLimitedProvider.js';
+
+/** Processor */
+export * from './transaction/processor/PsbtTransaction.js';
+
+/** Shared */
+export * from './transaction/shared/TweakedTransaction.js';
+export * from './utxo/interfaces/BroadcastResponse.js';
+export * from './transaction/psbt/PSBTTypes.js';

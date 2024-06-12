@@ -3,7 +3,7 @@ import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import { crypto as bitCrypto, Payment, Psbt, Signer } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
-import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
 import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerator.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -21,37 +21,31 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @protected
      */
     protected readonly _contractAddress: Address;
-
+    /**
+     * The tap leaf script
+     * @private
+     */
+    protected tapLeafScript: TapLeafScript | null = null;
     /**
      * The target script redeem
      * @private
      */
     private targetScriptRedeem: Payment | null = null;
-
     /**
      * The left over funds script redeem
      * @private
      */
     private leftOverFundsScriptRedeem: Payment | null = null;
-
     /**
      * The compiled target script
      * @private
      */
     private readonly compiledTargetScript: Buffer;
-
     /**
      * The script tree
      * @private
      */
     private readonly scriptTree: Taptree;
-
-    /**
-     * The tap leaf script
-     * @private
-     */
-    private tapLeafScript: TapLeafScript | null = null;
-
     /**
      * The deployment bitcoin generator
      * @private
@@ -139,29 +133,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      */
     protected contractSignerXOnlyPubKey(): Buffer {
         return toXOnly(this.contractSigner.publicKey);
-    }
-
-    /**
-     * Add the required inputs from the UTXOs
-     * @protected
-     */
-    protected override addInputsFromUTXO(): void {
-        if (!this.tapLeafScript) throw new Error('Tap leaf script is required');
-
-        for (let utxo of this.utxos) {
-            const input: PsbtInputExtended = {
-                hash: utxo.transactionId,
-                index: utxo.outputIndex,
-                witnessUtxo: {
-                    value: Number(utxo.value),
-                    script: this.getTapOutput() || utxo.scriptPubKey.hex,
-                },
-                tapLeafScript: [this.tapLeafScript],
-                sequence: this.sequence,
-            };
-
-            this.addInput(input);
-        }
     }
 
     /**

@@ -3,15 +3,16 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import { Payment, Psbt } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
 import { Address } from '@btc-vision/bsi-binary';
 export declare class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     type: TransactionType.DEPLOYMENT;
     protected readonly _contractAddress: Address;
+    protected tapLeafScript: TapLeafScript | null;
     private targetScriptRedeem;
     private leftOverFundsScriptRedeem;
     private readonly compiledTargetScript;
     private readonly scriptTree;
-    private tapLeafScript;
     private deploymentGenerator;
     private readonly contractSeed;
     private readonly bytecode;
@@ -22,7 +23,6 @@ export declare class DeploymentTransaction extends TransactionBuilder<Transactio
     get p2trAddress(): Address;
     getRndBytes(): Buffer;
     protected contractSignerXOnlyPubKey(): Buffer;
-    protected addInputsFromUTXO(): void;
     protected buildTransaction(): void;
     protected signInputs(transaction: Psbt): void;
     protected generateScriptAddress(): Payment;

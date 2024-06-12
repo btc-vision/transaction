@@ -28,3 +28,7 @@ export * from './wbtc/Generate.js';
 export * from './utils/BitcoinUtils.js';
 export * from './utxo/interfaces/IUTXO.js';
 export * from './utxo/OPNetLimitedProvider.js';
+export * from './transaction/processor/PsbtTransaction.js';
+export * from './transaction/shared/TweakedTransaction.js';
+export * from './utxo/interfaces/BroadcastResponse.js';
+export * from './transaction/psbt/PSBTTypes.js';

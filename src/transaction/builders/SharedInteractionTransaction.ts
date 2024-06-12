@@ -4,7 +4,6 @@ import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { ECPairInterface } from 'ecpair';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { Compressor } from '../../bytecode/Compressor.js';
@@ -31,7 +30,6 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected tapLeafScript: TapLeafScript | null = null;
     protected readonly calldataGenerator: CalldataGenerator;
 
     /**
@@ -117,38 +115,7 @@ export abstract class SharedInteractionTransaction<
     protected generateKeyPairFromSeed(): ECPairInterface {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
-
-    /**
-     * Add inputs from the UTXO
-     * @protected
-     *
-     * @throws {Error} If the tap leaf script is required
-     */
-    protected override addInputsFromUTXO(): void {
-        if (!this.tapLeafScript) throw new Error('Tap leaf script is required');
-
-        for (let i = 0; i < this.utxos.length; i++) {
-            let utxo = this.utxos[i];
-            const input: PsbtInputExtended = {
-                hash: utxo.transactionId,
-                index: utxo.outputIndex,
-                witnessUtxo: {
-                    value: Number(utxo.value),
-                    script: this.getTapOutput(),
-                },
-                tapLeafScript: [this.tapLeafScript],
-                sequence: this.sequence,
-            };
-
-            if (i === 0 && this.nonWitnessUtxo) {
-                //input.nonWitnessUtxo = this.nonWitnessUtxo;
-                this.log(`Using non-witness utxo for input ${i}`);
-            }
-
-            this.addInput(input);
-        }
-    }
-
+    
     /**
      * Build the transaction
      * @protected
@@ -199,7 +166,7 @@ export abstract class SharedInteractionTransaction<
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected signInputs(transaction: Psbt): void {
+    protected override signInputs(transaction: Psbt): void {
         if (!this.scriptSigner) {
             super.signInputs(transaction);
 
