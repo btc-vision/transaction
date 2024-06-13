@@ -54,7 +54,7 @@ export class PsbtTransaction extends TweakedTransaction {
         Transaction.SIGHASH_ALL,
         Transaction.SIGHASH_ANYONECANPAY,
     ];
-
+    
     /**
      * @description The receiver
      * @protected
