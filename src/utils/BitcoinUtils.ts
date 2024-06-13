@@ -57,6 +57,6 @@ export class BitcoinUtils {
 
         const hash = hashed.digest();
 
-        return `0x${hash.toString('hex')}`;
+        return `0x${Buffer.from(hash).toString('hex')}`;
     }
 }

@@ -4,4 +4,6 @@ export interface BroadcastResponse {
     error?: string;
     peers?: number;
     identifier: bigint;
+    modifiedTransaction?: string;
+    created?: boolean;
 }
