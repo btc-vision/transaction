@@ -20,6 +20,7 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
 
 export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer | undefined;
+    disableAutoRefund?: boolean;
 
     readonly randomBytes?: Buffer;
 }

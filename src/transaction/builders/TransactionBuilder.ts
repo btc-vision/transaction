@@ -3,10 +3,7 @@ import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import {
-    IFundingTransactionParameters,
-    ITransactionParameters,
-} from '../interfaces/ITransactionParameters.js';
+import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
@@ -45,7 +42,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description The transaction itself.
      */
-    protected readonly transaction: Psbt;
+    protected transaction: Psbt;
 
     /**
      * @description Inputs to update later on.
@@ -101,7 +98,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description The maximum fee rate of the transaction
      */
-    private _maximumFeeRate: number = 100000000;
+    protected _maximumFeeRate: number = 100000000;
 
     /**
      * @param {ITransactionParameters} parameters - The transaction parameters
@@ -116,10 +113,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
-        if (!this.utxos.length) {
-            throw new Error('No UTXOs specified');
-        }
-
         this.from = TransactionBuilder.getFrom(
             parameters.from,
             this.signer as ECPairInterface,
@@ -127,16 +120,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         );
 
         this.totalInputAmount = this.calculateTotalUTXOAmount();
-        const totalVOut: bigint = this.calculateTotalVOutAmount();
 
+        const totalVOut: bigint = this.calculateTotalVOutAmount();
         if (totalVOut < this.totalInputAmount) {
             throw new Error(`Vout value is less than the value to send`);
-        }
-
-        if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
-            throw new Error(
-                `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
-            );
         }
 
         this.transaction = new Psbt({
@@ -150,6 +137,42 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         network: Network,
     ): Address {
         return from || EcKeyPair.getTaprootAddress(keypair, network);
+    }
+
+    /**
+     * @description Converts the witness stack to a script witness
+     * @param {Buffer[]} witness - The witness stack
+     * @protected
+     * @returns {Buffer}
+     */
+    protected static witnessStackToScriptWitness(witness: Buffer[]): Buffer {
+        let buffer = Buffer.allocUnsafe(0);
+
+        function writeSlice(slice: Buffer) {
+            buffer = Buffer.concat([buffer, Buffer.from(slice)]);
+        }
+
+        function writeVarInt(i: number) {
+            const currentLen = buffer.length;
+            const varintLen = varuint.encodingLength(i);
+
+            buffer = Buffer.concat([buffer, Buffer.allocUnsafe(varintLen)]);
+            varuint.encode(i, buffer, currentLen);
+        }
+
+        function writeVarSlice(slice: Buffer) {
+            writeVarInt(slice.length);
+            writeSlice(slice);
+        }
+
+        function writeVector(vector: Buffer[]) {
+            writeVarInt(vector.length);
+            vector.forEach(writeVarSlice);
+        }
+
+        writeVector(witness);
+
+        return buffer;
     }
 
     public getFundingTransactionParameters(): IFundingTransactionParameters {
@@ -252,8 +275,22 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.outputs.push(output);
     }
 
+    /**
+     * Receiver address.
+     * @public
+     * @returns {Address} - The receiver address
+     */
     public toAddress(): string | undefined {
         return this.to;
+    }
+
+    /**
+     * @description Returns the script address
+     * @returns {Address} - The script address
+     */
+    public address(): Address | undefined {
+        console.log(this.tapData);
+        return this.tapData?.address;
     }
 
     /**
@@ -381,48 +418,22 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     protected addInputsFromUTXO(): void {
+        if (!this.utxos.length) {
+            throw new Error('No UTXOs specified');
+        }
+
+        if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
+            throw new Error(
+                `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
+            );
+        }
+
         for (let i = 0; i < this.utxos.length; i++) {
             const utxo = this.utxos[i];
             const input = this.generatePsbtInputExtended(utxo, i);
 
             this.addInput(input);
         }
-    }
-
-    /**
-     * @description Converts the witness stack to a script witness
-     * @param {Buffer[]} witness - The witness stack
-     * @protected
-     * @returns {Buffer}
-     */
-    protected witnessStackToScriptWitness(witness: Buffer[]): Buffer {
-        let buffer = Buffer.allocUnsafe(0);
-
-        function writeSlice(slice: Buffer) {
-            buffer = Buffer.concat([buffer, Buffer.from(slice)]);
-        }
-
-        function writeVarInt(i: number) {
-            const currentLen = buffer.length;
-            const varintLen = varuint.encodingLength(i);
-
-            buffer = Buffer.concat([buffer, Buffer.allocUnsafe(varintLen)]);
-            varuint.encode(i, buffer, currentLen);
-        }
-
-        function writeVarSlice(slice: Buffer) {
-            writeVarInt(slice.length);
-            writeSlice(slice);
-        }
-
-        function writeVector(vector: Buffer[]) {
-            writeVarInt(vector.length);
-            vector.forEach(writeVarSlice);
-        }
-
-        writeVector(witness);
-
-        return buffer;
     }
 
     /**
@@ -563,7 +574,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {boolean}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    private internalBuildTransaction(transaction: Psbt): boolean {
+    protected internalBuildTransaction(transaction: Psbt): boolean {
         const inputs: PsbtInputExtended[] = this.getInputs();
         const outputs: PsbtOutputExtended[] = this.getOutputs();
 

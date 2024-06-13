@@ -64,6 +64,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('Amount is below dust limit');
         }
 
+        parameters.disableAutoRefund = true; // we have to disable auto refund for this transaction, so it does not create an unwanted output.
         parameters.calldata = UnwrapTransaction.generateBurnCalldata(parameters.amount);
 
         super(parameters);

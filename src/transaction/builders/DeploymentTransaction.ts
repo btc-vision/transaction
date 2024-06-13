@@ -284,7 +284,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             .concat(this.tapLeafScript.controlBlock);
 
         return {
-            finalScriptWitness: this.witnessStackToScriptWitness(witness),
+            finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
 

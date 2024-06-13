@@ -73,19 +73,35 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): Address {
         const publicKeys: Buffer[] = this.verifyPubKeys(pubKeys, network);
-        const { address } = payments.p2wsh({
-            redeem: payments.p2ms({
-                m: minimumSignatureRequired,
-                pubkeys: publicKeys,
-                network: network,
-            }),
+        if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
+
+        const p2ms = payments.p2ms({
+            m: minimumSignatureRequired,
+            pubkeys: publicKeys,
             network: network,
         });
 
+        const p2wsh = payments.p2wsh({ redeem: p2ms, network: network });
+        const address = p2wsh.address;
+
+        // fake params
+        /*const multiSignParams: MultiSignParameters = {
+            network: network,
+            utxos: [],
+            pubkeys: pubKeys,
+            minimumSignatures: minimumSignatureRequired,
+            feeRate: 100,
+            receiver: 'a',
+            requestedAmount: 1n,
+            refundVault: 'a',
+        };
+
+        const address = new MultiSignTransaction(multiSignParams).getScriptAddress();
+        */
         if (!address) {
             throw new Error('Failed to generate address');
         }
-
+        
         return address;
     }
 

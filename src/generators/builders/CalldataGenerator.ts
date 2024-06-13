@@ -17,6 +17,41 @@ export class CalldataGenerator extends Generator {
     }
 
     /**
+     * Get the public key as a buffer
+     * @param {Buffer[]} witnessKeys - The public keys
+     * @param {Network} network - The network to use
+     * @private
+     * @returns {Buffer} - The public key as a buffer
+     */
+    public static getPubKeyAsBuffer(witnessKeys: Buffer[], network: Network): Buffer {
+        let finalBuffer: Buffer = Buffer.alloc(0);
+
+        for (let pubKey of witnessKeys) {
+            const key: ECPairInterface = EcKeyPair.fromPublicKey(pubKey, network);
+
+            if (!key.compressed) {
+                throw new Error('Public key must be compressed');
+            }
+
+            if (pubKey.byteLength !== 33) {
+                throw new Error(`Public key must be 33 bytes, got ${pubKey.byteLength} bytes.`);
+            }
+
+            finalBuffer = Buffer.concat([finalBuffer, pubKey]);
+        }
+
+        // compress the public keys
+        const compressed: Buffer = Compressor.compress(finalBuffer);
+        if (compressed.byteLength >= finalBuffer.byteLength) {
+            // we ensure that the user pays the smallest amount of fees. [micro-optimization]
+            return finalBuffer;
+        }
+
+        // if compressed is smaller, return compressed.
+        return compressed;
+    }
+
+    /**
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
@@ -59,7 +94,7 @@ export class CalldataGenerator extends Generator {
 
         // write pub keys, when requested.
         if (vaultPublicKeys.length > 0) {
-            const pubKeyBuffer = this.getPubKeyAsBuffer(vaultPublicKeys);
+            const pubKeyBuffer = CalldataGenerator.getPubKeyAsBuffer(vaultPublicKeys, this.network);
             const pubKeyDataChunks: Buffer[][] = this.splitBufferIntoChunks(pubKeyBuffer);
 
             compiledData = compiledData.concat(
@@ -97,7 +132,7 @@ export class CalldataGenerator extends Generator {
 
         const asm = compiledData.flat();
         const compiled = script.compile(asm);
-        
+
         /** Verify the validity of the script */
         const decompiled = script.decompile(compiled);
         if (!decompiled) {
@@ -105,39 +140,5 @@ export class CalldataGenerator extends Generator {
         }
 
         return compiled;
-    }
-
-    /**
-     * Get the public key as a buffer
-     * @param {Buffer[]} witnessKeys - The public keys
-     * @private
-     * @returns {Buffer} - The public key as a buffer
-     */
-    private getPubKeyAsBuffer(witnessKeys: Buffer[]): Buffer {
-        let finalBuffer: Buffer = Buffer.alloc(0);
-
-        for (let pubKey of witnessKeys) {
-            const key: ECPairInterface = EcKeyPair.fromPublicKey(pubKey, this.network);
-
-            if (!key.compressed) {
-                throw new Error('Public key must be compressed');
-            }
-
-            if (pubKey.byteLength !== 33) {
-                throw new Error(`Public key must be 33 bytes, got ${pubKey.byteLength} bytes.`);
-            }
-
-            finalBuffer = Buffer.concat([finalBuffer, pubKey]);
-        }
-
-        // compress the public keys
-        const compressed: Buffer = Compressor.compress(finalBuffer);
-        if (compressed.byteLength >= finalBuffer.byteLength) {
-            // we ensure that the user pays the smallest amount of fees. [micro-optimization]
-            return finalBuffer;
-        }
-
-        // if compressed is smaller, return compressed.
-        return compressed;
     }
 }
