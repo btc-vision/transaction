@@ -50,12 +50,20 @@ export abstract class SharedInteractionTransaction<
      */
     protected readonly scriptSigner: Signer;
 
+    /**
+     * Disable auto refund
+     * @protected
+     */
+    protected readonly disableAutoRefund: boolean;
+
     protected constructor(parameters: SharedInteractionParameters) {
         super(parameters);
 
         if (!parameters.calldata) {
             throw new Error('Calldata is required');
         }
+
+        this.disableAutoRefund = parameters.disableAutoRefund || false;
 
         this.calldata = Compressor.compress(parameters.calldata);
 
@@ -115,7 +123,7 @@ export abstract class SharedInteractionTransaction<
     protected generateKeyPairFromSeed(): ECPairInterface {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
-    
+
     /**
      * Build the transaction
      * @protected
@@ -158,7 +166,9 @@ export abstract class SharedInteractionTransaction<
             address: this.to,
         });
 
-        this.addRefundOutput(amountSpent);
+        if (!this.disableAutoRefund) {
+            this.addRefundOutput(amountSpent);
+        }
     }
 
     /**
@@ -257,7 +267,7 @@ export abstract class SharedInteractionTransaction<
                 version: 192,
             },
             {
-                output: this.getLeafScript(),
+                output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
                 version: 192,
             },
         ];
@@ -298,13 +308,12 @@ export abstract class SharedInteractionTransaction<
         }
 
         const scriptSolution = this.getScriptSolution(input);
-
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
             .concat(this.tapLeafScript.controlBlock);
 
         return {
-            finalScriptWitness: this.witnessStackToScriptWitness(witness),
+            finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
 
@@ -320,26 +329,15 @@ export abstract class SharedInteractionTransaction<
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
-            pubkeys: this.getPubKeys(),
+            // pubkeys: this.getPubKeys(),
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
-            pubkeys: this.getPubKeys(),
-            output: this.getLeafScript(),
+            //pubkeys: this.getPubKeys(),
+            output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };
-    }
-
-    /**
-     * Get the second leaf script
-     * @private
-     *
-     * @returns {Buffer} The leaf script
-     */
-    private getLeafScript(): Buffer {
-        // For now, we disable this.
-        return SharedInteractionTransaction.LOCK_LEAF_SCRIPT;
     }
 }

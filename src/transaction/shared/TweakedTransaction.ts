@@ -7,6 +7,7 @@ import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer;
@@ -101,6 +102,125 @@ export abstract class TweakedTransaction extends Logger {
         this.nonWitnessUtxo = data.nonWitnessUtxo;
     }
 
+    public static signInputTaproot(
+        transaction: Psbt,
+        i: number,
+        signer: Signer,
+        sighashTypes: number[],
+        network: Network,
+        tweakHash: Buffer,
+    ): void {
+        const transactions = transaction.data.inputs;
+        if (!transactions) {
+            throw new Error('Transaction is required');
+        }
+
+        const input = transactions[i];
+        if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
+
+        if (!input.tapInternalKey) {
+            input.tapInternalKey = toXOnly(signer.publicKey);
+        }
+
+        const settings: TweakSettings = {
+            network: network,
+            tweakHash,
+        };
+
+        const tweaked = TweakedSigner.tweakSigner(signer as ECPairInterface, settings);
+        /*if (input.finalScriptWitness) {
+            const decoded = TweakedTransaction.readScriptWitnessToWitnessStack(
+                input.finalScriptWitness,
+            );
+
+            input.tapLeafScript = [
+                {
+                    leafVersion: 192,
+                    script: decoded[0],
+                    controlBlock: decoded[1],
+                },
+            ];
+        }*/
+
+        //delete input.finalScriptWitness;
+
+        console.log('sign tap', input, tweaked);
+        transaction.signTaprootInput(i, tweaked, undefined, sighashTypes);
+    }
+
+    /**
+     * Read witnesses
+     * @protected
+     */
+    public static readScriptWitnessToWitnessStack(buffer: Buffer): Buffer[] {
+        let offset = 0;
+
+        function readSlice(n: number): Buffer {
+            const slice = buffer.subarray(offset, offset + n);
+            offset += n;
+            return slice;
+        }
+
+        function readVarInt(): number {
+            const varint = varuint.decode(buffer, offset);
+            offset += varuint.decode.bytes;
+            return varint;
+        }
+
+        function readVarSlice(): Buffer {
+            const len = readVarInt();
+            return readSlice(len);
+        }
+
+        function readVector(): Buffer[] {
+            const count = readVarInt();
+            const vector = [];
+            for (let i = 0; i < count; i++) {
+                vector.push(readVarSlice());
+            }
+            return vector;
+        }
+
+        return readVector();
+    }
+
+    protected static signInput(
+        transaction: Psbt,
+        input: PsbtInput,
+        i: number,
+        signer: Signer,
+        sighashTypes: number[],
+    ): void {
+        if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
+
+        /*if (input.tapInternalKey) {
+            delete input.finalScriptWitness;
+            console.log('sign tap', input);
+            transaction.signTaprootInput(i, signer, undefined, sighashTypes);
+        } else {*/
+        transaction.signInput(i, signer, sighashTypes);
+        //}
+    }
+
+    /**
+     * Calculate the sign hash number
+     * @description Calculates the sign hash
+     * @protected
+     * @returns {number}
+     */
+    protected static calculateSignHash(sighashTypes: number[]): number {
+        if (!sighashTypes) {
+            throw new Error('Sighash types are required');
+        }
+
+        let signHash: number = 0;
+        for (let sighashType of sighashTypes) {
+            signHash |= sighashType;
+        }
+
+        return signHash || 0;
+    }
+
     /**
      * @description Returns the script address
      * @returns {string}
@@ -109,6 +229,8 @@ export abstract class TweakedTransaction extends Logger {
         if (!this.scriptData || !this.scriptData.address) {
             throw new Error('Tap data is required');
         }
+
+        console.log(this.scriptData, this.generateScriptAddress());
 
         return this.scriptData.address;
     }
@@ -156,6 +278,16 @@ export abstract class TweakedTransaction extends Logger {
         }
     }
 
+    /**
+     * Get the tweaked hash
+     * @private
+     *
+     * @returns {Buffer | undefined} The tweaked hash
+     */
+    public getTweakerHash(): Buffer | undefined {
+        return this.tapData?.hash;
+    }
+
     protected generateTapData(): Payment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
@@ -193,13 +325,21 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      */
     protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
-        const signHash = this.sighashTypes ? [this.calculateSignHash()] : undefined;
+        const signHash =
+            this.sighashTypes && this.sighashTypes.length
+                ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
+                : undefined;
         
         if (input.tapInternalKey) {
+            console.log('Attempting to sign input', i, 'with tweaked signer');
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
             transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
+
+            console.log(`Signed input #${i} via tweaked signer.`, this.getTweakerHash());
         } else {
+            console.log('Attempting to sign input', i, 'with regular signer');
             transaction.signInput(i, signer || this.getSignerKey(), signHash);
+            console.log(`Signed input #${i} via regular signer.`);
         }
     }
 
@@ -217,25 +357,6 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         transaction.finalizeAllInputs();
-    }
-
-    /**
-     * Calculate the sign hash number
-     * @description Calculates the sign hash
-     * @protected
-     * @returns {number}
-     */
-    protected calculateSignHash(): number {
-        if (!this.sighashTypes) {
-            throw new Error('Sighash types are required');
-        }
-
-        let signHash: number = 0;
-        for (let sighashType of this.sighashTypes) {
-            signHash |= sighashType;
-        }
-
-        return signHash;
     }
 
     /**
@@ -287,16 +408,6 @@ export abstract class TweakedTransaction extends Logger {
     }
 
     /**
-     * Get the tweaked hash
-     * @private
-     *
-     * @returns {Buffer | undefined} The tweaked hash
-     */
-    protected getTweakerHash(): Buffer | undefined {
-        return this.tapData?.hash;
-    }
-
-    /**
      * Generate the PSBT input extended
      * @param {UTXO} utxo The UTXO
      * @param {number} i The index of the input
@@ -315,7 +426,8 @@ export abstract class TweakedTransaction extends Logger {
         };
 
         if (this.sighashTypes) {
-            input.sighashType = this.calculateSignHash();
+            const inputSign = TweakedTransaction.calculateSignHash(this.sighashTypes);
+            if (inputSign) input.sighashType = inputSign;
         }
 
         if (this.tapLeafScript) {

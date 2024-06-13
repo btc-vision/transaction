@@ -38,7 +38,7 @@ export type FromBase64Params = Omit<PsbtTransactionData, 'psbt'>;
 export class PsbtTransaction extends TweakedTransaction {
     public readonly logColor: string = '#00ffe1';
 
-    public feesAddition: bigint = 80000n; // add 80000 satoshis to the fees
+    public feesAddition: bigint = 10000n; // add 80000 satoshis to the fees
 
     /**
      * @description The transaction
@@ -151,16 +151,19 @@ export class PsbtTransaction extends TweakedTransaction {
      */
     public attemptSignAllInputs(): boolean {
         let signed = false;
+        console.log(this.transaction.data.inputs);
         for (let i = 0; i < this.transaction.data.inputs.length; i++) {
             const input = this.transaction.data.inputs[i];
-            if (!input.partialSig) {
-                continue;
-            }
+            //if (!input.partialSig) {
+            //    continue;
+            //}
 
             try {
                 this.signInput(this.transaction, input, i, this.signer);
                 signed = true;
-            } catch (e) {}
+            } catch (e) {
+                console.log('can not sign.', e);
+            }
         }
 
         return signed;
@@ -170,10 +173,10 @@ export class PsbtTransaction extends TweakedTransaction {
      * Attempt to finalize all inputs
      * @returns {boolean} True if all inputs were finalized
      */
-    public attemptFinalizeInputs(): boolean {
+    public attemptFinalizeInputs(n: number = 1): boolean {
         try {
             const inputs = this.transaction.txInputs;
-            for (let i = 1; i < inputs.length; i++) {
+            for (let i = n; i < inputs.length; i++) {
                 this.transaction.finalizeInput(i);
             }
 
@@ -274,10 +277,8 @@ export class PsbtTransaction extends TweakedTransaction {
                         `Signed input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
                     );
                 } catch (e) {
-                    console.log('can not sign.', e);
-
                     this.warn(
-                        `Failed to sign input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
+                        `Failed to sign input ${inputIndex} with ${firstSigner.publicKey.toString('hex')} ${(e as Error).message}`,
                     );
                 }
             }
@@ -305,13 +306,13 @@ export class PsbtTransaction extends TweakedTransaction {
             },
             witnessScript: witness.witnessScript,
             sequence: this.sequence,
-            redeemScript: witness.redeemScript,
+            //redeemScript: witness.redeemScript,
         };
 
         console.log('Adding input2', input, utxo);
 
         if (this.sighashTypes) {
-            input.sighashType = this.calculateSignHash();
+            input.sighashType = PsbtTransaction.calculateSignHash(this.sighashTypes);
         }
 
         this.addInput(input);

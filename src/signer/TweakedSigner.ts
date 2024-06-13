@@ -37,7 +37,7 @@ export class TweakedSigner {
         if (!privateKey) {
             throw new Error('Private key is required for tweaking signer!');
         }
-
+        
         if (signer.publicKey[0] === 3) {
             privateKey = ecc.privateNegate(privateKey);
         }
