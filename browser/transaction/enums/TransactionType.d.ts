@@ -4,5 +4,6 @@ export declare enum TransactionType {
     DEPLOYMENT = 2,
     INTERACTION = 3,
     WBTC_WRAP = 4,
-    WBTC_UNWRAP = 5
+    WBTC_UNWRAP = 5,
+    MULTI_SIG = 6
 }

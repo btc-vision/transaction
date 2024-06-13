@@ -35,11 +35,13 @@ export declare class PsbtTransaction extends TweakedTransaction {
     protected readonly amountRequested: bigint;
     constructor(data: PsbtTransactionData);
     static fromBase64(data: string, params: FromBase64Params): PsbtTransaction;
+    static from(params: FromBase64Params): PsbtTransaction;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
     mergeVaults(input: VaultUTXOs[], firstSigner?: Signer): void;
     attemptSignAllInputs(): boolean;
-    attemptFinalizeInputs(): boolean;
+    attemptFinalizeInputs(n?: number): boolean;
+    getPSBT(): Psbt;
     protected generateMultiSignRedeemScript(publicKeys: string[], minimum: number): {
         witnessUtxo: Buffer;
         redeemScript: Buffer;

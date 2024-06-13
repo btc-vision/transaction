@@ -1,5 +1,6 @@
 import { IDeploymentParameters, IInteractionParameters, IUnwrapParameters, IWrapParameters } from './interfaces/ITransactionParameters.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { UnwrapTransaction } from './builders/UnwarpTransaction.js';
 export interface DeploymentResult {
     readonly transaction: [string, string];
     readonly contractAddress: Address;
@@ -14,6 +15,7 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
+    readonly original: UnwrapTransaction;
 }
 export declare class TransactionFactory {
     signInteraction(interactionParameters: IInteractionParameters): [string, string];

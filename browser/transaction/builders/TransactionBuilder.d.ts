@@ -14,7 +14,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     readonly logColor: string;
     overflowFees: bigint;
     transactionFee: bigint;
-    protected readonly transaction: Psbt;
+    protected transaction: Psbt;
     protected readonly updateInputs: UpdateInput[];
     protected readonly outputs: PsbtOutputExtended[];
     protected feeOutput: PsbtOutputExtended | null;
@@ -26,9 +26,10 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected utxos: UTXO[];
     protected to: Address | undefined;
     protected from: Address;
-    private _maximumFeeRate;
+    protected _maximumFeeRate: number;
     protected constructor(parameters: ITransactionParameters);
     static getFrom(from: string | undefined, keypair: ECPairInterface, network: Network): Address;
+    protected static witnessStackToScriptWitness(witness: Buffer[]): Buffer;
     getFundingTransactionParameters(): IFundingTransactionParameters;
     setDestinationAddress(address: Address): void;
     setMaximumFeeRate(feeRate: number): void;
@@ -37,14 +38,16 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
     toAddress(): string | undefined;
+    address(): Address | undefined;
     estimateTransactionFees(): bigint;
+    rebuildFromBase64(base64: string): Psbt;
+    setPSBT(psbt: Psbt): void;
     protected addRefundOutput(amountSpent: bigint): void;
     protected addValueToToOutput(value: number | bigint): void;
     protected getTransactionOPNetFee(): bigint;
     protected calculateTotalUTXOAmount(): bigint;
     protected calculateTotalVOutAmount(): bigint;
     protected addInputsFromUTXO(): void;
-    protected witnessStackToScriptWitness(witness: Buffer[]): Buffer;
     protected internalInit(): void;
     protected abstract buildTransaction(): void;
     protected updateInput(input: UpdateInput): void;
@@ -54,5 +57,5 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected getOutputs(): PsbtOutputExtended[];
     protected verifyUTXOValidity(): void;
     protected setFeeOutput(output: PsbtOutputExtended): void;
-    private internalBuildTransaction;
+    protected internalBuildTransaction(transaction: Psbt): boolean;
 }

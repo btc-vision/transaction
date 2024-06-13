@@ -17,6 +17,7 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected readonly calldata: Buffer;
     protected abstract readonly contractSecret: Buffer;
     protected readonly scriptSigner: Signer;
+    protected readonly disableAutoRefund: boolean;
     protected constructor(parameters: SharedInteractionParameters);
     getContractSecret(): Buffer;
     getRndBytes(): Buffer;
@@ -32,5 +33,4 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     private getPubKeys;
     private customFinalizer;
     private generateRedeemScripts;
-    private getLeafScript;
 }
