@@ -220,6 +220,10 @@ export class PsbtTransaction extends TweakedTransaction {
         }
     }
 
+    public getPSBT(): Psbt {
+        return this.transaction;
+    }
+
     /**
      * Generate a multi-signature redeem script
      * @param {string[]} publicKeys The public keys

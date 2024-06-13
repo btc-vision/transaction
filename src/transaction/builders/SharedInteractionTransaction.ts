@@ -220,7 +220,7 @@ export abstract class SharedInteractionTransaction<
                 continue;
             }
 
-            if (this.regenerated) {
+            if (this.regenerated || this.ignoreSignatureErrors) {
                 continue;
             }
 

@@ -220,7 +220,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Transaction} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signTransaction(): Transaction | true {
+    public signTransaction(): Transaction {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -330,12 +330,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.transaction = Psbt.fromBase64(base64, { network: this.network });
         this.signed = false;
 
-        console.log(this.transaction.data.inputs);
+        console.log('INPUT', this.transaction.data.inputs);
 
-        this.regenerated = true;
+        //this.regenerated = true;
         this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];
 
         return this.signPSBT();
+    }
+
+    public setPSBT(psbt: Psbt): void {
+        this.transaction = psbt;
     }
 
     /**
@@ -439,21 +443,21 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     protected addInputsFromUTXO(): void {
-        if (!this.utxos.length) {
-            throw new Error('No UTXOs specified');
-        }
+        if (this.utxos.length) {
+            //throw new Error('No UTXOs specified');
 
-        if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
-            throw new Error(
-                `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
-            );
-        }
+            if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
+                throw new Error(
+                    `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
+                );
+            }
 
-        for (let i = 0; i < this.utxos.length; i++) {
-            const utxo = this.utxos[i];
-            const input = this.generatePsbtInputExtended(utxo, i);
+            for (let i = 0; i < this.utxos.length; i++) {
+                const utxo = this.utxos[i];
+                const input = this.generatePsbtInputExtended(utxo, i);
 
-            this.addInput(input);
+                this.addInput(input);
+            }
         }
     }
 

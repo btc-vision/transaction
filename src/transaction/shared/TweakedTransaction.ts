@@ -84,6 +84,7 @@ export abstract class TweakedTransaction extends Logger {
     protected nonWitnessUtxo?: Buffer;
 
     protected regenerated: boolean = false;
+    protected ignoreSignatureErrors: boolean = false;
 
     protected constructor(data: ITweakedTransactionData) {
         super();
@@ -204,6 +205,10 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         return signHash || 0;
+    }
+
+    public ignoreSignatureError(): void {
+        this.ignoreSignatureErrors = true;
     }
 
     /**
