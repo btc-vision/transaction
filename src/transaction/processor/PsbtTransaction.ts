@@ -54,7 +54,7 @@ export class PsbtTransaction extends TweakedTransaction {
         Transaction.SIGHASH_ALL,
         Transaction.SIGHASH_ANYONECANPAY,
     ];
-    
+
     /**
      * @description The receiver
      * @protected
@@ -93,6 +93,15 @@ export class PsbtTransaction extends TweakedTransaction {
         });
     }
 
+    public static from(params: FromBase64Params): PsbtTransaction {
+        const psbt = new Psbt({ network: params.network });
+
+        return new PsbtTransaction({
+            ...params,
+            psbt,
+        });
+    }
+
     /**
      * @description Add an input to the transaction
      * @param input
@@ -106,7 +115,8 @@ export class PsbtTransaction extends TweakedTransaction {
      * @param output
      */
     public addOutput(output: PsbtOutputExtended): void {
-        console.log('Adding output', output);
+        if (!output.value) return;
+
         this.transaction.addOutput(output);
     }
 
@@ -129,8 +139,6 @@ export class PsbtTransaction extends TweakedTransaction {
             );
         }
 
-        console.log('MAX is', this.getTotalOutputAmount(input));
-
         this.addOutput({
             address: firstVault.vault,
             value: Number(outputLeftAmount),
@@ -151,7 +159,6 @@ export class PsbtTransaction extends TweakedTransaction {
      */
     public attemptSignAllInputs(): boolean {
         let signed = false;
-        console.log(this.transaction.data.inputs);
         for (let i = 0; i < this.transaction.data.inputs.length; i++) {
             const input = this.transaction.data.inputs[i];
             //if (!input.partialSig) {
@@ -162,7 +169,7 @@ export class PsbtTransaction extends TweakedTransaction {
                 this.signInput(this.transaction, input, i, this.signer);
                 signed = true;
             } catch (e) {
-                console.log('can not sign.', e);
+                console.log(`can not sign. input ${i}`, e);
             }
         }
 
@@ -175,9 +182,35 @@ export class PsbtTransaction extends TweakedTransaction {
      */
     public attemptFinalizeInputs(n: number = 1): boolean {
         try {
-            const inputs = this.transaction.txInputs;
+            const inputs = this.transaction.data.inputs;
             for (let i = n; i < inputs.length; i++) {
-                this.transaction.finalizeInput(i);
+                let input = inputs[i];
+
+                /*if (input.finalScriptWitness) {
+                    const decoded = TweakedTransaction.readScriptWitnessToWitnessStack(
+                        input.finalScriptWitness,
+                    );
+
+                    input.tapLeafScript = [
+                        {
+                            leafVersion: 192,
+                            script: decoded[0],
+                            controlBlock: decoded[1],
+                        },
+                    ];
+
+                    //input.tapInternalKey = a;
+
+                    //delete input.finalScriptWitness;
+                }*/
+
+                console.log('input', input, this.transaction.data.outputs);
+
+                if (input.finalScriptWitness) {
+                    this.transaction.finalizeTaprootInput(i, input.finalScriptWitness);
+                } else {
+                    this.transaction.finalizeInput(i);
+                }
             }
 
             return true;
@@ -308,8 +341,6 @@ export class PsbtTransaction extends TweakedTransaction {
             sequence: this.sequence,
             //redeemScript: witness.redeemScript,
         };
-
-        console.log('Adding input2', input, utxo);
 
         if (this.sighashTypes) {
             input.sighashType = PsbtTransaction.calculateSignHash(this.sighashTypes);

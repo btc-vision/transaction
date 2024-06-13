@@ -28,27 +28,23 @@ export enum TransactionSequence {
  * */
 export abstract class TweakedTransaction extends Logger {
     public readonly logColor: string = '#00ffe1';
-
+    public finalized: boolean = false;
     /**
      * @description Was the transaction signed?
      */
     protected signer: Signer;
-
     /**
      * @description Tweaked signer
      */
     protected tweakedSigner?: Signer;
-
     /**
      * @description The network of the transaction
      */
     protected network: Network;
-
     /**
      * @description Was the transaction signed?
      */
     protected signed: boolean = false;
-
     /**
      * @description The transaction
      * @protected
@@ -58,40 +54,36 @@ export abstract class TweakedTransaction extends Logger {
      * @description The sighash types of the transaction
      * @protected
      */
-    protected readonly sighashTypes: number[] | undefined;
-
+    protected sighashTypes: number[] | undefined;
     /**
      * @description The script data of the transaction
      */
     protected scriptData: Payment | null = null;
-
     /**
      * @description The tap data of the transaction
      */
     protected tapData: Payment | null = null;
-
     /**
      * @description The inputs of the transaction
      */
     protected readonly inputs: PsbtInputExtended[] = [];
-
     /**
      * @description The sequence of the transaction
      * @protected
      */
     protected sequence: number = TransactionSequence.REPLACE_BY_FEE;
-
     /**
      * The tap leaf script
      * @protected
      */
     protected tapLeafScript: TapLeafScript | null = null;
-
     /**
      * Add a non-witness utxo to the transaction
      * @protected
      */
     protected nonWitnessUtxo?: Buffer;
+
+    protected regenerated: boolean = false;
 
     protected constructor(data: ITweakedTransactionData) {
         super();
@@ -144,7 +136,6 @@ export abstract class TweakedTransaction extends Logger {
 
         //delete input.finalScriptWitness;
 
-        console.log('sign tap', input, tweaked);
         transaction.signTaprootInput(i, tweaked, undefined, sighashTypes);
     }
 
@@ -193,13 +184,7 @@ export abstract class TweakedTransaction extends Logger {
     ): void {
         if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
 
-        /*if (input.tapInternalKey) {
-            delete input.finalScriptWitness;
-            console.log('sign tap', input);
-            transaction.signTaprootInput(i, signer, undefined, sighashTypes);
-        } else {*/
         transaction.signInput(i, signer, sighashTypes);
-        //}
     }
 
     /**
@@ -229,8 +214,6 @@ export abstract class TweakedTransaction extends Logger {
         if (!this.scriptData || !this.scriptData.address) {
             throw new Error('Tap data is required');
         }
-
-        console.log(this.scriptData, this.generateScriptAddress());
 
         return this.scriptData.address;
     }
@@ -329,17 +312,13 @@ export abstract class TweakedTransaction extends Logger {
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
                 : undefined;
-        
+
         if (input.tapInternalKey) {
-            console.log('Attempting to sign input', i, 'with tweaked signer');
+            if (!this.tweakedSigner) this.tweakSigner();
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
             transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
-
-            console.log(`Signed input #${i} via tweaked signer.`, this.getTweakerHash());
         } else {
-            console.log('Attempting to sign input', i, 'with regular signer');
             transaction.signInput(i, signer || this.getSignerKey(), signHash);
-            console.log(`Signed input #${i} via regular signer.`);
         }
     }
 
@@ -353,10 +332,20 @@ export abstract class TweakedTransaction extends Logger {
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             let input: PsbtInput = transaction.data.inputs[i];
 
-            this.signInput(transaction, input, i);
+            try {
+                this.signInput(transaction, input, i);
+            } catch (e) {
+                this.log(`Failed to sign input ${i}: ${e}`);
+            }
         }
 
-        transaction.finalizeAllInputs();
+        try {
+            transaction.finalizeAllInputs();
+
+            this.finalized = true;
+        } catch (e) {
+            this.finalized = false;
+        }
     }
 
     /**

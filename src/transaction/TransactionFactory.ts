@@ -34,6 +34,7 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
+    readonly original: UnwrapTransaction;
 }
 
 export class TransactionFactory {
@@ -258,14 +259,12 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Psbt = finalTransaction.signPSBT();
         const asBase64 = outTx.toBase64();
-
-        console.log('raw', asBase64);
-
         const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
 
         return {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
+            original: finalTransaction,
         };
     }
 

@@ -3,13 +3,18 @@ import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
+import {
+    IFundingTransactionParameters,
+    ITransactionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
+
+initEccLib(ecc);
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -215,7 +220,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Transaction} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signTransaction(): Transaction {
+    public signTransaction(): Transaction | true {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -229,6 +234,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         const builtTx = this.internalBuildTransaction(this.transaction);
         if (builtTx) {
+            if (this.regenerated) {
+                throw new Error('Transaction was regenerated');
+            }
+
             return this.transaction.extractTransaction(false);
         }
 
@@ -315,6 +324,18 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
             );
         }
+    }
+
+    public rebuildFromBase64(base64: string): Psbt {
+        this.transaction = Psbt.fromBase64(base64, { network: this.network });
+        this.signed = false;
+
+        console.log(this.transaction.data.inputs);
+
+        this.regenerated = true;
+        this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];
+
+        return this.signPSBT();
     }
 
     /**
@@ -575,21 +596,26 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong while building the transaction
      */
     protected internalBuildTransaction(transaction: Psbt): boolean {
-        const inputs: PsbtInputExtended[] = this.getInputs();
-        const outputs: PsbtOutputExtended[] = this.getOutputs();
+        if (transaction.data.inputs.length === 0) {
+            const inputs: PsbtInputExtended[] = this.getInputs();
+            const outputs: PsbtOutputExtended[] = this.getOutputs();
 
-        transaction.setMaximumFeeRate(this._maximumFeeRate);
-        transaction.addInputs(inputs);
+            transaction.setMaximumFeeRate(this._maximumFeeRate);
+            transaction.addInputs(inputs);
 
-        for (let i = 0; i < this.updateInputs.length; i++) {
-            transaction.updateInput(i, this.updateInputs[i]);
+            for (let i = 0; i < this.updateInputs.length; i++) {
+                transaction.updateInput(i, this.updateInputs[i]);
+            }
+
+            transaction.addOutputs(outputs);
         }
-
-        transaction.addOutputs(outputs);
 
         try {
             this.signInputs(transaction);
-            this.transactionFee = BigInt(transaction.getFee());
+
+            if (this.finalized) {
+                this.transactionFee = BigInt(transaction.getFee());
+            }
 
             return true;
         } catch (e) {
@@ -603,5 +629,3 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return false;
     }
 }
-
-initEccLib(ecc);

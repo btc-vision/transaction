@@ -158,7 +158,9 @@ export abstract class SharedInteractionTransaction<
             controlBlock: this.getWitness(),
         };
 
-        this.addInputsFromUTXO();
+        if (!this.regenerated) {
+            this.addInputsFromUTXO();
+        }
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
         this.addOutput({
@@ -185,17 +187,44 @@ export abstract class SharedInteractionTransaction<
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             let input: PsbtInput = transaction.data.inputs[i];
+            console.log(i, input);
 
-            if (i === 0) {
+            let finalized: boolean = false;
+            let signed: boolean = false;
+
+            try {
                 this.signInput(transaction, input, i, this.scriptSigner);
-                this.signInput(transaction, input, i);
+                signed = true;
+            } catch (e) {}
 
+            try {
+                this.signInput(transaction, input, i);
+                signed = true;
+            } catch (e) {}
+
+            try {
                 transaction.finalizeInput(0, this.customFinalizer);
-            } else {
-                this.signInput(transaction, input, i);
+                finalized = true;
+            } catch (e) {}
 
+            try {
                 transaction.finalizeInput(i);
+                finalized = true;
+            } catch (e) {}
+
+            if (signed || finalized) {
+                this.log(
+                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}!`,
+                );
+
+                continue;
             }
+
+            if (this.regenerated) {
+                continue;
+            }
+
+            throw new Error('Failed to sign input');
         }
     }
 
