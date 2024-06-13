@@ -5,7 +5,8 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { Transaction } from 'bitcoinjs-lib';
+import { Psbt, Transaction } from 'bitcoinjs-lib';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -42,7 +43,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * The sighash types for the transaction
      * @protected
      */
-    protected readonly sighashTypes: number[] = [
+    protected sighashTypes: number[] = [
         Transaction.SIGHASH_SINGLE,
         Transaction.SIGHASH_ANYONECANPAY,
     ];
@@ -98,5 +99,31 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         bufWriter.writeU256(amount);
 
         return Buffer.from(bufWriter.getBuffer());
+    }
+
+    /**
+     * @description Signs the transaction
+     * @public
+     * @returns {Transaction} - The signed transaction in hex format
+     * @throws {Error} - If something went wrong
+     */
+    public signPSBT(): Psbt {
+        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
+        }
+
+        if (this.signed) throw new Error('Transaction is already signed');
+        this.signed = true;
+
+        this.buildTransaction();
+
+        const builtTx = this.internalBuildTransaction(this.transaction);
+        if (builtTx) {
+            return this.transaction;
+        }
+
+        throw new Error('Could not sign transaction');
     }
 }

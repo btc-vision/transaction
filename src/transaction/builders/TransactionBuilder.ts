@@ -3,13 +3,18 @@ import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { IFundingTransactionParameters, ITransactionParameters } from '../interfaces/ITransactionParameters.js';
+import {
+    IFundingTransactionParameters,
+    ITransactionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
+
+initEccLib(ecc);
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -229,6 +234,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         const builtTx = this.internalBuildTransaction(this.transaction);
         if (builtTx) {
+            if (this.regenerated) {
+                throw new Error('Transaction was regenerated');
+            }
+
             return this.transaction.extractTransaction(false);
         }
 
@@ -315,6 +324,22 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
             );
         }
+    }
+
+    public rebuildFromBase64(base64: string): Psbt {
+        this.transaction = Psbt.fromBase64(base64, { network: this.network });
+        this.signed = false;
+
+        console.log('INPUT', this.transaction.data.inputs);
+
+        //this.regenerated = true;
+        this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];
+
+        return this.signPSBT();
+    }
+
+    public setPSBT(psbt: Psbt): void {
+        this.transaction = psbt;
     }
 
     /**
@@ -418,21 +443,21 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     protected addInputsFromUTXO(): void {
-        if (!this.utxos.length) {
-            throw new Error('No UTXOs specified');
-        }
+        if (this.utxos.length) {
+            //throw new Error('No UTXOs specified');
 
-        if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
-            throw new Error(
-                `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
-            );
-        }
+            if (this.totalInputAmount < TransactionBuilder.MINIMUM_DUST) {
+                throw new Error(
+                    `Total input amount is ${this.totalInputAmount} sat which is less than the minimum dust ${TransactionBuilder.MINIMUM_DUST} sat.`,
+                );
+            }
 
-        for (let i = 0; i < this.utxos.length; i++) {
-            const utxo = this.utxos[i];
-            const input = this.generatePsbtInputExtended(utxo, i);
+            for (let i = 0; i < this.utxos.length; i++) {
+                const utxo = this.utxos[i];
+                const input = this.generatePsbtInputExtended(utxo, i);
 
-            this.addInput(input);
+                this.addInput(input);
+            }
         }
     }
 
@@ -575,21 +600,26 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong while building the transaction
      */
     protected internalBuildTransaction(transaction: Psbt): boolean {
-        const inputs: PsbtInputExtended[] = this.getInputs();
-        const outputs: PsbtOutputExtended[] = this.getOutputs();
+        if (transaction.data.inputs.length === 0) {
+            const inputs: PsbtInputExtended[] = this.getInputs();
+            const outputs: PsbtOutputExtended[] = this.getOutputs();
 
-        transaction.setMaximumFeeRate(this._maximumFeeRate);
-        transaction.addInputs(inputs);
+            transaction.setMaximumFeeRate(this._maximumFeeRate);
+            transaction.addInputs(inputs);
 
-        for (let i = 0; i < this.updateInputs.length; i++) {
-            transaction.updateInput(i, this.updateInputs[i]);
+            for (let i = 0; i < this.updateInputs.length; i++) {
+                transaction.updateInput(i, this.updateInputs[i]);
+            }
+
+            transaction.addOutputs(outputs);
         }
-
-        transaction.addOutputs(outputs);
 
         try {
             this.signInputs(transaction);
-            this.transactionFee = BigInt(transaction.getFee());
+
+            if (this.finalized) {
+                this.transactionFee = BigInt(transaction.getFee());
+            }
 
             return true;
         } catch (e) {
@@ -603,5 +633,3 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return false;
     }
 }
-
-initEccLib(ecc);

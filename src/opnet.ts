@@ -62,3 +62,4 @@ export * from './utxo/interfaces/BroadcastResponse.js';
 export * from './transaction/psbt/PSBTTypes.js';
 
 export * from './transaction/builders/MultiSignTransaction.js';
+export * from './transaction/builders/UnwarpTransaction.js';
