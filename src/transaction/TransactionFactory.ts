@@ -16,6 +16,8 @@ import { wBTC } from '../metadata/contracts/wBTC.js';
 import { WrapTransaction } from './builders/WrapTransaction.js';
 import { UnwrapTransaction } from './builders/UnwarpTransaction.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
+import { TapUnwrapTransaction } from './builders/TapUnwarpTransaction.js';
+import { VaultUTXOs } from './processor/PsbtTransaction.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -34,7 +36,7 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
-    readonly original: UnwrapTransaction;
+    readonly original: UnwrapTransaction | TapUnwrapTransaction;
 }
 
 export class TransactionFactory {
@@ -218,6 +220,79 @@ export class TransactionFactory {
 
         // Initial generation
         const estimatedGas = transaction.estimateTransactionFees();
+        const estimatedFees =
+            this.calculateNumInputs(unwrapParameters.unwrapUTXOs) *
+            8000n; /*transaction.estimateVaultFees(
+            BigInt(unwrapParameters.feeRate),
+            BigInt(unwrapParameters.unwrapUTXOs.length),
+            2n,
+            this.calculateNumSignatures(unwrapParameters.unwrapUTXOs),
+            this.maxPubKeySize(unwrapParameters.unwrapUTXOs),
+        );*/
+        
+        const fundingParameters: IFundingTransactionParameters = {
+            ...unwrapParameters,
+            childTransactionRequiredValue:
+                estimatedGas + unwrapParameters.feeProvision + estimatedFees,
+            to: to,
+        };
+
+        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
+
+        const preTransaction: UnwrapTransaction = new UnwrapTransaction({
+            ...unwrapParameters,
+            randomBytes: transaction.getRndBytes(),
+        });
+
+        // Initial generation
+        preTransaction.signTransaction();
+
+        const parameters: IFundingTransactionParameters =
+            preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = fundingParameters.utxos;
+        parameters.childTransactionRequiredValue =
+            preTransaction.estimateTransactionFees() +
+            unwrapParameters.feeProvision +
+            estimatedFees;
+
+        const signedTransaction = this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        const newParams: IUnwrapParameters = {
+            ...unwrapParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+        };
+
+        const finalTransaction: UnwrapTransaction = new UnwrapTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Psbt = finalTransaction.signPSBT();
+        const asBase64 = outTx.toBase64();
+        const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
+
+        return {
+            fundingTransaction: signedTransaction.tx.toHex(),
+            psbt: psbt,
+            original: finalTransaction,
+        };
+    }
+
+    public async unwrapTap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+        const transaction: TapUnwrapTransaction = new TapUnwrapTransaction(unwrapParameters);
+
+        transaction.signTransaction();
+
+        const to = transaction.toAddress();
+        if (!to) throw new Error('To address is required');
+
+        // Initial generation
+        const estimatedGas = transaction.estimateTransactionFees();
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
             childTransactionRequiredValue: estimatedGas + unwrapParameters.feeProvision,
@@ -227,7 +302,7 @@ export class TransactionFactory {
         const preFundingTransaction = this.createFundTransaction(fundingParameters);
         unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
-        const preTransaction: UnwrapTransaction = new UnwrapTransaction({
+        const preTransaction: TapUnwrapTransaction = new TapUnwrapTransaction({
             ...unwrapParameters,
             randomBytes: transaction.getRndBytes(),
         });
@@ -254,7 +329,7 @@ export class TransactionFactory {
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
         };
 
-        const finalTransaction: UnwrapTransaction = new UnwrapTransaction(newParams);
+        const finalTransaction: TapUnwrapTransaction = new TapUnwrapTransaction(newParams);
 
         // We have to regenerate using the new utxo
         const outTx: Psbt = finalTransaction.signPSBT();
@@ -266,6 +341,36 @@ export class TransactionFactory {
             psbt: psbt,
             original: finalTransaction,
         };
+    }
+
+    private calculateNumSignatures(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+
+        for (const v of vault) {
+            numSignatures += BigInt(v.minimum * v.utxos.length);
+        }
+
+        return numSignatures;
+    }
+
+    private calculateNumInputs(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+
+        for (const v of vault) {
+            numSignatures += BigInt(v.utxos.length);
+        }
+
+        return numSignatures;
+    }
+
+    private maxPubKeySize(vault: VaultUTXOs[]): bigint {
+        let size = 0;
+
+        for (const v of vault) {
+            size = Math.max(size, v.publicKeys.length);
+        }
+
+        return BigInt(size);
     }
 
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {

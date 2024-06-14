@@ -121,22 +121,6 @@ export abstract class TweakedTransaction extends Logger {
         };
 
         const tweaked = TweakedSigner.tweakSigner(signer as ECPairInterface, settings);
-        /*if (input.finalScriptWitness) {
-            const decoded = TweakedTransaction.readScriptWitnessToWitnessStack(
-                input.finalScriptWitness,
-            );
-
-            input.tapLeafScript = [
-                {
-                    leafVersion: 192,
-                    script: decoded[0],
-                    controlBlock: decoded[1],
-                },
-            ];
-        }*/
-
-        //delete input.finalScriptWitness;
-
         transaction.signTaprootInput(i, tweaked, undefined, sighashTypes);
     }
 
@@ -185,7 +169,7 @@ export abstract class TweakedTransaction extends Logger {
     ): void {
         if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
 
-        transaction.signInput(i, signer, sighashTypes);
+        transaction.signInput(i, signer, sighashTypes.length ? sighashTypes : undefined);
     }
 
     /**
@@ -317,7 +301,7 @@ export abstract class TweakedTransaction extends Logger {
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
                 : undefined;
-        
+
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) this.tweakSigner();
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');

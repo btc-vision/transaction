@@ -8,10 +8,10 @@ import { ABICoder, Address, BinaryWriter, Selector } from '@btc-vision/bsi-binar
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ECPairInterface } from 'ecpair';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
-import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { Network } from 'bitcoinjs-lib';
+import { P2TR_MS } from '../shared/P2TR_MS.js';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -291,7 +291,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      * @returns {string}
      */
     private generateVaultAddress(keys: Buffer[], minimumSignatureRequired: number): string {
-        return EcKeyPair.generateMultiSigAddress(keys, minimumSignatureRequired, this.network);
+        return P2TR_MS.generateMultiSigAddress(keys, minimumSignatureRequired, this.network);
     }
 
     /**

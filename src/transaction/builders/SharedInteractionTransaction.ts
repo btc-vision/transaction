@@ -301,27 +301,11 @@ export abstract class SharedInteractionTransaction<
     }
 
     /**
-     * Get the public keys
-     * @private
-     *
-     * @returns {Buffer[]} The public keys
-     */
-    private getPubKeys(): Buffer[] {
-        const pubkeys = [this.signer.publicKey];
-
-        if (this.scriptSigner) {
-            pubkeys.push(this.scriptSigner.publicKey);
-        }
-
-        return pubkeys;
-    }
-
-    /**
      * Transaction finalizer
      * @param {number} _inputIndex The input index
      * @param {PsbtInput} input The input
      */
-    private customFinalizer = (_inputIndex: number, input: PsbtInput) => {
+    protected customFinalizer = (_inputIndex: number, input: PsbtInput) => {
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
         }
@@ -343,6 +327,22 @@ export abstract class SharedInteractionTransaction<
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
+
+    /**
+     * Get the public keys
+     * @private
+     *
+     * @returns {Buffer[]} The public keys
+     */
+    private getPubKeys(): Buffer[] {
+        const pubkeys = [this.signer.publicKey];
+
+        if (this.scriptSigner) {
+            pubkeys.push(this.scriptSigner.publicKey);
+        }
+
+        return pubkeys;
+    }
 
     /**
      * Generate the redeem scripts
