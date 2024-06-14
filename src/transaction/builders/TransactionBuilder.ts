@@ -298,7 +298,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Address} - The script address
      */
     public address(): Address | undefined {
-        console.log(this.tapData);
         return this.tapData?.address;
     }
 
@@ -330,9 +329,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.transaction = Psbt.fromBase64(base64, { network: this.network });
         this.signed = false;
 
-        console.log('INPUT', this.transaction.data.inputs);
-
-        //this.regenerated = true;
         this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];
 
         return this.signPSBT();

@@ -1,3 +1,5 @@
+import { VaultUTXOs } from '../transaction/processor/PsbtTransaction.js';
+
 export interface GenerationConstraints {
     /** Timestamp of the generation */
     readonly timestamp: number;
@@ -27,4 +29,12 @@ export interface WrappedGenerationParameters {
 
     /** Generation constraints */
     readonly constraints: GenerationConstraints;
+}
+
+export interface UnwrappedGenerationParameters {
+    /** UTXOs to unwrap from */
+    readonly vaultUTXOs: VaultUTXOs[];
+
+    /** WBTC balance */
+    readonly balance: string;
 }

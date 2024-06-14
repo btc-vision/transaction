@@ -317,7 +317,7 @@ export abstract class TweakedTransaction extends Logger {
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
                 : undefined;
-
+        
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) this.tweakSigner();
             if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
@@ -340,7 +340,7 @@ export abstract class TweakedTransaction extends Logger {
             try {
                 this.signInput(transaction, input, i);
             } catch (e) {
-                this.log(`Failed to sign input ${i}: ${e}`);
+                this.log(`Failed to sign input ${i}: ${(e as Error).stack}`);
             }
         }
 

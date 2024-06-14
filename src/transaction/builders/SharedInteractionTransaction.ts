@@ -187,8 +187,6 @@ export abstract class SharedInteractionTransaction<
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             let input: PsbtInput = transaction.data.inputs[i];
-            console.log(i, input);
-
             let finalized: boolean = false;
             let signed: boolean = false;
 
@@ -214,7 +212,7 @@ export abstract class SharedInteractionTransaction<
 
             if (signed || finalized) {
                 this.log(
-                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}!`,
+                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}, Finalized: ${finalized}}`,
                 );
 
                 continue;

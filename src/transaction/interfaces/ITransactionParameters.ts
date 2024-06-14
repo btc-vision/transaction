@@ -2,6 +2,7 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
+import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
@@ -42,6 +43,8 @@ export interface IWrapParameters extends SharedInteractionParameters {
 
 export interface IUnwrapParameters extends SharedInteractionParameters {
     //readonly to?: undefined;
+
+    readonly unwrapUTXOs: VaultUTXOs[];
 
     readonly feeProvision: bigint;
     readonly amount: bigint;
