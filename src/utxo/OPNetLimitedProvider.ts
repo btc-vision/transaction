@@ -4,6 +4,7 @@ import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../w
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
+import { UnwrapTransaction } from '../transaction/builders/UnwarpTransaction.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node
@@ -194,8 +195,10 @@ export class OPNetLimitedProvider {
      * @throws {Error} - If wrap parameters could not be fetched
      */
     public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
-        if (amount <= 330n) {
-            throw new Error('Amount must be greater than 330');
+        if (amount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+            throw new Error(
+                `Amount must be greater than the minimum consolidation amount ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT}sat.`,
+            );
         }
 
         const params = [0, amount.toString()];

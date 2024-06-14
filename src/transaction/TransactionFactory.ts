@@ -161,6 +161,10 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      */
     public wrap(warpParameters: IWrapParameters): WrapResult {
+        if(warpParameters.amount <= UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+            throw new Error(`Amount is too low. Minimum consolidation is ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat. Received ${warpParameters.amount} sat.`);
+        }
+
         const wbtc: wBTC = new wBTC(warpParameters.network);
 
         const to = wbtc.getAddress();
@@ -229,7 +233,7 @@ export class TransactionFactory {
             this.calculateNumSignatures(unwrapParameters.unwrapUTXOs),
             this.maxPubKeySize(unwrapParameters.unwrapUTXOs),
         );*/
-        
+
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
             childTransactionRequiredValue:

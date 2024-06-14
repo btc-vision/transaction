@@ -17,6 +17,8 @@ const abiCoder: ABICoder = new ABICoder();
  * @class UnwrapTransaction
  */
 export class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
+    public static readonly MINIMUM_CONSOLIDATION_AMOUNT: bigint = 200000n;
+
     private static readonly UNWRAP_SELECTOR: Selector = Number(
         '0x' + abiCoder.encodeSelector('burn'),
     );
@@ -163,6 +165,14 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             );
         }
 
+        console.log('outputLeftAmount', outputLeftAmount, this.amount);
+
+        if (outputLeftAmount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+            throw new Error(
+                `Output left amount is below minimum consolidation (${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat) amount ${outputLeftAmount} for vault ${firstVault.vault}`,
+            );
+        }
+
         this.addOutput({
             address: firstVault.vault,
             value: Number(outputLeftAmount),
@@ -296,6 +306,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             witnessScript: Buffer;
         },
     ): void {
+        console.log(Number(utxo.value), utxo.hash, utxo.outputIndex);
         const input: PsbtInputExtended = {
             hash: utxo.hash,
             index: utxo.outputIndex,

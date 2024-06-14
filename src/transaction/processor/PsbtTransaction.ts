@@ -161,27 +161,6 @@ export class PsbtTransaction extends TweakedTransaction {
             const inputs = this.transaction.data.inputs;
             for (let i = n; i < inputs.length; i++) {
                 let input = inputs[i];
-
-                /*if (input.finalScriptWitness) {
-                    const decoded = TweakedTransaction.readScriptWitnessToWitnessStack(
-                        input.finalScriptWitness,
-                    );
-
-                    input.tapLeafScript = [
-                        {
-                            leafVersion: 192,
-                            script: decoded[0],
-                            controlBlock: decoded[1],
-                        },
-                    ];
-
-                    //input.tapInternalKey = a;
-
-                    //delete input.finalScriptWitness;
-                }*/
-
-                console.log('input', input, this.transaction.data.outputs);
-
                 if (input.finalScriptWitness) {
                     this.transaction.finalizeTaprootInput(i, input.finalScriptWitness);
                 } else {
