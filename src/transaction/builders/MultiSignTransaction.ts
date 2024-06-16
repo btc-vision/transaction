@@ -1,27 +1,18 @@
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
-import {
-    crypto,
-    Network,
-    opcodes,
-    Payment,
-    Psbt,
-    script,
-    Signer,
-    Transaction,
-} from 'bitcoinjs-lib';
+import { PsbtInput, TapScriptSig } from 'bip174/src/lib/interfaces.js';
+import bitcoin, { opcodes, Payment, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
-import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 
 export interface MultiSignParameters
-    extends Omit<ITransactionParameters, 'signer' | 'priorityFee'> {
+    extends Omit<ITransactionParameters, 'priorityFee' | 'signer'> {
     readonly pubkeys: Buffer[];
     readonly minimumSignatures: number;
     readonly from?: undefined;
@@ -48,29 +39,24 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     ]);
 
     public static readonly signHashTypesArray: number[] = [
-        Transaction.SIGHASH_ALL,
-        Transaction.SIGHASH_ANYONECANPAY,
+        //Transaction.SIGHASH_ALL,
+        //Transaction.SIGHASH_ANYONECANPAY,
     ];
-
+    public static readonly numsPoint = Buffer.from(
+        '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
+        'hex',
+    );
     public type: TransactionType.MULTI_SIG = TransactionType.MULTI_SIG;
-
     protected targetScriptRedeem: Payment | null = null;
     protected leftOverFundsScriptRedeem: Payment | null = null;
-
     protected readonly compiledTargetScript: Buffer;
     protected readonly scriptTree: Taptree;
-
-    protected readonly multisignGenerator: MultiSignGenerator;
-
     protected readonly publicKeys: Buffer[];
     protected readonly minimumSignatures: number;
-
     protected readonly originalInputCount: number = 0;
-
     protected readonly requestedAmount: bigint;
     protected readonly receiver: Address;
     protected readonly refundVault: Address;
-
     /**
      * @description Sign hash types
      * @protected
@@ -90,8 +76,13 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             throw new Error('Receiver is required');
         }
 
-        const opnetVaultGenericWallet = MultiSignTransaction.getSharedSigner(parameters.network);
-        super({ ...parameters, signer: opnetVaultGenericWallet, priorityFee: 0n });
+        super({
+            ...parameters,
+            signer: EcKeyPair.fromPrivateKey(
+                bitcoin.crypto.sha256(Buffer.from('aaaaaaaa', 'utf-8')),
+            ),
+            priorityFee: 0n,
+        });
 
         if (!parameters.pubkeys) {
             throw new Error('Pubkeys are required');
@@ -111,22 +102,13 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         this.publicKeys = parameters.pubkeys;
         this.minimumSignatures = parameters.minimumSignatures;
 
-        this.multisignGenerator = new MultiSignGenerator(
-            toXOnly(this.signer.publicKey),
+        this.compiledTargetScript = MultiSignGenerator.compile(
             parameters.pubkeys,
             this.minimumSignatures,
-            this.network,
         );
-
-        this.compiledTargetScript = this.multisignGenerator.compile();
 
         this.scriptTree = this.getScriptTree();
         this.internalInit();
-    }
-
-    public static getSharedSigner(network: Network): Signer {
-        const opnetHash = crypto.sha256(Buffer.from('OP_NET'));
-        return EcKeyPair.fromSeedKeyPair(opnetHash, network);
     }
 
     /**
@@ -136,7 +118,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      */
     public static fromBase64(params: MultiSignFromBase64Params): MultiSignTransaction {
         const psbt = Psbt.fromBase64(params.psbt, { network: params.network });
-        return new MultiSignTransaction({ ...params, psbt });
+        return new MultiSignTransaction({
+            ...params,
+            psbt,
+        });
     }
 
     /**
@@ -148,21 +133,21 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         psbt: Psbt,
         signer: Signer,
         originalInputCount: number,
-        network: Network,
-    ): boolean {
+        minimumSignatures: number,
+    ): {
+        final: boolean;
+        signed: boolean;
+    } {
         let signed: boolean = false;
+        let final: boolean = false;
 
-        const calculatedSignHash = [
-            MultiSignTransaction.calculateSignHash(MultiSignTransaction.signHashTypesArray),
-        ];
-
-        const opnetVaultGenericWallet = MultiSignTransaction.getSharedSigner(network);
         for (let i = originalInputCount; i < psbt.data.inputs.length; i++) {
             let input: PsbtInput = psbt.data.inputs[i];
             if (!input.tapInternalKey) {
-                input.tapInternalKey = toXOnly(opnetVaultGenericWallet.publicKey);
+                input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
             }
 
+            let partialSignatures: TapScriptSig[] = [];
             if (input.finalScriptWitness) {
                 const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
                     input.finalScriptWitness,
@@ -171,30 +156,60 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                 input.tapLeafScript = [
                     {
                         leafVersion: 192,
-                        script: decoded[0],
-                        controlBlock: decoded[1],
+                        script: decoded[decoded.length - 2],
+                        controlBlock: decoded[decoded.length - 1],
                     },
                 ];
+
+                // we must insert all the partial signatures, decoded.length - 2
+                for (let j = 0; j < decoded.length - 2; j += 3) {
+                    partialSignatures.push({
+                        signature: decoded[j],
+                        leafHash: decoded[j + 1],
+                        pubkey: decoded[j + 2],
+                    });
+                }
+
+                input.tapScriptSig = (input.tapScriptSig || []).concat(partialSignatures);
             }
 
-            console.log(`Attempting to partially sign input ${i}.`, input);
+            delete input.finalScriptWitness;
 
             try {
-                MultiSignTransaction.signInput(psbt, input, i, signer, calculatedSignHash);
-
-                delete input.tapLeafScript;
-                delete input.tapInternalKey;
+                MultiSignTransaction.signInput(psbt, input, i, signer, []);
 
                 signed = true;
-            } catch (e) {
-                console.log(e);
+            } catch (e) {}
+
+            if (signed) {
+                if (!input.tapScriptSig) throw new Error('No new signatures for input');
+                if (input.tapScriptSig.length === minimumSignatures) {
+                    final = true;
+                }
             }
         }
 
-        return signed;
+        return {
+            signed,
+            final,
+        };
     }
 
-    public static partialFinalizer = (inputIndex: number, input: PsbtInput) => {
+    /**
+     * Partially finalize a P2TR MS transaction
+     * @param {number} inputIndex The input index
+     * @param {PsbtInput} input The input
+     * @param {Buffer[]} partialSignatures The partial signatures
+     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {boolean} isFinal If the transaction is final
+     */
+    public static partialFinalizer = (
+        inputIndex: number,
+        input: PsbtInput,
+        partialSignatures: Buffer[],
+        orderedPubKeys: Buffer[],
+        isFinal: boolean,
+    ) => {
         if (
             !input.tapLeafScript ||
             !input.tapLeafScript[0].script ||
@@ -207,58 +222,144 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             throw new Error(`No new signatures for input ${inputIndex}.`);
         }
 
-        const scriptSolution = input.tapScriptSig.map((sig) => {
-            return sig.signature;
-        });
+        let scriptSolution: Buffer[] = [];
+        if (!isFinal) {
+            scriptSolution = input.tapScriptSig
+                .map((sig) => {
+                    return [sig.signature, sig.leafHash, sig.pubkey];
+                })
+                .flat();
+        } else {
+            /** We must order the signatures and the pub keys. */
+            for (let pubKey of orderedPubKeys) {
+                let found = false;
+                for (let sig of input.tapScriptSig) {
+                    if (sig.pubkey.equals(toXOnly(pubKey))) {
+                        scriptSolution.push(sig.signature);
+                        found = true;
+                    }
+                }
+
+                if (!found) {
+                    scriptSolution.push(Buffer.alloc(0));
+                }
+            }
+
+            scriptSolution = scriptSolution.reverse();
+        }
+
+        if (partialSignatures.length > 0) {
+            scriptSolution = scriptSolution.concat(partialSignatures);
+        }
 
         const witness = scriptSolution
             .concat(input.tapLeafScript[0].script)
             .concat(input.tapLeafScript[0].controlBlock);
-
-        console.log(input);
 
         return {
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
 
-    public static attemptFinalizeInputs(psbt: Psbt, startIndex: number, network: Network): boolean {
+    /**
+     * Dedupe signatures
+     * @param {TapScriptSig[]} original The original signatures
+     * @param {TapScriptSig[]} partial The partial signatures
+     * @returns {TapScriptSig[]} The deduped signatures
+     */
+    public static dedupeSignatures(
+        original: TapScriptSig[],
+        partial: TapScriptSig[],
+    ): TapScriptSig[] {
+        const signatures = new Map<string, TapScriptSig>();
+        for (const sig of original) {
+            signatures.set(sig.pubkey.toString('hex'), sig);
+        }
+
+        for (const sig of partial) {
+            if (!signatures.has(sig.pubkey.toString('hex'))) {
+                signatures.set(sig.pubkey.toString('hex'), sig);
+            }
+        }
+
+        return Array.from(signatures.values());
+    }
+
+    /**
+     * Attempt to finalize the inputs
+     * @param {Psbt} psbt The psbt
+     * @param {number} startIndex The start index
+     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {boolean} isFinal If the transaction is final
+     * @returns {boolean} True if the inputs were finalized
+     */
+    public static attemptFinalizeInputs(
+        psbt: Psbt,
+        startIndex: number,
+        orderedPubKeys: Buffer[],
+        isFinal: boolean,
+    ): boolean {
         let finalizedInputs = 0;
         for (let i = startIndex; i < psbt.data.inputs.length; i++) {
             try {
                 let input = psbt.data.inputs[i];
 
-                const opnetVaultGenericWallet = MultiSignTransaction.getSharedSigner(network);
                 if (!input.tapInternalKey) {
-                    input.tapInternalKey = toXOnly(opnetVaultGenericWallet.publicKey);
+                    input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
                 }
 
+                let partialSignatures: TapScriptSig[] = [];
                 if (input.finalScriptWitness) {
                     const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
                         input.finalScriptWitness,
                     );
 
+                    // we must insert all the partial signatures, decoded.length - 2
+                    for (let j = 0; j < decoded.length - 2; j += 3) {
+                        partialSignatures.push({
+                            signature: decoded[j],
+                            leafHash: decoded[j + 1],
+                            pubkey: decoded[j + 2],
+                        });
+                    }
+
                     input.tapLeafScript = [
                         {
                             leafVersion: 192,
-                            script: decoded[0],
-                            controlBlock: decoded[1],
+                            script: decoded[decoded.length - 2],
+                            controlBlock: decoded[decoded.length - 1],
                         },
                     ];
+
+                    input.tapScriptSig = MultiSignTransaction.dedupeSignatures(
+                        input.tapScriptSig || [],
+                        partialSignatures,
+                    );
                 }
 
                 delete input.finalScriptWitness;
 
-                console.log(input);
+                psbt.finalizeInput(
+                    i,
+                    (
+                        inputIndex: number,
+                        input: PsbtInput,
+                    ): {
+                        finalScriptWitness: Buffer | undefined;
+                    } => {
+                        return MultiSignTransaction.partialFinalizer(
+                            inputIndex,
+                            input,
+                            [],
+                            orderedPubKeys,
+                            isFinal,
+                        );
+                    },
+                );
 
-                psbt.finalizeTaprootInput(i, undefined, MultiSignTransaction.partialFinalizer);
                 finalizedInputs++;
-            } catch (e) {
-                console.log(`error`, e);
-            }
+            } catch (e) {}
         }
-
-        console.log(`Finalized ${finalizedInputs} inputs.`);
 
         return finalizedInputs === psbt.data.inputs.length - startIndex;
     }
@@ -275,23 +376,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
             finalized = true;
         } catch (e) {
-            console.log(e);
             this.error(`Error finalizing transaction inputs: ${(e as Error).stack}`);
         }
 
         return finalized;
-    }
-
-    public signWithSigner(signer: Signer): boolean {
-        let signed: boolean = true;
-
-        for (let i = 1; i < this.transaction.data.inputs.length; i++) {
-            let input: PsbtInput = this.transaction.data.inputs[i];
-
-            this.signInput(this.transaction, input, i, signer);
-        }
-
-        return signed;
     }
 
     /**
@@ -350,17 +438,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
         this.addOutput({
             address: this.receiver,
-            value: Number(this.requestedAmount - 10000n),
+            value: Number(this.requestedAmount),
         });
-
-        //const amountSpent: bigint = this.getTransactionOPNetFee();
-        /*
-        this.addOutput({
-            value: Number(amountSpent),
-            address: this.to,
-        });*/
-
-        //this.addRefundOutput(amountSpent);
     }
 
     /**
@@ -406,7 +485,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
     protected override generateScriptAddress(): Payment {
         return {
-            internalPubkey: this.internalPubKeyToXOnly(),
+            internalPubkey: toXOnly(MultiSignTransaction.numsPoint), //this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
             //pubkeys: this.publicKeys,
@@ -415,7 +494,6 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
     protected override generateTapData(): Payment {
         const selectedRedeem = this.targetScriptRedeem;
-
         if (!selectedRedeem) {
             throw new Error('Left over funds script redeem is required');
         }
@@ -425,7 +503,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         }
 
         return {
-            internalPubkey: this.internalPubKeyToXOnly(),
+            internalPubkey: toXOnly(MultiSignTransaction.numsPoint), //this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,

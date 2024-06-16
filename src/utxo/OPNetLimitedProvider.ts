@@ -1,7 +1,10 @@
 import { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO } from './interfaces/IUTXO.js';
 import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
-import { WrappedGenerationParameters } from '../wbtc/Generate.js';
+import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
+import { Address } from '@btc-vision/bsi-binary';
+import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
+import { UnwrapTransaction } from '../transaction/builders/UnwrapTransaction.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node
@@ -176,7 +179,7 @@ export class OPNetLimitedProvider {
             }
 
             if ('error' in result) {
-                throw new Error('Something went wrong while fetching wrap parameters');
+                throw new Error(`Error in fetching to rpc ${result.error}`);
             }
 
             return result;
@@ -192,6 +195,12 @@ export class OPNetLimitedProvider {
      * @throws {Error} - If wrap parameters could not be fetched
      */
     public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
+        if (amount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+            throw new Error(
+                `Amount must be greater than the minimum consolidation amount ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT}sat.`,
+            );
+        }
+
         const params = [0, amount.toString()];
         const result = await this.rpcMethod('btc_generate', params);
 
@@ -200,5 +209,34 @@ export class OPNetLimitedProvider {
         }
 
         return new WrappedGeneration(result as WrappedGenerationParameters);
+    }
+
+    /**
+     * Fetches the wrap parameters from the OPNET node
+     * @param {bigint} amount - The amount to wrap
+     * @param {Address} receiver - The receiver address
+     * @returns {Promise<UnwrapGeneration | undefined>} - The wrap parameters fetched
+     * @throws {Error} - If wrap parameters could not be fetched
+     */
+    public async fetchUnWrapParameters(
+        amount: bigint,
+        receiver: Address,
+    ): Promise<UnwrapGeneration | undefined> {
+        if (amount <= 330n) {
+            throw new Error('Amount must be greater than 330');
+        }
+
+        if (receiver.length < 50) {
+            throw new Error('Invalid receiver address');
+        }
+
+        const params = [1, amount.toString(), receiver];
+        const result = await this.rpcMethod('btc_generate', params);
+
+        if (!result) {
+            return;
+        }
+
+        return new UnwrapGeneration(result as UnwrappedGenerationParameters);
     }
 }

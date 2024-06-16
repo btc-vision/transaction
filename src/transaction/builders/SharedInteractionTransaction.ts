@@ -30,7 +30,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly calldataGenerator: CalldataGenerator;
+    protected calldataGenerator: CalldataGenerator;
 
     /**
      * Calldata for the interaction
@@ -187,8 +187,6 @@ export abstract class SharedInteractionTransaction<
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             let input: PsbtInput = transaction.data.inputs[i];
-            console.log(i, input);
-
             let finalized: boolean = false;
             let signed: boolean = false;
 
@@ -214,7 +212,7 @@ export abstract class SharedInteractionTransaction<
 
             if (signed || finalized) {
                 this.log(
-                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}!`,
+                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}, Finalized: ${finalized}}`,
                 );
 
                 continue;
@@ -303,27 +301,11 @@ export abstract class SharedInteractionTransaction<
     }
 
     /**
-     * Get the public keys
-     * @private
-     *
-     * @returns {Buffer[]} The public keys
-     */
-    private getPubKeys(): Buffer[] {
-        const pubkeys = [this.signer.publicKey];
-
-        if (this.scriptSigner) {
-            pubkeys.push(this.scriptSigner.publicKey);
-        }
-
-        return pubkeys;
-    }
-
-    /**
      * Transaction finalizer
      * @param {number} _inputIndex The input index
      * @param {PsbtInput} input The input
      */
-    private customFinalizer = (_inputIndex: number, input: PsbtInput) => {
+    protected customFinalizer = (_inputIndex: number, input: PsbtInput) => {
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
         }
@@ -347,6 +329,22 @@ export abstract class SharedInteractionTransaction<
     };
 
     /**
+     * Get the public keys
+     * @private
+     *
+     * @returns {Buffer[]} The public keys
+     */
+    private getPubKeys(): Buffer[] {
+        const pubkeys = [this.signer.publicKey];
+
+        if (this.scriptSigner) {
+            pubkeys.push(this.scriptSigner.publicKey);
+        }
+
+        return pubkeys;
+    }
+
+    /**
      * Generate the redeem scripts
      * @private
      *
@@ -358,13 +356,11 @@ export abstract class SharedInteractionTransaction<
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
-            // pubkeys: this.getPubKeys(),
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
-            //pubkeys: this.getPubKeys(),
             output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };

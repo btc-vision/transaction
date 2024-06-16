@@ -13,7 +13,7 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected leftOverFundsScriptRedeem: Payment | null;
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
-    protected readonly calldataGenerator: CalldataGenerator;
+    protected calldataGenerator: CalldataGenerator;
     protected readonly calldata: Buffer;
     protected abstract readonly contractSecret: Buffer;
     protected readonly scriptSigner: Signer;
@@ -30,7 +30,9 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected generateTapData(): Payment;
     protected getScriptSolution(input: PsbtInput): Buffer[];
     protected getScriptTree(): Taptree;
+    protected customFinalizer: (_inputIndex: number, input: PsbtInput) => {
+        finalScriptWitness: Buffer;
+    };
     private getPubKeys;
-    private customFinalizer;
     private generateRedeemScripts;
 }

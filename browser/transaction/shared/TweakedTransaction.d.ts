@@ -42,6 +42,8 @@ export declare abstract class TweakedTransaction extends Logger {
     toBase64(): string;
     disableRBF(): void;
     getTweakerHash(): Buffer | undefined;
+    preEstimateTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numSignatures: bigint, numPubkeys: bigint): bigint;
+    preEstimateTaprootTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numWitnessElements: bigint, witnessElementSize: bigint, emptyWitness: bigint, taprootControlWitnessSize?: bigint, taprootScriptSize?: bigint): bigint;
     protected generateTapData(): Payment;
     protected generateScriptAddress(): Payment;
     protected getSignerKey(): Signer;
@@ -50,6 +52,6 @@ export declare abstract class TweakedTransaction extends Logger {
     protected internalPubKeyToXOnly(): Buffer;
     protected internalInit(): void;
     protected tweakSigner(): void;
-    protected getTweakedSigner(useTweakedHash?: boolean): Signer;
+    protected getTweakedSigner(useTweakedHash?: boolean, signer?: Signer): Signer;
     protected generatePsbtInputExtended(utxo: UTXO, i: number): PsbtInputExtended;
 }

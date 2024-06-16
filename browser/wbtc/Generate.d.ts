@@ -1,3 +1,4 @@
+import { VaultUTXOs } from '../transaction/processor/PsbtTransaction.js';
 export interface GenerationConstraints {
     readonly timestamp: number;
     readonly version: string;
@@ -10,4 +11,8 @@ export interface WrappedGenerationParameters {
     readonly entities: string[];
     readonly signature: string;
     readonly constraints: GenerationConstraints;
+}
+export interface UnwrappedGenerationParameters {
+    readonly vaultUTXOs: VaultUTXOs[];
+    readonly balance: string;
 }

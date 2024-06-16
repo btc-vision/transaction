@@ -14,8 +14,10 @@ import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { wBTC } from '../metadata/contracts/wBTC.js';
 import { WrapTransaction } from './builders/WrapTransaction.js';
-import { UnwrapTransaction } from './builders/UnwarpTransaction.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
+import { VaultUTXOs } from './processor/PsbtTransaction.js';
+import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
+import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -34,10 +36,12 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
-    readonly original: UnwrapTransaction;
+    readonly unwrapFeeLoss: bigint;
 }
 
 export class TransactionFactory {
+    constructor() {}
+
     /**
      * @description Generates the required transactions.
      * @returns {[Transaction, Transaction]} - The signed transaction
@@ -159,6 +163,12 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      */
     public wrap(warpParameters: IWrapParameters): WrapResult {
+        if (warpParameters.amount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+            throw new Error(
+                `Amount is too low. Minimum consolidation is ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat. Received ${warpParameters.amount} sat.`,
+            );
+        }
+
         const wbtc: wBTC = new wBTC(warpParameters.network);
 
         const to = wbtc.getAddress();
@@ -208,6 +218,88 @@ export class TransactionFactory {
         };
     }
 
+    /**
+     * Unwrap bitcoin.
+     * @param {IUnwrapParameters} unwrapParameters - The unwrap parameters
+     * @returns {UnwrapResult} - The signed transaction
+     * @throws {Error} - If the transaction could not be signed
+     * @deprecated
+     */
+    public async unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+        console.error('The "unwrap" method is deprecated. Use unwrapTap instead.');
+
+        const transaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction(unwrapParameters);
+        transaction.signTransaction();
+
+        const to = transaction.toAddress();
+        if (!to) throw new Error('To address is required');
+
+        // Initial generation
+        const estimatedGas = transaction.estimateTransactionFees();
+        const estimatedFees = transaction.preEstimateTransactionFees(
+            BigInt(unwrapParameters.feeRate),
+            this.calculateNumInputs(unwrapParameters.unwrapUTXOs),
+            2n,
+            this.calculateNumSignatures(unwrapParameters.unwrapUTXOs),
+            this.maxPubKeySize(unwrapParameters.unwrapUTXOs),
+        );
+
+        const fundingParameters: IFundingTransactionParameters = {
+            ...unwrapParameters,
+            childTransactionRequiredValue: estimatedGas + estimatedFees,
+            to: to,
+        };
+
+        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
+
+        const preTransaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction({
+            ...unwrapParameters,
+            randomBytes: transaction.getRndBytes(),
+        });
+
+        // Initial generation
+        preTransaction.signTransaction();
+
+        const parameters: IFundingTransactionParameters =
+            preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = fundingParameters.utxos;
+        parameters.childTransactionRequiredValue =
+            preTransaction.estimateTransactionFees() + estimatedFees;
+
+        const signedTransaction = this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        const newParams: IUnwrapParameters = {
+            ...unwrapParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+        };
+
+        const finalTransaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Psbt = finalTransaction.signPSBT();
+        const asBase64 = outTx.toBase64();
+        const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
+
+        return {
+            fundingTransaction: signedTransaction.tx.toHex(),
+            psbt: psbt,
+            unwrapFeeLoss: estimatedFees,
+        };
+    }
+
+    /**
+     * Unwrap bitcoin via taproot.
+     * @param {IUnwrapParameters} unwrapParameters - The unwrap parameters
+     * @returns {UnwrapResult} - The signed transaction
+     * @throws {Error} - If the transaction could not be signed
+     */
     public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
         const transaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
 
@@ -220,7 +312,7 @@ export class TransactionFactory {
         const estimatedGas = transaction.estimateTransactionFees();
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
-            childTransactionRequiredValue: estimatedGas + unwrapParameters.feeProvision,
+            childTransactionRequiredValue: estimatedGas,
             to: to,
         };
 
@@ -239,8 +331,7 @@ export class TransactionFactory {
             preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.childTransactionRequiredValue =
-            preTransaction.estimateTransactionFees() + unwrapParameters.feeProvision;
+        parameters.childTransactionRequiredValue = preTransaction.estimateTransactionFees();
 
         const signedTransaction = this.createFundTransaction(parameters);
         if (!signedTransaction) {
@@ -264,8 +355,38 @@ export class TransactionFactory {
         return {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
-            original: finalTransaction,
+            unwrapFeeLoss: finalTransaction.getFeeLoss(),
         };
+    }
+
+    private calculateNumSignatures(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+
+        for (const v of vault) {
+            numSignatures += BigInt(v.minimum * v.utxos.length);
+        }
+
+        return numSignatures;
+    }
+
+    private calculateNumInputs(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+
+        for (const v of vault) {
+            numSignatures += BigInt(v.utxos.length);
+        }
+
+        return numSignatures;
+    }
+
+    private maxPubKeySize(vault: VaultUTXOs[]): bigint {
+        let size = 0;
+
+        for (const v of vault) {
+            size = Math.max(size, v.publicKeys.length);
+        }
+
+        return BigInt(size);
     }
 
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {

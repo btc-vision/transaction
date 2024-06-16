@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.29",
+    "version": "1.0.31",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -60,7 +60,7 @@
         "setup": "npm npm i && npm run build",
         "browserBuild": "webpack --mode production",
         "cjs": "gulp cjs",
-        "docs": "typedoc --out docs --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
+        "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
         "install": "gulp && gulp cjs"
     },
     "devDependencies": {

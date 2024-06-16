@@ -48,10 +48,14 @@ of the repository.
    npm i
    ```
 
-## Deployments and Wrapping
+## Deployments, Wrapping and Unwrapping
 
 To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to
 the [Wrap.md](https://github.com/btc-vision/transaction/blob/main/Wrap.md) guide.
+
+To learn how to unwrap Bitcoin on OP_NET, please refer to
+the [Unwrap.md](https://github.com/btc-vision/transaction/blob/main/Unwrap.md) guide.
+
 To learn how to deploy smart contracts on OP_NET, please refer to
 the [Deploy.md](https://github.com/btc-vision/transaction/blob/main/Deploy.md) guide.
 

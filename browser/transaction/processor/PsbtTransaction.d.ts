@@ -1,5 +1,4 @@
-/// <reference types="node" />
-import { Network, Psbt, Signer } from 'bitcoinjs-lib';
+import { Network, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
 import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { Address } from '@btc-vision/bsi-binary';
@@ -7,9 +6,6 @@ export interface PsbtTransactionData extends ITweakedTransactionData {
     readonly psbt: Psbt;
     readonly signer: Signer;
     readonly network: Network;
-    readonly receiver: Address;
-    readonly amountRequested: bigint;
-    readonly feesAddition?: bigint;
 }
 export interface IWBTCUTXODocument {
     readonly vault: Address;
@@ -31,24 +27,17 @@ export declare class PsbtTransaction extends TweakedTransaction {
     feesAddition: bigint;
     protected readonly transaction: Psbt;
     protected readonly sighashTypes: number[] | undefined;
-    protected readonly receiver: Address;
-    protected readonly amountRequested: bigint;
     constructor(data: PsbtTransactionData);
     static fromBase64(data: string, params: FromBase64Params): PsbtTransaction;
+    static fromHex(data: string, params: FromBase64Params): PsbtTransaction;
     static from(params: FromBase64Params): PsbtTransaction;
+    extractTransaction(): Transaction;
+    final(): string;
+    toHex(): string;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
-    mergeVaults(input: VaultUTXOs[], firstSigner?: Signer): void;
     attemptSignAllInputs(): boolean;
     attemptFinalizeInputs(n?: number): boolean;
     getPSBT(): Psbt;
-    protected generateMultiSignRedeemScript(publicKeys: string[], minimum: number): {
-        witnessUtxo: Buffer;
-        redeemScript: Buffer;
-        witnessScript: Buffer;
-    };
     private getTotalOutputAmount;
-    private calculateOutputLeftAmountFromVaults;
-    private addVaultInputs;
-    private addVaultUTXO;
 }
