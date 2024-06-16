@@ -1,5 +1,3 @@
-Sure, here's the modified guide for unwrapping wBTC:
-
 # Unwrapping wBTC Guide
 
 This guide will walk you through the process of unwrapping wBTC (Wrapped Bitcoin) using the OPNet protocol. Unwrapping
