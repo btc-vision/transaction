@@ -42,11 +42,7 @@ export interface IWrapParameters extends SharedInteractionParameters {
 }
 
 export interface IUnwrapParameters extends SharedInteractionParameters {
-    //readonly to?: undefined;
-
     readonly unwrapUTXOs: VaultUTXOs[];
-
-    readonly feeProvision: bigint;
     readonly amount: bigint;
 }
 

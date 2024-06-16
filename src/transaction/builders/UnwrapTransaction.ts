@@ -5,18 +5,30 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { payments, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
+import bitcoin, { Payment, payments, Psbt, Transaction } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
+import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
+import { MultiSignTransaction } from './MultiSignTransaction.js';
+import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
+import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 
 const abiCoder: ABICoder = new ABICoder();
+const numsPoint: Buffer = Buffer.from(
+    '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
+    'hex',
+);
 
 /**
  * Unwrap transaction
  * @class UnwrapTransaction
  */
 export class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
+    /**
+     * Minimum amount that can be unwrapped in satoshis.
+     */
     public static readonly MINIMUM_CONSOLIDATION_AMOUNT: bigint = 200000n;
 
     private static readonly UNWRAP_SELECTOR: Selector = Number(
@@ -36,25 +48,21 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected readonly compiledTargetScript: Buffer;
-
     /**
      * The script tree
      * @protected
      */
     protected readonly scriptTree: Taptree;
-
     /**
      * The sighash types for the transaction
      * @protected
      */
-    protected sighashTypes: number[] = []; //Transaction.SIGHASH_ALL, Transaction.SIGHASH_ANYONECANPAY
-
+    protected sighashTypes: number[] = [bitcoin.Transaction.SIGHASH_ALL];
     /**
      * Contract secret for the interaction
      * @protected
      */
     protected readonly contractSecret: Buffer;
-
     /**
      * The vault UTXOs
      * @protected
@@ -62,11 +70,16 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     protected readonly vaultUTXOs: VaultUTXOs[];
 
     /**
+     * Estimated unwrap loss due to bitcoin fees in satoshis.
+     * @protected
+     */
+    protected readonly estimatedFeeLoss: bigint = 0n;
+
+    /**
      * The wBTC contract
      * @private
      */
     private readonly wbtc: wBTC;
-
     private readonly calculatedSignHash: number = PsbtTransaction.calculateSignHash(
         this.sighashTypes,
     );
@@ -85,9 +98,23 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         this.to = this.wbtc.getAddress();
 
         this.vaultUTXOs = parameters.unwrapUTXOs;
+        this.estimatedFeeLoss = this.preEstimateTaprootTransactionFees(
+            BigInt(this.feeRate),
+            this.calculateNumInputs(this.vaultUTXOs),
+            2n,
+            this.calculateNumSignatures(this.vaultUTXOs),
+            64n,
+            this.calculateNumEmptyWitnesses(this.vaultUTXOs),
+        );
 
         this.amount = parameters.amount;
         this.contractSecret = this.generateSecret();
+
+        this.calldataGenerator = new CalldataGenerator(
+            toXOnly(this.signer.publicKey),
+            this.scriptSignerXOnlyPubKey(),
+            this.network,
+        );
 
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
@@ -114,6 +141,22 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         return Buffer.from(bufWriter.getBuffer());
     }
 
+    /*public tweakScalarPoints(): Uint8Array {
+        const key: Uint8Array = (this.signer as ECPairInterface).privateKey as Uint8Array;
+        //const r = bitcoin.crypto.sha256(Buffer.from('WTF_IS_OP_NET!', 'utf-8'));
+        const rG = ecc.pointMultiply(
+            Buffer.from(this.internalPubKeyToXOnly()), //EcKeyPair.fromPrivateKey(r).publicKey.subarray(1)
+            key,
+        );
+
+        if (!rG) throw new Error('Failed to tweak rG');
+
+        const tweaked = ecc.pointAdd(this.numsPoint, rG);
+        if (!tweaked) throw new Error('Failed to tweak rG');
+
+        return Buffer.from(tweaked);
+    }*/
+
     /**
      * @description Signs the transaction
      * @public
@@ -131,11 +174,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('No vault UTXOs provided');
         }
 
-        if (this.signed) throw new Error('Transaction is already signed');
-        this.signed = true;
-
         this.buildTransaction();
-
         this.ignoreSignatureError();
         this.mergeVaults(this.vaultUTXOs);
 
@@ -145,6 +184,15 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         }
 
         throw new Error('Could not sign transaction');
+    }
+
+    /**
+     * Get the estimated unwrap loss due to bitcoin fees in satoshis.
+     * @public
+     * @returns {bigint} - The estimated fee loss
+     */
+    public getFeeLoss(): bigint {
+        return this.estimatedFeeLoss;
     }
 
     /**
@@ -165,14 +213,6 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             );
         }
 
-        console.log('outputLeftAmount', outputLeftAmount, this.amount);
-
-        if (outputLeftAmount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
-            throw new Error(
-                `Output left amount is below minimum consolidation (${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat) amount ${outputLeftAmount} for vault ${firstVault.vault}`,
-            );
-        }
-
         this.addOutput({
             address: firstVault.vault,
             value: Number(outputLeftAmount),
@@ -180,7 +220,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         this.addOutput({
             address: this.from,
-            value: Number(this.amount),
+            value: Number(this.amount - this.estimatedFeeLoss),
         });
 
         for (const vault of input) {
@@ -188,32 +228,102 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         }
     }
 
-    public estimateVaultFees(
-        feeRate: bigint, // satoshis per byte
-        numInputs: bigint,
-        numOutputs: bigint,
-        numSignatures: bigint,
-        numPubkeys: bigint,
-    ): bigint {
-        const txHeaderSize = 10n;
-        const inputBaseSize = 41n;
-        const outputSize = 68n;
-        const signatureSize = 144n;
-        const pubkeySize = 34n;
+    protected calculateNumEmptyWitnesses(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+        for (const v of vault) {
+            numSignatures += BigInt(v.publicKeys.length - v.minimum);
+        }
 
-        // Base transaction size (excluding witness data)
-        const baseTxSize = txHeaderSize + inputBaseSize * numInputs + outputSize * numOutputs;
+        return numSignatures;
+    }
 
-        // Witness data size
-        const redeemScriptSize = 1n + numPubkeys * (1n + pubkeySize) + 1n + numSignatures;
-        const witnessSize =
-            numSignatures * signatureSize + numPubkeys * pubkeySize + redeemScriptSize;
+    protected calculateNumSignatures(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+        for (const v of vault) {
+            numSignatures += BigInt(v.minimum * v.utxos.length);
+        }
 
-        // Total weight and virtual size
-        const weight = baseTxSize * 3n + (baseTxSize + witnessSize);
-        const vSize = weight / 4n;
+        return numSignatures;
+    }
 
-        return vSize * feeRate;
+    protected calculateNumInputs(vault: VaultUTXOs[]): bigint {
+        let numSignatures = 0n;
+        for (const v of vault) {
+            numSignatures += BigInt(v.utxos.length);
+        }
+
+        return numSignatures;
+    }
+
+    /**
+     * Converts the public key to x-only.
+     * @protected
+     * @returns {Buffer}
+     */
+    protected internalPubKeyToXOnly(): Buffer {
+        return toXOnly(numsPoint);
+    }
+
+    /**
+     * Generate an input for a vault UTXO
+     * @param {Buffer[]} pubkeys The public keys
+     * @param {number} minimumSignatures The minimum number of signatures
+     * @protected
+     * @returns {Taptree} The tap tree
+     * @throws {Error} If something went wrong
+     */
+    protected generateTapDataForInput(
+        pubkeys: Buffer[],
+        minimumSignatures: number,
+    ): {
+        internalPubkey: Buffer;
+        network: bitcoin.Network;
+        scriptTree: Taptree;
+        redeem: Payment;
+    } {
+        const compiledTargetScript = MultiSignGenerator.compile(pubkeys, minimumSignatures);
+        const scriptTree: Taptree = [
+            {
+                output: compiledTargetScript,
+                version: 192,
+            },
+            {
+                output: MultiSignTransaction.LOCK_LEAF_SCRIPT,
+                version: 192,
+            },
+        ];
+
+        const redeem: Payment = {
+            output: compiledTargetScript,
+            redeemVersion: 192,
+        };
+
+        return {
+            internalPubkey: this.internalPubKeyToXOnly(),
+            network: this.network,
+            scriptTree: scriptTree,
+            redeem: redeem,
+        };
+    }
+
+    /**
+     * Generate the script solution
+     * @param {PsbtInput} input The input
+     * @protected
+     *
+     * @returns {Buffer[]} The script solution
+     */
+    protected getScriptSolution(input: PsbtInput): Buffer[] {
+        if (!input.tapScriptSig) {
+            throw new Error('Tap script signature is required');
+        }
+
+        return [
+            this.contractSecret,
+            toXOnly(this.signer.publicKey),
+            input.tapScriptSig[0].signature,
+            input.tapScriptSig[1].signature,
+        ];
     }
 
     /**
@@ -239,7 +349,14 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         }
 
         try {
-            this.signInputs(transaction);
+            this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
+            this.signInput(transaction, transaction.data.inputs[0], 0);
+
+            try {
+                transaction.finalizeInput(0, this.customFinalizer);
+            } catch (e) {
+                console.log(e);
+            }
 
             if (this.finalized) {
                 this.transactionFee = BigInt(transaction.getFee());
@@ -258,55 +375,22 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     }
 
     /**
-     * Generate a multi-signature redeem script
-     * @param {string[]} publicKeys The public keys
-     * @param {number} minimum The minimum number of signatures
-     * @protected
-     * @returns {{output: Buffer; redeem: Buffer}} The output and redeem script
-     */
-    protected generateMultiSignRedeemScript(
-        publicKeys: string[],
-        minimum: number,
-    ): { witnessUtxo: Buffer; redeemScript: Buffer; witnessScript: Buffer } {
-        const p2ms = payments.p2ms({
-            m: minimum,
-            pubkeys: publicKeys.map((key) => Buffer.from(key, 'base64')),
-            network: this.network,
-        });
-
-        const p2wsh = payments.p2wsh({
-            redeem: p2ms,
-            network: this.network,
-        });
-
-        const witnessUtxo = p2wsh.output;
-        const redeemScript = p2wsh.redeem?.output;
-        const witnessScript = p2ms.output;
-
-        if (!witnessUtxo || !redeemScript || !witnessScript) {
-            throw new Error('Failed to generate redeem script');
-        }
-
-        return {
-            witnessUtxo,
-            redeemScript,
-            witnessScript,
-        };
-    }
-
-    /**
      * @description Add a vault UTXO to the transaction
      * @private
      */
     private addVaultUTXO(
         utxo: IWBTCUTXODocument,
-        witness: {
-            witnessUtxo: Buffer;
-            redeemScript: Buffer;
-            witnessScript: Buffer;
-        },
+        pubkeys: Buffer[],
+        minimumSignatures: number,
     ): void {
-        console.log(Number(utxo.value), utxo.hash, utxo.outputIndex);
+        const tapInput = this.generateTapDataForInput(pubkeys, minimumSignatures);
+        const tap = payments.p2tr(tapInput);
+
+        if (!tap.witness) throw new Error('Failed to generate taproot witness');
+
+        this.disableRBF();
+
+        const controlBlock = tap.witness[tap.witness.length - 1];
         const input: PsbtInputExtended = {
             hash: utxo.hash,
             index: utxo.outputIndex,
@@ -314,8 +398,14 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
                 script: Buffer.from(utxo.output, 'base64'),
                 value: Number(utxo.value),
             },
-            witnessScript: witness.witnessScript,
             sequence: this.sequence,
+            tapLeafScript: [
+                {
+                    leafVersion: tapInput.redeem.redeemVersion as number,
+                    script: tapInput.redeem.output as Buffer,
+                    controlBlock: controlBlock,
+                },
+            ],
         };
 
         if (this.calculatedSignHash) {
@@ -328,40 +418,13 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     /**
      * @description Add vault inputs to the transaction
      * @param {VaultUTXOs} vault The vault UTXOs
-     * @param {Signer} [firstSigner] The first signer
      * @private
      */
-    private addVaultInputs(vault: VaultUTXOs, firstSigner: Signer = this.signer): void {
-        const p2wshOutput = this.generateMultiSignRedeemScript(vault.publicKeys, vault.minimum);
+    private addVaultInputs(vault: VaultUTXOs): void {
+        const pubKeys = vault.publicKeys.map((key) => Buffer.from(key, 'base64'));
+
         for (const utxo of vault.utxos) {
-            const inputIndex = this.transaction.inputCount;
-            this.addVaultUTXO(utxo, p2wshOutput);
-
-            if (firstSigner) {
-                this.log(
-                    `Signing input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
-                );
-
-                // we don't care if we fail to sign the input
-                try {
-                    this.signInput(
-                        this.transaction,
-                        this.transaction.data.inputs[inputIndex],
-                        inputIndex,
-                        this.signer,
-                    );
-
-                    this.log(
-                        `Signed input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
-                    );
-                } catch (e) {
-                    if (!this.ignoreSignatureErrors) {
-                        this.warn(
-                            `Failed to sign input ${inputIndex} with ${firstSigner.publicKey.toString('hex')} ${(e as Error).message}`,
-                        );
-                    }
-                }
-            }
+            this.addVaultUTXO(utxo, pubKeys, vault.minimum);
         }
     }
 
@@ -377,6 +440,13 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         return total - this.amount;
     }
 
+    /**
+     * Get the total output amount from the vaults
+     * @description Get the total output amount from the vaults
+     * @param {VaultUTXOs[]} vaults The vaults
+     * @private
+     * @returns {bigint} The total output amount
+     */
     private getVaultTotalOutputAmount(vaults: VaultUTXOs[]): bigint {
         let total = BigInt(0);
         for (const vault of vaults) {

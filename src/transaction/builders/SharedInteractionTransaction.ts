@@ -30,7 +30,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly calldataGenerator: CalldataGenerator;
+    protected calldataGenerator: CalldataGenerator;
 
     /**
      * Calldata for the interaction
@@ -356,13 +356,11 @@ export abstract class SharedInteractionTransaction<
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
-            // pubkeys: this.getPubKeys(),
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
-            //pubkeys: this.getPubKeys(),
             output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };

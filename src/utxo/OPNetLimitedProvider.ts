@@ -4,7 +4,7 @@ import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../w
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
-import { UnwrapTransaction } from '../transaction/builders/UnwarpTransaction.js';
+import { UnwrapTransaction } from '../transaction/builders/UnwrapTransaction.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node

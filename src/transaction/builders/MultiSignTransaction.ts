@@ -129,8 +129,17 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @returns {boolean} True if the transaction was signed
      * @public
      */
-    public static signPartial(psbt: Psbt, signer: Signer, originalInputCount: number): boolean {
+    public static signPartial(
+        psbt: Psbt,
+        signer: Signer,
+        originalInputCount: number,
+        minimumSignatures: number,
+    ): {
+        final: boolean;
+        signed: boolean;
+    } {
         let signed: boolean = false;
+        let final: boolean = false;
 
         for (let i = originalInputCount; i < psbt.data.inputs.length; i++) {
             let input: PsbtInput = psbt.data.inputs[i];
@@ -169,22 +178,36 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             try {
                 MultiSignTransaction.signInput(psbt, input, i, signer, []);
 
-                //delete input.tapLeafScript;
-                //delete input.tapInternalKey;
-
                 signed = true;
-            } catch (e) {
-                console.log(e);
+            } catch (e) {}
+
+            if (signed) {
+                if (!input.tapScriptSig) throw new Error('No new signatures for input');
+                if (input.tapScriptSig.length === minimumSignatures) {
+                    final = true;
+                }
             }
         }
 
-        return signed;
+        return {
+            signed,
+            final,
+        };
     }
 
+    /**
+     * Partially finalize a P2TR MS transaction
+     * @param {number} inputIndex The input index
+     * @param {PsbtInput} input The input
+     * @param {Buffer[]} partialSignatures The partial signatures
+     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {boolean} isFinal If the transaction is final
+     */
     public static partialFinalizer = (
         inputIndex: number,
         input: PsbtInput,
         partialSignatures: Buffer[],
+        orderedPubKeys: Buffer[],
         isFinal: boolean,
     ) => {
         if (
@@ -199,18 +222,30 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             throw new Error(`No new signatures for input ${inputIndex}.`);
         }
 
-        let scriptSolution: Buffer[];
+        let scriptSolution: Buffer[] = [];
         if (!isFinal) {
             scriptSolution = input.tapScriptSig
                 .map((sig) => {
                     return [sig.signature, sig.leafHash, sig.pubkey];
                 })
                 .flat();
-            //.concat(partialSignatures);
         } else {
-            scriptSolution = input.tapScriptSig.map((sig) => {
-                return sig.signature;
-            });
+            /** We must order the signatures and the pub keys. */
+            for (let pubKey of orderedPubKeys) {
+                let found = false;
+                for (let sig of input.tapScriptSig) {
+                    if (sig.pubkey.equals(toXOnly(pubKey))) {
+                        scriptSolution.push(sig.signature);
+                        found = true;
+                    }
+                }
+
+                if (!found) {
+                    scriptSolution.push(Buffer.alloc(0));
+                }
+            }
+
+            scriptSolution = scriptSolution.reverse();
         }
 
         if (partialSignatures.length > 0) {
@@ -223,10 +258,15 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
         return {
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
-            partialSig: input.tapScriptSig,
         };
     };
 
+    /**
+     * Dedupe signatures
+     * @param {TapScriptSig[]} original The original signatures
+     * @param {TapScriptSig[]} partial The partial signatures
+     * @returns {TapScriptSig[]} The deduped signatures
+     */
     public static dedupeSignatures(
         original: TapScriptSig[],
         partial: TapScriptSig[],
@@ -245,7 +285,20 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         return Array.from(signatures.values());
     }
 
-    public static attemptFinalizeInputs(psbt: Psbt, startIndex: number, isFinal: boolean): boolean {
+    /**
+     * Attempt to finalize the inputs
+     * @param {Psbt} psbt The psbt
+     * @param {number} startIndex The start index
+     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {boolean} isFinal If the transaction is final
+     * @returns {boolean} True if the inputs were finalized
+     */
+    public static attemptFinalizeInputs(
+        psbt: Psbt,
+        startIndex: number,
+        orderedPubKeys: Buffer[],
+        isFinal: boolean,
+    ): boolean {
         let finalizedInputs = 0;
         for (let i = startIndex; i < psbt.data.inputs.length; i++) {
             try {
@@ -286,39 +339,27 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
                 delete input.finalScriptWitness;
 
-                console.log('finalize input!', input);
-
-                if (isFinal) {
-                    psbt.finalizeTaprootInput(i);
-                    console.log(`Finalized input ${i}.`);
-                } else {
-                    psbt.finalizeInput(
-                        i,
-                        (
-                            inputIndex: number,
-                            input: PsbtInput,
-                        ): {
-                            finalScriptWitness: Buffer | undefined;
-                        } => {
-                            return MultiSignTransaction.partialFinalizer(
-                                inputIndex,
-                                input,
-                                [],
-                                isFinal,
-                            );
-                        },
-                    );
-                }
+                psbt.finalizeInput(
+                    i,
+                    (
+                        inputIndex: number,
+                        input: PsbtInput,
+                    ): {
+                        finalScriptWitness: Buffer | undefined;
+                    } => {
+                        return MultiSignTransaction.partialFinalizer(
+                            inputIndex,
+                            input,
+                            [],
+                            orderedPubKeys,
+                            isFinal,
+                        );
+                    },
+                );
 
                 finalizedInputs++;
-
-                //psbt.finalizeInput(i);
-            } catch (e) {
-                console.log(`error`, e);
-            }
+            } catch (e) {}
         }
-
-        //console.log(`Finalized ${finalizedInputs} inputs.`);
 
         return finalizedInputs === psbt.data.inputs.length - startIndex;
     }
@@ -335,23 +376,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
             finalized = true;
         } catch (e) {
-            console.log(e);
             this.error(`Error finalizing transaction inputs: ${(e as Error).stack}`);
         }
 
         return finalized;
-    }
-
-    public signWithSigner(signer: Signer): boolean {
-        let signed: boolean = true;
-
-        for (let i = 1; i < this.transaction.data.inputs.length; i++) {
-            let input: PsbtInput = this.transaction.data.inputs[i];
-
-            this.signInput(this.transaction, input, i, signer);
-        }
-
-        return signed;
     }
 
     /**
@@ -410,17 +438,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
         this.addOutput({
             address: this.receiver,
-            value: Number(this.requestedAmount - 10000n),
+            value: Number(this.requestedAmount),
         });
-
-        //const amountSpent: bigint = this.getTransactionOPNetFee();
-        /*
-        this.addOutput({
-            value: Number(amountSpent),
-            address: this.to,
-        });*/
-
-        //this.addRefundOutput(amountSpent);
     }
 
     /**

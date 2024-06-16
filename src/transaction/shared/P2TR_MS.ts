@@ -1,6 +1,7 @@
 import { Network, networks } from 'bitcoinjs-lib';
 import { Address } from '@btc-vision/bsi-binary';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 
 export class P2TR_MS {
     /**
@@ -16,7 +17,7 @@ export class P2TR_MS {
         minimumSignatureRequired: number,
         network: Network = networks.bitcoin,
     ): Address {
-        /*const publicKeys: Buffer[] = EcKeyPair.verifyPubKeys(pubKeys, network);
+        const publicKeys: Buffer[] = EcKeyPair.verifyPubKeys(pubKeys, network);
         if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
 
         // fake params
@@ -32,14 +33,10 @@ export class P2TR_MS {
         };
 
         const address = new MultiSignTransaction(multiSignParams).getScriptAddress();
-        console.log(address);
-
         if (!address) {
             throw new Error('Failed to generate address');
         }
 
-        return address;*/
-
-        return EcKeyPair.generateMultiSigAddress(pubKeys, minimumSignatureRequired, network);
+        return address;
     }
 }

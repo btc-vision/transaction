@@ -5,8 +5,7 @@ import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { Psbt } from 'bitcoinjs-lib';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
-export declare class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
-    static readonly MINIMUM_CONSOLIDATION_AMOUNT: bigint;
+export declare class UnwrapSegwitTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
     private static readonly UNWRAP_SELECTOR;
     type: TransactionType.WBTC_UNWRAP;
     readonly amount: bigint;

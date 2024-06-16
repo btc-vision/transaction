@@ -36,7 +36,7 @@ export class wBTC extends ContractBaseMetadata {
             case networks.regtest.bech32:
                 return 'bcrt1qmsx5vpm6yfwtex5ygag0nwktnmj7a48eew2qn0';
             case networks.testnet.bech32:
-                return 'tb1qs4d69qpw57cm3pxyeuamenkv0aswtnhpgxry06';
+                return 'tb1qj58a6yf4pez426nqvf8wyu6ssggcajw8kr44vy';
             default:
                 throw new Error(`Invalid network: ${network}`);
         }
