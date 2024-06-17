@@ -21,6 +21,7 @@ export declare class UnwrapTransaction extends SharedInteractionTransaction<Tran
     constructor(parameters: IUnwrapParameters);
     static generateBurnCalldata(amount: bigint): Buffer;
     signPSBT(): Psbt;
+    getRefund(): bigint;
     getFeeLossOrRefund(): bigint;
     protected mergeVaults(): void;
     protected calculateNumEmptyWitnesses(vault: VaultUTXOs[]): bigint;
