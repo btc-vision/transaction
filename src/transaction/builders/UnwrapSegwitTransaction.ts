@@ -9,7 +9,7 @@ import { payments, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
-import { UnwrapTransaction } from './UnwrapTransaction.js';
+import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -165,9 +165,9 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
         }
 
         const outputLeftAmount = this.calculateOutputLeftAmountFromVaults(input);
-        if (outputLeftAmount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
-                `Output left amount is below minimum consolidation (${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat) amount ${outputLeftAmount} for vault ${firstVault.vault}`,
+                `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${firstVault.vault}`,
             );
         }
 

@@ -12,6 +12,7 @@ import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { Network } from 'bitcoinjs-lib';
 import { P2TR_MS } from '../shared/P2TR_MS.js';
+import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -85,8 +86,10 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
     private readonly wbtc: wBTC;
 
     public constructor(parameters: IWrapParameters) {
-        if (parameters.amount < TransactionBuilder.MINIMUM_DUST) {
-            throw new Error('Amount is below dust limit');
+        if (parameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+            throw new Error(
+                `Amount is below the minimum required of ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat.`,
+            );
         }
 
         const receiver: Address =
@@ -112,21 +115,10 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         this.receiver = receiver;
         this.amount = parameters.amount;
 
-        if (this.totalInputAmount < this.amount) {
-            throw new Error(
-                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
-            );
-        }
-
-        if (this.totalInputAmount < this.amount) {
-            throw new Error(
-                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
-            );
-        }
+        this.verifyRequiredValue();
 
         this.interactionPubKeys = parameters.generationParameters.pubKeys;
         this.minimumSignatures = parameters.generationParameters.constraints.minimum;
-
         this.contractSecret = this.generateSecret();
 
         if (!this.verifyPublicKeysConstraints(parameters.generationParameters)) {
@@ -261,7 +253,34 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         });
 
         this.addVaultOutput();
-        this.addRefundOutput(amountSpent + this.amount);
+        this.addRefundOutput(
+            amountSpent +
+                this.amount +
+                currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT,
+        );
+    }
+
+    /**
+     * Verify if the required value is available
+     * @private
+     */
+    private verifyRequiredValue(): void {
+        if (this.totalInputAmount < this.amount) {
+            throw new Error(
+                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${this.amount}`,
+            );
+        }
+
+        const valueToVault: bigint =
+            this.amount +
+            currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT +
+            this.priorityFee;
+
+        if (this.totalInputAmount < valueToVault) {
+            throw new Error(
+                `Not enough funds to wrap the amount specified. ${this.totalInputAmount} < ${valueToVault}. Make sure that your inputs cover the amount to wrap, the priority fee and the unwrap prepaid fees.`,
+            );
+        }
     }
 
     /**
@@ -275,9 +294,12 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
             throw new Error(`No vault address provided`);
         }
 
+        const valueToSend: bigint =
+            this.amount + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+
         const amountOutput: PsbtOutputExtendedAddress = {
             address: this.vault,
-            value: Number(this.amount),
+            value: Number(valueToSend),
         };
 
         this.addOutput(amountOutput);

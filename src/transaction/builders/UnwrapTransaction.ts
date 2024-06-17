@@ -14,6 +14,8 @@ import { MultiSignTransaction } from './MultiSignTransaction.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
+import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
+import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 
 const abiCoder: ABICoder = new ABICoder();
 const numsPoint: Buffer = Buffer.from(
@@ -26,11 +28,6 @@ const numsPoint: Buffer = Buffer.from(
  * @class UnwrapTransaction
  */
 export class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
-    /**
-     * Minimum amount that can be unwrapped in satoshis.
-     */
-    public static readonly MINIMUM_CONSOLIDATION_AMOUNT: bigint = 200000n;
-
     private static readonly UNWRAP_SELECTOR: Selector = Number(
         '0x' + abiCoder.encodeSelector('burn'),
     );
@@ -176,7 +173,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         this.buildTransaction();
         this.ignoreSignatureError();
-        this.mergeVaults(this.vaultUTXOs);
+        this.mergeVaults();
 
         const builtTx = this.internalBuildTransaction(this.transaction);
         if (builtTx) {
@@ -187,43 +184,75 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     }
 
     /**
-     * Get the estimated unwrap loss due to bitcoin fees in satoshis.
+     * @description Get the estimated unwrap loss due to bitcoin fees in satoshis.
+     * @description If the number is negative, it means the user will get a refund.
+     * @description If the number is positive, it means the user will lose that amount.
      * @public
-     * @returns {bigint} - The estimated fee loss
+     * @returns {bigint} - The estimated fee loss or refund
      */
-    public getFeeLoss(): bigint {
-        return this.estimatedFeeLoss;
+    public getFeeLossOrRefund(): bigint {
+        let losses: bigint = this.estimatedFeeLoss;
+
+        for (let vault of this.vaultUTXOs) {
+            for (let i = 0; i < vault.utxos.length; i++) {
+                losses -= currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+            }
+        }
+
+        // Since we are creating one output when consolidating, we need to add the fee for that output.
+        return losses + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
     }
 
     /**
      * @description Merge vault UTXOs into the transaction
-     * @param {VaultUTXOs[]} input The vault UTXOs
-     * @public
+     * @protected
      */
-    public mergeVaults(input: VaultUTXOs[]): void {
-        const firstVault = input[0];
-        if (!firstVault) {
+    protected mergeVaults(): void {
+        const bestVault = BitcoinUtils.findVaultWithMostPublicKeys(this.vaultUTXOs);
+        if (!bestVault) {
             throw new Error('No vaults provided');
         }
 
-        const outputLeftAmount = this.calculateOutputLeftAmountFromVaults(input);
-        if (outputLeftAmount < 0) {
+        const outputLeftAmount = this.calculateOutputLeftAmountFromVaults(this.vaultUTXOs);
+        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
-                `Output left amount is negative ${outputLeftAmount} for vault ${firstVault.vault}`,
+                `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${bestVault.vault}`,
+            );
+        }
+
+        let lossOrRefund = this.getFeeLossOrRefund();
+        if (outputLeftAmount !== 0n) {
+            // If the amount left is 0, we don't consolidate the output.
+            this.addOutput({
+                address: bestVault.vault,
+                value: Number(outputLeftAmount),
+            });
+        } else {
+            // Since we are not consolidating the output, we need to refund the user the fees he paid for the consolidation.
+            lossOrRefund -= currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+        }
+
+        const outAmount: bigint = this.amount - lossOrRefund;
+        if (outAmount < TransactionBuilder.MINIMUM_DUST) {
+            throw new Error(
+                `Amount is below dust limit. The requested amount can not be unwrapped since, after fees, it is below the dust limit. Dust: ${outAmount} sat. Are your bitcoin fees too high?`,
+            );
+        }
+
+        const percentageLossOverInitialAmount = (lossOrRefund * 100n) / this.amount;
+        if (percentageLossOverInitialAmount >= 60n) {
+            // For user safety, we don't allow more than 60% loss over the initial amount.
+            throw new Error(
+                `For user safety, OPNet will decline this transaction since you will lose ${percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
             );
         }
 
         this.addOutput({
-            address: firstVault.vault,
-            value: Number(outputLeftAmount),
-        });
-
-        this.addOutput({
             address: this.from,
-            value: Number(this.amount - this.estimatedFeeLoss),
+            value: Number(outAmount),
         });
 
-        for (const vault of input) {
+        for (const vault of this.vaultUTXOs) {
             this.addVaultInputs(vault);
         }
     }
@@ -231,7 +260,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     protected calculateNumEmptyWitnesses(vault: VaultUTXOs[]): bigint {
         let numSignatures = 0n;
         for (const v of vault) {
-            numSignatures += BigInt(v.publicKeys.length - v.minimum);
+            numSignatures += BigInt(v.publicKeys.length - v.minimum) * BigInt(v.utxos.length);
         }
 
         return numSignatures;
@@ -337,6 +366,8 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
+
+            console.log(outputs);
 
             transaction.setMaximumFeeRate(this._maximumFeeRate);
             transaction.addInputs(inputs);
