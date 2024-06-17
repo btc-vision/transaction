@@ -3,7 +3,7 @@ import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import bitcoin, { Payment, Psbt } from 'bitcoinjs-lib';
+import { Network, Payment, Psbt } from 'bitcoinjs-lib';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 export declare class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
@@ -29,7 +29,7 @@ export declare class UnwrapTransaction extends SharedInteractionTransaction<Tran
     protected internalPubKeyToXOnly(): Buffer;
     protected generateTapDataForInput(pubkeys: Buffer[], minimumSignatures: number): {
         internalPubkey: Buffer;
-        network: bitcoin.Network;
+        network: Network;
         scriptTree: Taptree;
         redeem: Payment;
     };

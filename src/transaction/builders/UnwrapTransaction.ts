@@ -5,7 +5,7 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import bitcoin, { Payment, payments, Psbt, Transaction } from 'bitcoinjs-lib';
+import { Network, Payment, payments, Psbt, Transaction } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
@@ -54,7 +54,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * The sighash types for the transaction
      * @protected
      */
-    protected sighashTypes: number[] = [bitcoin.Transaction.SIGHASH_ALL];
+    protected sighashTypes: number[] = [Transaction.SIGHASH_ALL];
     /**
      * Contract secret for the interaction
      * @protected
@@ -306,7 +306,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         minimumSignatures: number,
     ): {
         internalPubkey: Buffer;
-        network: bitcoin.Network;
+        network: Network;
         scriptTree: Taptree;
         redeem: Payment;
     } {
