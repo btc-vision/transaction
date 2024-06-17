@@ -47,7 +47,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     ]);
 
     public static readonly signHashTypesArray: number[] = [
-        Transaction.SIGHASH_ALL,
+        //Transaction.SIGHASH_ALL,
         //Transaction.SIGHASH_ANYONECANPAY,
     ];
     public static readonly numsPoint = Buffer.from(
