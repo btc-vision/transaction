@@ -253,7 +253,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         this.addOutput({
             address: this.from,
-            value: Number(outAmount),
+            value: Number(outAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT),
         });
 
         for (const vault of this.vaultUTXOs) {
@@ -382,14 +382,16 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         }
 
         try {
-            this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
-            this.signInput(transaction, transaction.data.inputs[0], 0);
-
             try {
-                transaction.finalizeInput(0, this.customFinalizer);
-            } catch (e) {
-                console.log(e);
-            }
+                this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
+                this.signInput(transaction, transaction.data.inputs[0], 0);
+
+                try {
+                    transaction.finalizeInput(0, this.customFinalizer);
+                } catch (e) {
+                    console.log(e);
+                }
+            } catch (e) {}
 
             if (this.finalized) {
                 this.transactionFee = BigInt(transaction.getFee());
