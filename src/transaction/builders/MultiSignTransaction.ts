@@ -1,5 +1,13 @@
 import { PsbtInput, TapScriptSig } from 'bip174/src/lib/interfaces.js';
-import bitcoin, { opcodes, Payment, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
+import {
+    crypto as bitcoinCrypto,
+    opcodes,
+    Payment,
+    Psbt,
+    script,
+    Signer,
+    Transaction,
+} from 'bitcoinjs-lib';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -39,22 +47,28 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     ]);
 
     public static readonly signHashTypesArray: number[] = [
-        //Transaction.SIGHASH_ALL,
+        Transaction.SIGHASH_ALL,
         //Transaction.SIGHASH_ANYONECANPAY,
     ];
     public static readonly numsPoint = Buffer.from(
         '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
         'hex',
     );
+
     public type: TransactionType.MULTI_SIG = TransactionType.MULTI_SIG;
+
     protected targetScriptRedeem: Payment | null = null;
     protected leftOverFundsScriptRedeem: Payment | null = null;
+
     protected readonly compiledTargetScript: Buffer;
     protected readonly scriptTree: Taptree;
+
     protected readonly publicKeys: Buffer[];
     protected readonly minimumSignatures: number;
+
     protected readonly originalInputCount: number = 0;
     protected readonly requestedAmount: bigint;
+
     protected readonly receiver: Address;
     protected readonly refundVault: Address;
     /**
@@ -79,7 +93,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         super({
             ...parameters,
             signer: EcKeyPair.fromPrivateKey(
-                bitcoin.crypto.sha256(Buffer.from('aaaaaaaa', 'utf-8')),
+                bitcoinCrypto.sha256(Buffer.from('aaaaaaaa', 'utf-8')),
             ),
             priorityFee: 0n,
         });
@@ -125,6 +139,41 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     }
 
     /**
+     * Verify if that public key already signed the transaction
+     * @param {Psbt} psbt The psbt
+     * @param {Buffer} signerPubKey The signer public key
+     * @returns {boolean} True if the public key signed the transaction
+     */
+    public static verifyIfSigned(psbt: Psbt, signerPubKey: Buffer): boolean {
+        let alreadySigned: boolean = false;
+        for (let i = 1; i < psbt.data.inputs.length; i++) {
+            let input: PsbtInput = psbt.data.inputs[i];
+            if (!input.finalScriptWitness) {
+                continue;
+            }
+
+            const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
+                input.finalScriptWitness,
+            );
+
+            if (decoded.length < 3) {
+                continue;
+            }
+
+            for (let j = 0; j < decoded.length - 2; j += 3) {
+                const pubKey = decoded[j + 2];
+
+                if (pubKey.equals(signerPubKey)) {
+                    alreadySigned = true;
+                    break;
+                }
+            }
+        }
+
+        return alreadySigned;
+    }
+
+    /**
      * Partially sign the transaction
      * @returns {boolean} True if the transaction was signed
      * @public
@@ -133,13 +182,13 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         psbt: Psbt,
         signer: Signer,
         originalInputCount: number,
-        minimumSignatures: number,
+        minimums: number[],
     ): {
         final: boolean;
         signed: boolean;
     } {
         let signed: boolean = false;
-        let final: boolean = false;
+        let final: boolean = true;
 
         for (let i = originalInputCount; i < psbt.data.inputs.length; i++) {
             let input: PsbtInput = psbt.data.inputs[i];
@@ -175,23 +224,29 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
             delete input.finalScriptWitness;
 
+            const signHashTypes: number[] = MultiSignTransaction.signHashTypesArray
+                ? [MultiSignTransaction.calculateSignHash(MultiSignTransaction.signHashTypesArray)]
+                : [];
+
             try {
-                MultiSignTransaction.signInput(psbt, input, i, signer, []);
+                MultiSignTransaction.signInput(psbt, input, i, signer, signHashTypes);
 
                 signed = true;
-            } catch (e) {}
+            } catch (e) {
+                console.log(e);
+            }
 
             if (signed) {
                 if (!input.tapScriptSig) throw new Error('No new signatures for input');
-                if (input.tapScriptSig.length === minimumSignatures) {
-                    final = true;
+                if (input.tapScriptSig.length !== minimums[i - originalInputCount]) {
+                    final = false;
                 }
             }
         }
 
         return {
             signed,
-            final,
+            final: !signed ? false : final,
         };
     }
 
@@ -296,7 +351,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     public static attemptFinalizeInputs(
         psbt: Psbt,
         startIndex: number,
-        orderedPubKeys: Buffer[],
+        orderedPubKeys: Buffer[][],
         isFinal: boolean,
     ): boolean {
         let finalizedInputs = 0;
@@ -351,7 +406,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                             inputIndex,
                             input,
                             [],
-                            orderedPubKeys,
+                            orderedPubKeys[i - startIndex],
                             isFinal,
                         );
                     },

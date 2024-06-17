@@ -37,7 +37,8 @@ export declare class MultiSignTransaction extends TransactionBuilder<Transaction
     protected readonly sighashTypes: number[];
     constructor(parameters: MultiSignParameters);
     static fromBase64(params: MultiSignFromBase64Params): MultiSignTransaction;
-    static signPartial(psbt: Psbt, signer: Signer, originalInputCount: number, minimumSignatures: number): {
+    static verifyIfSigned(psbt: Psbt, signerPubKey: Buffer): boolean;
+    static signPartial(psbt: Psbt, signer: Signer, originalInputCount: number, minimums: number[]): {
         final: boolean;
         signed: boolean;
     };
@@ -45,7 +46,7 @@ export declare class MultiSignTransaction extends TransactionBuilder<Transaction
         finalScriptWitness: Buffer;
     };
     static dedupeSignatures(original: TapScriptSig[], partial: TapScriptSig[]): TapScriptSig[];
-    static attemptFinalizeInputs(psbt: Psbt, startIndex: number, orderedPubKeys: Buffer[], isFinal: boolean): boolean;
+    static attemptFinalizeInputs(psbt: Psbt, startIndex: number, orderedPubKeys: Buffer[][], isFinal: boolean): boolean;
     finalizeTransactionInputs(): boolean;
     signPSBT(): Psbt;
     protected buildTransaction(): void;
