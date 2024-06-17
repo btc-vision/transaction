@@ -54,7 +54,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * The sighash types for the transaction
      * @protected
      */
-    protected sighashTypes: number[] = [Transaction.SIGHASH_ALL];
+    protected sighashTypes: number[] = [];
     /**
      * Contract secret for the interaction
      * @protected
@@ -208,19 +208,23 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected mergeVaults(): void {
+        let lossOrRefund = this.getFeeLossOrRefund();
+        let outputLeftAmount = this.calculateOutputLeftAmountFromVaults(this.vaultUTXOs);
+        if (lossOrRefund < 0n) {
+            outputLeftAmount += lossOrRefund;
+        }
+
         const bestVault = BitcoinUtils.findVaultWithMostPublicKeys(this.vaultUTXOs);
         if (!bestVault) {
             throw new Error('No vaults provided');
         }
 
-        const outputLeftAmount = this.calculateOutputLeftAmountFromVaults(this.vaultUTXOs);
         if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
                 `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${bestVault.vault}`,
             );
         }
 
-        let lossOrRefund = this.getFeeLossOrRefund();
         if (outputLeftAmount !== 0n) {
             // If the amount left is 0, we don't consolidate the output.
             this.addOutput({
@@ -366,8 +370,6 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
-
-            console.log(outputs);
 
             transaction.setMaximumFeeRate(this._maximumFeeRate);
             transaction.addInputs(inputs);
