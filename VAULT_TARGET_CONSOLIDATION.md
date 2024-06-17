@@ -27,6 +27,7 @@ $$
 The formula ensures that the `VaultTargetConsolidationAmount` is always at least `VaultNetworkConsolidationAcceptance`.
 
 The inner part of the formula:
+
 $$
 \text{VaultNetworkConsolidationAcceptance} + A \times \left(1 - e^{-k \cdot \left(\frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}}\right)}\right)
 $$
@@ -36,23 +37,25 @@ represents an exponential-like growth function that scales based on the amount r
 Here’s a breakdown:
 
 1. **Exponent Term**: 
-	$$
-	k \cdot \left( \frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}} \right)
-	$$
-
     This term calculates the scaled difference between the requested amount and the minimum amount. The division by `VaultMinimumAmount` normalizes the difference, ensuring that the growth rate is relative to the minimum amount.
 
+$$
+k \cdot \left( \frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}} \right)
+$$
+
 2. **Exponential Part**: 
-    $$
-	1 - e^{-k \cdot \left(\frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}}\right)}
-	$$
     This part applies the exponential function to the scaled difference. The subtraction from 1 ensures that the result starts at 0 and approaches 1 as the requested amount increases.
 
+$$
+1 - e^{-k \cdot \left(\frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}}\right)}
+$$
+
 3. **Adjustment and Addition**: 
-    $$
-	A \times \left(1 - e^{-k \cdot \left(\frac{x - \text{VaultMinimumAmount}}\right)}\right)
-	$$
     The exponential part is multiplied by the adjustment constant `A`, controlling the maximum impact on the target consolidation amount. This adjusted value is then added to `VaultNetworkConsolidationAcceptance`.
+
+$$
+A \times \left(1 - e^{-k \cdot \left(\frac{x - \text{VaultMinimumAmount}}{\text{VaultMinimumAmount}}\right)}\right)
+$$
 
 ### Deterministic Nature
 
@@ -90,17 +93,16 @@ function calculateVaultTargetConsolidationAmount(
     : targetAmount;
 }
 
-// Example usage
-const VaultMinimumAmount = BigInt(100000); // Example value
-const VaultNetworkConsolidationAcceptance = BigInt(50000); // Example value
-const requestedAmount = BigInt(200000); // Example requested amount
-const k = 0.1; // Example constant for growth rate
-const A = BigInt(100000); // Example adjustment constant for max growth
+const vaultMinimumAmount = 200000n;
+const vaultNetworkConsolidationAcceptance = 400000n; 
+const requestedAmount = 1000000n;
+const k = 0.03;
+const A = 1000000n;
 
 const result = calculateVaultTargetConsolidationAmount(
   requestedAmount,
-  VaultMinimumAmount,
-  VaultNetworkConsolidationAcceptance,
+  vaultMinimumAmount,
+  vaultNetworkConsolidationAcceptance,
   k,
   A
 );
