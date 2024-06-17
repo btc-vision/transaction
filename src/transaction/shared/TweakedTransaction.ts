@@ -477,8 +477,6 @@ export abstract class TweakedTransaction extends Logger {
         ) {
             this.tweakSigner();
 
-            console.log('tweaked signer', this.tweakedSigner);
-
             input.tapInternalKey = this.internalPubKeyToXOnly();
         }
 
