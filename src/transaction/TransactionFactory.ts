@@ -311,6 +311,7 @@ export class TransactionFactory {
      */
     public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
         const transaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
+        console.log(unwrapParameters);
 
         transaction.signTransaction();
 

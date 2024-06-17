@@ -383,15 +383,10 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         try {
             try {
-                this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
-                this.signInput(transaction, transaction.data.inputs[0], 0);
-
-                try {
-                    transaction.finalizeInput(0, this.customFinalizer);
-                } catch (e) {
-                    console.log(e);
-                }
-            } catch (e) {}
+                this.signInputs(transaction);
+            } catch (e) {
+                console.log(e);
+            }
 
             if (this.finalized) {
                 this.transactionFee = BigInt(transaction.getFee());

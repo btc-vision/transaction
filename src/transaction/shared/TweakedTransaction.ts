@@ -95,35 +95,6 @@ export abstract class TweakedTransaction extends Logger {
         this.nonWitnessUtxo = data.nonWitnessUtxo;
     }
 
-    public static signInputTaproot(
-        transaction: Psbt,
-        i: number,
-        signer: Signer,
-        sighashTypes: number[],
-        network: Network,
-        tweakHash: Buffer,
-    ): void {
-        const transactions = transaction.data.inputs;
-        if (!transactions) {
-            throw new Error('Transaction is required');
-        }
-
-        const input = transactions[i];
-        if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
-
-        if (!input.tapInternalKey) {
-            input.tapInternalKey = toXOnly(signer.publicKey);
-        }
-
-        const settings: TweakSettings = {
-            network: network,
-            tweakHash,
-        };
-
-        const tweaked = TweakedSigner.tweakSigner(signer as ECPairInterface, settings);
-        transaction.signTaprootInput(i, tweaked, undefined, sighashTypes);
-    }
-
     /**
      * Read witnesses
      * @protected
@@ -226,15 +197,6 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         return this.tapData.address;
-    }
-
-    /**
-     * Get the transaction PSBT as a base64 string.
-     * @public
-     * @returns {string} - The transaction as a base64 string
-     */
-    public toBase64(): string {
-        return this.transaction.toBase64();
     }
 
     /**
@@ -514,6 +476,8 @@ export abstract class TweakedTransaction extends Logger {
             AddressVerificator.isValidP2TRAddress(utxo.scriptPubKey.address, this.network)
         ) {
             this.tweakSigner();
+
+            console.log('tweaked signer', this.tweakedSigner);
 
             input.tapInternalKey = this.internalPubKeyToXOnly();
         }
