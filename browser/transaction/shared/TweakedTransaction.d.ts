@@ -31,7 +31,6 @@ export declare abstract class TweakedTransaction extends Logger {
     protected regenerated: boolean;
     protected ignoreSignatureErrors: boolean;
     protected constructor(data: ITweakedTransactionData);
-    static signInputTaproot(transaction: Psbt, i: number, signer: Signer, sighashTypes: number[], network: Network, tweakHash: Buffer): void;
     static readScriptWitnessToWitnessStack(buffer: Buffer): Buffer[];
     protected static signInput(transaction: Psbt, input: PsbtInput, i: number, signer: Signer, sighashTypes: number[]): void;
     protected static calculateSignHash(sighashTypes: number[]): number;
@@ -39,7 +38,6 @@ export declare abstract class TweakedTransaction extends Logger {
     getScriptAddress(): string;
     getTransaction(): Transaction;
     getTapAddress(): string;
-    toBase64(): string;
     disableRBF(): void;
     getTweakerHash(): Buffer | undefined;
     preEstimateTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numSignatures: bigint, numPubkeys: bigint): bigint;
