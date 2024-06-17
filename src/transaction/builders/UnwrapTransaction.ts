@@ -253,7 +253,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         this.addOutput({
             address: this.from,
-            value: Number(outAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT),
+            value: Number(outAmount),
         });
 
         for (const vault of this.vaultUTXOs) {
