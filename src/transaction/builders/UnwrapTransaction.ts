@@ -183,6 +183,19 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         throw new Error('Could not sign transaction');
     }
 
+    public getRefund(): bigint {
+        let losses: bigint = -currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+
+        for (let vault of this.vaultUTXOs) {
+            for (let i = 0; i < vault.utxos.length; i++) {
+                losses += currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+            }
+        }
+
+        // Since we are creating one output when consolidating, we need to add the fee for that output.
+        return losses;
+    }
+
     /**
      * @description Get the estimated unwrap loss due to bitcoin fees in satoshis.
      * @description If the number is negative, it means the user will get a refund.
@@ -191,16 +204,9 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @returns {bigint} - The estimated fee loss or refund
      */
     public getFeeLossOrRefund(): bigint {
-        let losses: bigint = this.estimatedFeeLoss;
+        let refund: bigint = this.getRefund();
 
-        for (let vault of this.vaultUTXOs) {
-            for (let i = 0; i < vault.utxos.length; i++) {
-                losses -= currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
-            }
-        }
-
-        // Since we are creating one output when consolidating, we need to add the fee for that output.
-        return losses + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+        return refund - this.estimatedFeeLoss;
     }
 
     /**
@@ -208,11 +214,11 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected mergeVaults(): void {
-        let lossOrRefund = this.getFeeLossOrRefund();
-        let outputLeftAmount = this.calculateOutputLeftAmountFromVaults(this.vaultUTXOs);
-        if (lossOrRefund < 0n) {
-            outputLeftAmount += lossOrRefund;
-        }
+        let refund: bigint = this.getRefund();
+        let outputLeftAmount =
+            this.getVaultTotalOutputAmount(this.vaultUTXOs) - refund - this.amount;
+
+        let outAmount: bigint = this.amount + refund - this.estimatedFeeLoss;
 
         const bestVault = BitcoinUtils.findVaultWithMostPublicKeys(this.vaultUTXOs);
         if (!bestVault) {
@@ -231,20 +237,16 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
                 address: bestVault.vault,
                 value: Number(outputLeftAmount),
             });
-        } else {
-            // Since we are not consolidating the output, we need to refund the user the fees he paid for the consolidation.
-            lossOrRefund -= currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
         }
 
-        const outAmount: bigint = this.amount - lossOrRefund;
         if (outAmount < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Amount is below dust limit. The requested amount can not be unwrapped since, after fees, it is below the dust limit. Dust: ${outAmount} sat. Are your bitcoin fees too high?`,
             );
         }
 
-        const percentageLossOverInitialAmount = (lossOrRefund * 100n) / this.amount;
-        if (percentageLossOverInitialAmount >= 60n) {
+        const percentageLossOverInitialAmount = (outAmount * 100n) / this.amount;
+        if (percentageLossOverInitialAmount <= 60n) {
             // For user safety, we don't allow more than 60% loss over the initial amount.
             throw new Error(
                 `For user safety, OPNet will decline this transaction since you will lose ${percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
@@ -255,7 +257,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             address: this.from,
             value: Number(outAmount),
         });
-
+        
         for (const vault of this.vaultUTXOs) {
             this.addVaultInputs(vault);
         }
