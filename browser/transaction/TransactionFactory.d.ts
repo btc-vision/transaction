@@ -14,7 +14,7 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
-    readonly unwrapFeeLoss: bigint;
+    readonly feeRefundOrLoss: bigint;
 }
 export declare class TransactionFactory {
     constructor();

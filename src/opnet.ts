@@ -62,10 +62,14 @@ export * from './utxo/interfaces/BroadcastResponse.js';
 export * from './transaction/psbt/PSBTTypes.js';
 
 export * from './transaction/builders/MultiSignTransaction.js';
-export * from './transaction/builders/UnwrapSegwitTransaction.js';
 export * from './generators/builders/MultiSignGenerator.js';
 
 export * from './transaction/shared/P2TR_MS.js';
 export * from './transaction/builders/UnwrapTransaction.js';
 
 export * from './wbtc/UnwrapGeneration.js';
+
+/** Consensus */
+export * from './consensus/ConsensusConfig.js';
+export * from './consensus/Consensus.js';
+export * from './consensus/metadata/RoswellConsensus.js';

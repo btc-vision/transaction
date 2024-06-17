@@ -4,7 +4,7 @@ import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../w
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
-import { UnwrapTransaction } from '../transaction/builders/UnwrapTransaction.js';
+import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node
@@ -195,9 +195,9 @@ export class OPNetLimitedProvider {
      * @throws {Error} - If wrap parameters could not be fetched
      */
     public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
-        if (amount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+        if (amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
-                `Amount must be greater than the minimum consolidation amount ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT}sat.`,
+                `Amount must be greater than the minimum consolidation amount ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT}sat.`,
             );
         }
 
@@ -222,8 +222,10 @@ export class OPNetLimitedProvider {
         amount: bigint,
         receiver: Address,
     ): Promise<UnwrapGeneration | undefined> {
-        if (amount <= 330n) {
-            throw new Error('Amount must be greater than 330');
+        if (amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+            throw new Error(
+                `Amount must be greater than the minimum consolidation amount ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT}sat.`,
+            );
         }
 
         if (receiver.length < 50) {

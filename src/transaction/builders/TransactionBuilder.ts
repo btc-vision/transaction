@@ -276,7 +276,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     public addOutput(output: PsbtOutputExtended): void {
         if (output.value === 0) return;
-
         if (output.value < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,

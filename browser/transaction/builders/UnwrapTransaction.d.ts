@@ -7,7 +7,6 @@ import bitcoin, { Payment, Psbt } from 'bitcoinjs-lib';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 export declare class UnwrapTransaction extends SharedInteractionTransaction<TransactionType.WBTC_UNWRAP> {
-    static readonly MINIMUM_CONSOLIDATION_AMOUNT: bigint;
     private static readonly UNWRAP_SELECTOR;
     type: TransactionType.WBTC_UNWRAP;
     readonly amount: bigint;
@@ -22,8 +21,8 @@ export declare class UnwrapTransaction extends SharedInteractionTransaction<Tran
     constructor(parameters: IUnwrapParameters);
     static generateBurnCalldata(amount: bigint): Buffer;
     signPSBT(): Psbt;
-    getFeeLoss(): bigint;
-    mergeVaults(input: VaultUTXOs[]): void;
+    getFeeLossOrRefund(): bigint;
+    protected mergeVaults(): void;
     protected calculateNumEmptyWitnesses(vault: VaultUTXOs[]): bigint;
     protected calculateNumSignatures(vault: VaultUTXOs[]): bigint;
     protected calculateNumInputs(vault: VaultUTXOs[]): bigint;

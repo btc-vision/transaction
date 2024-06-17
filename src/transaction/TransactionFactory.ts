@@ -18,6 +18,7 @@ import { PSBTTypes } from './psbt/PSBTTypes.js';
 import { VaultUTXOs } from './processor/PsbtTransaction.js';
 import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
 import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
+import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -36,7 +37,14 @@ export interface WrapResult {
 export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
-    readonly unwrapFeeLoss: bigint;
+
+    /**
+     * @description The fee refund or loss.
+     * @description If the amount is negative, it means that the user has to pay the difference. The difference is deducted from the amount.
+     * @description If the amount is positive, it means that the user will be refunded the difference.
+     * @type {bigint}
+     */
+    readonly feeRefundOrLoss: bigint;
 }
 
 export class TransactionFactory {
@@ -163,18 +171,20 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      */
     public wrap(warpParameters: IWrapParameters): WrapResult {
-        if (warpParameters.amount < UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT) {
+        if (warpParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
-                `Amount is too low. Minimum consolidation is ${UnwrapTransaction.MINIMUM_CONSOLIDATION_AMOUNT} sat. Received ${warpParameters.amount} sat.`,
+                `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${warpParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
             );
         }
 
-        const wbtc: wBTC = new wBTC(warpParameters.network);
+        const childTransactionRequiredValue: bigint =
+            warpParameters.amount + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
 
+        const wbtc: wBTC = new wBTC(warpParameters.network);
         const to = wbtc.getAddress();
         const fundingParameters: IFundingTransactionParameters = {
             ...warpParameters,
-            childTransactionRequiredValue: warpParameters.amount,
+            childTransactionRequiredValue: childTransactionRequiredValue,
             to: to,
         };
 
@@ -190,7 +200,7 @@ export class TransactionFactory {
             preTransaction.getFundingTransactionParameters();
 
         // We add the amount
-        parameters.childTransactionRequiredValue += warpParameters.amount;
+        parameters.childTransactionRequiredValue += childTransactionRequiredValue;
         parameters.utxos = fundingParameters.utxos;
 
         const signedTransaction = this.createFundTransaction(parameters);
@@ -209,7 +219,6 @@ export class TransactionFactory {
 
         // We have to regenerate using the new utxo
         const outTx: Transaction = finalTransaction.signTransaction();
-
         return {
             transaction: [signedTransaction.tx.toHex(), outTx.toHex()],
             vaultAddress: finalTransaction.vault,
@@ -290,7 +299,7 @@ export class TransactionFactory {
         return {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
-            unwrapFeeLoss: estimatedFees,
+            feeRefundOrLoss: estimatedFees,
         };
     }
 
@@ -355,7 +364,7 @@ export class TransactionFactory {
         return {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
-            unwrapFeeLoss: finalTransaction.getFeeLoss(),
+            feeRefundOrLoss: finalTransaction.getFeeLossOrRefund(),
         };
     }
 
@@ -392,8 +401,9 @@ export class TransactionFactory {
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
         const buf = Buffer.from(psbt, 'base64');
 
-        const header = Buffer.alloc(1);
+        const header = Buffer.alloc(2);
         header.writeUInt8(type, 0);
+        header.writeUInt8(currentConsensus, 1);
 
         return Buffer.concat([header, buf]).toString('hex');
     }
