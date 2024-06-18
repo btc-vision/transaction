@@ -165,7 +165,10 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
         }
 
         const outputLeftAmount = this.calculateOutputLeftAmountFromVaults(input);
-        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+        if (
+            outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
+            outputLeftAmount !== currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT
+        ) {
             throw new Error(
                 `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${firstVault.vault}`,
             );

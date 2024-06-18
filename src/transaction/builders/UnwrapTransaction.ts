@@ -225,13 +225,19 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('No vaults provided');
         }
 
-        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+        if (
+            outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
+            outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !== 0n
+        ) {
             throw new Error(
                 `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${bestVault.vault}`,
             );
         }
 
-        if (outputLeftAmount !== 0n) {
+        if (
+            outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !==
+            0n
+        ) {
             // If the amount left is 0, we don't consolidate the output.
             this.addOutput({
                 address: bestVault.vault,
@@ -257,7 +263,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             address: this.from,
             value: Number(outAmount),
         });
-        
+
         for (const vault of this.vaultUTXOs) {
             this.addVaultInputs(vault);
         }
