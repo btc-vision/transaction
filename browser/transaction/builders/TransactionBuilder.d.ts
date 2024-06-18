@@ -29,7 +29,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected _maximumFeeRate: number;
     protected constructor(parameters: ITransactionParameters);
     static getFrom(from: string | undefined, keypair: ECPairInterface, network: Network): Address;
-    protected static witnessStackToScriptWitness(witness: Buffer[]): Buffer;
+    static witnessStackToScriptWitness(witness: Buffer[]): Buffer;
     getFundingTransactionParameters(): IFundingTransactionParameters;
     setDestinationAddress(address: Address): void;
     setMaximumFeeRate(feeRate: number): void;

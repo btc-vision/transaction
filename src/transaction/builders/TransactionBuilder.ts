@@ -150,7 +150,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @protected
      * @returns {Buffer}
      */
-    protected static witnessStackToScriptWitness(witness: Buffer[]): Buffer {
+    public static witnessStackToScriptWitness(witness: Buffer[]): Buffer {
         let buffer = Buffer.allocUnsafe(0);
 
         function writeSlice(slice: Buffer) {
