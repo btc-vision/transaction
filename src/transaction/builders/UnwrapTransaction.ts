@@ -95,12 +95,12 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         this.to = this.wbtc.getAddress();
 
         this.vaultUTXOs = parameters.unwrapUTXOs;
-        this.estimatedFeeLoss = this.preEstimateTaprootTransactionFees(
+        this.estimatedFeeLoss = UnwrapTransaction.preEstimateTaprootTransactionFees(
             BigInt(this.feeRate),
             this.calculateNumInputs(this.vaultUTXOs),
             2n,
             this.calculateNumSignatures(this.vaultUTXOs),
-            64n,
+            65n,
             this.calculateNumEmptyWitnesses(this.vaultUTXOs),
         );
 
@@ -425,8 +425,6 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         const tap = payments.p2tr(tapInput);
 
         if (!tap.witness) throw new Error('Failed to generate taproot witness');
-
-        this.disableRBF();
 
         const controlBlock = tap.witness[tap.witness.length - 1];
         const input: PsbtInputExtended = {

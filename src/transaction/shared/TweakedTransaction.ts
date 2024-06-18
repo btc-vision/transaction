@@ -271,7 +271,7 @@ export abstract class TweakedTransaction extends Logger {
      * @param {bigint} [taprootScriptSize=32n] - The size of the taproot script in bytes
      * @returns {bigint} - The estimated transaction fees
      */
-    public preEstimateTaprootTransactionFees(
+    public static preEstimateTaprootTransactionFees(
         feeRate: bigint, // satoshis per virtual byte
         numInputs: bigint,
         numOutputs: bigint,

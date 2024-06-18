@@ -41,7 +41,7 @@ export declare abstract class TweakedTransaction extends Logger {
     disableRBF(): void;
     getTweakerHash(): Buffer | undefined;
     preEstimateTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numSignatures: bigint, numPubkeys: bigint): bigint;
-    preEstimateTaprootTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numWitnessElements: bigint, witnessElementSize: bigint, emptyWitness: bigint, taprootControlWitnessSize?: bigint, taprootScriptSize?: bigint): bigint;
+    static preEstimateTaprootTransactionFees(feeRate: bigint, numInputs: bigint, numOutputs: bigint, numWitnessElements: bigint, witnessElementSize: bigint, emptyWitness: bigint, taprootControlWitnessSize?: bigint, taprootScriptSize?: bigint): bigint;
     protected generateTapData(): Payment;
     protected generateScriptAddress(): Payment;
     protected getSignerKey(): Signer;
