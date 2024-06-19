@@ -29,7 +29,7 @@ export interface ConsensusConfig<T extends Consensus> {
     readonly UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT: bigint;
 }
 
-export const OPNetConsensusConfig: { [key in Consensus]: ConsensusConfig<key> } = {
+export const OPNetConsensusConfig: { [key in Consensus]?: ConsensusConfig<key> } = {
     [Consensus.Roswell]: RoswellConsensus,
 };
 
