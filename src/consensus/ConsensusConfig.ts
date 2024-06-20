@@ -34,4 +34,6 @@ export const OPNetConsensusConfig: { [key in Consensus]?: ConsensusConfig<key> }
 };
 
 export const currentConsensus = Consensus.Roswell;
-export const currentConsensusConfig = OPNetConsensusConfig[currentConsensus];
+export const currentConsensusConfig = OPNetConsensusConfig[
+    currentConsensus
+] as ConsensusConfig<Consensus.Roswell>;
