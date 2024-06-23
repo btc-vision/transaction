@@ -3,6 +3,7 @@ import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { Generator } from '../Generator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { Features } from '../Features.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -55,6 +56,7 @@ export class CalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
+     * @param {number[]} [features=[]] - The features to use (optional)
      * @param {Buffer[]} [vaultPublicKeys=[]] - The public keys of the vault (optional)
      * @param {number} [minimumSignatures=0] - The minimum number of signatures (optional)
      * @returns {Buffer} - The compiled script
@@ -63,6 +65,7 @@ export class CalldataGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
+        features: Features[] = [],
         vaultPublicKeys: Buffer[] = [],
         minimumSignatures: number = 0,
     ): Buffer {
@@ -127,6 +130,7 @@ export class CalldataGenerator extends Generator {
 
         // Write calldata
         compiledData = compiledData.concat(
+            ...features,
             ...[opcodes.OP_1NEGATE, ...dataChunks, opcodes.OP_ELSE, opcodes.OP_1, opcodes.OP_ENDIF],
         );
 
