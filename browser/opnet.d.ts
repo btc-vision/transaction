@@ -3,6 +3,7 @@ export * from './bytecode/Compressor.js';
 export * from './generators/Generator.js';
 export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
+export * from './generators/Features.js';
 export * from './generators/AddressGenerator.js';
 export * from './verification/TapscriptVerificator.js';
 export * from './keypair/EcKeyPair.js';

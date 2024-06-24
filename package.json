@@ -53,6 +53,14 @@
         "type": "git",
         "url": "git://github.com/btc-vision/transaction.git"
     },
+    "files": [
+        "build",
+        "cjs",
+        "browser",
+        "package.json",
+        "LICENSE.MD",
+        "README.md"
+    ],
     "scripts": {
         "watch": "gulp watch",
         "build": "gulp",
@@ -105,6 +113,7 @@
         "bitcoinjs-lib": "github:btc-vision/bitcoinjs-lib",
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
+        "ecpair": "^2.1.0",
         "gulp": "^4.0.2",
         "gulp-cached": "^1.1.1",
         "gulp-logger": "^0.0.2",
