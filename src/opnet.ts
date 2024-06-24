@@ -7,6 +7,7 @@ export * from './bytecode/Compressor.js';
 export * from './generators/Generator.js';
 export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
+export * from './generators/Features.js';
 
 /** Address */
 export * from './generators/AddressGenerator.js';

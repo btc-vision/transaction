@@ -222,7 +222,7 @@ export class OPNetLimitedProvider {
         amount: bigint,
         receiver: Address,
     ): Promise<UnwrapGeneration | undefined> {
-        if (amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+        if (amount < 330n) {
             throw new Error(
                 `Amount must be greater than the minimum consolidation amount ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT}sat.`,
             );

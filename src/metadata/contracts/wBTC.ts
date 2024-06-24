@@ -34,7 +34,7 @@ export class wBTC extends ContractBaseMetadata {
             case networks.bitcoin.bech32:
                 return 'unknown';
             case networks.regtest.bech32:
-                return 'bcrt1qqr5k0s9yk8nz3vgx55kfwntgh54pqdfmt5zahk';
+                return 'bcrt1q3see0kvjnftr4n4xxklfwmzpq787vk5f606vvt';
             case networks.testnet.bech32:
                 return 'tb1qj58a6yf4pez426nqvf8wyu6ssggcajw8kr44vy';
             default:

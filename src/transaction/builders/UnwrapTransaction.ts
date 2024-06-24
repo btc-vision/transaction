@@ -16,6 +16,7 @@ import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.j
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
+import { Features } from '../../generators/Features.js';
 
 const abiCoder: ABICoder = new ABICoder();
 const numsPoint: Buffer = Buffer.from(
@@ -116,6 +117,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
             this.contractSecret,
+            [Features.UNWRAP],
         );
 
         this.scriptTree = this.getScriptTree();
@@ -214,24 +216,25 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected mergeVaults(): void {
-        let refund: bigint = this.getRefund();
-        let outputLeftAmount =
-            this.getVaultTotalOutputAmount(this.vaultUTXOs) - refund - this.amount;
+        const refund: bigint = this.getRefund();
+        const totalInputAmount: bigint = this.getVaultTotalOutputAmount(this.vaultUTXOs);
+        const outputLeftAmount = totalInputAmount - refund - this.amount;
 
-        let outAmount: bigint = this.amount + refund - this.estimatedFeeLoss;
+        const outAmount: bigint = this.amount + refund - this.estimatedFeeLoss;
 
         const bestVault = BitcoinUtils.findVaultWithMostPublicKeys(this.vaultUTXOs);
         if (!bestVault) {
             throw new Error('No vaults provided');
         }
 
-        if (
+        let hasConsolidation: boolean =
             outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
-            outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !== 0n
-        ) {
-            throw new Error(
-                `Output left amount is below minimum consolidation (${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat) amount ${outputLeftAmount} for vault ${bestVault.vault}`,
-            );
+            outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !== 0n;
+
+        if (hasConsolidation) {
+            this.success(`Consolidating output with ${outputLeftAmount} sat.`);
+        } else {
+            this.warn(`No consolidation in this transaction.`);
         }
 
         if (
@@ -255,7 +258,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         if (percentageLossOverInitialAmount <= 60n) {
             // For user safety, we don't allow more than 60% loss over the initial amount.
             throw new Error(
-                `For user safety, OPNet will decline this transaction since you will lose ${percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
+                `For user safety, OPNet will decline this transaction since you will lose ${100n - percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
             );
         }
 

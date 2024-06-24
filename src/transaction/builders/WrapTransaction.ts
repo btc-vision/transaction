@@ -130,6 +130,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
             this.contractSecret,
+            [],
             this.interactionPubKeys,
             this.minimumSignatures,
         );
