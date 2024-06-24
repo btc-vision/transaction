@@ -1,3 +1,7 @@
 .vs
 docs
 src/tests
+cjs
+build
+.github
+.idea
