@@ -3,7 +3,11 @@ import { hmac } from '@noble/hashes/hmac';
 import { pbkdf2 } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha256';
 import { sha512 } from '@noble/hashes/sha512';
-import { assertArgument } from 'ethers';
+import assert from 'assert';
+
+function assertArgument(check, message, name, value) {
+    assert(check, message, 'INVALID_ARGUMENT', { argument: name, value: value });
+}
 
 function getGlobal() {
     if (typeof self !== 'undefined') {
