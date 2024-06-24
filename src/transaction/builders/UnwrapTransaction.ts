@@ -258,7 +258,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         if (percentageLossOverInitialAmount <= 60n) {
             // For user safety, we don't allow more than 60% loss over the initial amount.
             throw new Error(
-                `For user safety, OPNet will decline this transaction since you will lose ${percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
+                `For user safety, OPNet will decline this transaction since you will lose ${100n - percentageLossOverInitialAmount}% of your btc by doing this transaction due to bitcoin fees. Are your bitcoin fees too high?`,
             );
         }
 
