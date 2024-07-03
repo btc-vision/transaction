@@ -5,4 +5,4 @@ cjs
 build
 .github
 .idea
-bytecode
+/bytecode
