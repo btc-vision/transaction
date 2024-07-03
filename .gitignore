@@ -404,4 +404,4 @@ cjs
 .idea
 
 src/tests
-bytecode
+./bytecode
