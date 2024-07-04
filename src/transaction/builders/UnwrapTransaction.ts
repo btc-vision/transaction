@@ -227,8 +227,12 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('No vaults provided');
         }
 
+        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+            throw new Error('Output left amount is below the minimum amount');
+        }
+
         let hasConsolidation: boolean =
-            outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
+            outputLeftAmount > currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
             outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !== 0n;
 
         if (hasConsolidation) {
