@@ -131,6 +131,51 @@ export abstract class TweakedTransaction extends Logger {
         return readVector();
     }
 
+    /**
+     * Pre-estimate the transaction fees for a Taproot transaction
+     * @param {bigint} feeRate - The fee rate in satoshis per virtual byte
+     * @param {bigint} numInputs - The number of inputs
+     * @param {bigint} numOutputs - The number of outputs
+     * @param {bigint} numWitnessElements - The number of witness elements (e.g., number of control blocks and witnesses)
+     * @param {bigint} witnessElementSize - The average size of each witness element in bytes
+     * @param {bigint} emptyWitness - The amount of empty witnesses
+     * @param {bigint} [taprootControlWitnessSize=139n] - The size of the control block witness in bytes
+     * @param {bigint} [taprootScriptSize=32n] - The size of the taproot script in bytes
+     * @returns {bigint} - The estimated transaction fees
+     */
+    public static preEstimateTaprootTransactionFees(
+        feeRate: bigint, // satoshis per virtual byte
+        numInputs: bigint,
+        numOutputs: bigint,
+        numWitnessElements: bigint,
+        witnessElementSize: bigint,
+        emptyWitness: bigint,
+        taprootControlWitnessSize: bigint = 32n,
+        taprootScriptSize: bigint = 139n,
+    ): bigint {
+        const txHeaderSize = 10n;
+        const inputBaseSize = 41n;
+        const outputSize = 68n;
+        const taprootWitnessBaseSize = 1n; // Base witness size per input (without signatures and control blocks)
+
+        // Base transaction size (excluding witness data)
+        const baseTxSize = txHeaderSize + inputBaseSize * numInputs + outputSize * numOutputs;
+
+        // Witness data size for Taproot
+        const witnessSize =
+            numInputs * taprootWitnessBaseSize +
+            numWitnessElements * witnessElementSize +
+            taprootControlWitnessSize * numInputs +
+            taprootScriptSize * numInputs +
+            emptyWitness;
+
+        // Total weight and virtual size
+        const weight = baseTxSize * 3n + (baseTxSize + witnessSize);
+        const vSize = weight / 4n;
+
+        return vSize * feeRate;
+    }
+
     protected static signInput(
         transaction: Psbt,
         input: PsbtInput,
@@ -259,51 +304,6 @@ export abstract class TweakedTransaction extends Logger {
         return vSize * feeRate;
     }
 
-    /**
-     * Pre-estimate the transaction fees for a Taproot transaction
-     * @param {bigint} feeRate - The fee rate in satoshis per virtual byte
-     * @param {bigint} numInputs - The number of inputs
-     * @param {bigint} numOutputs - The number of outputs
-     * @param {bigint} numWitnessElements - The number of witness elements (e.g., number of control blocks and witnesses)
-     * @param {bigint} witnessElementSize - The average size of each witness element in bytes
-     * @param {bigint} emptyWitness - The amount of empty witnesses
-     * @param {bigint} [taprootControlWitnessSize=139n] - The size of the control block witness in bytes
-     * @param {bigint} [taprootScriptSize=32n] - The size of the taproot script in bytes
-     * @returns {bigint} - The estimated transaction fees
-     */
-    public static preEstimateTaprootTransactionFees(
-        feeRate: bigint, // satoshis per virtual byte
-        numInputs: bigint,
-        numOutputs: bigint,
-        numWitnessElements: bigint,
-        witnessElementSize: bigint,
-        emptyWitness: bigint,
-        taprootControlWitnessSize: bigint = 32n,
-        taprootScriptSize: bigint = 139n,
-    ): bigint {
-        const txHeaderSize = 10n;
-        const inputBaseSize = 41n;
-        const outputSize = 68n;
-        const taprootWitnessBaseSize = 1n; // Base witness size per input (without signatures and control blocks)
-
-        // Base transaction size (excluding witness data)
-        const baseTxSize = txHeaderSize + inputBaseSize * numInputs + outputSize * numOutputs;
-
-        // Witness data size for Taproot
-        const witnessSize =
-            numInputs * taprootWitnessBaseSize +
-            numWitnessElements * witnessElementSize +
-            taprootControlWitnessSize * numInputs +
-            taprootScriptSize * numInputs +
-            emptyWitness;
-
-        // Total weight and virtual size
-        const weight = baseTxSize * 3n + (baseTxSize + witnessSize);
-        const vSize = weight / 4n;
-
-        return vSize * feeRate;
-    }
-
     protected generateTapData(): Payment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
@@ -357,7 +357,11 @@ export abstract class TweakedTransaction extends Logger {
                 tweakedSigner = this.tweakedSigner;
             }
 
-            transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
+            try {
+                transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
+            } catch (e) {
+                transaction.signInput(i, signer || this.getSignerKey(), signHash);
+            }
         } else {
             transaction.signInput(i, signer || this.getSignerKey(), signHash);
         }
