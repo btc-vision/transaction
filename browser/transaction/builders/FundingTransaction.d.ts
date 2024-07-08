@@ -6,6 +6,6 @@ export declare class FundingTransaction extends TransactionBuilder<TransactionTy
     readonly type: TransactionType.FUNDING;
     protected childTransactionRequiredFees: bigint;
     constructor(parameters: IFundingTransactionParameters);
-    protected buildTransaction(): void;
+    protected buildTransaction(): Promise<void>;
     protected getSignerKey(): Signer;
 }

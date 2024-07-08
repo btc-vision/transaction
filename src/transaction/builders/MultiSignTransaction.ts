@@ -1,13 +1,5 @@
 import { PsbtInput, TapScriptSig } from 'bip174/src/lib/interfaces.js';
-import {
-    crypto as bitcoinCrypto,
-    opcodes,
-    Payment,
-    Psbt,
-    script,
-    Signer,
-    Transaction,
-} from 'bitcoinjs-lib';
+import { crypto as bitcoinCrypto, opcodes, Payment, Psbt, script, Signer } from 'bitcoinjs-lib';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -440,11 +432,11 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     /**
      * @description Signs the transaction
      * @public
-     * @returns {Transaction} - The signed transaction in hex format
+     * @returns {Promise<Psbt>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signPSBT(): Psbt {
-        if (this.signTransaction()) {
+    public async signPSBT(): Promise<Psbt> {
+        if (await this.signTransaction()) {
             return this.transaction;
         }
 
@@ -459,7 +451,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @throws {Error} If the left over funds script redeem version is required
      * @throws {Error} If the left over funds script redeem output is required
      */
-    protected override buildTransaction(): void {
+    protected override async buildTransaction(): Promise<void> {
         const selectedRedeem = this.targetScriptRedeem;
         if (!selectedRedeem) {
             throw new Error('Left over funds script redeem is required');
@@ -501,10 +493,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
      * @protected
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected override internalBuildTransaction(transaction: Psbt): boolean {
+    protected override async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
         const inputs: PsbtInputExtended[] = this.getInputs();
         const outputs: PsbtOutputExtended[] = this.getOutputs();
 
@@ -518,7 +510,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         transaction.addOutputs(outputs);
 
         try {
-            this.signInputs(transaction);
+            await this.signInputs(transaction);
 
             return this.finalizeTransactionInputs();
         } catch (e) {
@@ -536,7 +528,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * Sign the inputs
      * @protected
      */
-    protected override signInputs(_transaction: Psbt): void {}
+    protected override async signInputs(_transaction: Psbt): Promise<void> {}
 
     protected override generateScriptAddress(): Payment {
         return {

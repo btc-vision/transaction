@@ -74,3 +74,8 @@ export * from './wbtc/UnwrapGeneration.js';
 export * from './consensus/ConsensusConfig.js';
 export * from './consensus/Consensus.js';
 export * from './consensus/metadata/RoswellConsensus.js';
+
+/** Custom signers */
+export * from './transaction/browser/BrowserSignerBase.js';
+export * from './transaction/browser/extensions/UnisatSigner.js';
+export * from './transaction/browser/types/Unisat.js';

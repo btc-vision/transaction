@@ -83,6 +83,12 @@ export abstract class TweakedTransaction extends Logger {
      */
     protected nonWitnessUtxo?: Buffer;
 
+    /**
+     * Is the transaction being generated inside a browser?
+     * @protected
+     */
+    protected readonly isBrowser: boolean = false;
+
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
 
@@ -93,6 +99,8 @@ export abstract class TweakedTransaction extends Logger {
         this.network = data.network;
 
         this.nonWitnessUtxo = data.nonWitnessUtxo;
+
+        this.isBrowser = typeof window !== 'undefined';
     }
 
     /**
@@ -340,7 +348,12 @@ export abstract class TweakedTransaction extends Logger {
      * @param {Signer} [signer] - The signer to use
      * @protected
      */
-    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void {
+    protected async signInput(
+        transaction: Psbt,
+        input: PsbtInput,
+        i: number,
+        signer?: Signer,
+    ): Promise<void> {
         const signHash =
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
@@ -348,22 +361,29 @@ export abstract class TweakedTransaction extends Logger {
 
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) this.tweakSigner();
-            if (!this.tweakedSigner) throw new Error('Tweaked signer is required');
 
-            let tweakedSigner: Signer;
+            let tweakedSigner: Signer | undefined;
             if (signer !== this.signer) {
                 tweakedSigner = this.getTweakedSigner(true, signer);
             } else {
                 tweakedSigner = this.tweakedSigner;
             }
 
-            try {
-                transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
-            } catch (e) {
-                transaction.signInput(i, signer || this.getSignerKey(), signHash);
+            if (tweakedSigner) {
+                try {
+                    transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
+                    return;
+                } catch (e) {}
             }
+        }
+
+        signer = signer || this.getSignerKey();
+
+        if ('signTransaction' in signer) {
+            // @ts-ignore
+            await signer.signTransaction(transaction, input, i, signHash);
         } else {
-            transaction.signInput(i, signer || this.getSignerKey(), signHash);
+            transaction.signInput(i, signer, signHash);
         }
     }
 
@@ -371,15 +391,16 @@ export abstract class TweakedTransaction extends Logger {
      * Signs all the inputs of the transaction.
      * @param {Psbt} transaction - The transaction to sign
      * @protected
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    protected signInputs(transaction: Psbt): void {
+    protected async signInputs(transaction: Psbt): Promise<void> {
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             let input: PsbtInput = transaction.data.inputs[i];
 
             try {
-                this.signInput(transaction, input, i);
+                await this.signInput(transaction, input, i);
             } catch (e) {
+                console.log(e);
                 this.log(`Failed to sign input ${i}: ${(e as Error).stack}`);
             }
         }
@@ -430,7 +451,7 @@ export abstract class TweakedTransaction extends Logger {
     protected getTweakedSigner(
         useTweakedHash: boolean = false,
         signer: Signer = this.signer,
-    ): Signer {
+    ): Signer | undefined {
         const settings: TweakSettings = {
             network: this.network,
         };
@@ -439,7 +460,11 @@ export abstract class TweakedTransaction extends Logger {
             settings.tweakHash = this.getTweakerHash();
         }
 
-        return TweakedSigner.tweakSigner(signer as ECPairInterface, settings);
+        if (!('privateKey' in signer)) {
+            return;
+        }
+
+        return TweakedSigner.tweakSigner(signer as unknown as ECPairInterface, settings) as Signer;
     }
 
     /**

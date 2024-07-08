@@ -139,7 +139,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Build the transaction
      * @protected
      */
-    protected override buildTransaction(): void {
+    protected override async buildTransaction(): Promise<void> {
         if (!this.to) {
             this.to = this.getScriptAddress();
         }
@@ -174,7 +174,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             address: this.to,
         });
 
-        this.addRefundOutput(amountSpent);
+        await this.addRefundOutput(amountSpent);
     }
 
     /**
@@ -182,9 +182,9 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected signInputs(transaction: Psbt): void {
+    protected async signInputs(transaction: Psbt): Promise<void> {
         if (!this.contractSigner) {
-            super.signInputs(transaction);
+            await super.signInputs(transaction);
 
             return;
         }

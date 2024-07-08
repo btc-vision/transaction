@@ -5,7 +5,7 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { Network, Payment, payments, Psbt, Transaction } from 'bitcoinjs-lib';
+import { Network, Payment, payments, Psbt } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
@@ -159,10 +159,10 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     /**
      * @description Signs the transaction
      * @public
-     * @returns {Transaction} - The signed transaction in hex format
+     * @returns {Promise<Psbt>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signPSBT(): Psbt {
+    public async signPSBT(): Promise<Psbt> {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -173,11 +173,11 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('No vault UTXOs provided');
         }
 
-        this.buildTransaction();
+        await this.buildTransaction();
         this.ignoreSignatureError();
         this.mergeVaults();
 
-        const builtTx = this.internalBuildTransaction(this.transaction);
+        const builtTx = await this.internalBuildTransaction(this.transaction);
         if (builtTx) {
             return this.transaction;
         }
@@ -378,10 +378,10 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
      * @protected
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected internalBuildTransaction(transaction: Psbt): boolean {
+    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
@@ -398,7 +398,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         try {
             try {
-                this.signInputs(transaction);
+                await this.signInputs(transaction);
             } catch (e) {
                 console.log(e);
             }

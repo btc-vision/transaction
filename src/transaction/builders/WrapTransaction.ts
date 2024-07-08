@@ -220,7 +220,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      * @throws {Error} If the leftover funds script redeem output is required
      * @throws {Error} If the to address is required
      */
-    protected override buildTransaction(): void {
+    protected override async buildTransaction(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
         const selectedRedeem = !!this.scriptSigner
@@ -254,7 +254,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         });
 
         this.addVaultOutput();
-        this.addRefundOutput(
+        await this.addRefundOutput(
             amountSpent +
                 this.amount +
                 currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT,

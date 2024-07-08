@@ -23,8 +23,8 @@ export declare class DeploymentTransaction extends TransactionBuilder<Transactio
     get p2trAddress(): Address;
     getRndBytes(): Buffer;
     protected contractSignerXOnlyPubKey(): Buffer;
-    protected buildTransaction(): void;
-    protected signInputs(transaction: Psbt): void;
+    protected buildTransaction(): Promise<void>;
+    protected signInputs(transaction: Psbt): Promise<void>;
     protected generateScriptAddress(): Payment;
     protected generateTapData(): Payment;
     private getContractSeed;
