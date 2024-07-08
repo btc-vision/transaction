@@ -3,7 +3,6 @@ import { CustomKeypair } from '../BrowserSignerBase.js';
 import { Network, Psbt } from 'bitcoinjs-lib';
 import { Unisat } from '../types/Unisat.js';
 import { Address } from '@btc-vision/bsi-binary';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 declare global {
     interface Window {
         unisat?: Unisat;
@@ -28,7 +27,8 @@ export declare class UnisatSigner extends CustomKeypair {
     sign(hash: Buffer, lowR?: boolean): Buffer;
     signSchnorr(hash: Buffer): Buffer;
     verify(hash: Buffer, signature: Buffer): boolean;
-    signTransaction(transaction: Psbt, _input: PsbtInput, i: number, sighashTypes: number[]): Promise<Psbt>;
+    signTaprootInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
+    signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
     private combine;
     private signTweaked;
     private getNonDuplicateScriptSig;

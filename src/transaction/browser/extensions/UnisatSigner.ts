@@ -4,7 +4,7 @@ import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js'
 import { Address } from '@btc-vision/bsi-binary';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
-import { PsbtInput, TapScriptSig } from 'bip174/src/lib/interfaces.js';
+import { TapScriptSig } from 'bip174/src/lib/interfaces.js';
 
 declare global {
     interface Window {
@@ -122,7 +122,7 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public sign(hash: Buffer, lowR?: boolean): Buffer {
-        throw new Error('Not implemented');
+        throw new Error('Not implemented: sign');
     }
 
     public signSchnorr(hash: Buffer): Buffer {
@@ -130,63 +130,33 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public verify(hash: Buffer, signature: Buffer): boolean {
-        throw new Error('Can not verify.');
+        throw new Error('Not implemented: verify');
     }
 
-    public async signTransaction(
+    public async signTaprootInput(
         transaction: Psbt,
-        _input: PsbtInput,
         i: number,
         sighashTypes: number[],
-    ): Promise<Psbt> {
-        if (!this.isInitialized) {
-            throw new Error('UnisatSigner not initialized');
-        }
+    ): Promise<void> {
+        let firstSignature = await this.signTweaked(transaction, i, sighashTypes, false);
+        this.combine(transaction, firstSignature, i);
+    }
 
-        let firstSignature: Psbt | undefined;
-        try {
-            firstSignature = await this.signTweaked(transaction, i, sighashTypes, true);
-            this.combine(transaction, firstSignature, i);
-        } catch (e) {
-            console.log('first failed.', e);
-        }
+    public async signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void> {
+        const secondSignature = await this.signTweaked(transaction, i, sighashTypes, true);
 
-        try {
-            const secondSignature = await this.signTweaked(transaction, i, sighashTypes);
-            this.combine(transaction, secondSignature, i);
-        } catch (e) {
-            console.log('second failed.', e);
-        }
-
-        /*if (signedInput.tapScriptSig) {
-            transaction.data.inputs[i].tapScriptSig = signedInput.tapScriptSig;
-        }
-
-        if (signedInput.tapKeySig) {
-            transaction.data.inputs[i].tapKeySig = signedInput.tapKeySig;
-        }
-
-        if (signedInput.finalScriptWitness) {
-            transaction.data.inputs[i].finalScriptWitness = signedInput.finalScriptWitness;
-        }
-
-        const signedInput2 = newPsbt.txInputs[i];
-        console.log(signedInput2);*/
-
-        return transaction;
+        this.combine(transaction, secondSignature, i);
     }
 
     private combine(transaction: Psbt, newPsbt: Psbt, i: number): void {
         const signedInput = newPsbt.data.inputs[i];
         const originalInput = transaction.data.inputs[i];
 
-        //console.log('signedInput', signedInput, 'originalInput', originalInput);
-
         if (signedInput.partialSig) {
             transaction.updateInput(i, { partialSig: signedInput.partialSig });
         }
 
-        if (signedInput.tapKeySig) {
+        if (signedInput.tapKeySig && !originalInput.tapKeySig) {
             transaction.updateInput(i, { tapKeySig: signedInput.tapKeySig });
         }
 

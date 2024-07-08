@@ -43,12 +43,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Cost in satoshis of the transaction fee
      */
     public transactionFee: bigint = 0n;
-
+    /**
+     * @description The estimated fees of the transaction
+     */
+    public estimatedFees: bigint = 0n;
     /**
      * @description The transaction itself.
      */
     protected transaction: Psbt;
-
     /**
      * @description Inputs to update later on.
      */
@@ -61,7 +63,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Output that will be used to pay the fees
      */
     protected feeOutput: PsbtOutputExtended | null = null;
-
     /**
      * @description The total amount of satoshis in the inputs
      */
@@ -70,7 +71,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The signer of the transaction
      */
     protected readonly signer: Signer;
-
     /**
      * @description The network where the transaction will be broadcasted
      */
@@ -87,19 +87,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The utxos used in the transaction
      */
     protected utxos: UTXO[];
-
     /**
      * @description The address where the transaction is sent to
      * @protected
      */
     protected to: Address | undefined;
-
     /**
      * @description The address where the transaction is sent from
      * @protected
      */
     protected from: Address;
-
     /**
      * @description The maximum fee rate of the transaction
      */
@@ -110,6 +107,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
+
+        if (parameters.estimatedFees) {
+            this.estimatedFees = parameters.estimatedFees;
+        }
 
         this.signer = parameters.signer;
         this.network = parameters.network;
@@ -308,6 +309,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Promise<bigint>} - The estimated transaction fees
      */
     public async estimateTransactionFees(): Promise<bigint> {
+        if (this.estimatedFees) return this.estimatedFees;
+
         const fakeTx = new Psbt({
             network: this.network,
         });
@@ -318,11 +321,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             const size = tx.virtualSize();
             const fee: number = this.feeRate * size + 1;
 
-            const fees = BigInt(Math.ceil(fee) + 1);
+            this.estimatedFees = BigInt(Math.ceil(fee) + 1);
 
-            console.log(`Estimated fees: ${fees}`);
-
-            return fees;
+            return this.estimatedFees;
         } else {
             throw new Error(
                 `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,

@@ -1,7 +1,6 @@
 /// <reference types="node" />
 import { Network, Psbt, Signer } from 'bitcoinjs-lib';
 import { Address } from '@btc-vision/bsi-binary';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 export declare abstract class CustomKeypair implements Signer {
     abstract network: Network;
     abstract publicKey: Buffer;
@@ -9,7 +8,8 @@ export declare abstract class CustomKeypair implements Signer {
     abstract p2tr: Address;
     abstract p2pkh: Address;
     protected constructor();
-    abstract signTransaction(transaction: Psbt, input: PsbtInput, i: number, sighashTypes: number[]): Promise<Psbt>;
+    abstract signTaprootInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
+    abstract signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
     abstract getPublicKey(): Buffer;
     abstract sign(hash: Buffer, lowR?: boolean): Buffer;
     abstract signSchnorr(hash: Buffer): Buffer;

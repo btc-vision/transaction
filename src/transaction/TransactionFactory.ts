@@ -93,6 +93,7 @@ export class TransactionFactory {
 
         parameters.utxos = fundingParameters.utxos;
         parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+        parameters.estimatedFees = preFundingTransaction.estimatedFees;
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
@@ -104,6 +105,7 @@ export class TransactionFactory {
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+            estimatedFees: preTransaction.estimatedFees,
         };
 
         const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
@@ -429,6 +431,7 @@ export class TransactionFactory {
     private async createFundTransaction(parameters: IFundingTransactionParameters): Promise<{
         tx: Transaction;
         original: FundingTransaction;
+        estimatedFees: bigint;
     }> {
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
@@ -439,6 +442,7 @@ export class TransactionFactory {
         return {
             tx: signedTransaction,
             original: fundingTransaction,
+            estimatedFees: await fundingTransaction.estimateTransactionFees(),
         };
     }
 }

@@ -359,6 +359,9 @@ export abstract class TweakedTransaction extends Logger {
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
                 : undefined;
 
+        signer = signer || this.getSignerKey();
+
+        let testedTap: boolean = false;
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) this.tweakSigner();
 
@@ -370,20 +373,41 @@ export abstract class TweakedTransaction extends Logger {
             }
 
             if (tweakedSigner) {
+                testedTap = true;
+
                 try {
-                    transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
+                    if ('signTaprootInput' in signer) {
+                        // @ts-ignore
+                        return await signer.signTaprootInput(transaction, i, signHash);
+                    } else {
+                        transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
+                    }
+
                     return;
                 } catch (e) {}
             }
         }
 
-        signer = signer || this.getSignerKey();
+        try {
+            if ('signInput' in signer) {
+                // @ts-ignore
+                return await signer.signInput(transaction, i, signHash);
+            } else {
+                transaction.signInput(i, signer, signHash);
+            }
+        } catch (e) {
+            if (!testedTap) {
+                // and we try again taproot...
 
-        if ('signTransaction' in signer) {
-            // @ts-ignore
-            await signer.signTransaction(transaction, input, i, signHash);
-        } else {
-            transaction.signInput(i, signer, signHash);
+                if ('signTaprootInput' in signer) {
+                    // @ts-ignore
+                    return await signer.signTaprootInput(transaction, i, signHash);
+                } else if (this.tweakedSigner) {
+                    transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 

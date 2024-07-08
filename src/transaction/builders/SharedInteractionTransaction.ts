@@ -191,14 +191,12 @@ export abstract class SharedInteractionTransaction<
             let signed: boolean = false;
 
             try {
-                await this.signInput(transaction, input, i);
+                await this.signInput(transaction, input, i, this.scriptSigner);
                 signed = true;
-            } catch (e) {
-                console.log('not script', e);
-            }
+            } catch (e) {}
 
             try {
-                await this.signInput(transaction, input, i, this.scriptSigner);
+                await this.signInput(transaction, input, i);
                 signed = true;
             } catch (e) {}
 

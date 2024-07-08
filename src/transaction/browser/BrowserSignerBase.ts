@@ -1,6 +1,5 @@
 import { Network, Psbt, Signer } from 'bitcoinjs-lib';
 import { Address } from '@btc-vision/bsi-binary';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 
 /**
  * Create a custom keypair.
@@ -18,12 +17,20 @@ export abstract class CustomKeypair implements Signer {
 
     protected constructor() {}
 
-    public abstract signTransaction(
+    /*public abstract signTransaction(
         transaction: Psbt,
         input: PsbtInput,
         i: number,
         sighashTypes: number[],
-    ): Promise<Psbt>;
+    ): Promise<Psbt>;*/
+
+    public abstract signTaprootInput(
+        transaction: Psbt,
+        i: number,
+        sighashTypes: number[],
+    ): Promise<void>;
+
+    public abstract signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
 
     public abstract getPublicKey(): Buffer;
 

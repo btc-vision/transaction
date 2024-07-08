@@ -14,6 +14,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     readonly logColor: string;
     overflowFees: bigint;
     transactionFee: bigint;
+    estimatedFees: bigint;
     protected transaction: Psbt;
     protected readonly updateInputs: UpdateInput[];
     protected readonly outputs: PsbtOutputExtended[];
