@@ -136,13 +136,13 @@ export class PsbtTransaction extends TweakedTransaction {
     /**
      * Attempt to sign all inputs
      */
-    public attemptSignAllInputs(): boolean {
+    public async attemptSignAllInputs(): Promise<boolean> {
         let signed = false;
         for (let i = 0; i < this.transaction.data.inputs.length; i++) {
             const input = this.transaction.data.inputs[i];
 
             try {
-                this.signInput(this.transaction, input, i, this.signer);
+                await this.signInput(this.transaction, input, i, this.signer);
                 signed = true;
             } catch (e) {
                 console.log(`can not sign. input ${i}`, e);

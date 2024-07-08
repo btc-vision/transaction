@@ -5,7 +5,7 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { payments, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
+import { payments, Psbt, Signer } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
@@ -116,10 +116,10 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
     /**
      * @description Signs the transaction
      * @public
-     * @returns {Transaction} - The signed transaction in hex format
+     * @returns {Promise<Psbt>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signPSBT(): Psbt {
+    public async signPSBT(): Promise<Psbt> {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -133,12 +133,12 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
         if (this.signed) throw new Error('Transaction is already signed');
         this.signed = true;
 
-        this.buildTransaction();
+        await this.buildTransaction();
 
         this.ignoreSignatureError();
-        this.mergeVaults(this.vaultUTXOs);
+        await this.mergeVaults(this.vaultUTXOs);
 
-        const builtTx = this.internalBuildTransaction(this.transaction);
+        const builtTx = await this.internalBuildTransaction(this.transaction);
         if (builtTx) {
             return this.transaction;
         }
@@ -151,7 +151,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
      * @param {VaultUTXOs[]} input The vault UTXOs
      * @public
      */
-    public mergeVaults(input: VaultUTXOs[]): void {
+    public async mergeVaults(input: VaultUTXOs[]): Promise<void> {
         const firstVault = input[0];
         if (!firstVault) {
             throw new Error('No vaults provided');
@@ -185,7 +185,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
         });
 
         for (const vault of input) {
-            this.addVaultInputs(vault);
+            await this.addVaultInputs(vault);
         }
     }
 
@@ -193,10 +193,10 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
      * @protected
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected internalBuildTransaction(transaction: Psbt): boolean {
+    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
@@ -212,7 +212,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
         }
 
         try {
-            this.signInputs(transaction);
+            await this.signInputs(transaction);
 
             if (this.finalized) {
                 this.transactionFee = BigInt(transaction.getFee());
@@ -303,7 +303,10 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
      * @param {Signer} [firstSigner] The first signer
      * @private
      */
-    private addVaultInputs(vault: VaultUTXOs, firstSigner: Signer = this.signer): void {
+    private async addVaultInputs(
+        vault: VaultUTXOs,
+        firstSigner: Signer = this.signer,
+    ): Promise<void> {
         const p2wshOutput = this.generateMultiSignRedeemScript(vault.publicKeys, vault.minimum);
         for (const utxo of vault.utxos) {
             const inputIndex = this.transaction.inputCount;
@@ -316,7 +319,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
 
                 // we don't care if we fail to sign the input
                 try {
-                    this.signInput(
+                    await this.signInput(
                         this.transaction,
                         this.transaction.data.inputs[inputIndex],
                         inputIndex,

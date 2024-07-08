@@ -48,10 +48,10 @@ export declare class MultiSignTransaction extends TransactionBuilder<Transaction
     static dedupeSignatures(original: TapScriptSig[], partial: TapScriptSig[]): TapScriptSig[];
     static attemptFinalizeInputs(psbt: Psbt, startIndex: number, orderedPubKeys: Buffer[][], isFinal: boolean): boolean;
     finalizeTransactionInputs(): boolean;
-    signPSBT(): Psbt;
-    protected buildTransaction(): void;
-    protected internalBuildTransaction(transaction: Psbt): boolean;
-    protected signInputs(_transaction: Psbt): void;
+    signPSBT(): Promise<Psbt>;
+    protected buildTransaction(): Promise<void>;
+    protected internalBuildTransaction(transaction: Psbt): Promise<boolean>;
+    protected signInputs(_transaction: Psbt): Promise<void>;
     protected generateScriptAddress(): Payment;
     protected generateTapData(): Payment;
     protected getScriptSolution(input: PsbtInput): Buffer[];

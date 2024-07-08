@@ -24,8 +24,8 @@ export declare abstract class SharedInteractionTransaction<T extends Transaction
     protected generateSecret(): Buffer;
     protected scriptSignerXOnlyPubKey(): Buffer;
     protected generateKeyPairFromSeed(): ECPairInterface;
-    protected buildTransaction(): void;
-    protected signInputs(transaction: Psbt): void;
+    protected buildTransaction(): Promise<void>;
+    protected signInputs(transaction: Psbt): Promise<void>;
     protected generateScriptAddress(): Payment;
     protected generateTapData(): Payment;
     protected getScriptSolution(input: PsbtInput): Buffer[];

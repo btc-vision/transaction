@@ -18,9 +18,9 @@ export declare class UnwrapSegwitTransaction extends SharedInteractionTransactio
     private readonly calculatedSignHash;
     constructor(parameters: IUnwrapParameters);
     static generateBurnCalldata(amount: bigint): Buffer;
-    signPSBT(): Psbt;
-    mergeVaults(input: VaultUTXOs[]): void;
-    protected internalBuildTransaction(transaction: Psbt): boolean;
+    signPSBT(): Promise<Psbt>;
+    mergeVaults(input: VaultUTXOs[]): Promise<void>;
+    protected internalBuildTransaction(transaction: Psbt): Promise<boolean>;
     protected generateMultiSignRedeemScript(publicKeys: string[], minimum: number): {
         witnessUtxo: Buffer;
         redeemScript: Buffer;

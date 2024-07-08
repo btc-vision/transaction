@@ -133,7 +133,7 @@ export abstract class SharedInteractionTransaction<
      * @throws {Error} If the left over funds script redeem output is required
      * @throws {Error} If the to address is required
      */
-    protected override buildTransaction(): void {
+    protected override async buildTransaction(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
         const selectedRedeem = !!this.scriptSigner
@@ -169,7 +169,7 @@ export abstract class SharedInteractionTransaction<
         });
 
         if (!this.disableAutoRefund) {
-            this.addRefundOutput(amountSpent);
+            await this.addRefundOutput(amountSpent);
         }
     }
 
@@ -178,9 +178,9 @@ export abstract class SharedInteractionTransaction<
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected override signInputs(transaction: Psbt): void {
+    protected override async signInputs(transaction: Psbt): Promise<void> {
         if (!this.scriptSigner) {
-            super.signInputs(transaction);
+            await super.signInputs(transaction);
 
             return;
         }
@@ -191,12 +191,12 @@ export abstract class SharedInteractionTransaction<
             let signed: boolean = false;
 
             try {
-                this.signInput(transaction, input, i, this.scriptSigner);
+                await this.signInput(transaction, input, i, this.scriptSigner);
                 signed = true;
             } catch (e) {}
 
             try {
-                this.signInput(transaction, input, i);
+                await this.signInput(transaction, input, i);
                 signed = true;
             } catch (e) {}
 

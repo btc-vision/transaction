@@ -22,7 +22,7 @@ export declare class WrapTransaction extends SharedInteractionTransaction<Transa
     constructor(parameters: IWrapParameters);
     private static generateMintCalldata;
     verifyPublicKeysConstraints(generation: WrappedGeneration): boolean;
-    protected buildTransaction(): void;
+    protected buildTransaction(): Promise<void>;
     private verifyRequiredValue;
     private addVaultOutput;
     private generateVaultAddress;

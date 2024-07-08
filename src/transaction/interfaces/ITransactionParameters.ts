@@ -10,6 +10,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     utxos: UTXO[];
 
     nonWitnessUtxo?: Buffer | undefined;
+    estimatedFees?: bigint;
 
     readonly feeRate: number;
     readonly priorityFee: bigint;

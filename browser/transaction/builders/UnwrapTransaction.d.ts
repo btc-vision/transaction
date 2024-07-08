@@ -20,7 +20,7 @@ export declare class UnwrapTransaction extends SharedInteractionTransaction<Tran
     private readonly calculatedSignHash;
     constructor(parameters: IUnwrapParameters);
     static generateBurnCalldata(amount: bigint): Buffer;
-    signPSBT(): Psbt;
+    signPSBT(): Promise<Psbt>;
     getRefund(): bigint;
     getFeeLossOrRefund(): bigint;
     protected mergeVaults(): void;
@@ -35,7 +35,7 @@ export declare class UnwrapTransaction extends SharedInteractionTransaction<Tran
         redeem: Payment;
     };
     protected getScriptSolution(input: PsbtInput): Buffer[];
-    protected internalBuildTransaction(transaction: Psbt): boolean;
+    protected internalBuildTransaction(transaction: Psbt): Promise<boolean>;
     private addVaultUTXO;
     private addVaultInputs;
     private calculateOutputLeftAmountFromVaults;

@@ -28,6 +28,7 @@ export declare abstract class TweakedTransaction extends Logger {
     protected sequence: number;
     protected tapLeafScript: TapLeafScript | null;
     protected nonWitnessUtxo?: Buffer;
+    protected readonly isBrowser: boolean;
     protected regenerated: boolean;
     protected ignoreSignatureErrors: boolean;
     protected constructor(data: ITweakedTransactionData);
@@ -45,11 +46,11 @@ export declare abstract class TweakedTransaction extends Logger {
     protected generateTapData(): Payment;
     protected generateScriptAddress(): Payment;
     protected getSignerKey(): Signer;
-    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): void;
-    protected signInputs(transaction: Psbt): void;
+    protected signInput(transaction: Psbt, input: PsbtInput, i: number, signer?: Signer): Promise<void>;
+    protected signInputs(transaction: Psbt): Promise<void>;
     protected internalPubKeyToXOnly(): Buffer;
     protected internalInit(): void;
     protected tweakSigner(): void;
-    protected getTweakedSigner(useTweakedHash?: boolean, signer?: Signer): Signer;
+    protected getTweakedSigner(useTweakedHash?: boolean, signer?: Signer): Signer | undefined;
     protected generatePsbtInputExtended(utxo: UTXO, i: number): PsbtInputExtended;
 }

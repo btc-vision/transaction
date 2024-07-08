@@ -52,9 +52,11 @@ export class TransactionFactory {
 
     /**
      * @description Generates the required transactions.
-     * @returns {[Transaction, Transaction]} - The signed transaction
+     * @returns {Promise<[string, string]>} - The signed transaction
      */
-    public signInteraction(interactionParameters: IInteractionParameters): [string, string] {
+    public async signInteraction(
+        interactionParameters: IInteractionParameters,
+    ): Promise<[string, string]> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -63,16 +65,16 @@ export class TransactionFactory {
             interactionParameters,
         );
 
-        transaction.signTransaction();
+        await transaction.signTransaction();
 
         // Initial generation
-        const estimatedGas = transaction.estimateTransactionFees();
+        const estimatedGas = await transaction.estimateTransactionFees();
         const fundingParameters: IFundingTransactionParameters = {
             ...interactionParameters,
             childTransactionRequiredValue: estimatedGas,
         };
 
-        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        const preFundingTransaction = await this.createFundTransaction(fundingParameters);
         interactionParameters.utxos = this.getUTXOAsTransaction(
             preFundingTransaction.tx,
             interactionParameters.to,
@@ -84,15 +86,16 @@ export class TransactionFactory {
         );
 
         // Initial generation
-        preTransaction.signTransaction();
+        await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            preTransaction.getFundingTransactionParameters();
+            await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.childTransactionRequiredValue = preTransaction.estimateTransactionFees();
+        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+        parameters.estimatedFees = preFundingTransaction.estimatedFees;
 
-        const signedTransaction = this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -102,12 +105,13 @@ export class TransactionFactory {
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+            estimatedFees: preTransaction.estimatedFees,
         };
 
         const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
 
         // We have to regenerate using the new utxo
-        const outTx: Transaction = finalTransaction.signTransaction();
+        const outTx: Transaction = await finalTransaction.signTransaction();
 
         return [signedTransaction.tx.toHex(), outTx.toHex()];
     }
@@ -115,21 +119,23 @@ export class TransactionFactory {
     /**
      * @description Generates the required transactions.
      * @param {IDeploymentParameters} deploymentParameters - The deployment parameters
-     * @returns {DeploymentResult} - The signed transaction
+     * @returns {Promise<DeploymentResult>} - The signed transaction
      */
-    public signDeployment(deploymentParameters: IDeploymentParameters): DeploymentResult {
+    public async signDeployment(
+        deploymentParameters: IDeploymentParameters,
+    ): Promise<DeploymentResult> {
         const preTransaction: DeploymentTransaction = new DeploymentTransaction(
             deploymentParameters,
         );
 
         // Initial generation
-        preTransaction.signTransaction();
+        await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            preTransaction.getFundingTransactionParameters();
+            await preTransaction.getFundingTransactionParameters();
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
-        const signedTransaction: Transaction = fundingTransaction.signTransaction();
+        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -155,7 +161,7 @@ export class TransactionFactory {
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
 
         // We have to regenerate using the new utxo
-        const outTx: Transaction = finalTransaction.signTransaction();
+        const outTx: Transaction = await finalTransaction.signTransaction();
 
         return {
             transaction: [signedTransaction.toHex(), outTx.toHex()],
@@ -167,10 +173,10 @@ export class TransactionFactory {
     /**
      * Basically it's fun to manage UTXOs.
      * @param {IWrapParameters} warpParameters - The wrap parameters
-     * @returns {WrapResult | undefined} - The signed transaction
+     * @returns {Promise<WrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
-    public wrap(warpParameters: IWrapParameters): WrapResult {
+    public async wrap(warpParameters: IWrapParameters): Promise<WrapResult> {
         if (warpParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
                 `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${warpParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
@@ -188,22 +194,22 @@ export class TransactionFactory {
             to: to,
         };
 
-        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        const preFundingTransaction = await this.createFundTransaction(fundingParameters);
         warpParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
         const preTransaction: WrapTransaction = new WrapTransaction(warpParameters);
 
         // Initial generation
-        preTransaction.signTransaction();
+        await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            preTransaction.getFundingTransactionParameters();
+            await preTransaction.getFundingTransactionParameters();
 
         // We add the amount
         parameters.childTransactionRequiredValue += childTransactionRequiredValue;
         parameters.utxos = fundingParameters.utxos;
 
-        const signedTransaction = this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -218,7 +224,7 @@ export class TransactionFactory {
         const finalTransaction: WrapTransaction = new WrapTransaction(newParams);
 
         // We have to regenerate using the new utxo
-        const outTx: Transaction = finalTransaction.signTransaction();
+        const outTx: Transaction = await finalTransaction.signTransaction();
         return {
             transaction: [signedTransaction.tx.toHex(), outTx.toHex()],
             vaultAddress: finalTransaction.vault,
@@ -230,7 +236,7 @@ export class TransactionFactory {
     /**
      * Unwrap bitcoin.
      * @param {IUnwrapParameters} unwrapParameters - The unwrap parameters
-     * @returns {UnwrapResult} - The signed transaction
+     * @returns {Promise<UnwrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      * @deprecated
      */
@@ -238,13 +244,13 @@ export class TransactionFactory {
         console.error('The "unwrap" method is deprecated. Use unwrapTap instead.');
 
         const transaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction(unwrapParameters);
-        transaction.signTransaction();
+        await transaction.signTransaction();
 
         const to = transaction.toAddress();
         if (!to) throw new Error('To address is required');
 
         // Initial generation
-        const estimatedGas = transaction.estimateTransactionFees();
+        const estimatedGas = await transaction.estimateTransactionFees();
         const estimatedFees = transaction.preEstimateTransactionFees(
             BigInt(unwrapParameters.feeRate),
             this.calculateNumInputs(unwrapParameters.unwrapUTXOs),
@@ -259,7 +265,7 @@ export class TransactionFactory {
             to: to,
         };
 
-        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        const preFundingTransaction = await this.createFundTransaction(fundingParameters);
         unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
         const preTransaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction({
@@ -268,16 +274,16 @@ export class TransactionFactory {
         });
 
         // Initial generation
-        preTransaction.signTransaction();
+        await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            preTransaction.getFundingTransactionParameters();
+            await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
         parameters.childTransactionRequiredValue =
-            preTransaction.estimateTransactionFees() + estimatedFees;
+            (await preTransaction.estimateTransactionFees()) + estimatedFees;
 
-        const signedTransaction = this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -292,7 +298,7 @@ export class TransactionFactory {
         const finalTransaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction(newParams);
 
         // We have to regenerate using the new utxo
-        const outTx: Psbt = finalTransaction.signPSBT();
+        const outTx: Psbt = await finalTransaction.signPSBT();
         const asBase64 = outTx.toBase64();
         const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
 
@@ -306,25 +312,25 @@ export class TransactionFactory {
     /**
      * Unwrap bitcoin via taproot.
      * @param {IUnwrapParameters} unwrapParameters - The unwrap parameters
-     * @returns {UnwrapResult} - The signed transaction
+     * @returns {Promise<UnwrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
     public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
         const transaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
-        transaction.signTransaction();
+        await transaction.signTransaction();
 
         const to = transaction.toAddress();
         if (!to) throw new Error('To address is required');
 
         // Initial generation
-        const estimatedGas = transaction.estimateTransactionFees();
+        const estimatedGas = await transaction.estimateTransactionFees();
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
             childTransactionRequiredValue: estimatedGas,
             to: to,
         };
 
-        const preFundingTransaction = this.createFundTransaction(fundingParameters);
+        const preFundingTransaction = await this.createFundTransaction(fundingParameters);
         unwrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
         const preTransaction: UnwrapTransaction = new UnwrapTransaction({
@@ -333,15 +339,15 @@ export class TransactionFactory {
         });
 
         // Initial generation
-        preTransaction.signTransaction();
+        await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            preTransaction.getFundingTransactionParameters();
+            await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.childTransactionRequiredValue = preTransaction.estimateTransactionFees();
+        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
 
-        const signedTransaction = this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -356,7 +362,7 @@ export class TransactionFactory {
         const finalTransaction: UnwrapTransaction = new UnwrapTransaction(newParams);
 
         // We have to regenerate using the new utxo
-        const outTx: Psbt = finalTransaction.signPSBT();
+        const outTx: Psbt = await finalTransaction.signPSBT();
         const asBase64 = outTx.toBase64();
         const psbt = this.writePSBTHeader(PSBTTypes.UNWRAP, asBase64);
 
@@ -422,12 +428,13 @@ export class TransactionFactory {
         return [newUtxo];
     }
 
-    private createFundTransaction(parameters: IFundingTransactionParameters): {
+    private async createFundTransaction(parameters: IFundingTransactionParameters): Promise<{
         tx: Transaction;
         original: FundingTransaction;
-    } {
+        estimatedFees: bigint;
+    }> {
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
-        const signedTransaction: Transaction = fundingTransaction.signTransaction();
+        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -435,6 +442,7 @@ export class TransactionFactory {
         return {
             tx: signedTransaction,
             original: fundingTransaction,
+            estimatedFees: await fundingTransaction.estimateTransactionFees(),
         };
     }
 }

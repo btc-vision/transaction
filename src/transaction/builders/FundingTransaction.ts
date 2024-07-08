@@ -16,7 +16,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         this.internalInit();
     }
 
-    protected override buildTransaction(): void {
+    protected override async buildTransaction(): Promise<void> {
         if (!this.to) {
             throw new Error('Recipient address is required');
         }
@@ -31,7 +31,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
             address: this.to,
         });
 
-        this.addRefundOutput(amountSpent);
+        await this.addRefundOutput(amountSpent);
     }
 
     protected override getSignerKey(): Signer {

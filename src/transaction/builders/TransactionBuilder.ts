@@ -43,12 +43,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Cost in satoshis of the transaction fee
      */
     public transactionFee: bigint = 0n;
-
+    /**
+     * @description The estimated fees of the transaction
+     */
+    public estimatedFees: bigint = 0n;
     /**
      * @description The transaction itself.
      */
     protected transaction: Psbt;
-
     /**
      * @description Inputs to update later on.
      */
@@ -61,7 +63,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Output that will be used to pay the fees
      */
     protected feeOutput: PsbtOutputExtended | null = null;
-
     /**
      * @description The total amount of satoshis in the inputs
      */
@@ -70,7 +71,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The signer of the transaction
      */
     protected readonly signer: Signer;
-
     /**
      * @description The network where the transaction will be broadcasted
      */
@@ -87,19 +87,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The utxos used in the transaction
      */
     protected utxos: UTXO[];
-
     /**
      * @description The address where the transaction is sent to
      * @protected
      */
     protected to: Address | undefined;
-
     /**
      * @description The address where the transaction is sent from
      * @protected
      */
     protected from: Address;
-
     /**
      * @description The maximum fee rate of the transaction
      */
@@ -110,6 +107,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
+
+        if (parameters.estimatedFees) {
+            this.estimatedFees = parameters.estimatedFees;
+        }
 
         this.signer = parameters.signer;
         this.network = parameters.network;
@@ -180,9 +181,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return buffer;
     }
 
-    public getFundingTransactionParameters(): IFundingTransactionParameters {
+    public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
         if (!this.transactionFee) {
-            this.transactionFee = this.estimateTransactionFees();
+            this.transactionFee = await this.estimateTransactionFees();
         }
 
         return {
@@ -217,10 +218,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description Signs the transaction
      * @public
-     * @returns {Transaction} - The signed transaction in hex format
+     * @returns {Promise<Transaction>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signTransaction(): Transaction {
+    public async signTransaction(): Promise<Transaction> {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -230,9 +231,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         if (this.signed) throw new Error('Transaction is already signed');
         this.signed = true;
 
-        this.buildTransaction();
+        await this.buildTransaction();
 
-        const builtTx = this.internalBuildTransaction(this.transaction);
+        const builtTx = await this.internalBuildTransaction(this.transaction);
         if (builtTx) {
             if (this.regenerated) {
                 throw new Error('Transaction was regenerated');
@@ -247,11 +248,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description Signs the transaction
      * @public
-     * @returns {Transaction} - The signed transaction in hex format
+     * @returns {Promise<Psbt>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public signPSBT(): Psbt {
-        if (this.signTransaction()) {
+    public async signPSBT(): Promise<Psbt> {
+        if (await this.signTransaction()) {
             return this.transaction;
         }
 
@@ -305,20 +306,24 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Estimates the transaction fees.
      * @public
-     * @returns {bigint} - The estimated transaction fees
+     * @returns {Promise<bigint>} - The estimated transaction fees
      */
-    public estimateTransactionFees(): bigint {
+    public async estimateTransactionFees(): Promise<bigint> {
+        if (this.estimatedFees) return this.estimatedFees;
+
         const fakeTx = new Psbt({
             network: this.network,
         });
 
-        const builtTx = this.internalBuildTransaction(fakeTx);
+        const builtTx = await this.internalBuildTransaction(fakeTx);
         if (builtTx) {
             const tx = fakeTx.extractTransaction(false);
             const size = tx.virtualSize();
             const fee: number = this.feeRate * size + 1;
 
-            return BigInt(Math.ceil(fee) + 1);
+            this.estimatedFees = BigInt(Math.ceil(fee) + 1);
+
+            return this.estimatedFees;
         } else {
             throw new Error(
                 `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
@@ -326,13 +331,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
     }
 
-    public rebuildFromBase64(base64: string): Psbt {
+    public async rebuildFromBase64(base64: string): Promise<Psbt> {
         this.transaction = Psbt.fromBase64(base64, { network: this.network });
         this.signed = false;
 
         this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];
 
-        return this.signPSBT();
+        return await this.signPSBT();
     }
 
     public setPSBT(psbt: Psbt): void {
@@ -343,20 +348,20 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Adds the refund output to the transaction
      * @param {bigint} amountSpent - The amount spent
      * @protected
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    protected addRefundOutput(amountSpent: bigint): void {
+    protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         /** Add the refund output */
         const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
             if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
-                this.setFeeOutput({
+                await this.setFeeOutput({
                     value: Number(sendBackAmount),
                     address: this.from,
                     tapInternalKey: this.internalPubKeyToXOnly(),
                 });
             } else {
-                this.setFeeOutput({
+                await this.setFeeOutput({
                     value: Number(sendBackAmount),
                     address: this.from,
                 });
@@ -471,9 +476,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Builds the transaction.
      * @protected
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    protected abstract buildTransaction(): void;
+    protected abstract buildTransaction(): Promise<void>;
 
     /**
      * Add an input update
@@ -552,12 +557,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * Set transaction fee output.
      * @param {PsbtOutputExtended} output - The output to set the fees
      * @protected
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    protected setFeeOutput(output: PsbtOutputExtended): void {
+    protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
         const initialValue = output.value;
 
-        let fee = this.estimateTransactionFees();
+        let fee = await this.estimateTransactionFees();
         output.value = initialValue - Number(fee);
 
         if (output.value < TransactionBuilder.MINIMUM_DUST) {
@@ -565,16 +570,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             if (output.value < 0) {
                 throw new Error(
-                    `Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
                 );
             }
         } else {
             this.feeOutput = output;
 
-            let fee = this.estimateTransactionFees();
+            let fee = await this.estimateTransactionFees();
             if (fee > BigInt(initialValue)) {
                 throw new Error(
-                    `Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                    `estimateTransactionFees: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
                 );
             }
 
@@ -593,10 +598,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
      * @protected
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected internalBuildTransaction(transaction: Psbt): boolean {
+    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
@@ -612,7 +617,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         try {
-            this.signInputs(transaction);
+            await this.signInputs(transaction);
 
             if (this.finalized) {
                 this.transactionFee = BigInt(transaction.getFee());
