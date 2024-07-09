@@ -351,7 +351,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             this.estimatedFees = BigInt(Math.ceil(fee) + 1);
 
-            console.log(`Estimated fees: ${this.estimatedFees} sat (${fee} sat for ${size} bytes)`);
+            //console.log(`Estimated fees: ${this.estimatedFees} sat (${fee} sat for ${size} bytes)`);
 
             return this.estimatedFees;
         } else {
