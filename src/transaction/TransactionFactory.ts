@@ -61,7 +61,55 @@ export class TransactionFactory {
             throw new Error('Field "to" not provided.');
         }
 
-        const transaction: InteractionTransaction = new InteractionTransaction(
+        const preTransaction: InteractionTransaction = new InteractionTransaction({
+            ...interactionParameters,
+            utxos: [interactionParameters.utxos[0]], // we simulate one input here.
+        });
+
+        // we don't sign that transaction, we just need the parameters.
+
+        await preTransaction.generateTransactionMinimalSignatures();
+
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = interactionParameters.utxos;
+        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+
+        const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
+        if (!feeEstimationFundingTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
+
+        const signedTransaction = await this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        interactionParameters.utxos = this.getUTXOAsTransaction(
+            signedTransaction.tx,
+            interactionParameters.to,
+            0,
+        );
+
+        const newParams: IInteractionParameters = {
+            ...interactionParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+            estimatedFees: preTransaction.estimatedFees,
+        };
+
+        const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Transaction = await finalTransaction.signTransaction();
+
+        return [signedTransaction.tx.toHex(), outTx.toHex()];
+
+        /*const transaction: InteractionTransaction = new InteractionTransaction(
             interactionParameters,
         );
 
@@ -113,7 +161,76 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
 
-        return [signedTransaction.tx.toHex(), outTx.toHex()];
+        return [signedTransaction.tx.toHex(), outTx.toHex()];*/
+    }
+
+    /**
+     * @description Generates the required transactions.
+     * @returns {Promise<[string, string]>} - The signed transaction
+     */
+    public async signInteractionOld(
+        interactionParameters: IInteractionParameters,
+    ): Promise<[string, string]> {
+        if (!interactionParameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+
+        const transaction: InteractionTransaction = new InteractionTransaction(
+            interactionParameters,
+        );
+
+        await transaction.signTransaction();
+
+        // Initial generation
+        const estimatedGas = await transaction.estimateTransactionFees();
+        const fundingParameters: IFundingTransactionParameters = {
+            ...interactionParameters,
+            childTransactionRequiredValue: estimatedGas,
+        };
+
+        const preFundingTransaction = await this.createFundTransaction(fundingParameters);
+        interactionParameters.utxos = this.getUTXOAsTransaction(
+            preFundingTransaction.tx,
+            interactionParameters.to,
+            0,
+        );
+
+        const preTransaction: InteractionTransaction = new InteractionTransaction(
+            interactionParameters,
+        );
+
+        // Initial generation
+        await preTransaction.signTransaction();
+
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = fundingParameters.utxos;
+        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+        parameters.estimatedFees = preFundingTransaction.estimatedFees;
+
+        console.log('parameters', parameters);
+
+        const signedTransaction = await this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        /*const newParams: IInteractionParameters = {
+            ...interactionParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+            estimatedFees: preTransaction.estimatedFees,
+        };
+
+        const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Transaction = await finalTransaction.signTransaction();*/
+
+        return ['', ''];
+        //return [signedTransaction.tx.toHex(), outTx.toHex()];
     }
 
     /**

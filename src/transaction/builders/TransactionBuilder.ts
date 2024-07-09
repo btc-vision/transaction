@@ -182,9 +182,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
-        if (!this.transactionFee) {
-            this.transactionFee = await this.estimateTransactionFees();
-        }
+        //if (!this.transactionFee) {
+        //    this.transactionFee = await this.estimateTransactionFees();
+        //}
 
         return {
             utxos: this.utxos,
@@ -194,7 +194,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             feeRate: this.feeRate,
             priorityFee: this.priorityFee,
             from: this.from,
-            childTransactionRequiredValue: this.transactionFee,
+            childTransactionRequiredValue: this.estimatedFees,
         };
     }
 
@@ -243,6 +243,34 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         throw new Error('Could not sign transaction');
+    }
+
+    /**
+     * @description Generates the transaction minimal signatures
+     * @public
+     */
+    public async generateTransactionMinimalSignatures(): Promise<void> {
+        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
+        }
+
+        await this.buildTransaction();
+
+        if (this.transaction.data.inputs.length === 0) {
+            const inputs: PsbtInputExtended[] = this.getInputs();
+            const outputs: PsbtOutputExtended[] = this.getOutputs();
+
+            this.transaction.setMaximumFeeRate(this._maximumFeeRate);
+            this.transaction.addInputs(inputs);
+
+            for (let i = 0; i < this.updateInputs.length; i++) {
+                this.transaction.updateInput(i, this.updateInputs[i]);
+            }
+
+            this.transaction.addOutputs(outputs);
+        }
     }
 
     /**
@@ -317,11 +345,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         const builtTx = await this.internalBuildTransaction(fakeTx);
         if (builtTx) {
-            const tx = fakeTx.extractTransaction(false);
+            const tx = fakeTx.extractTransaction(false, true);
             const size = tx.virtualSize();
-            const fee: number = this.feeRate * size + 1;
+            const fee: number = this.feeRate * size;
 
             this.estimatedFees = BigInt(Math.ceil(fee) + 1);
+
+            console.log(`Estimated fees: ${this.estimatedFees} sat (${fee} sat for ${size} bytes)`);
 
             return this.estimatedFees;
         } else {

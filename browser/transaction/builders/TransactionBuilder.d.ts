@@ -35,6 +35,7 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     setDestinationAddress(address: Address): void;
     setMaximumFeeRate(feeRate: number): void;
     signTransaction(): Promise<Transaction>;
+    generateTransactionMinimalSignatures(): Promise<void>;
     signPSBT(): Promise<Psbt>;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;

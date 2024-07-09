@@ -19,6 +19,7 @@ export interface UnwrapResult {
 export declare class TransactionFactory {
     constructor();
     signInteraction(interactionParameters: IInteractionParameters): Promise<[string, string]>;
+    signInteractionOld(interactionParameters: IInteractionParameters): Promise<[string, string]>;
     signDeployment(deploymentParameters: IDeploymentParameters): Promise<DeploymentResult>;
     wrap(warpParameters: IWrapParameters): Promise<WrapResult>;
     unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
