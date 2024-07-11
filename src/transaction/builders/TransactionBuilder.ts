@@ -182,9 +182,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
-        //if (!this.transactionFee) {
-        //    this.transactionFee = await this.estimateTransactionFees();
-        //}
+        if (!this.estimatedFees) {
+            this.estimatedFees = await this.estimateTransactionFees();
+        }
 
         return {
             utxos: this.utxos,
