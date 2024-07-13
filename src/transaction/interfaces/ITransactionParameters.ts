@@ -17,7 +17,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {
-    childTransactionRequiredValue: bigint;
+    amount: bigint;
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {

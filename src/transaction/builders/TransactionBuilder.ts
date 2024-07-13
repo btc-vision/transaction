@@ -194,7 +194,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             feeRate: this.feeRate,
             priorityFee: this.priorityFee,
             from: this.from,
-            childTransactionRequiredValue: this.estimatedFees,
+            amount: this.estimatedFees,
         };
     }
 

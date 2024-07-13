@@ -74,7 +74,7 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = interactionParameters.utxos;
-        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+        parameters.amount = await preTransaction.estimateTransactionFees();
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -184,7 +184,7 @@ export class TransactionFactory {
         const to = wbtc.getAddress();
         const fundingParameters: IFundingTransactionParameters = {
             ...warpParameters,
-            childTransactionRequiredValue: childTransactionRequiredValue,
+            amount: childTransactionRequiredValue,
             to: to,
         };
 
@@ -200,7 +200,7 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         // We add the amount
-        parameters.childTransactionRequiredValue += childTransactionRequiredValue;
+        parameters.amount += childTransactionRequiredValue;
         parameters.utxos = fundingParameters.utxos;
 
         const signedTransaction = await this.createFundTransaction(parameters);
@@ -255,7 +255,7 @@ export class TransactionFactory {
 
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
-            childTransactionRequiredValue: estimatedGas + estimatedFees,
+            amount: estimatedGas + estimatedFees,
             to: to,
         };
 
@@ -274,8 +274,7 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.childTransactionRequiredValue =
-            (await preTransaction.estimateTransactionFees()) + estimatedFees;
+        parameters.amount = (await preTransaction.estimateTransactionFees()) + estimatedFees;
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
@@ -320,7 +319,7 @@ export class TransactionFactory {
         const estimatedGas = await transaction.estimateTransactionFees();
         const fundingParameters: IFundingTransactionParameters = {
             ...unwrapParameters,
-            childTransactionRequiredValue: estimatedGas,
+            amount: estimatedGas,
             to: to,
         };
 
@@ -339,7 +338,7 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.childTransactionRequiredValue = await preTransaction.estimateTransactionFees();
+        parameters.amount = await preTransaction.estimateTransactionFees();
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
@@ -364,6 +363,41 @@ export class TransactionFactory {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
             feeRefundOrLoss: finalTransaction.getFeeLossOrRefund(),
+        };
+    }
+
+    /**
+     * @description Creates a funding transaction.
+     * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
+     * @returns {Promise<{ estimatedFees: bigint; tx: string }>} - The signed transaction
+     */
+    public async createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
+        estimatedFees: bigint;
+        tx: string;
+    }> {
+        const resp = await this.createFundTransaction(parameters);
+
+        return {
+            estimatedFees: resp.estimatedFees,
+            tx: resp.tx.toHex(),
+        };
+    }
+
+    private async createFundTransaction(parameters: IFundingTransactionParameters): Promise<{
+        tx: Transaction;
+        original: FundingTransaction;
+        estimatedFees: bigint;
+    }> {
+        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
+        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        return {
+            tx: signedTransaction,
+            original: fundingTransaction,
+            estimatedFees: await fundingTransaction.estimateTransactionFees(),
         };
     }
 
@@ -420,23 +454,5 @@ export class TransactionFactory {
         };
 
         return [newUtxo];
-    }
-
-    private async createFundTransaction(parameters: IFundingTransactionParameters): Promise<{
-        tx: Transaction;
-        original: FundingTransaction;
-        estimatedFees: bigint;
-    }> {
-        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
-        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
-        if (!signedTransaction) {
-            throw new Error('Could not sign funding transaction.');
-        }
-
-        return {
-            tx: signedTransaction,
-            original: fundingTransaction,
-            estimatedFees: await fundingTransaction.estimateTransactionFees(),
-        };
     }
 }
