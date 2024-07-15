@@ -424,7 +424,6 @@ export abstract class TweakedTransaction extends Logger {
             try {
                 await this.signInput(transaction, input, i);
             } catch (e) {
-                console.log(e);
                 this.log(`Failed to sign input ${i}: ${(e as Error).stack}`);
             }
         }

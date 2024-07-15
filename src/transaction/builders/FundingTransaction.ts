@@ -11,7 +11,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
     constructor(parameters: IFundingTransactionParameters) {
         super(parameters);
 
-        this.childTransactionRequiredFees = parameters.childTransactionRequiredValue;
+        this.childTransactionRequiredFees = parameters.amount;
 
         this.internalInit();
     }
