@@ -1,4 +1,4 @@
-import { IDeploymentParameters, IInteractionParameters, IUnwrapParameters, IWrapParameters } from './interfaces/ITransactionParameters.js';
+import { IDeploymentParameters, IFundingTransactionParameters, IInteractionParameters, IUnwrapParameters, IWrapParameters } from './interfaces/ITransactionParameters.js';
 import { Address } from '@btc-vision/bsi-binary';
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -19,15 +19,18 @@ export interface UnwrapResult {
 export declare class TransactionFactory {
     constructor();
     signInteraction(interactionParameters: IInteractionParameters): Promise<[string, string]>;
-    signInteractionOld(interactionParameters: IInteractionParameters): Promise<[string, string]>;
     signDeployment(deploymentParameters: IDeploymentParameters): Promise<DeploymentResult>;
     wrap(warpParameters: IWrapParameters): Promise<WrapResult>;
     unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
     unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
+    createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
+        estimatedFees: bigint;
+        tx: string;
+    }>;
+    private createFundTransaction;
     private calculateNumSignatures;
     private calculateNumInputs;
     private maxPubKeySize;
     private writePSBTHeader;
     private getUTXOAsTransaction;
-    private createFundTransaction;
 }

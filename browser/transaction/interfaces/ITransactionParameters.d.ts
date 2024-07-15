@@ -14,7 +14,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     readonly priorityFee: bigint;
 }
 export interface IFundingTransactionParameters extends ITransactionParameters {
-    childTransactionRequiredValue: bigint;
+    amount: bigint;
 }
 export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer | undefined;
