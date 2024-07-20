@@ -101,7 +101,7 @@ export class EcKeyPair {
         if (!address) {
             throw new Error('Failed to generate address');
         }
-        
+
         return address;
     }
 

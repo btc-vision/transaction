@@ -42,7 +42,7 @@ export interface Unisat {
     sendBitcoin(
         toAddress: Address,
         satoshis: number,
-        options: { feeRate: number },
+        options: { feeRate: number; memo?: string; memos?: string[] },
     ): Promise<string>;
 
     requestAccounts(): Promise<string[]>;
