@@ -1,7 +1,7 @@
-import { createHash } from 'crypto';
 import { bech32 } from 'bech32';
 import { initEccLib, Network } from 'bitcoinjs-lib';
 import * as ecc from '@bitcoinerlab/secp256k1';
+import { ripemd160 } from 'bitcoinjs-lib/src/crypto';
 
 initEccLib(ecc);
 
@@ -10,13 +10,8 @@ export class AddressGenerator {
     public static generatePKSH(sha256Hash: Buffer, network: Network): string {
         if (sha256Hash.length !== 32) throw new Error('Invalid hash length');
 
-        const pkh = this.ripemd160(sha256Hash);
+        const pkh = ripemd160(sha256Hash);
         return this.toSegwitAddress(pkh, network);
-    }
-
-    // Compute the RIPEMD-160 hash of a buffer
-    private static ripemd160(data: Buffer): Buffer {
-        return createHash('ripemd160').update(data).digest();
     }
 
     // Convert a hash to a SegWit address
