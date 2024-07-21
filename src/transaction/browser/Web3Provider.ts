@@ -1,4 +1,5 @@
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 
 export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>; //| 'utxos'
 
@@ -30,5 +31,5 @@ export interface BroadcastedTransaction {
 export interface Web3Provider {
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
-    ): Promise<[BroadcastedTransaction, BroadcastedTransaction]>;
+    ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
 }

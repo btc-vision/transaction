@@ -114,7 +114,7 @@ export class TransactionFactory {
         return [
             signedTransaction.tx.toHex(),
             outTx.toHex(),
-            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 0), // always 0
+            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
         ];
     }
 
