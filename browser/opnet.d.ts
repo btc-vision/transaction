@@ -45,3 +45,4 @@ export * from './transaction/browser/BrowserSignerBase.js';
 export * from './transaction/browser/extensions/UnisatSigner.js';
 export * from './transaction/browser/types/Unisat.js';
 export * from './transaction/browser/Web3Provider.js';
+export * from './metadata/tokens.js';
