@@ -13,8 +13,8 @@ export declare class UnisatSigner extends CustomKeypair {
     constructor();
     private _p2tr;
     get p2tr(): Address;
-    private _p2pkh;
-    get p2pkh(): Address;
+    private _p2wpkh;
+    get p2wpkh(): Address;
     private _addresses;
     get addresses(): Address[];
     private _publicKey;

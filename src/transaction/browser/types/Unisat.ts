@@ -1,4 +1,5 @@
 import { Address } from '@btc-vision/bsi-binary';
+import { Web3Provider } from '../Web3Provider.js';
 
 export enum UnisatNetwork {
     testnet = 'testnet',
@@ -39,6 +40,8 @@ export interface PsbtSignatureOptions {
 }
 
 export interface Unisat {
+    web3?: Web3Provider;
+
     sendBitcoin(
         toAddress: Address,
         satoshis: number,
