@@ -6,7 +6,7 @@ export declare abstract class CustomKeypair implements Signer {
     abstract publicKey: Buffer;
     abstract addresses: Address[];
     abstract p2tr: Address;
-    abstract p2pkh: Address;
+    abstract p2wpkh: Address;
     protected constructor();
     abstract signTaprootInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
     abstract signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;

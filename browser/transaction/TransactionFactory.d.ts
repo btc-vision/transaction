@@ -1,4 +1,5 @@
 import { IDeploymentParameters, IFundingTransactionParameters, IInteractionParameters, IUnwrapParameters, IWrapParameters } from './interfaces/ITransactionParameters.js';
+import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { Address } from '@btc-vision/bsi-binary';
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -18,7 +19,7 @@ export interface UnwrapResult {
 }
 export declare class TransactionFactory {
     constructor();
-    signInteraction(interactionParameters: IInteractionParameters): Promise<[string, string]>;
+    signInteraction(interactionParameters: IInteractionParameters): Promise<[string, string, UTXO[]]>;
     signDeployment(deploymentParameters: IDeploymentParameters): Promise<DeploymentResult>;
     wrap(warpParameters: IWrapParameters): Promise<WrapResult>;
     unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;

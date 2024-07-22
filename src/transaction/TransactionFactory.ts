@@ -56,9 +56,13 @@ export class TransactionFactory {
      */
     public async signInteraction(
         interactionParameters: IInteractionParameters,
-    ): Promise<[string, string]> {
+    ): Promise<[string, string, UTXO[]]> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
+        }
+
+        if (!interactionParameters.from) {
+            throw new Error('Field "from" not provided.');
         }
 
         const preTransaction: InteractionTransaction = new InteractionTransaction({
@@ -107,7 +111,11 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
 
-        return [signedTransaction.tx.toHex(), outTx.toHex()];
+        return [
+            signedTransaction.tx.toHex(),
+            outTx.toHex(),
+            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
+        ];
     }
 
     /**

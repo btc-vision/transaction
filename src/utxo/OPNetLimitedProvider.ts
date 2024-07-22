@@ -165,7 +165,7 @@ export class OPNetLimitedProvider {
         try {
             const resp: Response = await fetch(url, params);
             if (!resp.ok) {
-                throw new Error(`Failed to fetch wrap parameters: ${resp.statusText}`);
+                throw new Error(`Failed to fetch to rpc: ${resp.statusText}`);
             }
 
             const fetchedData = await resp.json();
@@ -175,7 +175,7 @@ export class OPNetLimitedProvider {
 
             const result = fetchedData.result;
             if (!result) {
-                throw new Error('No wrap parameters found');
+                throw new Error('No rpc parameters found');
             }
 
             if ('error' in result) {

@@ -33,14 +33,14 @@ export class UnisatSigner extends CustomKeypair {
         return this._p2tr;
     }
 
-    private _p2pkh: Address | undefined;
+    private _p2wpkh: Address | undefined;
 
-    public get p2pkh(): Address {
-        if (!this._p2pkh) {
+    public get p2wpkh(): Address {
+        if (!this._p2wpkh) {
             throw new Error('P2PKH address not set');
         }
 
-        return this._p2pkh;
+        return this._p2wpkh;
     }
 
     private _addresses: Address[] | undefined;
@@ -104,11 +104,11 @@ export class UnisatSigner extends CustomKeypair {
         const publicKey = await this.unisat.getPublicKey();
         this._publicKey = Buffer.from(publicKey, 'hex');
 
-        this._p2pkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
 
         this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
 
-        this._addresses = [this._p2pkh, this._p2tr];
+        this._addresses = [this._p2wpkh, this._p2tr];
 
         this.isInitialized = true;
     }
