@@ -1,6 +1,7 @@
 import { Network, networks } from 'bitcoinjs-lib';
 import { ContractBaseMetadata } from '../ContractBaseMetadata.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { WBTC_ADDRESS_REGTEST } from '../tokens.js';
 
 /**
  * @description Wrapped Bitcoin (wBTC) contract metadata.
@@ -34,7 +35,7 @@ export class wBTC extends ContractBaseMetadata {
             case networks.bitcoin.bech32:
                 return 'unknown';
             case networks.regtest.bech32:
-                return 'bcrt1q99qtptumw027cw8w274tqzd564q66u537vn0lh';
+                return WBTC_ADDRESS_REGTEST;
             case networks.testnet.bech32:
                 return 'tb1qj58a6yf4pez426nqvf8wyu6ssggcajw8kr44vy';
             default:
