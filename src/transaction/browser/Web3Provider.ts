@@ -3,6 +3,11 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 
 export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>; //| 'utxos'
 
+export interface BroadcastTransactionOptions {
+    raw: string;
+    psbt: boolean;
+}
+
 export interface BroadcastedTransaction {
     /** Whether the transaction was successfully broadcasted. */
     readonly success: boolean;
@@ -32,4 +37,10 @@ export interface Web3Provider {
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
     ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
+
+    signAndBroadcastInteraction(
+        interactionParameters: InteractionParametersWithoutSigner,
+    ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
+
+    broadcast(transactions: BroadcastTransactionOptions[]): Promise<BroadcastedTransaction[]>;
 }
