@@ -36,7 +36,7 @@ export interface BroadcastedTransaction {
 export interface Web3Provider {
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
-    ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
+    ): Promise<[string, string, UTXO[]]>;
 
     signAndBroadcastInteraction(
         interactionParameters: InteractionParametersWithoutSigner,

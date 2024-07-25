@@ -13,7 +13,7 @@ export interface BroadcastedTransaction {
     readonly identifier: bigint | string;
 }
 export interface Web3Provider {
-    signInteraction(interactionParameters: InteractionParametersWithoutSigner): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
+    signInteraction(interactionParameters: InteractionParametersWithoutSigner): Promise<[string, string, UTXO[]]>;
     signAndBroadcastInteraction(interactionParameters: InteractionParametersWithoutSigner): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
     broadcast(transactions: BroadcastTransactionOptions[]): Promise<BroadcastedTransaction[]>;
 }
