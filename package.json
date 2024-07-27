@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.54",
+    "version": "1.0.55",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -107,6 +107,7 @@
         "gulp-logger": "^0.0.2",
         "gulp-typescript": "^6.0.0-alpha.1",
         "gulplog": "^2.2.0",
+        "process": "^0.11.10",
         "ts-loader": "^9.5.1",
         "ts-node": "^10.9.2"
     }
