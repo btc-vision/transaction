@@ -27,6 +27,7 @@ export interface IInteractionParameters extends SharedInteractionParameters {
 }
 export interface IWrapParameters extends SharedInteractionParameters {
     readonly to?: undefined;
+    readonly from: Address;
     readonly amount: bigint;
     readonly receiver?: Address;
     readonly generationParameters: WrappedGeneration;

@@ -25,6 +25,8 @@ export interface DeploymentResult {
 
     readonly contractAddress: Address;
     readonly p2trAddress: Address;
+
+    readonly utxos: UTXO[];
 }
 
 export interface WrapResult {
@@ -32,6 +34,7 @@ export interface WrapResult {
     readonly vaultAddress: Address;
     readonly amount: bigint;
     readonly receiverAddress: Address;
+    readonly utxos: UTXO[];
 }
 
 export interface UnwrapResult {
@@ -45,6 +48,8 @@ export interface UnwrapResult {
      * @type {bigint}
      */
     readonly feeRefundOrLoss: bigint;
+
+    readonly utxos: UTXO[];
 }
 
 export class TransactionFactory {
@@ -169,6 +174,10 @@ export class TransactionFactory {
             transaction: [signedTransaction.toHex(), outTx.toHex()],
             contractAddress: finalTransaction.contractAddress,
             p2trAddress: finalTransaction.p2trAddress,
+            utxos: [{
+                ...newUtxo,
+                outputIndex: 1, // always 1
+            }],
         };
     }
 
@@ -178,7 +187,7 @@ export class TransactionFactory {
      * @returns {Promise<WrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
-    public async wrap(warpParameters: IWrapParameters): Promise<WrapResult> {
+    public async wrap(warpParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult> {
         if (warpParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
                 `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${warpParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
@@ -232,6 +241,7 @@ export class TransactionFactory {
             vaultAddress: finalTransaction.vault,
             amount: finalTransaction.amount,
             receiverAddress: finalTransaction.receiver,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, warpParameters.from, 1),
         };
     }
 
@@ -307,6 +317,7 @@ export class TransactionFactory {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
             feeRefundOrLoss: estimatedFees,
+            utxos: []
         };
     }
 
@@ -317,6 +328,10 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      */
     public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+        if(!unwrapParameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+
         const transaction: UnwrapTransaction = new UnwrapTransaction(unwrapParameters);
         await transaction.signTransaction();
 
@@ -371,6 +386,7 @@ export class TransactionFactory {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
             feeRefundOrLoss: finalTransaction.getFeeLossOrRefund(),
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, unwrapParameters.from, 1),
         };
     }
 

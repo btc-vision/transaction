@@ -216,19 +216,21 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @protected
      */
     protected mergeVaults(): void {
-        const refund: bigint = this.getRefund();
         const totalInputAmount: bigint = this.getVaultTotalOutputAmount(this.vaultUTXOs);
-        const outputLeftAmount = totalInputAmount - refund - this.amount;
+
+        let refund: bigint = this.getRefund();
+        let outputLeftAmount = totalInputAmount - refund - this.amount;
+
+        if(outputLeftAmount === currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT) {
+            refund += currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+        } else if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+            throw new Error(`Output left amount is below the minimum amount: ${outputLeftAmount} below ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT}`);
+        }
 
         const outAmount: bigint = this.amount + refund - this.estimatedFeeLoss;
-
         const bestVault = BitcoinUtils.findVaultWithMostPublicKeys(this.vaultUTXOs);
         if (!bestVault) {
             throw new Error('No vaults provided');
-        }
-
-        if (outputLeftAmount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
-            throw new Error('Output left amount is below the minimum amount');
         }
 
         let hasConsolidation: boolean =
