@@ -170,14 +170,15 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
 
+        const out2: Output = signedTransaction.outs[1];
         const refundUTXO: UTXO = {
             transactionId: signedTransaction.getId(),
             outputIndex: 1, // always 1
             scriptPubKey: {
-                hex: out.script.toString('hex'),
+                hex: out2.script.toString('hex'),
                 address: deploymentParameters.from,
             },
-            value: BigInt(signedTransaction.outs[1].value),
+            value: BigInt(out2.value),
         };
 
         return {
