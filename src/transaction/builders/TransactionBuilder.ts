@@ -345,7 +345,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         const builtTx = await this.internalBuildTransaction(fakeTx);
         if (builtTx) {
-            const tx = fakeTx.extractTransaction(false, true);
+            const tx = fakeTx.extractTransaction(true, true);
             const size = tx.virtualSize();
             const fee: number = this.feeRate * size;
 
