@@ -8,8 +8,8 @@ export const MOTO_ADDRESS_REGTEST: Address = 'bcrt1q8reuxx9naek4mqesrfsgdpjv3q7a
 export const ROUTER_ADDRESS_REGTEST: Address = 'bcrt1qyx492l440f6cm5hdppw5pmkd2fc7k3qayuuvh6';
 
 // Addresses Testnet
-export const FACTORY_ADDRESS_TESTNET: Address = 'tb1qunf06kfl5uc3apzsxxn9d55790ahnekg8j4m9u';
+export const FACTORY_ADDRESS_TESTNET: Address = 'tb1qgev5kldhp5zvg6j8t9vl6x4phkrwn8nk9felxh';
 export const POOL_ADDRESS_TESTNET: Address = 'tb1q6a7yw353hjmresphupytw5vczpqxtg4yrupayk';
 export const WBTC_ADDRESS_TESTNET: Address = 'tb1q76ghqx24dpwqv4e9dsdhezxxjep52cjrsktafa';
 export const MOTO_ADDRESS_TESTNET: Address = 'tb1q4tyhf8hpu04qjj3qaag20knun0spctultxzakw';
-export const ROUTER_ADDRESS_TESTNET: Address = 'tb1qzyn09v5s5ujpm5zlcqqdz6wjc67qk9sv2wzka9';
+export const ROUTER_ADDRESS_TESTNET: Address = 'tb1qre7tlyrxrs3lht6ls6y2wezgq8hlmr78y2j9y2';
