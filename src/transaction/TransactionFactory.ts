@@ -406,12 +406,18 @@ export class TransactionFactory {
     public async createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
         estimatedFees: bigint;
         tx: string;
+        nextUTXOs: UTXO[];
     }> {
+        if(!parameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+
         const resp = await this.createFundTransaction(parameters);
 
         return {
             estimatedFees: resp.estimatedFees,
             tx: resp.tx.toHex(),
+            nextUTXOs: this.getUTXOAsTransaction(resp.tx, parameters.from, 1),
         };
     }
 
