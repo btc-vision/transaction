@@ -30,6 +30,7 @@ export declare class TransactionFactory {
     createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
         estimatedFees: bigint;
         tx: string;
+        nextUTXOs: UTXO[];
     }>;
     private createFundTransaction;
     private calculateNumSignatures;
