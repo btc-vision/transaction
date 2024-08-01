@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.62",
+    "version": "1.0.64",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
