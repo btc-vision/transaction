@@ -10,6 +10,6 @@ export const ROUTER_ADDRESS_REGTEST: Address = 'bcrt1qyx492l440f6cm5hdppw5pmkd2f
 // Addresses Testnet
 export const FACTORY_ADDRESS_TESTNET: Address = 'tb1qgev5kldhp5zvg6j8t9vl6x4phkrwn8nk9felxh';
 export const POOL_ADDRESS_TESTNET: Address = 'tb1q6a7yw353hjmresphupytw5vczpqxtg4yrupayk';
-export const WBTC_ADDRESS_TESTNET: Address = 'tb1q6v6kqjsm7e0whyu2ulx5w6vtp8heyvhgsvfd0w';
+export const WBTC_ADDRESS_TESTNET: Address = 'tb1qn77ktzzdyd7rdylxngdsy8uq2xkwdfp6xgj9jh';
 export const MOTO_ADDRESS_TESTNET: Address = 'tb1q4tyhf8hpu04qjj3qaag20knun0spctultxzakw';
 export const ROUTER_ADDRESS_TESTNET: Address = 'tb1qre7tlyrxrs3lht6ls6y2wezgq8hlmr78y2j9y2';
