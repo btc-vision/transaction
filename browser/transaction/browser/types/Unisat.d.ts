@@ -5,6 +5,17 @@ export declare enum UnisatNetwork {
     mainnet = "livenet",
     regtest = "regtest"
 }
+export declare enum UnisatChainType {
+    BITCOIN_MAINNET = "BITCOIN_MAINNET",
+    BITCOIN_TESTNET = "BITCOIN_TESTNET",
+    FRACTAL_BITCOIN_MAINNET = "FRACTAL_BITCOIN_MAINNET",
+    BITCOIN_REGTEST = "BITCOIN_REGTEST"
+}
+export interface UnisatChainInfo {
+    readonly enum: UnisatChainType;
+    readonly name: string;
+    readonly network: UnisatNetwork;
+}
 export interface Balance {
     readonly confirmed: number;
     readonly unconfirmed: number;
@@ -52,6 +63,7 @@ export interface Unisat {
     pushPsbt(psbtHex: string): Promise<string>;
     on(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
     on(event: 'networkChanged', listener: (network: UnisatNetwork) => void): void;
+    on(event: 'chainChanged', listener: (network: UnisatNetwork) => void): void;
     removeListener(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
     removeListener(event: 'networkChanged', listener: (network: UnisatNetwork) => void): void;
 }
