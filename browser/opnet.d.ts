@@ -26,6 +26,7 @@ export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './wbtc/WrappedGenerationParameters.js';
 export * from './wbtc/Generate.js';
+export * from './network/ChainId.js';
 export * from './utils/BitcoinUtils.js';
 export * from './utxo/interfaces/IUTXO.js';
 export * from './utxo/OPNetLimitedProvider.js';
