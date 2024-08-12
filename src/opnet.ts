@@ -46,6 +46,7 @@ export * from './transaction/builders/DeploymentTransaction.js';
 /** wBTC */
 export * from './wbtc/WrappedGenerationParameters.js';
 export * from './wbtc/Generate.js';
+export * from './network/ChainId.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';
