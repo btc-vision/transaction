@@ -11,7 +11,7 @@ export enum UnisatChainType {
     BITCOIN_MAINNET = 'BITCOIN_MAINNET',
     BITCOIN_TESTNET = 'BITCOIN_TESTNET',
     FRACTAL_BITCOIN_MAINNET = 'FRACTAL_BITCOIN_MAINNET',
-    BITCOIN_REGTEST = 'BITCOIN_REGTEST'
+    BITCOIN_REGTEST = 'BITCOIN_REGTEST',
 }
 
 export interface UnisatChainInfo {
@@ -64,6 +64,8 @@ export interface Unisat {
     requestAccounts(): Promise<string[]>;
 
     getNetwork(): Promise<UnisatNetwork>;
+
+    getChain(): Promise<UnisatChainType>;
 
     getAccounts(): Promise<string[]>;
 

@@ -50,6 +50,7 @@ export interface Unisat {
     }): Promise<string>;
     requestAccounts(): Promise<string[]>;
     getNetwork(): Promise<UnisatNetwork>;
+    getChain(): Promise<UnisatChainType>;
     getAccounts(): Promise<string[]>;
     switchNetwork(network: UnisatNetwork): Promise<void>;
     getPublicKey(): Promise<string>;
