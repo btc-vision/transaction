@@ -1,114 +1,114 @@
 {
-    "type": "module",
-    "version": "1.0.75",
-    "author": "BlobMaster41",
-    "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
-    "engines": {
-        "node": ">=16.0.0"
-    },
-    "exports": {
-        "node": {
-            "import": "./build/index.js",
-            "require": "./cjs/index.js",
-            "types": "./build/index.d.ts"
-        },
-        "browser": {
-            "import": "./browser/index.js",
-            "require": "./browser/index.js",
-            "types": "./browser/index.d.ts"
-        }
+  "type": "module",
+  "version": "1.0.77",
+  "author": "BlobMaster41",
+  "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "exports": {
+    "node": {
+      "import": "./build/index.js",
+      "require": "./cjs/index.js",
+      "types": "./build/index.d.ts"
     },
     "browser": {
-        "Buffer": "buffer",
-        "crypto": "./src/crypto/crypto-browser.js",
-        "stream": "stream-browserify",
-        "zlib": "browserify-zlib"
-    },
-    "homepage": "https://opnet.org",
-    "keywords": [
-        "opnet",
-        "bsi",
-        "bsi-binary",
-        "bsi-bitcoin-rpc",
-        "bitcoin transaction",
-        "transaction builder",
-        "transaction signer",
-        "bitcoin",
-        "btc",
-        "bitcoin smart contracts",
-        "smart inscriptions",
-        "ordinals"
-    ],
-    "license": "LICENSE.MD",
-    "main": "build/index.js",
-    "types": "build/index.d.ts",
-    "typings": "build/index.d.ts",
-    "module": "build/index.js",
-    "name": "@btc-vision/transaction",
-    "publishConfig": {
-        "access": "public",
-        "tag": "latest"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/btc-vision/transaction.git"
-    },
-    "scripts": {
-        "watch": "gulp watch",
-        "build": "gulp && gulp cjs",
-        "setup": "npm npm i && npm run build",
-        "browserBuild": "webpack --mode production",
-        "cjs": "gulp cjs",
-        "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
-        "postinstall": "gulp && gulp cjs"
-    },
-    "devDependencies": {
-        "@babel/plugin-proposal-class-properties": "^7.18.6",
-        "@babel/plugin-transform-runtime": "^7.24.3",
-        "@babel/preset-env": "^7.24.5",
-        "@babel/preset-flow": "^7.24.1",
-        "@babel/preset-react": "^7.24.1",
-        "@babel/preset-typescript": "^7.24.1",
-        "@types/node": "^20.11.30",
-        "eslint": "^8.57.0",
-        "https-browserify": "^1.0.0",
-        "os-browserify": "^0.3.0",
-        "prettier": "^3.3.1",
-        "stream-browserify": "^3.0.0",
-        "stream-http": "^3.2.0",
-        "typedoc": "^0.25.13",
-        "typedoc-material-theme": "^1.0.2",
-        "typescript": "^5.4.5",
-        "typescript-eslint": "^7.4.0",
-        "webpack": "^5.91.0",
-        "webpack-cli": "^5.1.4"
-    },
-    "dependencies": {
-        "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
-        "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bsi-binary": "^1.0.37",
-        "@btc-vision/bsi-bitcoin-rpc": "^1.0.22",
-        "@btc-vision/bsi-common": "^1.0.16",
-        "@btc-vision/logger": "^1.0.2",
-        "assert": "^2.1.0",
-        "babel-loader": "^9.1.3",
-        "babel-plugin-transform-import-meta": "^2.2.1",
-        "babel-preset-react": "^6.24.1",
-        "babelify": "^10.0.0",
-        "bech32": "^2.0.0",
-        "bignumber.js": "^9.1.2",
-        "bip32": "^4.0.0",
-        "bitcoinjs-lib": "github:btc-vision/bitcoinjs-lib",
-        "browserify-zlib": "^0.2.0",
-        "buffer": "^6.0.3",
-        "ecpair": "^2.1.0",
-        "gulp": "^4.0.2",
-        "gulp-cached": "^1.1.1",
-        "gulp-logger": "^0.0.2",
-        "gulp-typescript": "^6.0.0-alpha.1",
-        "gulplog": "^2.2.0",
-        "process": "^0.11.10",
-        "ts-loader": "^9.5.1",
-        "ts-node": "^10.9.2"
+      "import": "./browser/index.js",
+      "require": "./browser/index.js",
+      "types": "./browser/index.d.ts"
     }
+  },
+  "browser": {
+    "Buffer": "buffer",
+    "crypto": "./src/crypto/crypto-browser.js",
+    "stream": "stream-browserify",
+    "zlib": "browserify-zlib"
+  },
+  "homepage": "https://opnet.org",
+  "keywords": [
+    "opnet",
+    "bsi",
+    "bsi-binary",
+    "bsi-bitcoin-rpc",
+    "bitcoin transaction",
+    "transaction builder",
+    "transaction signer",
+    "bitcoin",
+    "btc",
+    "bitcoin smart contracts",
+    "smart inscriptions",
+    "ordinals"
+  ],
+  "license": "LICENSE.MD",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "typings": "build/index.d.ts",
+  "module": "build/index.js",
+  "name": "@btc-vision/transaction",
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/btc-vision/transaction.git"
+  },
+  "scripts": {
+    "watch": "gulp watch",
+    "build": "gulp && gulp cjs",
+    "setup": "npm npm i && npm run build",
+    "browserBuild": "webpack --mode production",
+    "cjs": "gulp cjs",
+    "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
+    "postinstall": "gulp && gulp cjs"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-transform-runtime": "^7.24.3",
+    "@babel/preset-env": "^7.24.5",
+    "@babel/preset-flow": "^7.24.1",
+    "@babel/preset-react": "^7.24.1",
+    "@babel/preset-typescript": "^7.24.1",
+    "@types/node": "^20.11.30",
+    "eslint": "^8.57.0",
+    "https-browserify": "^1.0.0",
+    "os-browserify": "^0.3.0",
+    "prettier": "^3.3.1",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "typedoc": "^0.25.13",
+    "typedoc-material-theme": "^1.0.2",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.4.0",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
+    "@bitcoinerlab/secp256k1": "^1.1.1",
+    "@btc-vision/bsi-binary": "^1.0.37",
+    "@btc-vision/bsi-bitcoin-rpc": "^1.0.22",
+    "@btc-vision/bsi-common": "^1.0.16",
+    "@btc-vision/logger": "^1.0.2",
+    "assert": "^2.1.0",
+    "babel-loader": "^9.1.3",
+    "babel-plugin-transform-import-meta": "^2.2.1",
+    "babel-preset-react": "^6.24.1",
+    "babelify": "^10.0.0",
+    "bech32": "^2.0.0",
+    "bignumber.js": "^9.1.2",
+    "bip32": "^4.0.0",
+    "bitcoinjs-lib": "github:btc-vision/bitcoinjs-lib",
+    "browserify-zlib": "^0.2.0",
+    "buffer": "^6.0.3",
+    "ecpair": "^2.1.0",
+    "gulp": "^4.0.2",
+    "gulp-cached": "^1.1.1",
+    "gulp-logger": "^0.0.2",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "gulplog": "^2.2.0",
+    "process": "^0.11.10",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2"
+  }
 }
