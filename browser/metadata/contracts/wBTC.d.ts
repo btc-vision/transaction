@@ -9,6 +9,6 @@ export declare class wBTC extends ContractBaseMetadata {
     readonly decimals: number;
     protected readonly address: Address;
     constructor(network?: Network, chainId?: ChainId);
-    private static getWBTCAddressForChain;
     static getAddress(network?: Network, chainId?: ChainId): Address;
+    private static getWBTCAddressForChain;
 }

@@ -205,12 +205,12 @@ export class TransactionFactory {
         const childTransactionRequiredValue: bigint =
             warpParameters.amount + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
 
-        const wbtc: wBTC = new wBTC(warpParameters.network);
+        const wbtc: wBTC = new wBTC(warpParameters.network, warpParameters.chainId);
         const to = wbtc.getAddress();
         const fundingParameters: IFundingTransactionParameters = {
             ...warpParameters,
             amount: childTransactionRequiredValue,
-            to: to,
+            to: warpParameters.to ?? to,
         };
 
         const preFundingTransaction = await this.createFundTransaction(fundingParameters);
@@ -325,7 +325,7 @@ export class TransactionFactory {
             fundingTransaction: signedTransaction.tx.toHex(),
             psbt: psbt,
             feeRefundOrLoss: estimatedFees,
-            utxos: []
+            utxos: [],
         };
     }
 
@@ -336,7 +336,7 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      */
     public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
-        if(!unwrapParameters.from) {
+        if (!unwrapParameters.from) {
             throw new Error('Field "from" not provided.');
         }
 
@@ -408,7 +408,7 @@ export class TransactionFactory {
         tx: string;
         nextUTXOs: UTXO[];
     }> {
-        if(!parameters.from) {
+        if (!parameters.from) {
             throw new Error('Field "from" not provided.');
         }
 

@@ -4,12 +4,14 @@ import { Address } from '@btc-vision/bsi-binary';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
+import { ChainId } from '../../network/ChainId.js';
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
     readonly to?: Address | undefined;
     utxos: UTXO[];
     nonWitnessUtxo?: Buffer | undefined;
     estimatedFees?: bigint;
+    chainId?: ChainId;
     readonly feeRate: number;
     readonly priorityFee: bigint;
 }
@@ -26,7 +28,7 @@ export interface IInteractionParameters extends SharedInteractionParameters {
     readonly to: Address;
 }
 export interface IWrapParameters extends SharedInteractionParameters {
-    readonly to?: undefined;
+    readonly to?: Address;
     readonly from: Address;
     readonly amount: bigint;
     readonly receiver?: Address;
