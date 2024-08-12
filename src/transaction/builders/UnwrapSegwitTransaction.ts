@@ -80,7 +80,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
 
         super(parameters);
 
-        this.wbtc = new wBTC(parameters.network);
+        this.wbtc = new wBTC(parameters.network, parameters.chainId);
         this.to = this.wbtc.getAddress();
 
         this.vaultUTXOs = parameters.unwrapUTXOs;

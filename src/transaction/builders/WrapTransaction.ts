@@ -108,7 +108,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
 
         super(parameters);
 
-        this.wbtc = new wBTC(parameters.network);
+        this.wbtc = new wBTC(parameters.network, parameters.chainId);
         this.vault = parameters.generationParameters.vault;
 
         this.to = this.wbtc.getAddress();
