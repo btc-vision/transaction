@@ -29,7 +29,7 @@ export class OPNetLimitedProvider {
             },
         };
 
-        const url: string = `${this.opnetAPIUrl}/api/v1/${this.utxoPath}?address=${settings.address}&optimized=${settings.optimized ?? false}`;
+        const url: string = `${this.opnetAPIUrl}/api/v1/${this.utxoPath}?address=${settings.address}&optimize=${settings.optimized ?? false}`;
         const resp: Response = await fetch(url, params);
 
         if (!resp.ok) {
