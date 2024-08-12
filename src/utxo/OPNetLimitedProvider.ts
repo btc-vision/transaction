@@ -29,7 +29,7 @@ export class OPNetLimitedProvider {
             },
         };
 
-        const url: string = `${this.opnetAPIUrl}/api/v1/${this.utxoPath}?address=${settings.address}`;
+        const url: string = `${this.opnetAPIUrl}/api/v1/${this.utxoPath}?address=${settings.address}&optimized=${settings.optimized ?? false}`;
         const resp: Response = await fetch(url, params);
 
         if (!resp.ok) {
@@ -94,7 +94,7 @@ export class OPNetLimitedProvider {
                 optimized: settings.optimized,
             };
 
-            const promise = this.fetchUTXO(params).catch((e) => {
+            const promise = this.fetchUTXO(params).catch(() => {
                 return [];
             });
 
