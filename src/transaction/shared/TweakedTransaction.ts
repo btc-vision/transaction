@@ -8,10 +8,12 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
+import { ChainId } from '../../network/ChainId.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer;
     readonly network: Network;
+    readonly chainId?: ChainId;
     readonly nonWitnessUtxo?: Buffer;
 }
 

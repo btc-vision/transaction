@@ -25,10 +25,26 @@ export class wBTC extends ContractBaseMetadata {
 
     protected readonly address: Address;
 
-    constructor(protected network: Network = networks.bitcoin, chainId: ChainId = ChainId.Bitcoin) {
+    constructor(
+        protected network: Network = networks.bitcoin,
+        chainId: ChainId = ChainId.Bitcoin,
+    ) {
         super(network);
 
         this.address = wBTC.getAddress(network, chainId);
+    }
+
+    public static getAddress(network: Network = networks.bitcoin, chainId?: ChainId): Address {
+        switch (network.bech32) {
+            case networks.bitcoin.bech32:
+                return this.getWBTCAddressForChain(chainId ?? ChainId.Bitcoin);
+            case networks.regtest.bech32:
+                return WBTC_ADDRESS_REGTEST;
+            case networks.testnet.bech32:
+                return WBTC_ADDRESS_TESTNET;
+            default:
+                throw new Error(`Invalid network: ${network}`);
+        }
     }
 
     private static getWBTCAddressForChain(chainId: ChainId): Address {
@@ -39,20 +55,6 @@ export class wBTC extends ContractBaseMetadata {
                 return WBTC_ADDRESS_FRACTAL;
             default:
                 throw new Error(`Invalid chainId: ${chainId}`);
-        }
-    }
-
-    public static getAddress(network: Network = networks.bitcoin, chainId?: ChainId): Address {
-        switch (network.bech32) {
-            case networks.bitcoin.bech32:
-                if(chainId) return this.getWBTCAddressForChain(chainId);
-                return 'unknown';
-            case networks.regtest.bech32:
-                return WBTC_ADDRESS_REGTEST;
-            case networks.testnet.bech32:
-                return WBTC_ADDRESS_TESTNET;
-            default:
-                throw new Error(`Invalid network: ${network}`);
         }
     }
 }

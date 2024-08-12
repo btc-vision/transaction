@@ -4,9 +4,11 @@ import { Network, Payment, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
+import { ChainId } from '../../network/ChainId.js';
 export interface ITweakedTransactionData {
     readonly signer: Signer;
     readonly network: Network;
+    readonly chainId?: ChainId;
     readonly nonWitnessUtxo?: Buffer;
 }
 export declare enum TransactionSequence {
