@@ -16,11 +16,11 @@ export const MOTO_ADDRESS_TESTNET: Address = 'tb1q4tyhf8hpu04qjj3qaag20knun0spct
 export const ROUTER_ADDRESS_TESTNET: Address = 'tb1qnh9mj95nnej25dwhjvvsppwmdm0myhxv7tllgt';
 
 // Addresses Fractal
-export const FACTORY_ADDRESS_FRACTAL: Address = 'bc1q4h9l3ul7d06sne768y5r8jv9qvmx3jrzvdjpj5';
-export const POOL_ADDRESS_FRACTAL: Address = 'bc1q3x6pfdvz647t7rq5zdzsy62qw5cgld092sfxsy';
-export const WBTC_ADDRESS_FRACTAL: Address = 'bc1qeras4z6y2nx5ugqckx90wxdd02uyh8mdqptfhs';
-export const MOTO_ADDRESS_FRACTAL: Address = 'bc1q7xnvxz7tjxdhhp7wj2dp2qm5m9sz8mveueq649';
-export const ROUTER_ADDRESS_FRACTAL: Address = 'bc1qc8ysj702pktdc8rlxjxn3kslqnk3g7mavaa0ef';
+export const FACTORY_ADDRESS_FRACTAL: Address = 'bc1qr4g85824m58wu0zffjtnf56n425fp0e8azhc7q';
+export const POOL_ADDRESS_FRACTAL: Address = 'bc1qv55cht4zzlt29ea7vdgwsedsn63a2sxtkgpv6h';
+export const WBTC_ADDRESS_FRACTAL: Address = 'bc1qdtzlucslvrvu4useyh9r69supqrw3w4xn9t4yv';
+export const MOTO_ADDRESS_FRACTAL: Address = 'bc1qfzq6w5uvgg5489egv0lj4shlqx4dagqt0ewdnu';
+export const ROUTER_ADDRESS_FRACTAL: Address = 'bc1q9w2zvmkzlezt2fu34u57y9vuw6rll5sp2090kn';
 
 export enum OPNetNetwork {
     Mainnet = 'mainnet',
