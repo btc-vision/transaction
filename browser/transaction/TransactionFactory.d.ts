@@ -1,6 +1,10 @@
+import { Transaction } from 'bitcoinjs-lib';
 import { IDeploymentParameters, IFundingTransactionParameters, IInteractionParameters, IUnwrapParameters, IWrapParameters } from './interfaces/ITransactionParameters.js';
+import { FundingTransaction } from './builders/FundingTransaction.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { TransactionBuilder } from './builders/TransactionBuilder.js';
+import { TransactionType } from './enums/TransactionType.js';
 export interface DeploymentResult {
     readonly transaction: [string, string];
     readonly contractAddress: Address;
@@ -13,6 +17,18 @@ export interface WrapResult {
     readonly amount: bigint;
     readonly receiverAddress: Address;
     readonly utxos: UTXO[];
+}
+export interface FundingTransactionResponse {
+    readonly tx: Transaction;
+    readonly original: FundingTransaction;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
+}
+export interface BitcoinTransferResponse {
+    readonly tx: string;
+    readonly original: FundingTransaction;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
 }
 export interface UnwrapResult {
     readonly fundingTransaction: string;
@@ -27,11 +43,8 @@ export declare class TransactionFactory {
     wrap(warpParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult>;
     unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
     unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
-    createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
-        estimatedFees: bigint;
-        tx: string;
-        nextUTXOs: UTXO[];
-    }>;
+    createBTCTransfer(parameters: IFundingTransactionParameters): Promise<BitcoinTransferResponse>;
+    getAllNewUTXOs(original: TransactionBuilder<TransactionType>, tx: Transaction, to: Address): UTXO[];
     private createFundTransaction;
     private calculateNumSignatures;
     private calculateNumInputs;

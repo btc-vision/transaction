@@ -6,12 +6,14 @@ import { TransactionBuilder } from './TransactionBuilder.js';
 export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDING> {
     public readonly type: TransactionType.FUNDING = TransactionType.FUNDING;
 
-    protected childTransactionRequiredFees: bigint;
+    protected amount: bigint;
+    protected splitInputsInto: number;
 
     constructor(parameters: IFundingTransactionParameters) {
         super(parameters);
 
-        this.childTransactionRequiredFees = parameters.amount;
+        this.amount = parameters.amount;
+        this.splitInputsInto = parameters.splitInputsInto ?? 1;
 
         this.internalInit();
     }
@@ -23,15 +25,40 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.addInputsFromUTXO();
 
-        const amountSpent: bigint =
-            this.getTransactionOPNetFee() + this.childTransactionRequiredFees;
+        let amountSpent: bigint = this.amount;
+        if (this.getTransactionOPNetFee() === TransactionBuilder.MINIMUM_DUST) {
+            if (amountSpent < TransactionBuilder.MINIMUM_DUST) {
+                amountSpent += TransactionBuilder.MINIMUM_DUST;
+            }
+        } else {
+            amountSpent += this.getTransactionOPNetFee();
+        }
 
-        this.addOutput({
-            value: Number(amountSpent),
-            address: this.to,
-        });
+        if (this.splitInputsInto > 1) {
+            await this.splitInputs(amountSpent);
+        } else {
+            this.addOutput({
+                value: Number(amountSpent),
+                address: this.to,
+            });
+        }
 
         await this.addRefundOutput(amountSpent);
+    }
+
+    protected async splitInputs(amountSpent: bigint): Promise<void> {
+        if (!this.to) {
+            throw new Error('Recipient address is required');
+        }
+
+        const splitAmount = amountSpent / BigInt(this.splitInputsInto);
+
+        for (let i = 0; i < this.splitInputsInto; i++) {
+            this.addOutput({
+                value: Number(splitAmount),
+                address: this.to,
+            });
+        }
     }
 
     protected override getSignerKey(): Signer {

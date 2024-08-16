@@ -162,30 +162,30 @@ export class OPNetLimitedProvider {
 
         const url: string = `${this.opnetAPIUrl}/api/v1/${this.rpc}`;
 
-        try {
-            const resp: Response = await fetch(url, params);
-            if (!resp.ok) {
-                throw new Error(`Failed to fetch to rpc: ${resp.statusText}`);
-            }
-
-            const fetchedData = await resp.json();
-            if (!fetchedData) {
-                throw new Error('No data fetched');
-            }
-
-            const result = fetchedData.result;
-            if (!result) {
-                throw new Error('No rpc parameters found');
-            }
-
-            if ('error' in result) {
-                throw new Error(`Error in fetching to rpc ${result.error}`);
-            }
-
-            return result;
-        } catch (e) {
-            console.error(`Failed to fetch wrap parameters: ${(e as Error).stack}`);
+        //try {
+        const resp: Response = await fetch(url, params);
+        if (!resp.ok) {
+            throw new Error(`Failed to fetch to rpc: ${resp.statusText}`);
         }
+
+        const fetchedData = await resp.json();
+        if (!fetchedData) {
+            throw new Error('No data fetched');
+        }
+
+        const result = fetchedData.result;
+        if (!result) {
+            throw new Error('No rpc parameters found');
+        }
+
+        if ('error' in result) {
+            throw new Error(`Error in fetching to rpc ${result.error}`);
+        }
+
+        return result;
+        //} catch (e) {
+        //    throw e;
+        //}
     }
 
     /**

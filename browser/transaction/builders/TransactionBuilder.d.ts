@@ -44,6 +44,8 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     estimateTransactionFees(): Promise<bigint>;
     rebuildFromBase64(base64: string): Promise<Psbt>;
     setPSBT(psbt: Psbt): void;
+    getInputs(): PsbtInputExtended[];
+    getOutputs(): PsbtOutputExtended[];
     protected addRefundOutput(amountSpent: bigint): Promise<void>;
     protected addValueToToOutput(value: number | bigint): void;
     protected getTransactionOPNetFee(): bigint;
@@ -55,8 +57,6 @@ export declare abstract class TransactionBuilder<T extends TransactionType> exte
     protected updateInput(input: UpdateInput): void;
     protected getWitness(): Buffer;
     protected getTapOutput(): Buffer;
-    protected getInputs(): PsbtInputExtended[];
-    protected getOutputs(): PsbtOutputExtended[];
     protected verifyUTXOValidity(): void;
     protected setFeeOutput(output: PsbtOutputExtended): Promise<void>;
     protected internalBuildTransaction(transaction: Psbt): Promise<boolean>;
