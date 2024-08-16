@@ -19,6 +19,8 @@ import { VaultUTXOs } from './processor/PsbtTransaction.js';
 import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
 import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
 import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
+import { TransactionBuilder } from './builders/TransactionBuilder.js';
+import { TransactionType } from './enums/TransactionType.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -35,6 +37,20 @@ export interface WrapResult {
     readonly amount: bigint;
     readonly receiverAddress: Address;
     readonly utxos: UTXO[];
+}
+
+export interface FundingTransactionResponse {
+    readonly tx: Transaction;
+    readonly original: FundingTransaction;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
+}
+
+export interface BitcoinTransferResponse {
+    readonly tx: string;
+    readonly original: FundingTransaction;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
 }
 
 export interface UnwrapResult {
@@ -403,11 +419,9 @@ export class TransactionFactory {
      * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
      * @returns {Promise<{ estimatedFees: bigint; tx: string }>} - The signed transaction
      */
-    public async createBTCTransfer(parameters: IFundingTransactionParameters): Promise<{
-        estimatedFees: bigint;
-        tx: string;
-        nextUTXOs: UTXO[];
-    }> {
+    public async createBTCTransfer(
+        parameters: IFundingTransactionParameters,
+    ): Promise<BitcoinTransferResponse> {
         if (!parameters.from) {
             throw new Error('Field "from" not provided.');
         }
@@ -416,16 +430,45 @@ export class TransactionFactory {
 
         return {
             estimatedFees: resp.estimatedFees,
+            original: resp.original,
             tx: resp.tx.toHex(),
-            nextUTXOs: this.getUTXOAsTransaction(resp.tx, parameters.from, 1),
+            nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
         };
     }
 
-    private async createFundTransaction(parameters: IFundingTransactionParameters): Promise<{
-        tx: Transaction;
-        original: FundingTransaction;
-        estimatedFees: bigint;
-    }> {
+    /**
+     * Get all new UTXOs of a generated transaction.
+     * @param {TransactionBuilder<TransactionType>} original - The original transaction
+     * @param {Transaction} tx - The transaction
+     * @param {Address} to - The address to filter
+     */
+    public getAllNewUTXOs(
+        original: TransactionBuilder<TransactionType>,
+        tx: Transaction,
+        to: Address,
+    ): UTXO[] {
+        const outputs = original.getOutputs();
+
+        const utxos: UTXO[] = [];
+        for (let i = 0; i < tx.outs.length; i++) {
+            const output = outputs[i];
+            if ('address' in output) {
+                if (output.address !== to) continue;
+            } else {
+                continue;
+            }
+
+            utxos.push(...this.getUTXOAsTransaction(tx, to, i));
+        }
+
+        return utxos;
+    }
+
+    private async createFundTransaction(
+        parameters: IFundingTransactionParameters,
+    ): Promise<FundingTransactionResponse> {
+        if (!parameters.to) throw new Error('Field "to" not provided.');
+
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
@@ -435,7 +478,8 @@ export class TransactionFactory {
         return {
             tx: signedTransaction,
             original: fundingTransaction,
-            estimatedFees: await fundingTransaction.estimateTransactionFees(),
+            estimatedFees: fundingTransaction.estimatedFees,
+            nextUTXOs: this.getUTXOAsTransaction(signedTransaction, parameters.to, 0),
         };
     }
 
@@ -480,6 +524,8 @@ export class TransactionFactory {
     }
 
     private getUTXOAsTransaction(tx: Transaction, to: Address, index: number): UTXO[] {
+        if (!tx.outs[index]) return [];
+
         const out: Output = tx.outs[index];
         const newUtxo: UTXO = {
             transactionId: tx.getId(),

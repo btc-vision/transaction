@@ -4,8 +4,10 @@ import { Signer } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 export declare class FundingTransaction extends TransactionBuilder<TransactionType.FUNDING> {
     readonly type: TransactionType.FUNDING;
-    protected childTransactionRequiredFees: bigint;
+    protected amount: bigint;
+    protected splitInputsInto: number;
     constructor(parameters: IFundingTransactionParameters);
     protected buildTransaction(): Promise<void>;
+    protected splitInputs(amountSpent: bigint): Promise<void>;
     protected getSignerKey(): Signer;
 }

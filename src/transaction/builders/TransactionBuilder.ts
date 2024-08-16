@@ -115,9 +115,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.signer = parameters.signer;
         this.network = parameters.network;
         this.feeRate = parameters.feeRate;
-        this.priorityFee = parameters.priorityFee;
+        this.priorityFee = parameters.priorityFee ?? 0n;
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
+
+        if (!this.utxos.length) {
+            throw new Error('No UTXOs specified');
+        }
 
         this.from = TransactionBuilder.getFrom(
             parameters.from,
@@ -192,7 +196,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             signer: this.signer,
             network: this.network,
             feeRate: this.feeRate,
-            priorityFee: this.priorityFee,
+            priorityFee: this.priorityFee ?? 0n,
             from: this.from,
             amount: this.estimatedFees,
         };
@@ -373,6 +377,27 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     /**
+     * Returns the inputs of the transaction.
+     * @protected
+     * @returns {PsbtInputExtended[]}
+     */
+    public getInputs(): PsbtInputExtended[] {
+        return this.inputs;
+    }
+
+    /**
+     * Returns the outputs of the transaction.
+     * @protected
+     * @returns {PsbtOutputExtended[]}
+     */
+    public getOutputs(): PsbtOutputExtended[] {
+        const outputs: PsbtOutputExtended[] = [...this.outputs];
+        if (this.feeOutput) outputs.push(this.feeOutput);
+
+        return outputs;
+    }
+
+    /**
      * @description Adds the refund output to the transaction
      * @param {bigint} amountSpent - The amount spent
      * @protected
@@ -381,6 +406,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         /** Add the refund output */
         const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
+
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
             if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
                 await this.setFeeOutput({
@@ -546,27 +572,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         return this.tapData.output;
-    }
-
-    /**
-     * Returns the inputs of the transaction.
-     * @protected
-     * @returns {PsbtInputExtended[]}
-     */
-    protected getInputs(): PsbtInputExtended[] {
-        return this.inputs;
-    }
-
-    /**
-     * Returns the outputs of the transaction.
-     * @protected
-     * @returns {PsbtOutputExtended[]}
-     */
-    protected getOutputs(): PsbtOutputExtended[] {
-        const outputs: PsbtOutputExtended[] = [...this.outputs];
-        if (this.feeOutput) outputs.push(this.feeOutput);
-
-        return outputs;
     }
 
     /**

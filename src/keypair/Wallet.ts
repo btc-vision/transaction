@@ -27,6 +27,12 @@ export class Wallet {
      */
     private readonly _p2tr: Address;
 
+    /**
+     * Legacy address for the wallet
+     * @private
+     */
+    private readonly _legacy: Address;
+
     constructor(
         wallet: IWallet,
         public readonly network: Network = networks.bitcoin,
@@ -35,6 +41,7 @@ export class Wallet {
 
         this._p2wpkh = EcKeyPair.getP2WPKHAddress(this._keypair, this.network);
         this._p2tr = EcKeyPair.getTaprootAddress(this._keypair, this.network);
+        this._legacy = EcKeyPair.getLegacyAddress(this._keypair, this.network);
     }
 
     /**
@@ -61,6 +68,22 @@ export class Wallet {
      */
     public get p2tr(): Address {
         return this._p2tr;
+    }
+
+    /**
+     * Get the legacy address for the wallet
+     * @returns {Address}
+     */
+    public get legacy(): Address {
+        return this._legacy;
+    }
+
+    /**
+     * Get the addresses for the wallet
+     * @returns {Address[]}
+     */
+    public get addresses(): Address[] {
+        return [this.p2wpkh, this.p2tr, this.legacy];
     }
 
     /**
