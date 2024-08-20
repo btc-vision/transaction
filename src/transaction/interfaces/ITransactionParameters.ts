@@ -16,7 +16,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     chainId?: ChainId;
 
     readonly feeRate: number;
-    readonly priorityFee?: bigint;
+    readonly priorityFee: bigint;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {

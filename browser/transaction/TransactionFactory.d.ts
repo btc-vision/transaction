@@ -40,7 +40,7 @@ export declare class TransactionFactory {
     constructor();
     signInteraction(interactionParameters: IInteractionParameters): Promise<[string, string, UTXO[]]>;
     signDeployment(deploymentParameters: IDeploymentParameters): Promise<DeploymentResult>;
-    wrap(warpParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult>;
+    wrap(wrapParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult>;
     unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
     unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult>;
     createBTCTransfer(parameters: IFundingTransactionParameters): Promise<BitcoinTransferResponse>;

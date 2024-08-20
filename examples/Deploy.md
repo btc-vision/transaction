@@ -1,25 +1,17 @@
-# Wrapping Bitcoin (wBTC) Guide
+# Deploying a Smart Contract on OPNet
 
-This guide will walk you through the process of wrapping Bitcoin (wBTC) using the OPNet protocol. Wrapping Bitcoin
-allows you to use Bitcoin in smart contracts, similar to how ERC-20 tokens are used on Ethereum.
+WARNING: POSSIBLY OUTDATED
 
-## What is wBTC?
-
-wBTC (Wrapped Bitcoin) is an OP_0 token backed 1:1 with Bitcoin. It enables Bitcoin holders
-to participate in decentralized finance (DeFi) applications, offering greater liquidity and integration within the
-Bitcoin ecosystem. By wrapping Bitcoin, users can leverage their BTC in a broader range of financial services while
-retaining the value and stability of Bitcoin.
-
-## Preview
-
-You can check your wBTC balance at anytime via [wbtc.opnet.org](https://wbtc.opnet.org).
+This guide will walk you through the process of deploying a smart contract on the OPNet protocol. OPNet allows for the
+execution of smart contracts on the Bitcoin network, leveraging the security and stability of Bitcoin.
 
 ## Prerequisites
 
 - Node.js and npm installed
-- Bitcoin testnet wallet
+- Bitcoin regtest wallet
 - Access to an OPNet node
-- Bitcoin RPC configured for testnet
+- Bitcoin RPC configured for regtest
+- Contract bytecode in WebAssembly format
 
 ## Setup
 
@@ -39,8 +31,9 @@ import { OPNetLimitedProvider } from '../utxo/OPNetLimitedProvider.js';
 import { networks, Network } from 'bitcoinjs-lib';
 import { TransactionFactory } from '../transaction/TransactionFactory.js';
 import { BitcoinRPC } from '@btc-vision/bsi-bitcoin-rpc';
-import { IWrapParameters } from '../transaction/interfaces/ITransactionParameters.js';
+import { IDeploymentParameters } from '../transaction/interfaces/ITransactionParameters.js';
 import { FetchUTXOParams, UTXO } from '../utxo/interfaces/IUTXO.js';
+import * as fs from 'fs';
 ```
 
 ### Setting Up configurations
@@ -83,7 +76,7 @@ const wallet: Wallet = new Wallet(Testnet.wallet, network);
 ### 3. Connect to OPNet
 
 ```typescript
-const opnet: OPNetLimitedProvider = new OPNetLimitedProvider(opnetNode);
+const utxoManager: OPNetLimitedProvider = new OPNetLimitedProvider(opnetNode);
 const factory: TransactionFactory = new TransactionFactory();
 ```
 
@@ -110,58 +103,49 @@ async function mineBlock(): Promise<boolean> {
 await rpc.init(Testnet.config);
 ```
 
-### 6. Define Wrap Amount and Fetch UTXOs
+### 6. Define UTXO Settings and Fetch UTXOs
 
 ```typescript
-const wrapAmount: bigint = 100000000n; // 1 BTC in satoshis
 const utxoSetting: FetchUTXOParams = {
     address: wallet.p2wpkh,
     minAmount: 10000n,
-    requestedAmount: wrapAmount,
+    requestedAmount: 100000n,
 };
 
-const utxos: UTXO[] = await opnet.fetchUTXO(utxoSetting);
+const utxos: UTXO[] = await utxoManager.fetchUTXO(utxoSetting);
 if (!utxos) {
     throw new Error('No UTXOs found');
 }
 ```
 
-### 7. Fetch Wrap Parameters
-
-This will fetch the parameters required for wrapping Bitcoin into WBTC. If no parameters are found, an error will be
-thrown.
-This step is very important as it provides the necessary information for the wrapping process.
+### 7. Read Contract Bytecode
 
 ```typescript
-const generationParameters = await opnet.fetchWrapParameters(wrapAmount);
-if (!generationParameters) {
-    throw new Error('No generation parameters found');
-}
+const bytecode = fs.readFileSync('./bytecode/contract.wasm');
 ```
 
-### 8. Create Wrap Parameters and Finalize Transaction
+### 8. Create Deployment Parameters and Finalize Transaction
 
-Now, we will create the wrap parameters and finalize the transaction using the TransactionFactory.
+Let's create the deployment parameters and finalize the transaction:
 
 ```typescript
-const wrapParameters: IWrapParameters = {
+const deploymentParameters: IDeploymentParameters = {
     from: wallet.p2wpkh,
     utxos: utxos,
     signer: wallet.keypair,
     network: network,
-    feeRate: 350,
+    feeRate: 150,
     priorityFee: 50000n,
-    amount: wrapAmount,
-    generationParameters: generationParameters,
+    bytecode: bytecode,
 };
 
-const finalTx = factory.wrap(wrapParameters);
+const finalTx = factory.signDeployment(deploymentParameters);
 console.log(`Final transaction:`, finalTx);
 ```
 
 ### 9. Broadcast the Transactions
 
-To broadcast the transactions, we will send the raw transactions to the network.
+Broadcast the transactions to the network:
 
 ```typescript
 const firstTxBroadcast = await rpc.sendRawTransaction({
@@ -185,8 +169,20 @@ if (!secondTxBroadcast) {
 }
 ```
 
+### 10. (Optional) Mine a Block
+
+If you need to mine a block after broadcasting the transactions:
+
+```typescript
+if (shouldMineBlock) {
+    await mineBlock();
+}
+```
+
 ## Conclusion
 
-You have now successfully wrapped Bitcoin into WBTC using the OPNet protocol!
+You have now successfully deployed a smart contract on the OPNet protocol. This contract can interact with the Bitcoin
+network, enabling complex functionalities and decentralized applications.
+
 For any further questions or issues, please refer to the official documentation or reach out to the community for
 support.

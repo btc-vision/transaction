@@ -1,5 +1,7 @@
 # Unwrapping wBTC Guide
 
+WARNING: POSSIBLY OUTDATED
+
 This guide will walk you through the process of unwrapping wBTC (Wrapped Bitcoin) using the OPNet protocol. Unwrapping
 wBTC converts it back into regular Bitcoin, enabling you to use it directly on the Bitcoin network.
 

@@ -119,10 +119,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
-        if (!this.utxos.length) {
-            throw new Error('No UTXOs specified');
-        }
-
         this.from = TransactionBuilder.getFrom(
             parameters.from,
             this.signer as ECPairInterface,
@@ -226,6 +222,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong
      */
     public async signTransaction(): Promise<Transaction> {
+        if (!this.utxos.length) {
+            throw new Error('No UTXOs specified');
+        }
+
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -243,7 +243,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 throw new Error('Transaction was regenerated');
             }
 
-            return this.transaction.extractTransaction(false);
+            return this.transaction.extractTransaction(true, true);
         }
 
         throw new Error('Could not sign transaction');
@@ -341,6 +341,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Promise<bigint>} - The estimated transaction fees
      */
     public async estimateTransactionFees(): Promise<bigint> {
+        if (!this.utxos.length) {
+            throw new Error('No UTXOs specified');
+        }
+
         if (this.estimatedFees) return this.estimatedFees;
 
         const fakeTx = new Psbt({
@@ -603,7 +607,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             if (output.value < 0) {
                 throw new Error(
-                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} < Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
                 );
             }
         } else {
