@@ -243,7 +243,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 throw new Error('Transaction was regenerated');
             }
 
-            return this.transaction.extractTransaction(false);
+            return this.transaction.extractTransaction(true, true);
         }
 
         throw new Error('Could not sign transaction');
@@ -607,7 +607,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             if (output.value < 0) {
                 throw new Error(
-                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} < Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
                 );
             }
         } else {

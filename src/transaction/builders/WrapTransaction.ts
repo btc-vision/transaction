@@ -273,9 +273,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         }
 
         const valueToVault: bigint =
-            this.amount +
-            currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT +
-            this.priorityFee;
+            this.amount + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT; //this.priorityFee
 
         if (this.totalInputAmount < valueToVault) {
             throw new Error(

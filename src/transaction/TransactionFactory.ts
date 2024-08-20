@@ -207,32 +207,34 @@ export class TransactionFactory {
 
     /**
      * Basically it's fun to manage UTXOs.
-     * @param {IWrapParameters} warpParameters - The wrap parameters
+     * @param {IWrapParameters} wrapParameters - The wrap parameters
      * @returns {Promise<WrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
-    public async wrap(warpParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult> {
-        if (warpParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
+    public async wrap(wrapParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult> {
+        if (wrapParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
-                `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${warpParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
+                `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${wrapParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
             );
         }
 
         const childTransactionRequiredValue: bigint =
-            warpParameters.amount + currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
+            wrapParameters.amount +
+            currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT +
+            (wrapParameters.priorityFee || 300n);
 
-        const wbtc: wBTC = new wBTC(warpParameters.network, warpParameters.chainId);
+        const wbtc: wBTC = new wBTC(wrapParameters.network, wrapParameters.chainId);
         const to = wbtc.getAddress();
         const fundingParameters: IFundingTransactionParameters = {
-            ...warpParameters,
+            ...wrapParameters,
             amount: childTransactionRequiredValue,
-            to: warpParameters.to ?? to,
+            to: wrapParameters.to ?? to,
         };
 
         const preFundingTransaction = await this.createFundTransaction(fundingParameters);
-        warpParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
+        wrapParameters.utxos = this.getUTXOAsTransaction(preFundingTransaction.tx, to, 0);
 
-        const preTransaction: WrapTransaction = new WrapTransaction(warpParameters);
+        const preTransaction: WrapTransaction = new WrapTransaction(wrapParameters);
 
         // Initial generation
         await preTransaction.signTransaction();
@@ -250,7 +252,7 @@ export class TransactionFactory {
         }
 
         const newParams: IWrapParameters = {
-            ...warpParameters,
+            ...wrapParameters,
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
@@ -265,7 +267,7 @@ export class TransactionFactory {
             vaultAddress: finalTransaction.vault,
             amount: finalTransaction.amount,
             receiverAddress: finalTransaction.receiver,
-            utxos: this.getUTXOAsTransaction(signedTransaction.tx, warpParameters.from, 1),
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, wrapParameters.from, 1),
         };
     }
 
