@@ -98,7 +98,7 @@ export class UnisatSigner extends CustomKeypair {
                 this._network = networks.regtest;
                 break;
             default:
-                throw new Error('Invalid network');
+                throw new Error(`Invalid network: ${network}`);
         }
 
         const publicKey = await this.unisat.getPublicKey();
