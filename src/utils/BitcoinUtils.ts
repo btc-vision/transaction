@@ -20,12 +20,12 @@ export class BitcoinUtils {
      * @returns {Buffer} The random bytes
      */
     public static rndBytes(): Buffer {
-        const buf = BitcoinUtils.getRandomValues(64);
+        const buf = BitcoinUtils.getUnsafeRandomValues(64);
 
         return Buffer.from(buf);
     }
 
-    public static getRandomValues(length: number): Buffer {
+    public static getUnsafeRandomValues(length: number): Buffer {
         if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
             const array = new Uint8Array(length);
             window.crypto.getRandomValues(array);

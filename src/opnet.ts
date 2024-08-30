@@ -23,9 +23,6 @@ export * from './keypair/AddressVerificator.js';
 export * from './metadata/contracts/wBTC.js';
 export * from './metadata/ContractBaseMetadata.js';
 
-/** Network */
-export * from './network/NetworkInformation.js';
-
 /** Signer */
 export * from './signer/TweakedSigner.js';
 
