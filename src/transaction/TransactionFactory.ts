@@ -21,6 +21,7 @@ import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
 import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
 import { TransactionType } from './enums/TransactionType.js';
+import { DeploymentTransactionV2 } from './builders/DeploymentTransactionV2.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -182,6 +183,72 @@ export class TransactionFactory {
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Transaction = await finalTransaction.signTransaction();
+
+        const out2: Output = signedTransaction.outs[1];
+        const refundUTXO: UTXO = {
+            transactionId: signedTransaction.getId(),
+            outputIndex: 1, // always 1
+            scriptPubKey: {
+                hex: out2.script.toString('hex'),
+                address: deploymentParameters.from,
+            },
+            value: BigInt(out2.value),
+        };
+
+        return {
+            transaction: [signedTransaction.toHex(), outTx.toHex()],
+            contractAddress: finalTransaction.contractAddress,
+            p2trAddress: finalTransaction.p2trAddress,
+            utxos: [refundUTXO],
+        };
+    }
+
+    /**
+     * @description Generates the required transactions.
+     * @param {IDeploymentParameters} deploymentParameters - The deployment parameters
+     * @returns {Promise<DeploymentResult>} - The signed transaction
+     */
+    public async signDeploymentV2(
+        deploymentParameters: IDeploymentParameters,
+    ): Promise<DeploymentResult> {
+        const preTransaction: DeploymentTransactionV2 = new DeploymentTransactionV2(
+            deploymentParameters,
+        );
+
+        // Initial generation
+        await preTransaction.signTransaction();
+
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
+
+        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
+        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        const out: Output = signedTransaction.outs[0];
+        const newUtxo: UTXO = {
+            transactionId: signedTransaction.getId(),
+            outputIndex: 0, // always 0
+            scriptPubKey: {
+                hex: out.script.toString('hex'),
+                address: preTransaction.getScriptAddress(),
+            },
+            value: BigInt(out.value),
+        };
+
+        const newParams: IDeploymentParameters = {
+            ...deploymentParameters,
+            utxos: [newUtxo],
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.toBuffer(),
+        };
+
+        const finalTransaction: DeploymentTransactionV2 = new DeploymentTransactionV2(newParams);
 
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();

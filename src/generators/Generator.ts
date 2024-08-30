@@ -45,7 +45,8 @@ export abstract class Generator {
      * @param args - The arguments to use when compiling the script
      * @returns {Buffer} - The compiled script
      */
-    public abstract compile(...args: unknown[]): Buffer;
+
+    //public abstract compile(...args: unknown[]): Buffer;
 
     /**
      * Split a buffer into chunks
