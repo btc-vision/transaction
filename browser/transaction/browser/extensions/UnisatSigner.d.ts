@@ -6,6 +6,7 @@ import { Address } from '@btc-vision/bsi-binary';
 declare global {
     interface Window {
         unisat?: Unisat;
+        opnet?: Unisat;
     }
 }
 export declare class UnisatSigner extends CustomKeypair {

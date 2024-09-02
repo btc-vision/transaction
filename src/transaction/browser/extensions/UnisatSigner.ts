@@ -9,6 +9,7 @@ import { TapScriptSig } from 'bip174/src/lib/interfaces.js';
 declare global {
     interface Window {
         unisat?: Unisat;
+        opnet?: Unisat;
     }
 }
 
