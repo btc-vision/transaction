@@ -400,8 +400,8 @@ FodyWeavers.xsd
 
 package-lock.json
 
-cjs
-.idea
+cjs/*
+!cjs/package.json
 
 src/tests
 ./bytecode

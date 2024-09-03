@@ -1,6 +1,6 @@
 {
     "type": "module",
-    "version": "1.0.94",
+    "version": "1.0.95",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -87,10 +87,9 @@
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bsi-binary": "^1.0.37",
-        "@btc-vision/bsi-bitcoin-rpc": "^1.0.22",
-        "@btc-vision/bsi-common": "^1.0.16",
-        "@btc-vision/logger": "^1.0.2",
+        "@btc-vision/bsi-binary": "^1.0.38",
+        "@btc-vision/bsi-bitcoin-rpc": "^1.0.25",
+        "@btc-vision/logger": "^1.0.3",
         "assert": "^2.1.0",
         "babel-loader": "^9.1.3",
         "babel-plugin-transform-import-meta": "^2.2.1",

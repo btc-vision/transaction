@@ -36,7 +36,6 @@ export declare class PsbtTransaction extends TweakedTransaction {
     toHex(): string;
     addInput(input: PsbtInputExtended): void;
     addOutput(output: PsbtOutputExtended): void;
-    attemptSignAllInputs(): Promise<boolean>;
     attemptFinalizeInputs(n?: number): boolean;
     getPSBT(): Psbt;
     private getTotalOutputAmount;

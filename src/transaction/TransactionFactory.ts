@@ -99,7 +99,8 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = interactionParameters.utxos;
-        parameters.amount = await preTransaction.estimateTransactionFees();
+        parameters.amount =
+            (await preTransaction.estimateTransactionFees()) + interactionParameters.priorityFee;
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -242,6 +243,8 @@ export class TransactionFactory {
         const parameters: IFundingTransactionParameters =
             await preTransaction.getFundingTransactionParameters();
 
+        console.log('wrap parameters', parameters);
+
         // We add the amount
         parameters.amount += childTransactionRequiredValue;
         parameters.utxos = fundingParameters.utxos;
@@ -295,6 +298,15 @@ export class TransactionFactory {
             2n,
             this.calculateNumSignatures(unwrapParameters.unwrapUTXOs),
             this.maxPubKeySize(unwrapParameters.unwrapUTXOs),
+        );
+
+        console.log(
+            'estimatedFees',
+            estimatedFees,
+            'estimatedGas',
+            estimatedGas,
+            'priority',
+            unwrapParameters.priorityFee,
         );
 
         const fundingParameters: IFundingTransactionParameters = {
@@ -387,7 +399,10 @@ export class TransactionFactory {
             await preTransaction.getFundingTransactionParameters();
 
         parameters.utxos = fundingParameters.utxos;
-        parameters.amount = await preTransaction.estimateTransactionFees();
+        parameters.amount =
+            (await preTransaction.estimateTransactionFees()) + unwrapParameters.priorityFee;
+
+        console.log('parameters', parameters);
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {

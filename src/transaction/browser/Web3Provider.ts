@@ -9,7 +9,7 @@ import { DeploymentResult, UnwrapResult, WrapResult } from '../TransactionFactor
 
 export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>;
 export type IWrapParametersWithoutSigner = Omit<IWrapParameters, 'signer'>;
-export type IUnwrapParametersSigner = Omit<IUnwrapParameters, 'signer'>;
+export type IUnwrapParametersWithoutSigner = Omit<IUnwrapParameters, 'signer'>;
 export type IDeploymentParametersWithoutSigner = Omit<IDeploymentParameters, 'signer' | 'network'>;
 
 export interface BroadcastTransactionOptions {
@@ -57,5 +57,5 @@ export interface Web3Provider {
 
     wrap(wrapParameters: IWrapParametersWithoutSigner): Promise<WrapResult>;
 
-    unwrap(unwrapParameters: IUnwrapParametersSigner): Promise<UnwrapResult>;
+    unwrap(unwrapParameters: IUnwrapParametersWithoutSigner): Promise<UnwrapResult>;
 }

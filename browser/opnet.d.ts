@@ -12,7 +12,6 @@ export * from './keypair/interfaces/IWallet.js';
 export * from './keypair/AddressVerificator.js';
 export * from './metadata/contracts/wBTC.js';
 export * from './metadata/ContractBaseMetadata.js';
-export * from './network/NetworkInformation.js';
 export * from './signer/TweakedSigner.js';
 export * from './transaction/TransactionFactory.js';
 export * from './transaction/interfaces/ITransactionParameters.js';

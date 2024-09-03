@@ -7,6 +7,7 @@ import { TapLeafScript } from '../interfaces/Tap.js';
 import { Address } from '@btc-vision/bsi-binary';
 export declare class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     type: TransactionType.DEPLOYMENT;
+    static readonly MAXIMUM_CONTRACT_SIZE: number;
     protected readonly _contractAddress: Address;
     protected tapLeafScript: TapLeafScript | null;
     private targetScriptRedeem;
