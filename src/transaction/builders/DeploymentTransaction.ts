@@ -15,6 +15,7 @@ import { Address } from '@btc-vision/bsi-binary';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
+    public static readonly MAXIMUM_CONTRACT_SIZE = 128*1024;
 
     /**
      * The contract address
@@ -81,6 +82,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         this.bytecode = Compressor.compress(parameters.bytecode);
         if (!this.bytecode) throw new Error('Bytecode is required');
+
+        if (this.bytecode.length > DeploymentTransaction.MAXIMUM_CONTRACT_SIZE) throw new Error('Contract size overflow.');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
 
