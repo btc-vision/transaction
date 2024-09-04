@@ -5,6 +5,8 @@ import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
  * Generate a bitcoin script for a multisign interaction
  */
 export class MultiSignGenerator {
+    public static readonly MAXIMUM_SUPPORTED_SIGNATURE = 255;
+
     public static compile(
         vaultPublicKeys: Buffer[],
         minimumSignatures: number = 0,
@@ -18,12 +20,17 @@ export class MultiSignGenerator {
             throw new Error('The amount of public keys is lower than the minimum required');
         }
 
-        if (minimumSignatures > 255) {
-            throw new Error('The maximum amount of signatures is 255');
+        if (minimumSignatures > MultiSignGenerator.MAXIMUM_SUPPORTED_SIGNATURE) {
+            throw new Error(`The maximum amount of signatures is ${MultiSignGenerator.MAXIMUM_SUPPORTED_SIGNATURE}`);
         }
 
         const minimumRequired = Buffer.alloc(1);
         minimumRequired.writeUInt8(minimumSignatures);
+
+        /** Remove duplicates **/
+        vaultPublicKeys = vaultPublicKeys.filter((buf, index, self) =>
+            index === self.findIndex(otherBuf => buf.equals(otherBuf))
+        );
 
         /** We must order the pub keys. */
         vaultPublicKeys = vaultPublicKeys.sort((a, b) => a.compare(b));
