@@ -1,7 +1,8 @@
 .vs
 docs
 src/tests
-cjs
+cjs/*
+!cjs/package.json
 build
 .github
 .idea
