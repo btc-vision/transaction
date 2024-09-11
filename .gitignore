@@ -398,10 +398,11 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-package-lock.json
-
-cjs/*
-!cjs/package.json
+package-lock.json=
 
 src/tests
 ./bytecode
+
+build
+browser
+yarn.lock
