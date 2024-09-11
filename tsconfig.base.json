@@ -10,16 +10,7 @@
         "sourceMap": false,
         "moduleDetection": "force",
         "experimentalDecorators": true,
-        "lib": [
-            "es6",
-            "es2020",
-            "es2021",
-            "es2022",
-            "esnext",
-            "webworker",
-            "dom",
-            "scripthost"
-        ],
+        "lib": ["es6", "es2020", "es2021", "es2022", "esnext", "webworker", "dom", "scripthost"],
         "strict": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
@@ -32,12 +23,5 @@
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true
     },
-    "include": [
-        "src/**/*.ts",
-        "src/*",
-        "src/**/*.js",
-        "src/*.ts",
-        "src/*.js",
-        "src/*.cjs"
-    ]
+    "include": ["src/**/*.ts", "src/*", "src/**/*.js", "src/*.ts", "src/*.js", "src/*.cjs"]
 }

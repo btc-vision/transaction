@@ -1,9 +1,9 @@
 .vs
-docs
-src/tests
+./docs
+./src
+!/build
 cjs/*
 !cjs/package.json
-build
 .github
 .idea
 /bytecode
