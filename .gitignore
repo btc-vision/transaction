@@ -406,3 +406,4 @@ src/tests
 build
 browser
 yarn.lock
+package-lock.json

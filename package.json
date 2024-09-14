@@ -68,7 +68,7 @@
         "@babel/preset-flow": "^7.24.1",
         "@babel/preset-react": "^7.24.1",
         "@babel/preset-typescript": "^7.24.1",
-        "@types/node": "^20.11.30",
+        "@types/node": "^22.5.5",
         "eslint": "^8.57.0",
         "gulp": "^5.0.0",
         "gulp-cached": "^1.1.1",
@@ -107,6 +107,6 @@
         "process": "^0.11.10",
         "ts-loader": "^9.5.1",
         "ts-node": "^10.9.2",
-        "typescript": "^5.5.4"
+        "typescript": "^5.6.2"
     }
 }
