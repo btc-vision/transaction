@@ -6,4 +6,5 @@ export enum TransactionType {
     WBTC_WRAP = 4,
     WBTC_UNWRAP = 5,
     MULTI_SIG = 6,
+    CUSTOM_CODE = 7,
 }

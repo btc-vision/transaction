@@ -22,7 +22,7 @@ export abstract class Generator {
      * The public key of the contract salt
      * @protected
      */
-    protected readonly contractSaltPubKey: Buffer;
+    protected readonly contractSaltPubKey?: Buffer;
 
     /**
      * The network to use
@@ -32,7 +32,7 @@ export abstract class Generator {
 
     protected constructor(
         senderPubKey: Buffer,
-        contractSaltPubKey: Buffer,
+        contractSaltPubKey?: Buffer,
         network: Network = networks.bitcoin,
     ) {
         this.senderPubKey = senderPubKey;
