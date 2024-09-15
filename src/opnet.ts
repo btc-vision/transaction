@@ -7,6 +7,8 @@ export * from './bytecode/Compressor.js';
 export * from './generators/Generator.js';
 export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
+export * from './generators/builders/CustomGenerator.js';
+export * from './generators/builders/MultiSignGenerator.js';
 export * from './generators/Features.js';
 
 /** Address */
@@ -39,6 +41,9 @@ export * from './transaction/builders/TransactionBuilder.js';
 export * from './transaction/builders/WrapTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
+export * from './transaction/builders/UnwrapTransaction.js';
+export * from './transaction/builders/CustomScriptTransaction.js';
+export * from './transaction/builders/MultiSignTransaction.js';
 
 /** wBTC */
 export * from './wbtc/WrappedGenerationParameters.js';
@@ -60,12 +65,7 @@ export * from './transaction/shared/TweakedTransaction.js';
 export * from './utxo/interfaces/BroadcastResponse.js';
 export * from './transaction/psbt/PSBTTypes.js';
 
-export * from './transaction/builders/MultiSignTransaction.js';
-export * from './generators/builders/MultiSignGenerator.js';
-
 export * from './transaction/shared/P2TR_MS.js';
-export * from './transaction/builders/UnwrapTransaction.js';
-
 export * from './wbtc/UnwrapGeneration.js';
 
 /** Consensus */

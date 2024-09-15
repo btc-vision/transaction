@@ -69,6 +69,8 @@ export class CalldataGenerator extends Generator {
         vaultPublicKeys: Buffer[] = [],
         minimumSignatures: number = 0,
     ): Buffer {
+        if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
+
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 

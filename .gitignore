@@ -407,3 +407,4 @@ build
 browser
 yarn.lock
 package-lock.json
+docs/*

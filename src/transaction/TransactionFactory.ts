@@ -21,6 +21,10 @@ import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
 import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
 import { TransactionType } from './enums/TransactionType.js';
+import {
+    CustomScriptTransaction,
+    ICustomTransactionParameters,
+} from './builders/CustomScriptTransaction';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -70,6 +74,74 @@ export interface UnwrapResult {
 
 export class TransactionFactory {
     constructor() {}
+
+    /**
+     * @description Generate a transaction with a custom script.
+     * @returns {Promise<[string, string]>} - The signed transaction
+     */
+    public async createCustomScriptTransaction(
+        interactionParameters: ICustomTransactionParameters,
+    ): Promise<[string, string, UTXO[]]> {
+        if (!interactionParameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+
+        if (!interactionParameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+
+        const preTransaction: CustomScriptTransaction = new CustomScriptTransaction({
+            ...interactionParameters,
+            utxos: [interactionParameters.utxos[0]], // we simulate one input here.
+        });
+
+        // we don't sign that transaction, we just need the parameters.
+
+        await preTransaction.generateTransactionMinimalSignatures();
+
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
+
+        parameters.utxos = interactionParameters.utxos;
+        parameters.amount =
+            (await preTransaction.estimateTransactionFees()) + interactionParameters.priorityFee;
+
+        const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
+        if (!feeEstimationFundingTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
+
+        const signedTransaction = await this.createFundTransaction(parameters);
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        interactionParameters.utxos = this.getUTXOAsTransaction(
+            signedTransaction.tx,
+            interactionParameters.to,
+            0,
+        );
+
+        const newParams: ICustomTransactionParameters = {
+            ...interactionParameters,
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
+            randomBytes: preTransaction.getRndBytes(),
+            nonWitnessUtxo: signedTransaction.tx.toBuffer(),
+            estimatedFees: preTransaction.estimatedFees,
+        };
+
+        const finalTransaction: CustomScriptTransaction = new CustomScriptTransaction(newParams);
+
+        // We have to regenerate using the new utxo
+        const outTx: Transaction = await finalTransaction.signTransaction();
+        return [
+            signedTransaction.tx.toHex(),
+            outTx.toHex(),
+            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
+        ];
+    }
 
     /**
      * @description Generates the required transactions.
@@ -132,7 +204,6 @@ export class TransactionFactory {
 
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
-
         return [
             signedTransaction.tx.toHex(),
             outTx.toHex(),
@@ -243,8 +314,6 @@ export class TransactionFactory {
         const parameters: IFundingTransactionParameters =
             await preTransaction.getFundingTransactionParameters();
 
-        console.log('wrap parameters', parameters);
-
         // We add the amount
         parameters.amount += childTransactionRequiredValue;
         parameters.utxos = fundingParameters.utxos;
@@ -298,15 +367,6 @@ export class TransactionFactory {
             2n,
             this.calculateNumSignatures(unwrapParameters.unwrapUTXOs),
             this.maxPubKeySize(unwrapParameters.unwrapUTXOs),
-        );
-
-        console.log(
-            'estimatedFees',
-            estimatedFees,
-            'estimatedGas',
-            estimatedGas,
-            'priority',
-            unwrapParameters.priorityFee,
         );
 
         const fundingParameters: IFundingTransactionParameters = {
@@ -401,8 +461,6 @@ export class TransactionFactory {
         parameters.utxos = fundingParameters.utxos;
         parameters.amount =
             (await preTransaction.estimateTransactionFees()) + unwrapParameters.priorityFee;
-
-        console.log('parameters', parameters);
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {

@@ -32,6 +32,8 @@ export class DeploymentGenerator extends Generator {
     }
 
     private getAsm(contractBytecode: Buffer, contractSalt: Buffer): (number | Buffer)[] {
+        if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
+
         const dataChunks = this.splitBufferIntoChunks(contractBytecode);
 
         return [

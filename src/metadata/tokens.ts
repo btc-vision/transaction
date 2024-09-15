@@ -2,11 +2,11 @@ import { Address } from '@btc-vision/bsi-binary';
 import { ChainId } from '../network/ChainId.js';
 
 // Addresses Regtest
-export const FACTORY_ADDRESS_REGTEST: Address = 'bcrt1qxtpreq8zg7pp9wm550kjrhaa2r5kj6lhph9he5';
-export const POOL_ADDRESS_REGTEST: Address = 'bcrt1qqg2a8076rwuruzetdyquj8fh5jxtc22pmh9vep';
-export const WBTC_ADDRESS_REGTEST: Address = 'bcrt1qdr7sjgtnudda8zrfklw8l5cnrxum5hns7e46hf';
-export const MOTO_ADDRESS_REGTEST: Address = 'bcrt1q8reuxx9naek4mqesrfsgdpjv3q7a5g2llkh6ua';
-export const ROUTER_ADDRESS_REGTEST: Address = 'bcrt1qplnz54sca73t8a03nh494jatr9ffjg6ecarrj8';
+export const FACTORY_ADDRESS_REGTEST: Address = 'bcrt1q9pf9fnpch9z2qrp5e3dgr2avzu3mypq3km2k40';
+export const POOL_ADDRESS_REGTEST: Address = 'bcrt1qg87nx9v9ln3qyadcn0llekzjn0hx8js46ztwky';
+export const WBTC_ADDRESS_REGTEST: Address = 'bcrt1qy44f5630m4ap4mvmgqc44qh4vndaees9y30t0m';
+export const MOTO_ADDRESS_REGTEST: Address = 'bcrt1q5txqpm5sy0s2xsprvce4ddj0088nlq8lazkd6n';
+export const ROUTER_ADDRESS_REGTEST: Address = 'bcrt1q9yd6mk324k0q4krmlxjky0pk65ul6hkf4u35e6';
 
 // Addresses Testnet
 export const FACTORY_ADDRESS_TESTNET: Address = 'tb1qgev5kldhp5zvg6j8t9vl6x4phkrwn8nk9felxh';
