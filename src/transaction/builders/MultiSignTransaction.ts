@@ -139,7 +139,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     public static verifyIfSigned(psbt: Psbt, signerPubKey: Buffer): boolean {
         let alreadySigned: boolean = false;
         for (let i = 1; i < psbt.data.inputs.length; i++) {
-            let input: PsbtInput = psbt.data.inputs[i];
+            const input: PsbtInput = psbt.data.inputs[i];
             if (!input.finalScriptWitness) {
                 continue;
             }
@@ -183,12 +183,12 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         let final: boolean = true;
 
         for (let i = originalInputCount; i < psbt.data.inputs.length; i++) {
-            let input: PsbtInput = psbt.data.inputs[i];
+            const input: PsbtInput = psbt.data.inputs[i];
             if (!input.tapInternalKey) {
                 input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
             }
 
-            let partialSignatures: TapScriptSig[] = [];
+            const partialSignatures: TapScriptSig[] = [];
             if (input.finalScriptWitness) {
                 const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
                     input.finalScriptWitness,
@@ -278,9 +278,9 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                 .flat();
         } else {
             /** We must order the signatures and the pub keys. */
-            for (let pubKey of orderedPubKeys) {
+            for (const pubKey of orderedPubKeys) {
                 let found = false;
-                for (let sig of input.tapScriptSig) {
+                for (const sig of input.tapScriptSig) {
                     if (sig.pubkey.equals(toXOnly(pubKey))) {
                         scriptSolution.push(sig.signature);
                         found = true;
@@ -349,13 +349,13 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         let finalizedInputs = 0;
         for (let i = startIndex; i < psbt.data.inputs.length; i++) {
             try {
-                let input = psbt.data.inputs[i];
+                const input = psbt.data.inputs[i];
 
                 if (!input.tapInternalKey) {
                     input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
                 }
 
-                let partialSignatures: TapScriptSig[] = [];
+                const partialSignatures: TapScriptSig[] = [];
                 if (input.finalScriptWitness) {
                     const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
                         input.finalScriptWitness,
@@ -451,6 +451,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @throws {Error} If the left over funds script redeem version is required
      * @throws {Error} If the left over funds script redeem output is required
      */
+    // eslint-disable-next-line @typescript-eslint/require-await
     protected override async buildTransaction(): Promise<void> {
         const selectedRedeem = this.targetScriptRedeem;
         if (!selectedRedeem) {

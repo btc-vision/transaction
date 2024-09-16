@@ -35,7 +35,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         }
 
         if (this.splitInputsInto > 1) {
-            await this.splitInputs(amountSpent);
+            this.splitInputs(amountSpent);
         } else {
             this.addOutput({
                 value: Number(amountSpent),
@@ -46,7 +46,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         await this.addRefundOutput(amountSpent);
     }
 
-    protected async splitInputs(amountSpent: bigint): Promise<void> {
+    protected splitInputs(amountSpent: bigint): void {
         if (!this.to) {
             throw new Error('Recipient address is required');
         }

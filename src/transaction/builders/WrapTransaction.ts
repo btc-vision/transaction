@@ -223,7 +223,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
     protected override async buildTransaction(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
-        const selectedRedeem = !!this.scriptSigner
+        const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 

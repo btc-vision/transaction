@@ -14,9 +14,8 @@ import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { Address } from '@btc-vision/bsi-binary';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
+    public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
-    public static readonly MAXIMUM_CONTRACT_SIZE = 128*1024;
-
     /**
      * The contract address
      * @protected
@@ -83,7 +82,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.bytecode = Compressor.compress(parameters.bytecode);
         if (!this.bytecode) throw new Error('Bytecode is required');
 
-        if (this.bytecode.length > DeploymentTransaction.MAXIMUM_CONTRACT_SIZE) throw new Error('Contract size overflow.');
+        if (this.bytecode.length > DeploymentTransaction.MAXIMUM_CONTRACT_SIZE)
+            throw new Error('Contract size overflow.');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
 
@@ -147,7 +147,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.to = this.getScriptAddress();
         }
 
-        const selectedRedeem = !!this.contractSigner
+        const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
@@ -223,7 +223,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @protected
      */
     protected override generateTapData(): Payment {
-        const selectedRedeem = !!this.contractSigner
+        const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 

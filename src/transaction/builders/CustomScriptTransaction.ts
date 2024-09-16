@@ -148,7 +148,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             this.to = this.getScriptAddress();
         }
 
-        const selectedRedeem = !!this.contractSigner
+        const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
@@ -224,7 +224,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @protected
      */
     protected override generateTapData(): Payment {
-        const selectedRedeem = !!this.contractSigner
+        const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 

@@ -188,7 +188,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     public getRefund(): bigint {
         let losses: bigint = -currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
 
-        for (let vault of this.vaultUTXOs) {
+        for (const vault of this.vaultUTXOs) {
             for (let i = 0; i < vault.utxos.length; i++) {
                 losses += currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
             }
@@ -206,7 +206,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
      * @returns {bigint} - The estimated fee loss or refund
      */
     public getFeeLossOrRefund(): bigint {
-        let refund: bigint = this.getRefund();
+        const refund: bigint = this.getRefund();
 
         return refund - this.estimatedFeeLoss;
     }
@@ -219,7 +219,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         const totalInputAmount: bigint = this.getVaultTotalOutputAmount(this.vaultUTXOs);
 
         let refund: bigint = this.getRefund();
-        let outputLeftAmount = totalInputAmount - refund - this.amount;
+        const outputLeftAmount = totalInputAmount - refund - this.amount;
 
         if (outputLeftAmount === currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT) {
             refund += currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT;
@@ -235,7 +235,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
             throw new Error('No vaults provided');
         }
 
-        let hasConsolidation: boolean =
+        const hasConsolidation: boolean =
             outputLeftAmount > currentConsensusConfig.VAULT_MINIMUM_AMOUNT &&
             outputLeftAmount - currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT !== 0n;
 

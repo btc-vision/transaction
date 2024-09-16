@@ -446,7 +446,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             );
         }
 
-        for (let output of this.outputs) {
+        for (const output of this.outputs) {
             if ('address' in output && output.address === this.to) {
                 output.value += Number(value);
                 return;
@@ -476,7 +476,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected calculateTotalUTXOAmount(): bigint {
         let total: bigint = 0n;
-        for (let utxo of this.utxos) {
+        for (const utxo of this.utxos) {
             total += utxo.value;
         }
 
@@ -490,7 +490,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected calculateTotalVOutAmount(): bigint {
         let total: bigint = 0n;
-        for (let utxo of this.utxos) {
+        for (const utxo of this.utxos) {
             total += utxo.value;
         }
 
@@ -583,7 +583,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @protected
      */
     protected verifyUTXOValidity(): void {
-        for (let utxo of this.utxos) {
+        for (const utxo of this.utxos) {
             if (!utxo.scriptPubKey) {
                 throw new Error('Address is required');
             }
@@ -599,7 +599,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
         const initialValue = output.value;
 
-        let fee = await this.estimateTransactionFees();
+        const fee = await this.estimateTransactionFees();
         output.value = initialValue - Number(fee);
 
         if (output.value < TransactionBuilder.MINIMUM_DUST) {
@@ -613,7 +613,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         } else {
             this.feeOutput = output;
 
-            let fee = await this.estimateTransactionFees();
+            const fee = await this.estimateTransactionFees();
             if (fee > BigInt(initialValue)) {
                 throw new Error(
                     `estimateTransactionFees: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,

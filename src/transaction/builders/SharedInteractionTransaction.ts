@@ -136,7 +136,7 @@ export abstract class SharedInteractionTransaction<
     protected override async buildTransaction(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
-        const selectedRedeem = !!this.scriptSigner
+        const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
@@ -186,7 +186,7 @@ export abstract class SharedInteractionTransaction<
         }
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            let input: PsbtInput = transaction.data.inputs[i];
+            const input: PsbtInput = transaction.data.inputs[i];
             let finalized: boolean = false;
             let signed: boolean = false;
 
@@ -235,7 +235,7 @@ export abstract class SharedInteractionTransaction<
     }
 
     protected override generateTapData(): Payment {
-        const selectedRedeem = !!this.scriptSigner
+        const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
