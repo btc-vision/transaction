@@ -104,6 +104,8 @@
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
         "ecpair": "^2.1.0",
+        "gulp-clean": "^0.4.0",
+        "gulp-eslint-new": "^2.3.0",
         "gulplog": "^2.2.0",
         "process": "^0.11.10",
         "ts-loader": "^9.5.1",
