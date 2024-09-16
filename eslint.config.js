@@ -1,7 +1,7 @@
 // @ts-check
 
-import tseslint from 'typescript-eslint';
 import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
     eslint.configs.recommended,
@@ -28,6 +28,7 @@ export default tseslint.config(
             '@typescript-eslint/no-unnecessary-type-parameters': 'off',
             '@typescript-eslint/no-duplicate-enum-values': 'off',
             'prefer-spread': 'off',
+            '@typescript-eslint/no-empty-object-type': 'off',
         },
     },
     {
