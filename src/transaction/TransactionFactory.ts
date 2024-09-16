@@ -1,4 +1,21 @@
+import { Address } from '@btc-vision/bsi-binary';
 import { Psbt, Transaction } from 'bitcoinjs-lib';
+import { Output } from 'bitcoinjs-lib/src/transaction.js';
+import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
+import { wBTC } from '../metadata/contracts/wBTC.js';
+import { UTXO } from '../utxo/interfaces/IUTXO.js';
+import {
+    CustomScriptTransaction,
+    ICustomTransactionParameters,
+} from './builders/CustomScriptTransaction.js';
+import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
+import { FundingTransaction } from './builders/FundingTransaction.js';
+import { InteractionTransaction } from './builders/InteractionTransaction.js';
+import { TransactionBuilder } from './builders/TransactionBuilder.js';
+import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
+import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
+import { WrapTransaction } from './builders/WrapTransaction.js';
+import { TransactionType } from './enums/TransactionType.js';
 import {
     IDeploymentParameters,
     IFundingTransactionParameters,
@@ -6,25 +23,8 @@ import {
     IUnwrapParameters,
     IWrapParameters,
 } from './interfaces/ITransactionParameters.js';
-import { FundingTransaction } from './builders/FundingTransaction.js';
-import { Output } from 'bitcoinjs-lib/src/transaction.js';
-import { UTXO } from '../utxo/interfaces/IUTXO.js';
-import { InteractionTransaction } from './builders/InteractionTransaction.js';
-import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
-import { Address } from '@btc-vision/bsi-binary';
-import { wBTC } from '../metadata/contracts/wBTC.js';
-import { WrapTransaction } from './builders/WrapTransaction.js';
-import { PSBTTypes } from './psbt/PSBTTypes.js';
 import { VaultUTXOs } from './processor/PsbtTransaction.js';
-import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
-import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
-import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
-import { TransactionBuilder } from './builders/TransactionBuilder.js';
-import { TransactionType } from './enums/TransactionType.js';
-import {
-    CustomScriptTransaction,
-    ICustomTransactionParameters,
-} from './builders/CustomScriptTransaction.js';
+import { PSBTTypes } from './psbt/PSBTTypes.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -73,8 +73,6 @@ export interface UnwrapResult {
 }
 
 export class TransactionFactory {
-    constructor() {}
-
     /**
      * @description Generate a transaction with a custom script.
      * @returns {Promise<[string, string]>} - The signed transaction
