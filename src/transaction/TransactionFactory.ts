@@ -24,7 +24,7 @@ import { TransactionType } from './enums/TransactionType.js';
 import {
     CustomScriptTransaction,
     ICustomTransactionParameters,
-} from './builders/CustomScriptTransaction';
+} from './builders/CustomScriptTransaction.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];

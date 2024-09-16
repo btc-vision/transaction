@@ -4,11 +4,11 @@ import { TapLeafScript } from '../interfaces/Tap.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { crypto as bitCrypto, Payment, Psbt, Signer, Stack } from 'bitcoinjs-lib';
-import { TransactionBuilder } from './TransactionBuilder';
-import { CustomGenerator } from '../../generators/builders/CustomGenerator';
-import { BitcoinUtils } from '../../utils/BitcoinUtils';
-import { EcKeyPair } from '../../keypair/EcKeyPair';
-import { AddressGenerator } from '../../generators/AddressGenerator';
+import { TransactionBuilder } from './TransactionBuilder.js';
+import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
+import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 
