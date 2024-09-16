@@ -210,7 +210,7 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         let signHash: number = 0;
-        for (let sighashType of sighashTypes) {
+        for (const sighashType of sighashTypes) {
             signHash |= sighashType;
         }
 
@@ -262,7 +262,7 @@ export abstract class TweakedTransaction extends Logger {
 
         this.sequence = TransactionSequence.FINAL;
 
-        for (let input of this.inputs) {
+        for (const input of this.inputs) {
             input.sequence = TransactionSequence.FINAL;
         }
     }
@@ -379,21 +379,25 @@ export abstract class TweakedTransaction extends Logger {
 
                 try {
                     if ('signTaprootInput' in signer) {
-                        // @ts-ignore
-                        return await signer.signTaprootInput(transaction, i, signHash);
+                        // @ts-expect-error - we know it's a taproot signer
+                        return await (signer.signTaprootInput(
+                            transaction,
+                            i,
+                            signHash,
+                        ) as Promise<void>);
                     } else {
                         transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
                     }
 
                     return;
-                } catch (e) {}
+                } catch {}
             }
         }
 
         try {
             if ('signInput' in signer) {
-                // @ts-ignore
-                return await signer.signInput(transaction, i, signHash);
+                // @ts-expect-error - we know it's a signer
+                return await (signer.signInput(transaction, i, signHash) as Promise<void>);
             } else {
                 transaction.signInput(i, signer, signHash);
             }
@@ -402,8 +406,12 @@ export abstract class TweakedTransaction extends Logger {
                 // and we try again taproot...
 
                 if ('signTaprootInput' in signer) {
-                    // @ts-ignore
-                    return await signer.signTaprootInput(transaction, i, signHash);
+                    // @ts-expect-error - we know it's a taproot signer
+                    return await (signer.signTaprootInput(
+                        transaction,
+                        i,
+                        signHash,
+                    ) as Promise<void>);
                 } else if (this.tweakedSigner) {
                     transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
                 } else {
@@ -421,7 +429,7 @@ export abstract class TweakedTransaction extends Logger {
      */
     protected async signInputs(transaction: Psbt): Promise<void> {
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            let input: PsbtInput = transaction.data.inputs[i];
+            const input: PsbtInput = transaction.data.inputs[i];
 
             try {
                 await this.signInput(transaction, input, i);
@@ -489,7 +497,7 @@ export abstract class TweakedTransaction extends Logger {
             return;
         }
 
-        return TweakedSigner.tweakSigner(signer as unknown as ECPairInterface, settings) as Signer;
+        return TweakedSigner.tweakSigner(signer as unknown as ECPairInterface, settings);
     }
 
     /**
