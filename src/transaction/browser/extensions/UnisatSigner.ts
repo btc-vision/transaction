@@ -1,10 +1,10 @@
-import { CustomKeypair } from '../BrowserSignerBase.js';
-import { Network, networks, Psbt } from 'bitcoinjs-lib';
-import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
 import { Address } from '@btc-vision/bsi-binary';
-import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
-import { ECPairInterface } from 'ecpair';
 import { TapScriptSig } from 'bip174/src/lib/interfaces.js';
+import { Network, networks, Psbt } from 'bitcoinjs-lib';
+import { ECPairInterface } from 'ecpair';
+import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
+import { CustomKeypair } from '../BrowserSignerBase.js';
+import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
 
 declare global {
     interface Window {
@@ -139,7 +139,7 @@ export class UnisatSigner extends CustomKeypair {
         i: number,
         sighashTypes: number[],
     ): Promise<void> {
-        let firstSignature = await this.signTweaked(transaction, i, sighashTypes, false);
+        const firstSignature = await this.signTweaked(transaction, i, sighashTypes, false);
         this.combine(transaction, firstSignature, i);
     }
 

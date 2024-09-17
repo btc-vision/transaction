@@ -90,9 +90,7 @@ export interface Unisat {
 
     on(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 
-    on(event: 'networkChanged', listener: (network: UnisatNetwork) => void): void;
-
-    on(event: 'chainChanged', listener: (network: UnisatNetwork) => void): void;
+    on(event: 'chainChanged' | 'networkChanged', listener: (network: UnisatNetwork) => void): void;
 
     removeListener(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 

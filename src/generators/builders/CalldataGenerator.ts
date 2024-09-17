@@ -1,9 +1,9 @@
 import { crypto, Network, networks, opcodes, script } from 'bitcoinjs-lib';
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
-import { Generator } from '../Generator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { Features } from '../Features.js';
+import { FeatureOpCodes, Features } from '../Features.js';
+import { Generator } from '../Generator.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -27,7 +27,7 @@ export class CalldataGenerator extends Generator {
     public static getPubKeyAsBuffer(witnessKeys: Buffer[], network: Network): Buffer {
         let finalBuffer: Buffer = Buffer.alloc(0);
 
-        for (let pubKey of witnessKeys) {
+        for (const pubKey of witnessKeys) {
             const key: ECPairInterface = EcKeyPair.fromPublicKey(pubKey, network);
 
             if (!key.compressed) {
@@ -130,9 +130,11 @@ export class CalldataGenerator extends Generator {
             }
         }
 
+        const featureOpcodes = features.map((feature) => FeatureOpCodes[feature]); // Get the opcodes for the features
+
         // Write calldata
         compiledData = compiledData.concat(
-            ...features,
+            ...featureOpcodes,
             ...[opcodes.OP_1NEGATE, ...dataChunks, opcodes.OP_ELSE, opcodes.OP_1, opcodes.OP_ENDIF],
         );
 

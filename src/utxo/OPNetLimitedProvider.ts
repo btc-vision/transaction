@@ -1,10 +1,15 @@
-import { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO } from './interfaces/IUTXO.js';
-import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
-import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
-import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import { Address } from '@btc-vision/bsi-binary';
-import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
 import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
+import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
+import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
+import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
+import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
+import {
+    FetchUTXOParams,
+    FetchUTXOParamsMultiAddress,
+    RawUTXOResponse,
+    UTXO,
+} from './interfaces/IUTXO.js';
 
 /**
  * Allows to fetch UTXO data from any OPNET node
@@ -36,7 +41,7 @@ export class OPNetLimitedProvider {
             throw new Error(`Failed to fetch UTXO data: ${resp.statusText}`);
         }
 
-        const fetchedData: RawUTXOResponse[] = await resp.json();
+        const fetchedData: RawUTXOResponse[] = (await resp.json()) as RawUTXOResponse[];
         if (fetchedData.length === 0) {
             throw new Error('No UTXO found');
         }
@@ -49,7 +54,7 @@ export class OPNetLimitedProvider {
             throw new Error('No UTXO found (minAmount)');
         }
 
-        let finalUTXOs: UTXO[] = [];
+        const finalUTXOs: UTXO[] = [];
         let currentAmount: bigint = 0n;
 
         const amountRequested: bigint = settings.requestedAmount;
@@ -86,7 +91,7 @@ export class OPNetLimitedProvider {
     public async fetchUTXOMultiAddr(settings: FetchUTXOParamsMultiAddress): Promise<UTXO[]> {
         const promises: Promise<UTXO[]>[] = [];
 
-        for (let address of settings.addresses) {
+        for (const address of settings.addresses) {
             const params: FetchUTXOParams = {
                 address: address,
                 minAmount: settings.minAmount,
@@ -107,7 +112,7 @@ export class OPNetLimitedProvider {
         const finalUTXOs: UTXO[] = [];
         let currentAmount = 0n;
         for (let i = 0; i < all.length; i++) {
-            let utxo = all[i];
+            const utxo = all[i];
 
             if (currentAmount >= settings.requestedAmount) {
                 break;
@@ -168,7 +173,11 @@ export class OPNetLimitedProvider {
             throw new Error(`Failed to fetch to rpc: ${resp.statusText}`);
         }
 
-        const fetchedData = await resp.json();
+        const fetchedData = (await resp.json()) as {
+            result: {
+                error?: string;
+            };
+        };
         if (!fetchedData) {
             throw new Error('No data fetched');
         }

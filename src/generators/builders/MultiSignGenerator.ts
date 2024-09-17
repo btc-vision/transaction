@@ -21,15 +21,17 @@ export class MultiSignGenerator {
         }
 
         if (minimumSignatures > MultiSignGenerator.MAXIMUM_SUPPORTED_SIGNATURE) {
-            throw new Error(`The maximum amount of signatures is ${MultiSignGenerator.MAXIMUM_SUPPORTED_SIGNATURE}`);
+            throw new Error(
+                `The maximum amount of signatures is ${MultiSignGenerator.MAXIMUM_SUPPORTED_SIGNATURE}`,
+            );
         }
 
         const minimumRequired = Buffer.alloc(1);
         minimumRequired.writeUInt8(minimumSignatures);
 
         /** Remove duplicates **/
-        vaultPublicKeys = vaultPublicKeys.filter((buf, index, self) =>
-            index === self.findIndex(otherBuf => buf.equals(otherBuf))
+        vaultPublicKeys = vaultPublicKeys.filter(
+            (buf, index, self) => index === self.findIndex((otherBuf) => buf.equals(otherBuf)),
         );
 
         /** We must order the pub keys. */
@@ -37,7 +39,7 @@ export class MultiSignGenerator {
 
         let included = false;
         const data = vaultPublicKeys.map((key) => {
-            let newKey = toXOnly(key);
+            const newKey = toXOnly(key);
             if (internal && !included) included = internal.equals(newKey);
 
             return newKey;

@@ -8,9 +8,9 @@ export class BitcoinUtils {
     /**
      * Converts satoshi to BTC
      * @param {number} btc - The amount in BTC
-     * @returns {BigInt} The amount in satoshi
+     * @returns {bigint} The amount in satoshi
      */
-    public static btcToSatoshi(btc: number): BigInt {
+    public static btcToSatoshi(btc: number): bigint {
         return BigInt(btc * 100000000);
     }
 
@@ -82,7 +82,7 @@ export class BitcoinUtils {
 
         let mostPublicKeys: number = 0;
         let vault: VaultUTXOs | undefined;
-        for (let v of vaults) {
+        for (const v of vaults) {
             if (v.publicKeys.length > mostPublicKeys) {
                 mostPublicKeys = v.publicKeys.length;
                 vault = v;

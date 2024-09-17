@@ -1,7 +1,7 @@
-import { Network, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
-import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
-import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { Network, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
+import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
+import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
 
 export interface PsbtTransactionData extends ITweakedTransactionData {
     readonly psbt: Psbt;
@@ -141,7 +141,7 @@ export class PsbtTransaction extends TweakedTransaction {
         try {
             const inputs = this.transaction.data.inputs;
             for (let i = n; i < inputs.length; i++) {
-                let input = inputs[i];
+                const input = inputs[i];
                 if (input.finalScriptWitness) {
                     this.transaction.finalizeTaprootInput(i, input.finalScriptWitness);
                 } else {
