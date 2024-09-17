@@ -151,7 +151,7 @@ export class PsbtTransaction extends TweakedTransaction {
 
             return true;
         } catch (e) {
-            this.warn((e as Error).stack);
+            this.warn((e as Error).stack || "Couldn't finalize inputs");
             return false;
         }
     }
