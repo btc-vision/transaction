@@ -33,7 +33,7 @@ export class TweakedSigner {
      * @param {TweakSettings} opts - The tweak settings
      */
     public static tweakSigner(signer: ECPairInterface, opts: TweakSettings = {}): Signer {
-        let privateKey: Uint8Array | undefined;
+        let privateKey: Uint8Array | undefined = signer.privateKey;
         if (!privateKey) {
             throw new Error('Private key is required for tweaking signer!');
         }
