@@ -2,6 +2,7 @@ import webpack from 'webpack';
 
 export default {
     mode: 'production',
+    target: 'web',
     entry: {
         index: {
             import: './src/index.ts',

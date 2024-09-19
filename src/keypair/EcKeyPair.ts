@@ -1,15 +1,18 @@
-import bip32, { BIP32Interface } from 'bip32';
-import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib';
-import { ECPairFactory, ECPairInterface } from 'ecpair';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { Address } from '@btc-vision/bsi-binary';
-import { IWallet } from './interfaces/IWallet.js';
+import bip32, { BIP32Factory, BIP32Interface } from 'bip32';
+import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { ECPairFactory, ECPairInterface } from 'ecpair';
+import { IWallet } from './interfaces/IWallet.js';
 
 initEccLib(ecc);
 
-// @ts-ignore
-const BIP32Factory = typeof bip32 === 'function' ? bip32 : bip32.BIP32Factory;
+const BIP32factory = typeof bip32 === 'function' ? bip32 : BIP32Factory;
+
+if (!BIP32factory) {
+    throw new Error('Failed to load BIP32 library');
+}
 
 /**
  * Class for handling EC key pairs
@@ -19,8 +22,7 @@ const BIP32Factory = typeof bip32 === 'function' ? bip32 : bip32.BIP32Factory;
  * @example import { EcKeyPair } from '@btc-vision/transaction';
  */
 export class EcKeyPair {
-    // @ts-ignore
-    public static BIP32 = BIP32Factory(ecc);
+    public static BIP32 = BIP32factory(ecc);
     public static ECPair = ECPairFactory(ecc);
 
     /**

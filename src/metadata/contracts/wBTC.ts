@@ -1,8 +1,8 @@
-import { Network, networks } from 'bitcoinjs-lib';
-import { ContractBaseMetadata } from '../ContractBaseMetadata.js';
 import { Address } from '@btc-vision/bsi-binary';
-import { WBTC_ADDRESS_FRACTAL, WBTC_ADDRESS_REGTEST, WBTC_ADDRESS_TESTNET } from '../tokens.js';
+import { Network, networks } from 'bitcoinjs-lib';
 import { ChainId } from '../../network/ChainId.js';
+import { ContractBaseMetadata } from '../ContractBaseMetadata.js';
+import { WBTC_ADDRESS_FRACTAL, WBTC_ADDRESS_REGTEST, WBTC_ADDRESS_TESTNET } from '../tokens.js';
 
 /**
  * @description Wrapped Bitcoin (wBTC) contract metadata.
@@ -43,7 +43,7 @@ export class wBTC extends ContractBaseMetadata {
             case networks.testnet.bech32:
                 return WBTC_ADDRESS_TESTNET;
             default:
-                throw new Error(`Invalid network: ${network}`);
+                throw new Error(`Invalid network: ${network.bech32}`);
         }
     }
 
