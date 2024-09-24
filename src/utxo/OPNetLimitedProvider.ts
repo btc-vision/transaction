@@ -163,7 +163,7 @@ export class OPNetLimitedProvider {
     ): Promise<BroadcastResponse | { error: string }> {
         const utxoSetting: FetchUTXOParamsMultiAddress = {
             addresses: [wallet.p2wpkh, wallet.p2tr],
-            minAmount: 100_000_001n,
+            minAmount: 330n,
             requestedAmount: 1_000_000_000_000_000n,
         };
 
