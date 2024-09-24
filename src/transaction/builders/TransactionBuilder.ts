@@ -205,6 +205,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             priorityFee: this.priorityFee ?? 0n,
             from: this.from,
             amount: this.estimatedFees,
+            optionalOutputs: this.optionalOutputs,
         };
     }
 

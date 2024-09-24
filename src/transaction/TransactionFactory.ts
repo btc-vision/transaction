@@ -224,8 +224,7 @@ export class TransactionFactory {
         // Initial generation
         await preTransaction.signTransaction();
 
-        const parameters: IFundingTransactionParameters =
-            {...(await preTransaction.getFundingTransactionParameters()), optionalOutputs: deploymentParameters.optionalOutputs};
+        const parameters: IFundingTransactionParameters =await preTransaction.getFundingTransactionParameters();
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
