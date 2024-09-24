@@ -4,7 +4,7 @@ import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
-
+import { PsbtInputExtended, PsbtOutputExtended } from './Tap.js';
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
     readonly to?: Address | undefined;
@@ -12,6 +12,8 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     nonWitnessUtxo?: Buffer | undefined;
     estimatedFees?: bigint;
+
+    optionalOutputs?: PsbtOutputExtended[] | undefined;
 
     chainId?: ChainId;
 

@@ -225,7 +225,7 @@ export class TransactionFactory {
         await preTransaction.signTransaction();
 
         const parameters: IFundingTransactionParameters =
-            await preTransaction.getFundingTransactionParameters();
+            {...(await preTransaction.getFundingTransactionParameters()), optionalOutputs: deploymentParameters.optionalOutputs};
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
@@ -249,6 +249,7 @@ export class TransactionFactory {
             utxos: [newUtxo],
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
+            optionalOutputs: []
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);

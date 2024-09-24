@@ -28,7 +28,8 @@ export default tseslint.config(
             '@typescript-eslint/no-unnecessary-type-parameters': 'off',
             '@typescript-eslint/no-duplicate-enum-values': 'off',
             'prefer-spread': 'off',
-            '@typescript-eslint/no-empty-object-type': 'off',
+            '@typescript-eslint/no-empty-object-type': 'off'
+
         },
     },
     {
