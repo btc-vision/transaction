@@ -1,5 +1,7 @@
 import { Address } from '@btc-vision/bsi-binary';
+import { Network } from 'bitcoinjs-lib';
 import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
+import { IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
 import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
 import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
 import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
@@ -143,6 +145,52 @@ export class OPNetLimitedProvider {
         }
 
         return result as BroadcastResponse;
+    }
+
+    /**
+     * Splits UTXOs into smaller UTXOs
+     * @param {Wallet} wallet - The wallet to split UTXOs
+     * @param {Network} network - The network to split UTXOs
+     * @param {number} splitInputsInto - The number of UTXOs to split into
+     * @param {bigint} amountPerUTXO - The amount per UTXO
+     * @returns {Promise<BroadcastResponse | { error: string }>} - The response from the OPNET node or an error
+     */
+    public async splitUTXOs(
+        wallet: Wallet,
+        network: Network,
+        splitInputsInto: number,
+        amountPerUTXO: bigint,
+    ): Promise<BroadcastResponse | { error: string }> {
+        const utxoSetting: FetchUTXOParamsMultiAddress = {
+            addresses: [wallet.p2wpkh, wallet.p2tr],
+            minAmount: 330n,
+            requestedAmount: 1_000_000_000_000_000n,
+        };
+
+        const utxos: UTXO[] = await this.fetchUTXOMultiAddr(utxoSetting);
+        if (!utxos || !utxos.length) return { error: 'No UTXOs found' };
+
+        const amount = BigInt(splitInputsInto) * amountPerUTXO;
+
+        const fundingTransactionParameters: IFundingTransactionParameters = {
+            amount: amount,
+            feeRate: 500,
+            from: wallet.p2tr,
+            utxos: utxos,
+            signer: wallet.keypair,
+            network,
+            to: wallet.p2tr,
+            splitInputsInto,
+            priorityFee: 330n,
+        };
+
+        const transactionFactory = new TransactionFactory();
+        const fundingTx = await transactionFactory.createBTCTransfer(fundingTransactionParameters);
+
+        const broadcastResponse = await this.broadcastTransaction(fundingTx.tx, false);
+        if (!broadcastResponse) return { error: 'Could not broadcast transaction' };
+
+        return broadcastResponse;
     }
 
     /**
