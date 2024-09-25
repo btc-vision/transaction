@@ -13,6 +13,12 @@ import {
     UTXO,
 } from './interfaces/IUTXO.js';
 
+export interface WalletUTXOs {
+    readonly confirmed: RawUTXOResponse[];
+    readonly pending: RawUTXOResponse[];
+    readonly spentTransactions: RawUTXOResponse[];
+}
+
 /**
  * Allows to fetch UTXO data from any OPNET node
  */
@@ -20,7 +26,7 @@ export class OPNetLimitedProvider {
     private readonly utxoPath: string = 'address/utxos';
     private readonly rpc: string = 'json-rpc';
 
-    constructor(private readonly opnetAPIUrl: string) {}
+    public constructor(private readonly opnetAPIUrl: string) {}
 
     /**
      * Fetches UTXO data from the OPNET node
@@ -29,6 +35,14 @@ export class OPNetLimitedProvider {
      * @throws {Error} - If UTXOs could not be fetched
      */
     public async fetchUTXO(settings: FetchUTXOParams): Promise<UTXO[]> {
+        if (settings.usePendingUTXO === undefined) {
+            settings.usePendingUTXO = true;
+        }
+
+        if (settings.optimized === undefined) {
+            settings.optimized = true;
+        }
+
         const params = {
             method: 'GET',
             headers: {
@@ -43,12 +57,31 @@ export class OPNetLimitedProvider {
             throw new Error(`Failed to fetch UTXO data: ${resp.statusText}`);
         }
 
-        const fetchedData: RawUTXOResponse[] = (await resp.json()) as RawUTXOResponse[];
-        if (fetchedData.length === 0) {
+        const fetchedData: WalletUTXOs = (await resp.json()) as WalletUTXOs;
+        const allUtxos = settings.usePendingUTXO
+            ? [...fetchedData.confirmed, ...fetchedData.pending]
+            : fetchedData.confirmed;
+
+        const unspentUTXOs: RawUTXOResponse[] = [];
+        for (const utxo of allUtxos) {
+            if (
+                fetchedData.spentTransactions.some(
+                    (spent) =>
+                        spent.transactionId === utxo.transactionId &&
+                        spent.outputIndex === utxo.outputIndex,
+                )
+            ) {
+                continue;
+            }
+
+            unspentUTXOs.push(utxo);
+        }
+
+        if (unspentUTXOs.length === 0) {
             throw new Error('No UTXO found');
         }
 
-        const meetCriteria: RawUTXOResponse[] = fetchedData.filter((utxo: RawUTXOResponse) => {
+        const meetCriteria: RawUTXOResponse[] = unspentUTXOs.filter((utxo: RawUTXOResponse) => {
             return BigInt(utxo.value) >= settings.minAmount;
         });
 
@@ -99,6 +132,7 @@ export class OPNetLimitedProvider {
                 minAmount: settings.minAmount,
                 requestedAmount: settings.requestedAmount,
                 optimized: settings.optimized,
+                usePendingUTXO: false,
             };
 
             const promise = this.fetchUTXO(params).catch(() => {

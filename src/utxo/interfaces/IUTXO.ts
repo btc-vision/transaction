@@ -11,7 +11,8 @@ export interface FetchUTXOParams {
     readonly address: string;
     readonly minAmount: bigint;
     readonly requestedAmount: bigint;
-    readonly optimized?: boolean;
+    optimized?: boolean;
+    usePendingUTXO?: boolean;
 }
 
 export interface FetchUTXOParamsMultiAddress {
