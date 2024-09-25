@@ -4,7 +4,7 @@ import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
-import { PsbtInputExtended, PsbtOutputExtended } from './Tap.js';
+import { PsbtOutputExtended } from './Tap.js';
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
     readonly to?: Address | undefined;
@@ -13,7 +13,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     nonWitnessUtxo?: Buffer | undefined;
     estimatedFees?: bigint;
 
-    optionalOutputs?: PsbtOutputExtended[] | undefined;
+    optionalOutputs?: PsbtOutputExtended[];
 
     chainId?: ChainId;
 
@@ -34,13 +34,14 @@ export interface SharedInteractionParameters extends ITransactionParameters {
     readonly randomBytes?: Buffer;
 }
 
-export interface IInteractionParameters extends SharedInteractionParameters {
+export interface IInteractionParameters
+    extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly calldata: Buffer;
 
     readonly to: Address;
 }
 
-export interface IWrapParameters extends SharedInteractionParameters {
+export interface IWrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly to?: Address;
 
     readonly from: Address;
@@ -50,7 +51,7 @@ export interface IWrapParameters extends SharedInteractionParameters {
     readonly generationParameters: WrappedGeneration;
 }
 
-export interface IUnwrapParameters extends SharedInteractionParameters {
+export interface IUnwrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly unwrapUTXOs: VaultUTXOs[];
     readonly amount: bigint;
 }

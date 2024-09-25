@@ -12,7 +12,6 @@ import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { Address } from '@btc-vision/bsi-binary';
-import { PsbtOutputExtended } from '../interfaces/Tap.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -77,7 +76,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      */
     private readonly randomBytes: Buffer;
 
-
     public constructor(parameters: IDeploymentParameters) {
         super(parameters);
 
@@ -88,6 +86,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('Contract size overflow.');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
+
         this.contractSeed = this.getContractSeed();
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
 
@@ -179,7 +178,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         });
 
         await this.addRefundOutput(amountSpent);
-      }
+    }
 
     /**
      * Sign the inputs

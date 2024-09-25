@@ -122,10 +122,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
-        
         this.optionalOutputs = parameters.optionalOutputs;
-        
-       
 
         this.from = TransactionBuilder.getFrom(
             parameters.from,
@@ -143,8 +140,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.transaction = new Psbt({
             network: this.network,
         });
-
-
     }
 
     public static getFrom(
@@ -420,10 +415,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         /** Add the refund output */
-
-        const sendBackAmount: bigint = this.totalInputAmount - amountSpent - this.addOptionalOutputsAndGetAmount();
-
-
+        const sendBackAmount: bigint =
+            this.totalInputAmount - amountSpent - this.addOptionalOutputsAndGetAmount();
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
             if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
                 await this.setFeeOutput({
@@ -490,7 +483,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected calculateTotalUTXOAmount(): bigint {
         let total: bigint = 0n;
         for (const utxo of this.utxos) {
-          
             total += utxo.value;
         }
         return total;
@@ -509,16 +501,19 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         return total;
     }
-
+    /**
+     * @description Adds optional outputs to transaction and returns their total value in satoshi to calculate refund transaction
+     * @protected
+     * @returns {bigint}
+     */
     protected addOptionalOutputsAndGetAmount(): bigint {
-    
-        if(!this.optionalOutputs) return 0n;
+        if (!this.optionalOutputs) return 0n;
 
         let refundedFromOptionalOutputs = 0n;
 
         for (let i = 0; i < this.optionalOutputs.length; i++) {
-          this.addOutput(this.optionalOutputs[i]);
-          refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i].value);
+            this.addOutput(this.optionalOutputs[i]);
+            refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i].value);
         }
         return refundedFromOptionalOutputs;
     }
