@@ -291,7 +291,7 @@ export class TransactionFactory {
         const childTransactionRequiredValue: bigint =
             wrapParameters.amount +
             currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT +
-            (wrapParameters.priorityFee || 300n);
+            (wrapParameters.priorityFee || 330n);
 
         const wbtc: wBTC = new wBTC(wrapParameters.network, wrapParameters.chainId);
         const to = wbtc.getAddress();
