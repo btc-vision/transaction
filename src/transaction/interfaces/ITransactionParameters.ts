@@ -7,10 +7,10 @@ import { ChainId } from '../../network/ChainId.js';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
-    readonly to?: Address | undefined;
+    readonly to?: Address;
     utxos: UTXO[];
 
-    nonWitnessUtxo?: Buffer | undefined;
+    nonWitnessUtxo?: Buffer;
     estimatedFees?: bigint;
 
     chainId?: ChainId;
@@ -26,7 +26,7 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {
-    calldata?: Buffer | undefined;
+    calldata?: Buffer;
     disableAutoRefund?: boolean;
 
     readonly randomBytes?: Buffer;
@@ -53,9 +53,8 @@ export interface IUnwrapParameters extends SharedInteractionParameters {
     readonly amount: bigint;
 }
 
-export interface IDeploymentParameters extends ITransactionParameters {
+export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
     readonly bytecode: Buffer;
 
-    readonly to?: undefined;
     readonly randomBytes?: Buffer;
 }
