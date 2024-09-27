@@ -132,7 +132,7 @@ export class OPNetLimitedProvider {
                 minAmount: settings.minAmount,
                 requestedAmount: settings.requestedAmount,
                 optimized: settings.optimized,
-                usePendingUTXO: false,
+                usePendingUTXO: settings.usePendingUTXO,
             };
 
             const promise = this.fetchUTXO(params).catch(() => {

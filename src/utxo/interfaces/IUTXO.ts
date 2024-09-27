@@ -20,6 +20,7 @@ export interface FetchUTXOParamsMultiAddress {
     readonly minAmount: bigint;
     readonly requestedAmount: bigint;
     readonly optimized?: boolean;
+    readonly usePendingUTXO?: boolean;
 }
 
 export interface RawUTXOResponse {
