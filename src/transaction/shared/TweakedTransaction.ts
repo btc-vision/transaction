@@ -7,8 +7,8 @@ import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
-import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 import { ChainId } from '../../network/ChainId.js';
+import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer;
@@ -109,17 +109,17 @@ export abstract class TweakedTransaction extends Logger {
      * Read witnesses
      * @protected
      */
-    public static readScriptWitnessToWitnessStack(buffer: Buffer): Buffer[] {
+    public static readScriptWitnessToWitnessStack(Buffer: Buffer): Buffer[] {
         let offset = 0;
 
         function readSlice(n: number): Buffer {
-            const slice = buffer.subarray(offset, offset + n);
+            const slice = Buffer.subarray(offset, offset + n);
             offset += n;
             return slice;
         }
 
         function readVarInt(): number {
-            const varint = varuint.decode(buffer, offset);
+            const varint = varuint.decode(Buffer, offset);
             offset += varuint.decode.bytes;
             return varint;
         }
@@ -421,6 +421,20 @@ export abstract class TweakedTransaction extends Logger {
         }
     }
 
+    protected splitArray<T>(arr: T[], chunkSize: number): T[][] {
+        if (chunkSize <= 0) {
+            throw new Error('Chunk size must be greater than 0.');
+        }
+
+        const result: T[][] = [];
+
+        for (let i = 0; i < arr.length; i += chunkSize) {
+            result.push(arr.slice(i, i + chunkSize));
+        }
+
+        return result;
+    }
+
     /**
      * Signs all the inputs of the transaction.
      * @param {Psbt} transaction - The transaction to sign
@@ -428,14 +442,30 @@ export abstract class TweakedTransaction extends Logger {
      * @returns {Promise<void>}
      */
     protected async signInputs(transaction: Psbt): Promise<void> {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            const input: PsbtInput = transaction.data.inputs[i];
+        const txs: PsbtInput[] = transaction.data.inputs;
 
-            try {
-                await this.signInput(transaction, input, i);
-            } catch (e) {
-                this.log(`Failed to sign input ${i}: ${(e as Error).stack}`);
+        const batchSize: number = 20;
+        const batches = this.splitArray(txs, batchSize);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const promises: Promise<void>[] = [];
+            const offset = i * batchSize;
+
+            for (let j = 0; j < batch.length; j++) {
+                const index = offset + j;
+                const input = batch[j];
+
+                this.info(`Signing input #${index} out of ${transaction.data.inputs.length}!`);
+
+                try {
+                    promises.push(this.signInput(transaction, input, index));
+                } catch (e) {
+                    this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                }
             }
+
+            await Promise.all(promises);
         }
 
         try {

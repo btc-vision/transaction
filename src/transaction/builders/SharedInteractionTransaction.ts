@@ -76,7 +76,7 @@ export abstract class SharedInteractionTransaction<
             this.network,
         );
     }
-
+    
     /**
      * Get the contract secret
      * @returns {Buffer} The contract secret
@@ -185,44 +185,27 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            const input: PsbtInput = transaction.data.inputs[i];
-            let finalized: boolean = false;
-            let signed: boolean = false;
+        try {
+            transaction.finalizeInput(0, this.customFinalizer);
+        } catch (e) {}
 
-            try {
-                await this.signInput(transaction, input, i, this.scriptSigner);
-                signed = true;
-            } catch (e) {}
+        const txs: PsbtInput[] = transaction.data.inputs;
+        for (let i = 0; i < txs.length; i += 20) {
+            const batch = txs.slice(i, i + 20);
 
-            try {
-                await this.signInput(transaction, input, i);
-                signed = true;
-            } catch (e) {}
+            const promises: Promise<void>[] = [];
+            for (let y = 0; y < batch.length; y++) {
+                const offset = i * 20 + y;
+                const input = batch[y];
 
-            try {
-                transaction.finalizeInput(0, this.customFinalizer);
-                finalized = true;
-            } catch (e) {}
+                this.info(`Signing input #${offset} out of ${transaction.data.inputs.length}!`);
 
-            try {
-                transaction.finalizeInput(i);
-                finalized = true;
-            } catch (e) {}
-
-            if (signed || finalized) {
-                this.log(
-                    `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}, Finalized: ${finalized}}`,
-                );
-
-                continue;
+                promises.push(this.signIndividualInputs(transaction, input, offset));
             }
 
-            if (this.regenerated || this.ignoreSignatureErrors) {
-                continue;
-            }
-
-            throw new Error('Failed to sign input');
+            await Promise.all(promises).catch((e: unknown) => {
+                throw e;
+            });
         }
     }
 
@@ -327,6 +310,44 @@ export abstract class SharedInteractionTransaction<
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
+
+    private async signIndividualInputs(
+        transaction: Psbt,
+        input: PsbtInput,
+        i: number,
+    ): Promise<void> {
+        let finalized: boolean = false;
+        let signed: boolean = false;
+
+        try {
+            await this.signInput(transaction, input, i, this.scriptSigner);
+            signed = true;
+        } catch (e) {}
+
+        try {
+            await this.signInput(transaction, input, i);
+            signed = true;
+        } catch (e) {}
+
+        try {
+            transaction.finalizeInput(i);
+            finalized = true;
+        } catch (e) {}
+
+        if (signed || finalized) {
+            this.log(
+                `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}, Finalized: ${finalized}}`,
+            );
+
+            return;
+        }
+
+        if (this.regenerated || this.ignoreSignatureErrors) {
+            return;
+        }
+
+        throw new Error('Failed to sign input');
+    }
 
     /**
      * Get the public keys
