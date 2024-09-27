@@ -48,6 +48,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     public estimatedFees: bigint = 0n;
     /**
+     * @param {ITransactionParameters} parameters - The transaction parameters
+     */
+
+    public optionalOutputs: PsbtOutputExtended[] | undefined;
+    /**
      * @description The transaction itself.
      */
     protected transaction: Psbt;
@@ -101,12 +106,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The maximum fee rate of the transaction
      */
     protected _maximumFeeRate: number = 100000000;
-
-    /**
-     * @param {ITransactionParameters} parameters - The transaction parameters
-     */
-
-    public optionalOutputs: PsbtOutputExtended[] | undefined;
 
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
@@ -259,7 +258,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Generates the transaction minimal signatures
      * @public
      */
-    public async generateTransactionMinimalSignatures(): Promise<void> {
+    public async generateTransactionMinimalSignatures(
+        checkPartialSigs: boolean = false,
+    ): Promise<void> {
         if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
@@ -273,7 +274,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             const outputs: PsbtOutputExtended[] = this.getOutputs();
 
             this.transaction.setMaximumFeeRate(this._maximumFeeRate);
-            this.transaction.addInputs(inputs);
+            this.transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
                 this.transaction.updateInput(i, this.updateInputs[i]);
@@ -501,6 +502,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         return total;
     }
+
     /**
      * @description Adds optional outputs to transaction and returns their total value in satoshi to calculate refund transaction
      * @protected
@@ -655,17 +657,21 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
+     * @param checkPartialSigs
      * @protected
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
+    protected async internalBuildTransaction(
+        transaction: Psbt,
+        checkPartialSigs: boolean = false,
+    ): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
 
             transaction.setMaximumFeeRate(this._maximumFeeRate);
-            transaction.addInputs(inputs);
+            transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
                 transaction.updateInput(i, this.updateInputs[i]);

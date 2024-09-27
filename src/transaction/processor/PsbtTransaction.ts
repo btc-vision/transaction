@@ -119,8 +119,8 @@ export class PsbtTransaction extends TweakedTransaction {
      * @description Add an input to the transaction
      * @param input
      */
-    public addInput(input: PsbtInputExtended): void {
-        this.transaction.addInput(input);
+    public addInput(input: PsbtInputExtended, checkPartialSigs: boolean = false): void {
+        this.transaction.addInput(input, checkPartialSigs);
     }
 
     /**

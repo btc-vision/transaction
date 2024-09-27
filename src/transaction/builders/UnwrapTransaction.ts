@@ -381,17 +381,21 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
     /**
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
+     * @param checkPartialSigs
      * @protected
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
+    protected async internalBuildTransaction(
+        transaction: Psbt,
+        checkPartialSigs: boolean = false,
+    ): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
 
             transaction.setMaximumFeeRate(this._maximumFeeRate);
-            transaction.addInputs(inputs);
+            transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
                 transaction.updateInput(i, this.updateInputs[i]);

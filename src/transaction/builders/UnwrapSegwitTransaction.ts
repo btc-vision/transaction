@@ -196,13 +196,13 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected async internalBuildTransaction(transaction: Psbt): Promise<boolean> {
+    protected async internalBuildTransaction(transaction: Psbt, checkPartialSigs: boolean = false): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
 
             transaction.setMaximumFeeRate(this._maximumFeeRate);
-            transaction.addInputs(inputs);
+            transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
                 transaction.updateInput(i, this.updateInputs[i]);
@@ -313,9 +313,9 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
             this.addVaultUTXO(utxo, p2wshOutput);
 
             if (firstSigner) {
-                this.log(
-                    `Signing input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
-                );
+                //this.log(
+                //    `Signing input ${inputIndex} with ${firstSigner.publicKey.toString('hex')}`,
+                //);
 
                 // we don't care if we fail to sign the input
                 try {
