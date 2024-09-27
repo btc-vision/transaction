@@ -1,9 +1,9 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { Address } from '@btc-vision/bsi-binary';
-import bip32, { BIP32Factory, BIP32Interface } from 'bip32';
+import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
 import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import { ECPairFactory, ECPairInterface } from 'ecpair';
+import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
 
 initEccLib(ecc);
@@ -22,8 +22,8 @@ if (!BIP32factory) {
  * @example import { EcKeyPair } from '@btc-vision/transaction';
  */
 export class EcKeyPair {
-    public static BIP32 = BIP32factory(ecc);
-    public static ECPair = ECPairFactory(ecc);
+    public static BIP32: BIP32API = BIP32factory(ecc);
+    public static ECPair: ECPairAPI = ECPairFactory(ecc);
 
     /**
      * Generate a keypair from a WIF

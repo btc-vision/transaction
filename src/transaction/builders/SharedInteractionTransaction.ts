@@ -76,7 +76,7 @@ export abstract class SharedInteractionTransaction<
             this.network,
         );
     }
-    
+
     /**
      * Get the contract secret
      * @returns {Buffer} The contract secret
