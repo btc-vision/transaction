@@ -194,8 +194,6 @@ export abstract class SharedInteractionTransaction<
                 const offset = i * 20 + y;
                 const input = batch[y];
 
-                //this.info(`Signing input #${offset} out of ${transaction.data.inputs.length}!`);
-
                 promises.push(this.signIndividualInputs(transaction, input, offset));
             }
 

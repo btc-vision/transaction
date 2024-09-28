@@ -103,7 +103,7 @@
         "bech32": "^2.0.0",
         "bignumber.js": "^9.1.2",
         "bip32": "^4.0.0",
-        "bitcoinjs-lib": "file:../bitcoinjs-lib",
+        "bitcoinjs-lib": "github:btc-vision/bitcoinjs-lib",
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
         "ecpair": "^2.1.0",
