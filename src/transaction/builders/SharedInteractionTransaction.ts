@@ -185,10 +185,6 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        try {
-            transaction.finalizeInput(0, this.customFinalizer);
-        } catch (e) {}
-
         const txs: PsbtInput[] = transaction.data.inputs;
         for (let i = 0; i < txs.length; i += 20) {
             const batch = txs.slice(i, i + 20);
@@ -206,6 +202,22 @@ export abstract class SharedInteractionTransaction<
             await Promise.all(promises).catch((e: unknown) => {
                 throw e;
             });
+        }
+
+        try {
+            transaction.finalizeInput(0, this.customFinalizer);
+
+            this.log(`Finalized input 0!`);
+        } catch (e) {
+            console.log(`Failed to finalize input 0: ${(e as Error).stack}`);
+        }
+
+        for (let i = 0; i < txs.length; i++) {
+            try {
+                transaction.finalizeInput(i);
+
+                this.log(`Finalized input ${i}!`);
+            } catch {}
         }
     }
 
@@ -293,9 +305,11 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Tap leaf script is required');
         }
 
-        if (!input.tapScriptSig) {
-            throw new Error('Tap script signature is required');
-        }
+        //console.log('finalizing input', input);
+
+        //if (!input.tapLeafScript) {
+        //    throw new Error('Tap script signature is required');
+        //}
 
         if (!this.contractSecret) {
             throw new Error('Contract secret is required');
@@ -316,27 +330,21 @@ export abstract class SharedInteractionTransaction<
         input: PsbtInput,
         i: number,
     ): Promise<void> {
-        let finalized: boolean = false;
         let signed: boolean = false;
 
         try {
             await this.signInput(transaction, input, i, this.scriptSigner);
             signed = true;
-        } catch (e) {}
+        } catch {}
 
         try {
             await this.signInput(transaction, input, i);
             signed = true;
-        } catch (e) {}
+        } catch {}
 
-        try {
-            transaction.finalizeInput(i);
-            finalized = true;
-        } catch (e) {}
-
-        if (signed || finalized) {
+        if (signed) {
             this.log(
-                `Signed input or finalized input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}, Finalized: ${finalized}}`,
+                `Signed input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}}`,
             );
 
             return;

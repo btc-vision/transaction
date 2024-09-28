@@ -456,8 +456,6 @@ export abstract class TweakedTransaction extends Logger {
                 const index = offset + j;
                 const input = batch[j];
 
-                //this.info(`Signing input #${index} out of ${transaction.data.inputs.length}!`);
-
                 try {
                     promises.push(this.signInput(transaction, input, index));
                 } catch (e) {

@@ -255,17 +255,13 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
     /**
      * Finalize the transaction
      * @param _inputIndex
-     * @param input
+     * @param _input
      */
-    private customFinalizer = (_inputIndex: number, input: PsbtInput) => {
+    private customFinalizer = (_inputIndex: number, _input: PsbtInput) => {
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
         }
-
-        if (!input.tapScriptSig) {
-            throw new Error('Tap script signature is required');
-        }
-
+        
         const scriptSolution = this.witnesses;
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
