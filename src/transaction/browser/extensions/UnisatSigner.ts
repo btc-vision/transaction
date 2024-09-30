@@ -75,11 +75,12 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public get unisat(): Unisat {
-        if (!window.unisat) {
-            throw new Error('Unisat extension not found');
+        const module = window.opnet || window.unisat;
+        if (!module) {
+            throw new Error('OPWallet extension not found');
         }
 
-        return window.unisat;
+        return module;
     }
 
     public async init(): Promise<void> {
