@@ -204,10 +204,8 @@ export abstract class SharedInteractionTransaction<
 
         try {
             transaction.finalizeInput(0, this.customFinalizer);
-
-            this.log(`Finalized input 0!`);
         } catch (e) {
-            console.log(`Failed to finalize input 0: ${(e as Error).stack}`);
+            this.error(`Failed to finalize input 0: ${(e as Error).stack}`);
         }
 
         for (let i = 0; i < txs.length; i++) {
