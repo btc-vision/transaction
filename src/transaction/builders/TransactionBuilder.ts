@@ -1,17 +1,17 @@
+import * as ecc from '@bitcoinerlab/secp256k1';
+import { Address } from '@btc-vision/bsi-binary';
 import { initEccLib, Network, opcodes, Psbt, script, Signer, Transaction } from 'bitcoinjs-lib';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
-import * as ecc from '@bitcoinerlab/secp256k1';
-import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
+import { ECPairInterface } from 'ecpair';
+import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import {
     IFundingTransactionParameters,
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
-import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { Address } from '@btc-vision/bsi-binary';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ECPairInterface } from 'ecpair';
-import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { PsbtInputExtended, PsbtOutputExtended, UpdateInput } from '../interfaces/Tap.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 
 initEccLib(ecc);
@@ -186,8 +186,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
+        let priorityFeeApplied = false;
+
         if (!this.estimatedFees) {
             this.estimatedFees = await this.estimateTransactionFees();
+        }
+
+        let adjustedAmount = this.estimatedFees;
+
+        if (this.priorityFee > 0 && !priorityFeeApplied) {
+            adjustedAmount += this.priorityFee;
+            priorityFeeApplied = true;
         }
 
         return {
@@ -198,7 +207,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             feeRate: this.feeRate,
             priorityFee: this.priorityFee ?? 0n,
             from: this.from,
-            amount: this.estimatedFees,
+            amount: adjustedAmount,
             optionalOutputs: this.optionalOutputs,
         };
     }
@@ -365,7 +374,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             const fee: number = this.feeRate * size;
 
             this.estimatedFees = BigInt(Math.ceil(fee) + 1);
-            
+
             return this.estimatedFees;
         } else {
             throw new Error(
@@ -621,36 +630,35 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
         const initialValue = output.value;
-
         const fee = await this.estimateTransactionFees();
-        output.value = initialValue - Number(fee);
 
-        if (output.value < TransactionBuilder.MINIMUM_DUST) {
-            this.feeOutput = null;
+        if (Number(fee) > this.totalInputAmount) {
+            throw new Error(
+                `Insufficient total input amount to cover fees. Fee: ${fee} > Total UTXO value: ${this.totalInputAmount}`,
+            );
+        }
+
+        if (Number(fee) > initialValue) {
+            this.warn(
+                `Insufficient funds for fees. Adjusting value to cover fees. Initial: ${initialValue}, Fee: ${fee}`,
+            );
+            output.value = Number(this.totalInputAmount - fee);
 
             if (output.value < 0) {
-                throw new Error(
-                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} < Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
-                );
+                throw new Error(`setFeeOutput: Unable to cover fees with the given inputs.`);
             }
         } else {
+            output.value = initialValue - Number(fee);
+        }
+
+        if (output.value < TransactionBuilder.MINIMUM_DUST) {
+            this.warn(
+                `The output value (${output.value}) is less than the minimum dust. It will be consumed as fees.`,
+            );
+            this.feeOutput = null;
+        } else {
             this.feeOutput = output;
-
-            const fee = await this.estimateTransactionFees();
-            if (fee > BigInt(initialValue)) {
-                throw new Error(
-                    `estimateTransactionFees: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
-                );
-            }
-
-            const valueLeft = initialValue - Number(fee);
-            if (valueLeft < TransactionBuilder.MINIMUM_DUST) {
-                this.feeOutput = null;
-            } else {
-                this.feeOutput.value = valueLeft;
-            }
-
-            this.overflowFees = BigInt(valueLeft);
+            this.overflowFees = BigInt(output.value);
         }
     }
 

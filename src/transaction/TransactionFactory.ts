@@ -224,7 +224,8 @@ export class TransactionFactory {
         // Initial generation
         await preTransaction.signTransaction();
 
-        const parameters: IFundingTransactionParameters =await preTransaction.getFundingTransactionParameters();
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
@@ -248,7 +249,7 @@ export class TransactionFactory {
             utxos: [newUtxo],
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
-            optionalOutputs: []
+            optionalOutputs: [],
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
@@ -542,6 +543,18 @@ export class TransactionFactory {
     ): Promise<FundingTransactionResponse> {
         if (!parameters.to) throw new Error('Field "to" not provided.');
 
+        let totalFees = parameters.estimatedFees ?? 0n;
+
+        if (parameters.priorityFee && parameters.priorityFee > 0n) {
+            totalFees += parameters.priorityFee;
+        }
+
+        if (parameters.amount < totalFees) {
+            throw new Error(
+                `Insufficient amount to cover transaction fees. Needed: ${totalFees}, but provided: ${parameters.amount}`,
+            );
+        }
+
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
@@ -551,7 +564,7 @@ export class TransactionFactory {
         return {
             tx: signedTransaction,
             original: fundingTransaction,
-            estimatedFees: fundingTransaction.estimatedFees,
+            estimatedFees: totalFees,
             nextUTXOs: this.getUTXOAsTransaction(signedTransaction, parameters.to, 0),
         };
     }
