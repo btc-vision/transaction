@@ -230,6 +230,10 @@ export class TransactionFactory {
         const parameters: IFundingTransactionParameters =
             await preTransaction.getFundingTransactionParameters();
 
+        parameters.amount =
+            (await preTransaction.estimateTransactionFees()) +
+            this.getPriorityFee(deploymentParameters);
+
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
