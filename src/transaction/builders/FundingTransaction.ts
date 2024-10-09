@@ -25,25 +25,16 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.addInputsFromUTXO();
 
-        let amountSpent: bigint = this.amount;
-        if (this.getTransactionOPNetFee() === TransactionBuilder.MINIMUM_DUST) {
-            if (amountSpent < TransactionBuilder.MINIMUM_DUST) {
-                amountSpent += TransactionBuilder.MINIMUM_DUST;
-            }
-        } else {
-            amountSpent += this.getTransactionOPNetFee();
-        }
-
         if (this.splitInputsInto > 1) {
-            this.splitInputs(amountSpent);
+            this.splitInputs(this.amount);
         } else {
             this.addOutput({
-                value: Number(amountSpent),
+                value: Number(this.amount),
                 address: this.to,
             });
         }
 
-        await this.addRefundOutput(amountSpent);
+        await this.addRefundOutput(this.amount);
     }
 
     protected splitInputs(amountSpent: bigint): void {

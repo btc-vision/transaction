@@ -20,6 +20,7 @@ import {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
+    ITransactionParameters,
     IUnwrapParameters,
     IWrapParameters,
 } from './interfaces/ITransactionParameters.js';
@@ -102,7 +103,8 @@ export class TransactionFactory {
 
         parameters.utxos = interactionParameters.utxos;
         parameters.amount =
-            (await preTransaction.estimateTransactionFees()) + interactionParameters.priorityFee;
+            (await preTransaction.estimateTransactionFees()) +
+            this.getPriorityFee(interactionParameters);
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -170,7 +172,8 @@ export class TransactionFactory {
 
         parameters.utxos = interactionParameters.utxos;
         parameters.amount =
-            (await preTransaction.estimateTransactionFees()) + interactionParameters.priorityFee;
+            (await preTransaction.estimateTransactionFees()) +
+            this.getPriorityFee(interactionParameters);
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -224,7 +227,8 @@ export class TransactionFactory {
         // Initial generation
         await preTransaction.signTransaction();
 
-        const parameters: IFundingTransactionParameters =await preTransaction.getFundingTransactionParameters();
+        const parameters: IFundingTransactionParameters =
+            await preTransaction.getFundingTransactionParameters();
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
@@ -248,7 +252,7 @@ export class TransactionFactory {
             utxos: [newUtxo],
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
-            optionalOutputs: []
+            optionalOutputs: [],
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
@@ -291,7 +295,7 @@ export class TransactionFactory {
         const childTransactionRequiredValue: bigint =
             wrapParameters.amount +
             currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT +
-            (wrapParameters.priorityFee || 330n);
+            this.getPriorityFee(wrapParameters);
 
         const wbtc: wBTC = new wBTC(wrapParameters.network, wrapParameters.chainId);
         const to = wbtc.getAddress();
@@ -458,7 +462,8 @@ export class TransactionFactory {
 
         parameters.utxos = fundingParameters.utxos;
         parameters.amount =
-            (await preTransaction.estimateTransactionFees()) + unwrapParameters.priorityFee;
+            (await preTransaction.estimateTransactionFees()) +
+            this.getPriorityFee(unwrapParameters);
 
         const signedTransaction = await this.createFundTransaction(parameters);
         if (!signedTransaction) {
@@ -594,6 +599,14 @@ export class TransactionFactory {
         header.writeUInt8(currentConsensus, 1);
 
         return Buffer.concat([header, buf]).toString('hex');
+    }
+
+    private getPriorityFee(params: ITransactionParameters): bigint {
+        if (params.priorityFee < TransactionBuilder.MINIMUM_DUST) {
+            return TransactionBuilder.MINIMUM_DUST;
+        }
+
+        return params.priorityFee;
     }
 
     private getUTXOAsTransaction(tx: Transaction, to: Address, index: number): UTXO[] {

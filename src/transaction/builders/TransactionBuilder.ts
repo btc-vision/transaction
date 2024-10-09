@@ -365,7 +365,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             const fee: number = this.feeRate * size;
 
             this.estimatedFees = BigInt(Math.ceil(fee) + 1);
-            
+
             return this.estimatedFees;
         } else {
             throw new Error(
