@@ -5,6 +5,7 @@ import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from './Tap.js';
+
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: Address;
     readonly to?: Address;
@@ -58,6 +59,7 @@ export interface IUnwrapParameters extends Omit<SharedInteractionParameters, 'op
 
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
     readonly bytecode: Buffer;
+    readonly calldata?: Buffer;
 
     readonly randomBytes?: Buffer;
 }

@@ -12,6 +12,7 @@ import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { Address } from '@btc-vision/bsi-binary';
+import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -65,6 +66,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     private readonly bytecode: Buffer;
 
     /**
+     * Constructor calldata
+     * @private
+     */
+    private readonly calldata?: Buffer;
+
+    /**
      * The contract signer
      * @private
      */
@@ -80,10 +87,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         super(parameters);
 
         this.bytecode = Compressor.compress(parameters.bytecode);
-        if (!this.bytecode) throw new Error('Bytecode is required');
+        this.verifyBytecode();
 
-        if (this.bytecode.length > DeploymentTransaction.MAXIMUM_CONTRACT_SIZE)
-            throw new Error('Contract size overflow.');
+        if (parameters.calldata) {
+            this.calldata = parameters.calldata;
+            this.verifyCalldata();
+        }
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
 
@@ -99,6 +108,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.compiledTargetScript = this.deploymentGenerator.compile(
             this.bytecode,
             this.randomBytes,
+            this.calldata,
         );
 
         this.scriptTree = this.getScriptTree();
@@ -241,6 +251,23 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
         };
+    }
+
+    private verifyCalldata(): void {
+        if (
+            this.calldata &&
+            this.calldata.length > SharedInteractionTransaction.MAXIMUM_CALLDATA_SIZE
+        ) {
+            throw new Error('Calldata size overflow.');
+        }
+    }
+
+    private verifyBytecode(): void {
+        if (!this.bytecode) throw new Error('Bytecode is required');
+
+        if (this.bytecode.length > DeploymentTransaction.MAXIMUM_CONTRACT_SIZE) {
+            throw new Error('Contract size overflow.');
+        }
     }
 
     /**

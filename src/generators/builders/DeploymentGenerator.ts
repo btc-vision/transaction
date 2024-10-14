@@ -14,10 +14,11 @@ export class DeploymentGenerator extends Generator {
      * Compile a bitcoin script representing a contract deployment
      * @param {Buffer} contractBytecode - The contract bytecode
      * @param {Buffer} contractSalt - The contract salt
+     * @param {Buffer} [calldata] - The calldata to be passed to the contract
      * @returns {Buffer} - The compiled script
      */
-    public compile(contractBytecode: Buffer, contractSalt: Buffer): Buffer {
-        const asm = this.getAsm(contractBytecode, contractSalt);
+    public compile(contractBytecode: Buffer, contractSalt: Buffer, calldata?: Buffer): Buffer {
+        const asm = this.getAsm(contractBytecode, contractSalt, calldata);
         const compiled = script.compile(asm);
 
         /**
@@ -31,10 +32,15 @@ export class DeploymentGenerator extends Generator {
         return compiled;
     }
 
-    private getAsm(contractBytecode: Buffer, contractSalt: Buffer): (number | Buffer)[] {
+    private getAsm(
+        contractBytecode: Buffer,
+        contractSalt: Buffer,
+        calldata?: Buffer,
+    ): (number | Buffer)[] {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
-        const dataChunks = this.splitBufferIntoChunks(contractBytecode);
+        const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
+        const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
         return [
             this.senderPubKey,
@@ -57,6 +63,8 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_IF,
 
             Generator.MAGIC,
+            opcodes.OP_0,
+            ...calldataChunks,
             opcodes.OP_1NEGATE,
             ...dataChunks,
 

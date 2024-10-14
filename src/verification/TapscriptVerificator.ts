@@ -10,6 +10,7 @@ export interface ContractAddressVerificationParams {
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
+    readonly calldata?: Buffer;
     readonly network?: Network;
 }
 
@@ -29,6 +30,7 @@ export class TapscriptVerificator {
         const compiledTargetScript: Buffer = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
+            params.calldata,
         );
 
         const scriptTree: Taptree = [
