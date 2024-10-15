@@ -193,6 +193,7 @@ export class EcKeyPair {
     ): Address {
         const wallet = payments.p2sh({
             redeem: payments.p2wpkh({ pubkey: keyPair.publicKey, network: network }),
+            network: network,
         });
 
         if (!wallet.address) {
