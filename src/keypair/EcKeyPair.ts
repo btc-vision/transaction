@@ -182,6 +182,27 @@ export class EcKeyPair {
     }
 
     /**
+     * Get the legacy segwit address from a keypair
+     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * @param {Network} network - The network to use
+     * @returns {Address} - The legacy address
+     */
+    public static getLegacySegwitAddress(
+        keyPair: ECPairInterface,
+        network: Network = networks.bitcoin,
+    ): Address {
+        const wallet = payments.p2sh({
+            redeem: payments.p2wpkh({ pubkey: keyPair.publicKey, network: network }),
+        });
+
+        if (!wallet.address) {
+            throw new Error('Failed to generate wallet');
+        }
+
+        return wallet.address;
+    }
+
+    /**
      * Get the legacy address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
@@ -192,12 +213,29 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): Address {
         const wallet = payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
-
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
         }
 
         return wallet.address;
+    }
+
+    /**
+     * Get the legacy address from a keypair
+     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * @param {Network} network - The network to use
+     * @returns {Address} - The legacy address
+     */
+    public static getP2PKAddress(
+        keyPair: ECPairInterface,
+        network: Network = networks.bitcoin,
+    ): Address {
+        const wallet = payments.p2pk({ pubkey: keyPair.publicKey, network: network });
+        if (!wallet.output) {
+            throw new Error('Failed to generate wallet');
+        }
+
+        return '0x' + wallet.output.toString('hex');
     }
 
     /**

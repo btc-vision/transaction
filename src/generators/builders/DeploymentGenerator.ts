@@ -42,15 +42,18 @@ export class DeploymentGenerator extends Generator {
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
-        return [
-            this.senderPubKey,
+        const compiledData = [
+            this.senderFirstByte,
+            opcodes.OP_TOALTSTACK,
+
+            this.xSenderPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             this.contractSaltPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             opcodes.OP_HASH160,
-            crypto.hash160(this.senderPubKey),
+            crypto.hash160(this.xSenderPubKey),
             opcodes.OP_EQUALVERIFY,
 
             opcodes.OP_HASH256,
@@ -71,6 +74,8 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_ELSE,
             opcodes.OP_1,
             opcodes.OP_ENDIF,
-        ].flat();
+        ];
+
+        return compiledData.flat();
     }
 }

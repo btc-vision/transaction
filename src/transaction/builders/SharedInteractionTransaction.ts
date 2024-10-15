@@ -73,7 +73,7 @@ export abstract class SharedInteractionTransaction<
         this.scriptSigner = this.generateKeyPairFromSeed();
 
         this.calldataGenerator = new CalldataGenerator(
-            this.internalPubKeyToXOnly(),
+            this.signer.publicKey,
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );

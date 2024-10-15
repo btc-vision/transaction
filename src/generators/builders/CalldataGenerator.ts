@@ -75,14 +75,17 @@ export class CalldataGenerator extends Generator {
         if (!dataChunks.length) throw new Error('No data chunks found');
 
         let compiledData = [
-            this.senderPubKey,
+            this.senderFirstByte,
+            opcodes.OP_TOALTSTACK,
+
+            this.xSenderPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             this.contractSaltPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             opcodes.OP_HASH160,
-            crypto.hash160(this.senderPubKey),
+            crypto.hash160(this.xSenderPubKey),
             opcodes.OP_EQUALVERIFY,
 
             opcodes.OP_HASH160,
@@ -96,7 +99,7 @@ export class CalldataGenerator extends Generator {
 
             Generator.MAGIC,
         ];
-
+        
         // write pub keys, when requested.
         if (vaultPublicKeys.length > 0) {
             const pubKeyBuffer = CalldataGenerator.getPubKeyAsBuffer(vaultPublicKeys, this.network);

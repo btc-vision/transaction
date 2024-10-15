@@ -1,4 +1,5 @@
 import { Network, networks } from 'bitcoinjs-lib';
+import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 
 /** Bitcoin Script Generator */
 export abstract class Generator {
@@ -17,6 +18,12 @@ export abstract class Generator {
      * @protected
      */
     protected readonly senderPubKey: Buffer;
+
+    /**
+     * The public key of the sender
+     * @protected
+     */
+    protected readonly xSenderPubKey: Buffer;
 
     /**
      * The public key of the contract salt
@@ -38,6 +45,11 @@ export abstract class Generator {
         this.senderPubKey = senderPubKey;
         this.contractSaltPubKey = contractSaltPubKey;
         this.network = network;
+        this.xSenderPubKey = toXOnly(senderPubKey);
+    }
+
+    public get senderFirstByte(): Buffer {
+        return Buffer.from([this.senderPubKey[0], 0, 0, 0]);
     }
 
     /**

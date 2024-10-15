@@ -100,7 +100,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
 
         this.deploymentGenerator = new DeploymentGenerator(
-            this.internalPubKeyToXOnly(),
+            this.signer.publicKey,
             this.contractSignerXOnlyPubKey(),
             this.network,
         );

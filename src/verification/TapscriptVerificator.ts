@@ -6,7 +6,7 @@ import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.j
 import { AddressGenerator } from '../generators/AddressGenerator.js';
 
 export interface ContractAddressVerificationParams {
-    readonly deployerPubKeyXOnly: Buffer;
+    readonly deployerPubKey: Buffer;
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
@@ -22,7 +22,7 @@ export class TapscriptVerificator {
     ): string | undefined {
         const network = params.network || networks.bitcoin;
         const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
-            params.deployerPubKeyXOnly,
+            params.deployerPubKey,
             toXOnly(params.contractSaltPubKey),
             network,
         );
@@ -80,7 +80,7 @@ export class TapscriptVerificator {
         const network = params.network || networks.bitcoin;
 
         const transactionData: Payment = {
-            internalPubkey: params.deployerPubKeyXOnly,
+            internalPubkey: toXOnly(params.deployerPubKey),
             network: network,
             scriptTree: scriptTree,
         };

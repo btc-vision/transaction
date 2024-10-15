@@ -107,6 +107,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected _maximumFeeRate: number = 100000000;
 
+    /**
+     * @description Is the destionation P2PK
+     * @protected
+     */
+    protected isPubKeyDestination: boolean;
+
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
 
@@ -120,6 +126,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.priorityFee = parameters.priorityFee ?? 0n;
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
+
+        this.isPubKeyDestination = this.to ? this.to.startsWith('0x') : false;
 
         this.optionalOutputs = parameters.optionalOutputs;
 
@@ -231,7 +239,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             throw new Error('No UTXOs specified');
         }
 
-        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+        if (
+            this.to &&
+            !this.isPubKeyDestination &&
+            !EcKeyPair.verifyContractAddress(this.to, this.network)
+        ) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
             );
@@ -261,7 +273,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     public async generateTransactionMinimalSignatures(
         checkPartialSigs: boolean = false,
     ): Promise<void> {
-        if (this.to && !EcKeyPair.verifyContractAddress(this.to, this.network)) {
+        if (
+            this.to &&
+            !this.isPubKeyDestination &&
+            !EcKeyPair.verifyContractAddress(this.to, this.network)
+        ) {
             throw new Error(
                 'Invalid contract address. The contract address must be a taproot address.',
             );

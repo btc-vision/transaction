@@ -27,6 +27,11 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
+        } else if (this.isPubKeyDestination) {
+            this.addOutput({
+                value: Number(this.amount),
+                script: Buffer.from(this.to.slice(2), 'hex'),
+            });
         } else {
             this.addOutput({
                 value: Number(this.amount),
@@ -45,10 +50,17 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         const splitAmount = amountSpent / BigInt(this.splitInputsInto);
 
         for (let i = 0; i < this.splitInputsInto; i++) {
-            this.addOutput({
-                value: Number(splitAmount),
-                address: this.to,
-            });
+            if (this.isPubKeyDestination) {
+                this.addOutput({
+                    value: Number(splitAmount),
+                    script: Buffer.from(this.to.slice(2), 'hex'),
+                });
+            } else {
+                this.addOutput({
+                    value: Number(splitAmount),
+                    address: this.to,
+                });
+            }
         }
     }
 
