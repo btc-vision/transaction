@@ -148,7 +148,7 @@ export class EcKeyPair {
     }
 
     /**
-     * Get a P2WSH address from a keypair
+     * Get the address of a tweaked public key
      * @param {string} tweakedPubKeyHex - The tweaked public key hex string
      * @param {Network} network - The network to use
      * @returns {Address} - The address
@@ -176,12 +176,44 @@ export class EcKeyPair {
     }
 
     /**
+     * Get the address of a xOnly tweaked public key
+     * @param {string} tweakedPubKeyHex - The xOnly tweaked public key hex string
+     * @param {Network} network - The network to use
+     * @returns {Address} - The address
+     * @throws {Error} - If the address cannot be generated
+     */
+    public static xOnlyTweakedPubKeyToAddress(tweakedPubKeyHex: string, network: Network): string {
+        if (tweakedPubKeyHex.startsWith('0x')) {
+            tweakedPubKeyHex = tweakedPubKeyHex.slice(2);
+        }
+
+        // Convert the tweaked public key hex string to a Buffer
+        const tweakedPubKeyBuffer = Buffer.from(tweakedPubKeyHex, 'hex');
+
+        // Generate the Taproot address using the p2tr payment method
+        const { address } = payments.p2tr({
+            pubkey: tweakedPubKeyBuffer,
+            network: network,
+        });
+
+        if (!address) {
+            throw new Error('Failed to generate Taproot address');
+        }
+
+        return address;
+    }
+
+    /**
      * Tweak a public key
      * @param {string} compressedPubKeyHex - The compressed public key hex string
      * @returns {string} - The tweaked public key hex string
      * @throws {Error} - If the public key cannot be tweaked
      */
     public static tweakPublicKey(compressedPubKeyHex: string): string {
+        if (compressedPubKeyHex.startsWith('0x')) {
+            compressedPubKeyHex = compressedPubKeyHex.slice(2);
+        }
+
         // Convert the compressed public key hex string to a Point on the curve
         let P = Point.fromHex(compressedPubKeyHex);
 
