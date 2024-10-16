@@ -5,6 +5,8 @@ import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib'
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
+import { CURVE, Point, utils } from '@noble/secp256k1';
+import { taggedHash } from 'bitcoinjs-lib/src/crypto.js';
 
 initEccLib(ecc);
 
@@ -143,6 +145,64 @@ export class EcKeyPair {
         }
 
         return res.address;
+    }
+
+    /**
+     * Get a P2WSH address from a keypair
+     * @param {string} tweakedPubKeyHex - The tweaked public key hex string
+     * @param {Network} network - The network to use
+     * @returns {Address} - The address
+     * @throws {Error} - If the address cannot be generated
+     */
+    public static tweakedPubKeyToAddress(tweakedPubKeyHex: string, network: Network): string {
+        if (tweakedPubKeyHex.startsWith('0x')) {
+            tweakedPubKeyHex = tweakedPubKeyHex.slice(2);
+        }
+
+        // Convert the tweaked public key hex string to a Buffer
+        const tweakedPubKeyBuffer = Buffer.from(tweakedPubKeyHex, 'hex');
+
+        // Generate the Taproot address using the p2tr payment method
+        const { address } = payments.p2tr({
+            pubkey: toXOnly(tweakedPubKeyBuffer),
+            network: network,
+        });
+
+        if (!address) {
+            throw new Error('Failed to generate Taproot address');
+        }
+
+        return address;
+    }
+
+    /**
+     * Tweak a public key
+     * @param {string} compressedPubKeyHex - The compressed public key hex string
+     * @returns {string} - The tweaked public key hex string
+     * @throws {Error} - If the public key cannot be tweaked
+     */
+    public static tweakPublicKey(compressedPubKeyHex: string): string {
+        // Convert the compressed public key hex string to a Point on the curve
+        let P = Point.fromHex(compressedPubKeyHex);
+
+        // Ensure the point has an even y-coordinate
+        if (!P.hasEvenY()) {
+            // Negate the point to get an even y-coordinate
+            P = P.negate();
+        }
+
+        // Get the x-coordinate (32 bytes) of the point
+        const x = P.toRawBytes(true).slice(1); // Remove the prefix byte
+
+        // Compute the tweak t = H_tapTweak(x)
+        const tHash = taggedHash('TapTweak', Buffer.from(x));
+        const t = utils.mod(BigInt('0x' + Buffer.from(tHash).toString('hex')), CURVE.n);
+
+        // Compute Q = P + t*G (where G is the generator point)
+        const Q = P.add(Point.BASE.multiply(t));
+
+        // Return the tweaked public key in compressed form (hex string)
+        return Q.toHex(true);
     }
 
     /**
