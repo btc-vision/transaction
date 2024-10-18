@@ -38,7 +38,7 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * @description Tweaked signer
      */
-    protected tweakedSigner?: Signer;
+    protected tweakedSigner?: ECPairInterface;
     /**
      * @description The network of the transaction
      */
@@ -367,7 +367,7 @@ export abstract class TweakedTransaction extends Logger {
         if (input.tapInternalKey) {
             if (!this.tweakedSigner) this.tweakSigner();
 
-            let tweakedSigner: Signer | undefined;
+            let tweakedSigner: ECPairInterface | undefined;
             if (signer !== this.signer) {
                 tweakedSigner = this.getTweakedSigner(true, signer);
             } else {
@@ -507,12 +507,12 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Get the tweaked signer
      * @private
-     * @returns {Signer} The tweaked signer
+     * @returns {ECPairInterface} The tweaked signer
      */
     protected getTweakedSigner(
         useTweakedHash: boolean = false,
         signer: Signer | ECPairInterface = this.signer,
-    ): Signer | undefined {
+    ): ECPairInterface | undefined {
         const settings: TweakSettings = {
             network: this.network,
         };

@@ -48,7 +48,7 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): ECPairInterface {
         return this.ECPair.fromPrivateKey(
-            Buffer.isBuffer(privateKey) ? Uint8Array.from(privateKey) : privateKey,
+            !Buffer.isBuffer(privateKey) ? Buffer.from(privateKey) : privateKey,
             { network },
         );
     }
@@ -64,7 +64,7 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): ECPairInterface {
         return this.ECPair.fromPublicKey(
-            Buffer.isBuffer(publicKey) ? Uint8Array.from(publicKey) : publicKey,
+            !Buffer.isBuffer(publicKey) ? Buffer.from(publicKey) : publicKey,
             { network },
         );
     }
@@ -416,6 +416,6 @@ export class EcKeyPair {
         const privKey = fromSeed.privateKey;
         if (!privKey) throw new Error('Failed to generate key pair');
 
-        return this.ECPair.fromPrivateKey(Uint8Array.from(privKey), { network });
+        return this.ECPair.fromPrivateKey(privKey, { network });
     }
 }
