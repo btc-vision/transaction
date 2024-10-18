@@ -13,6 +13,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { Address } from '@btc-vision/bsi-binary';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
+import { ECPairInterface } from 'ecpair';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -75,7 +76,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract signer
      * @private
      */
-    private readonly contractSigner: Signer;
+    private readonly contractSigner: Signer | ECPairInterface;
 
     /**
      * The contract salt random bytes
@@ -100,7 +101,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
 
         this.deploymentGenerator = new DeploymentGenerator(
-            this.signer.publicKey,
+            Buffer.from(this.signer.publicKey),
             this.contractSignerXOnlyPubKey(),
             this.network,
         );
@@ -145,7 +146,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @protected
      */
     protected contractSignerXOnlyPubKey(): Buffer {
-        return toXOnly(this.contractSigner.publicKey);
+        return toXOnly(Buffer.from(this.contractSigner.publicKey));
     }
 
     /**
@@ -323,10 +324,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @private
      */
     private getPubKeys(): Buffer[] {
-        const pubkeys = [this.signer.publicKey];
+        const pubkeys = [Buffer.from(this.signer.publicKey)];
 
         if (this.contractSigner) {
-            pubkeys.push(this.contractSigner.publicKey);
+            pubkeys.push(Buffer.from(this.contractSigner.publicKey));
         }
 
         return pubkeys;

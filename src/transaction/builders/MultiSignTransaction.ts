@@ -498,7 +498,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected override async internalBuildTransaction(transaction: Psbt, checkPartialSigs: boolean = false): Promise<boolean> {
+    protected override async internalBuildTransaction(
+        transaction: Psbt,
+        checkPartialSigs: boolean = false,
+    ): Promise<boolean> {
         const inputs: PsbtInputExtended[] = this.getInputs();
         const outputs: PsbtOutputExtended[] = this.getOutputs();
 

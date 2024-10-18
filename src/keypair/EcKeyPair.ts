@@ -1,7 +1,7 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { Address } from '@btc-vision/bsi-binary';
 import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
-import { address, initEccLib, Network, networks, payments } from 'bitcoinjs-lib';
+import { address, initEccLib, Network, networks, payments, Signer } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
@@ -44,23 +44,29 @@ export class EcKeyPair {
      * @returns {ECPairInterface} - The generated keypair
      */
     public static fromPrivateKey(
-        privateKey: Buffer,
+        privateKey: Buffer | Uint8Array,
         network: Network = networks.bitcoin,
     ): ECPairInterface {
-        return this.ECPair.fromPrivateKey(privateKey, { network });
+        return this.ECPair.fromPrivateKey(
+            Buffer.isBuffer(privateKey) ? Uint8Array.from(privateKey) : privateKey,
+            { network },
+        );
     }
 
     /**
      * Generate a keypair from a public key
-     * @param {Buffer} publicKey - The public key to use
+     * @param {Buffer | Uint8Array} publicKey - The public key to use
      * @param {Network} network - The network to use
      * @returns {ECPairInterface} - The generated keypair
      */
     public static fromPublicKey(
-        publicKey: Buffer,
+        publicKey: Buffer | Uint8Array,
         network: Network = networks.bitcoin,
     ): ECPairInterface {
-        return this.ECPair.fromPublicKey(publicKey, { network });
+        return this.ECPair.fromPublicKey(
+            Buffer.isBuffer(publicKey) ? Uint8Array.from(publicKey) : publicKey,
+            { network },
+        );
     }
 
     /**
@@ -124,7 +130,7 @@ export class EcKeyPair {
                 throw new Error('Failed to regenerate key');
             }
 
-            return key.publicKey;
+            return Buffer.from(key.publicKey);
         });
     }
 
@@ -138,7 +144,7 @@ export class EcKeyPair {
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
     ): Address {
-        const res = payments.p2wpkh({ pubkey: keyPair.publicKey, network: network });
+        const res = payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
 
         if (!res.address) {
             throw new Error('Failed to generate wallet');
@@ -256,7 +262,7 @@ export class EcKeyPair {
         return {
             address: wallet,
             privateKey: keyPair.toWIF(),
-            publicKey: keyPair.publicKey.toString('hex'),
+            publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
         };
     }
 
@@ -284,7 +290,7 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): Address {
         const wallet = payments.p2sh({
-            redeem: payments.p2wpkh({ pubkey: keyPair.publicKey, network: network }),
+            redeem: payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network }),
             network: network,
         });
 
@@ -305,7 +311,7 @@ export class EcKeyPair {
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
     ): Address {
-        const wallet = payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
+        const wallet = payments.p2pkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
         }
@@ -323,7 +329,7 @@ export class EcKeyPair {
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
     ): Address {
-        const wallet = payments.p2pk({ pubkey: keyPair.publicKey, network: network });
+        const wallet = payments.p2pk({ pubkey: Buffer.from(keyPair.publicKey), network: network });
         if (!wallet.output) {
             throw new Error('Failed to generate wallet');
         }
@@ -359,11 +365,11 @@ export class EcKeyPair {
      * @returns {Address} - The taproot address
      */
     public static getTaprootAddress(
-        keyPair: ECPairInterface,
+        keyPair: ECPairInterface | Signer,
         network: Network = networks.bitcoin,
     ): Address {
         const { address } = payments.p2tr({
-            internalPubkey: toXOnly(keyPair.publicKey),
+            internalPubkey: toXOnly(Buffer.from(keyPair.publicKey)),
             network: network,
         });
 
@@ -410,6 +416,6 @@ export class EcKeyPair {
         const privKey = fromSeed.privateKey;
         if (!privKey) throw new Error('Failed to generate key pair');
 
-        return this.ECPair.fromPrivateKey(privKey, { network });
+        return this.ECPair.fromPrivateKey(Uint8Array.from(privKey), { network });
     }
 }

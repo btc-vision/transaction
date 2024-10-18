@@ -11,7 +11,7 @@ import { ChainId } from '../../network/ChainId.js';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 
 export interface ITweakedTransactionData {
-    readonly signer: Signer;
+    readonly signer: Signer | ECPairInterface;
     readonly network: Network;
     readonly chainId?: ChainId;
     readonly nonWitnessUtxo?: Buffer;
@@ -34,7 +34,7 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * @description Was the transaction signed?
      */
-    protected signer: Signer;
+    protected signer: Signer | ECPairInterface;
     /**
      * @description Tweaked signer
      */
@@ -336,9 +336,9 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Returns the signer key.
      * @protected
-     * @returns {Signer}
+     * @returns {Signer | ECPairInterface}
      */
-    protected getSignerKey(): Signer {
+    protected getSignerKey(): Signer | ECPairInterface {
         return this.signer;
     }
 
@@ -354,7 +354,7 @@ export abstract class TweakedTransaction extends Logger {
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer?: Signer,
+        signer?: Signer | ECPairInterface,
     ): Promise<void> {
         const signHash =
             this.sighashTypes && this.sighashTypes.length
@@ -481,7 +481,7 @@ export abstract class TweakedTransaction extends Logger {
      * @returns {Buffer}
      */
     protected internalPubKeyToXOnly(): Buffer {
-        return toXOnly(this.signer.publicKey);
+        return toXOnly(Buffer.from(this.signer.publicKey));
     }
 
     /**
@@ -511,7 +511,7 @@ export abstract class TweakedTransaction extends Logger {
      */
     protected getTweakedSigner(
         useTweakedHash: boolean = false,
-        signer: Signer = this.signer,
+        signer: Signer | ECPairInterface = this.signer,
     ): Signer | undefined {
         const settings: TweakSettings = {
             network: this.network,

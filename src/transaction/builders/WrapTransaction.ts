@@ -6,7 +6,6 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { wBTC } from '../../metadata/contracts/wBTC.js';
 import { ABICoder, Address, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ECPairInterface } from 'ecpair';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
@@ -94,11 +93,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
 
         const receiver: Address =
             parameters.receiver ||
-            TransactionBuilder.getFrom(
-                parameters.from,
-                parameters.signer as ECPairInterface,
-                parameters.network,
-            );
+            TransactionBuilder.getFrom(parameters.from, parameters.signer, parameters.network);
 
         parameters.calldata = WrapTransaction.generateMintCalldata(
             parameters.amount,

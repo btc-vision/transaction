@@ -2,6 +2,7 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { Signer } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import { ECPairInterface } from 'ecpair';
 
 export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDING> {
     public readonly type: TransactionType.FUNDING = TransactionType.FUNDING;
@@ -64,7 +65,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         }
     }
 
-    protected override getSignerKey(): Signer {
+    protected override getSignerKey(): Signer | ECPairInterface {
         return this.signer;
     }
 }

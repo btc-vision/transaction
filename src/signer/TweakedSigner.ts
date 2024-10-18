@@ -31,6 +31,7 @@ export class TweakedSigner {
      * Tweak a signer
      * @param {Signer} signer - The signer to tweak
      * @param {TweakSettings} opts - The tweak settings
+     * @returns {Signer} - The tweaked signer
      */
     public static tweakSigner(signer: ECPairInterface, opts: TweakSettings = {}): Signer {
         let privateKey: Uint8Array | undefined = signer.privateKey;
@@ -44,13 +45,20 @@ export class TweakedSigner {
 
         const tweakedPrivateKey = ecc.privateAdd(
             privateKey,
-            tapTweakHash(toXOnly(signer.publicKey), opts.tweakHash),
+            tapTweakHash(toXOnly(Buffer.from(signer.publicKey)), opts.tweakHash),
         );
 
         if (!tweakedPrivateKey) {
             throw new Error('Invalid tweaked private key!');
         }
 
-        return EcKeyPair.fromPrivateKey(Buffer.from(tweakedPrivateKey), opts.network);
+        const newSigner: Signer = EcKeyPair.fromPrivateKey(
+            Buffer.from(tweakedPrivateKey),
+            opts.network,
+        ) as unknown as Signer;
+
+        newSigner.publicKey = Buffer.from(signer.publicKey); // Convert to buffer.
+
+        return newSigner;
     }
 }

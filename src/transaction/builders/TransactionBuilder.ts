@@ -43,65 +43,79 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description Cost in satoshis of the transaction fee
      */
     public transactionFee: bigint = 0n;
+
     /**
      * @description The estimated fees of the transaction
      */
     public estimatedFees: bigint = 0n;
+
     /**
      * @param {ITransactionParameters} parameters - The transaction parameters
      */
-
     public optionalOutputs: PsbtOutputExtended[] | undefined;
+
     /**
      * @description The transaction itself.
      */
     protected transaction: Psbt;
+
     /**
      * @description Inputs to update later on.
      */
     protected readonly updateInputs: UpdateInput[] = [];
+
     /**
      * @description The outputs of the transaction
      */
     protected readonly outputs: PsbtOutputExtended[] = [];
+
     /**
      * @description Output that will be used to pay the fees
      */
     protected feeOutput: PsbtOutputExtended | null = null;
+
     /**
      * @description The total amount of satoshis in the inputs
      */
     protected totalInputAmount: bigint;
+
     /**
      * @description The signer of the transaction
      */
-    protected readonly signer: Signer;
+    protected readonly signer: Signer | ECPairInterface;
+
     /**
      * @description The network where the transaction will be broadcasted
      */
     protected readonly network: Network;
+
     /**
      * @description The fee rate of the transaction
      */
     protected readonly feeRate: number;
+
     /**
      * @description The opnet priority fee of the transaction
      */
     protected priorityFee: bigint;
+
     /**
      * @description The utxos used in the transaction
      */
     protected utxos: UTXO[];
+
     /**
      * @description The address where the transaction is sent to
      * @protected
      */
     protected to: Address | undefined;
+
     /**
      * @description The address where the transaction is sent from
      * @protected
      */
     protected from: Address;
+
     /**
      * @description The maximum fee rate of the transaction
      */
@@ -131,11 +145,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         this.optionalOutputs = parameters.optionalOutputs;
 
-        this.from = TransactionBuilder.getFrom(
-            parameters.from,
-            this.signer as ECPairInterface,
-            this.network,
-        );
+        this.from = TransactionBuilder.getFrom(parameters.from, this.signer, this.network);
 
         this.totalInputAmount = this.calculateTotalUTXOAmount();
 
@@ -151,7 +161,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     public static getFrom(
         from: string | undefined,
-        keypair: ECPairInterface,
+        keypair: ECPairInterface | Signer,
         network: Network,
     ): Address {
         return from || EcKeyPair.getTaprootAddress(keypair, network);

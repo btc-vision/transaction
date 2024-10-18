@@ -10,6 +10,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
+import { ECPairInterface } from 'ecpair';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -196,7 +197,10 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction
      */
-    protected async internalBuildTransaction(transaction: Psbt, checkPartialSigs: boolean = false): Promise<boolean> {
+    protected async internalBuildTransaction(
+        transaction: Psbt,
+        checkPartialSigs: boolean = false,
+    ): Promise<boolean> {
         if (transaction.data.inputs.length === 0) {
             const inputs: PsbtInputExtended[] = this.getInputs();
             const outputs: PsbtOutputExtended[] = this.getOutputs();
@@ -300,12 +304,12 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
     /**
      * @description Add vault inputs to the transaction
      * @param {VaultUTXOs} vault The vault UTXOs
-     * @param {Signer} [firstSigner] The first signer
+     * @param {Signer | ECPairInterface} [firstSigner] The first signer
      * @private
      */
     private async addVaultInputs(
         vault: VaultUTXOs,
-        firstSigner: Signer = this.signer,
+        firstSigner: Signer | ECPairInterface = this.signer,
     ): Promise<void> {
         const p2wshOutput = this.generateMultiSignRedeemScript(vault.publicKeys, vault.minimum);
         for (const utxo of vault.utxos) {

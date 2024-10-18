@@ -109,7 +109,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
         this.contractSecret = this.generateSecret();
 
         this.calldataGenerator = new CalldataGenerator(
-            this.signer.publicKey,
+            Buffer.from(this.signer.publicKey),
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
@@ -372,7 +372,7 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         return [
             this.contractSecret,
-            toXOnly(this.signer.publicKey),
+            toXOnly(Buffer.from(this.signer.publicKey)),
             input.tapScriptSig[0].signature,
             input.tapScriptSig[1].signature,
         ];

@@ -50,7 +50,7 @@ export abstract class SharedInteractionTransaction<
      * Script signer for the interaction
      * @protected
      */
-    protected readonly scriptSigner: Signer;
+    protected readonly scriptSigner: Signer | ECPairInterface;
 
     /**
      * Disable auto refund
@@ -73,7 +73,7 @@ export abstract class SharedInteractionTransaction<
         this.scriptSigner = this.generateKeyPairFromSeed();
 
         this.calldataGenerator = new CalldataGenerator(
-            this.signer.publicKey,
+            Buffer.from(this.signer.publicKey),
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
@@ -113,7 +113,7 @@ export abstract class SharedInteractionTransaction<
      * @returns {Buffer} The internal pubkey as an x-only key
      */
     protected scriptSignerXOnlyPubKey(): Buffer {
-        return toXOnly(this.scriptSigner.publicKey);
+        return toXOnly(Buffer.from(this.scriptSigner.publicKey));
     }
 
     /**
@@ -362,10 +362,10 @@ export abstract class SharedInteractionTransaction<
      * @returns {Buffer[]} The public keys
      */
     private getPubKeys(): Buffer[] {
-        const pubkeys = [this.signer.publicKey];
+        const pubkeys = [Buffer.from(this.signer.publicKey)];
 
         if (this.scriptSigner) {
-            pubkeys.push(this.scriptSigner.publicKey);
+            pubkeys.push(Buffer.from(this.scriptSigner.publicKey));
         }
 
         return pubkeys;

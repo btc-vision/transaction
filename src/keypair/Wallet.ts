@@ -33,6 +33,12 @@ export class Wallet {
      */
     private readonly _legacy: Address;
 
+    /**
+     * Buffer public key
+     * @private
+     */
+    private readonly _bufferPubKey: Buffer;
+
     constructor(
         wallet: IWallet,
         public readonly network: Network = networks.bitcoin,
@@ -42,6 +48,8 @@ export class Wallet {
         this._p2wpkh = EcKeyPair.getP2WPKHAddress(this._keypair, this.network);
         this._p2tr = EcKeyPair.getTaprootAddress(this._keypair, this.network);
         this._legacy = EcKeyPair.getLegacyAddress(this._keypair, this.network);
+
+        this._bufferPubKey = Buffer.from(wallet.publicKey, 'hex');
     }
 
     /**
@@ -92,9 +100,9 @@ export class Wallet {
      * @returns {Buffer}
      */
     public get publicKey(): Buffer {
-        if (!this.keypair) throw new Error('Keypair not set');
+        if (!this._bufferPubKey) throw new Error('Public key not set');
 
-        return this.keypair.publicKey;
+        return this._bufferPubKey;
     }
 
     /**
@@ -105,7 +113,7 @@ export class Wallet {
     public get xOnly(): Buffer {
         if (!this.keypair) throw new Error('Keypair not set');
 
-        return toXOnly(this.keypair.publicKey);
+        return toXOnly(this._bufferPubKey);
     }
 
     /**

@@ -11,6 +11,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
+import { ECPairInterface } from 'ecpair';
 
 export interface ICustomTransactionParameters extends SharedInteractionParameters {
     readonly script: (Buffer | Stack)[];
@@ -72,7 +73,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The contract signer
      * @private
      */
-    private readonly contractSigner: Signer;
+    private readonly contractSigner: Signer | ECPairInterface;
 
     /**
      * The contract salt random bytes
@@ -136,7 +137,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @protected
      */
     protected contractSignerXOnlyPubKey(): Buffer {
-        return toXOnly(this.contractSigner.publicKey);
+        return toXOnly(Buffer.from(this.contractSigner.publicKey));
     }
 
     /**
@@ -261,7 +262,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
         }
-        
+
         const scriptSolution = this.witnesses;
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
@@ -277,10 +278,10 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @private
      */
     private getPubKeys(): Buffer[] {
-        const pubkeys = [this.signer.publicKey];
+        const pubkeys = [Buffer.from(this.signer.publicKey)];
 
         if (this.contractSigner) {
-            pubkeys.push(this.contractSigner.publicKey);
+            pubkeys.push(Buffer.from(this.contractSigner.publicKey));
         }
 
         return pubkeys;

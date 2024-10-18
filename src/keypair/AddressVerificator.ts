@@ -108,11 +108,15 @@ export class AddressVerificator {
             if ((input.length === 66 || input.length === 130) && hexRegex.test(input)) {
                 // Check if the input can be parsed as a valid public key
                 const pubKeyBuffer = Buffer.from(input, 'hex');
+                console.log(pubKeyBuffer);
+
                 EcKeyPair.fromPublicKey(pubKeyBuffer, network);
 
                 return true;
             }
         } catch (error) {
+            console.log(error);
+
             // If any error occurs (invalid public key, etc.), return false
             return false;
         }
