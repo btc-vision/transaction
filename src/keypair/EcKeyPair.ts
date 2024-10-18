@@ -63,10 +63,9 @@ export class EcKeyPair {
         publicKey: Buffer | Uint8Array,
         network: Network = networks.bitcoin,
     ): ECPairInterface {
-        return this.ECPair.fromPublicKey(
-            !Buffer.isBuffer(publicKey) ? Buffer.from(publicKey) : publicKey,
-            { network },
-        );
+        const buf = !Buffer.isBuffer(publicKey) ? Buffer.from(publicKey) : publicKey;
+
+        return this.ECPair.fromPublicKey(buf, { network });
     }
 
     /**
