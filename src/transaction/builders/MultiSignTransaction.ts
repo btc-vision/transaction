@@ -10,6 +10,7 @@ import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { ECPairInterface } from 'ecpair';
 
 export interface MultiSignParameters
     extends Omit<ITransactionParameters, 'priorityFee' | 'signer'> {
@@ -172,7 +173,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      */
     public static signPartial(
         psbt: Psbt,
-        signer: Signer,
+        signer: Signer | ECPairInterface,
         originalInputCount: number,
         minimums: number[],
     ): {

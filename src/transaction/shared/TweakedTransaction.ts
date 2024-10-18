@@ -190,7 +190,7 @@ export abstract class TweakedTransaction extends Logger {
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer: Signer,
+        signer: Signer | ECPairInterface,
         sighashTypes: number[],
     ): void {
         if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
