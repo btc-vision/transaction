@@ -81,6 +81,7 @@ export * from './event/NetEvent.js';
 export * from './deterministic/DeterministicMap.js';
 export * from './deterministic/DeterministicSet.js';
 export * from './deterministic/AddressMap.js';
+export * from './deterministic/AddressSet.js';
 export * from './abi/ABICoder.js';
 export * from './buffer/BinaryWriter.js';
 export * from './buffer/BinaryReader.js';
