@@ -3,19 +3,18 @@ import { EcKeyPair } from './EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/types.js';
 import { AddressVerificator } from './AddressVerificator.js';
+import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 
 export class Address extends Uint8Array {
     private isP2TROnly: boolean = false;
+    #p2tr: string | undefined;
+    #network: Network | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
 
         if (!bytes) {
             return;
-        }
-
-        if (bytes.length !== ADDRESS_BYTE_LENGTH) {
-            throw new Error('Invalid address length');
         }
 
         this.set(bytes);
@@ -28,10 +27,16 @@ export class Address extends Uint8Array {
      */
     public get keyPair(): ECPairInterface {
         if (!this._keyPair) {
-            throw new Error('Public key not set');
+            throw new Error('Public key not set for address');
         }
 
         return this._keyPair;
+    }
+
+    public static dead(): Address {
+        return Address.fromString(
+            '0x04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f',
+        );
     }
 
     /**
@@ -84,16 +89,49 @@ export class Address extends Uint8Array {
      * @returns {void}
      */
     public override set(publicKey: ArrayLike<number>): void {
-        if (publicKey.length !== 33 && publicKey.length !== 32 && publicKey.length !== 130) {
+        if (publicKey.length !== 33 && publicKey.length !== 32 && publicKey.length !== 65) {
             throw new Error('Invalid public key length');
         }
 
-        super.set(publicKey);
-
         if (publicKey.length === 32) {
             this.isP2TROnly = true;
+
+            const buf = Buffer.alloc(32);
+            buf.set(publicKey);
+
+            /*let lowByte: number = 0;
+            try {
+                EcKeyPair.tweakPublicKey('02' + buf.toString('hex'));
+                lowByte = 2;
+            } catch (e) {
+                console.log(`Invalid pubkey (2) ${e}`);
+            }
+
+            try {
+                EcKeyPair.tweakPublicKey('03' + buf.toString('hex'));
+                lowByte = 3;
+            } catch (e) {
+                console.log(`Invalid pubkey (3) ${e}`);
+            }
+
+            if (lowByte === 0) {
+                console.log(AddressGenerator.generateTaprootAddress(buf, networks.regtest));
+
+                throw new Error('Invalid public key');
+            }*/
+
+            super.set(publicKey);
         } else {
-            this._keyPair = EcKeyPair.fromPublicKey(this);
+            this._keyPair = EcKeyPair.fromPublicKey(Uint8Array.from(publicKey));
+
+            const tweaked = toXOnly(
+                Buffer.from(
+                    EcKeyPair.tweakPublicKey(this._keyPair.publicKey.toString('hex')),
+                    'hex',
+                ),
+            );
+
+            super.set(Uint8Array.from(tweaked));
         }
     }
 
@@ -131,14 +169,37 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Convert the address to a string
+     */
+    public toString(): string {
+        if (this.#p2tr) {
+            return this.#p2tr;
+        }
+
+        return this.toHex();
+    }
+
+    /**
      * Get the address in p2tr format
      * @param {Network} network The network
      */
     public p2tr(network: Network): string {
+        if (this.#p2tr && this.#network === network) {
+            return this.#p2tr;
+        }
+
+        let p2trAddy: string | undefined;
         if (this._keyPair) {
-            return EcKeyPair.getTaprootAddress(this.keyPair, network);
+            p2trAddy = EcKeyPair.getTaprootAddress(this.keyPair, network);
         } else if (this.isP2TROnly) {
-            return EcKeyPair.tweakedPubKeyBufferToAddress(this, network);
+            p2trAddy = EcKeyPair.tweakedPubKeyBufferToAddress(this, network);
+        }
+
+        if (p2trAddy) {
+            this.#network = network;
+            this.#p2tr = p2trAddy;
+
+            return p2trAddy;
         }
 
         throw new Error('Public key not set');

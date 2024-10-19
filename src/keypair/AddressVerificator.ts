@@ -103,8 +103,15 @@ export class AddressVerificator {
             // Compressed public keys are 66 characters long (0x02 or 0x03 prefix + 32 bytes)
             // Uncompressed public keys are 130 characters long (0x04 prefix + 64 bytes)
             const hexRegex = /^[0-9a-fA-F]+$/;
+            if (!hexRegex.test(input)) {
+                return false;
+            }
 
-            if ((input.length === 66 || input.length === 130) && hexRegex.test(input)) {
+            if (input.length === 64) {
+                return true;
+            }
+
+            if (input.length === 66 || input.length === 130) {
                 // Check if the input can be parsed as a valid public key
                 const pubKeyBuffer = Buffer.from(input, 'hex');
                 EcKeyPair.fromPublicKey(pubKeyBuffer, network);
@@ -112,8 +119,6 @@ export class AddressVerificator {
                 return true;
             }
         } catch (error) {
-            console.log(error);
-
             // If any error occurs (invalid public key, etc.), return false
             return false;
         }

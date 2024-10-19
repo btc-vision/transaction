@@ -1,4 +1,4 @@
-import { bech32 } from 'bech32';
+import { bech32, bech32m } from 'bech32';
 import { initEccLib, Network } from 'bitcoinjs-lib';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { ripemd160 } from 'bitcoinjs-lib/src/crypto.js';
@@ -12,6 +12,20 @@ export class AddressGenerator {
 
         const pkh = ripemd160(sha256Hash);
         return this.toSegwitAddress(pkh, network);
+    }
+
+    // Generate a valid Taproot address from a public key
+    public static generateTaprootAddress(pubKey: Buffer, network: { bech32: string }): string {
+        if (pubKey.length !== 32) throw new Error('Invalid public key length');
+
+        // Convert the public key to words
+        const words = bech32m.toWords(pubKey);
+
+        // Prepend the witness version (0x01 for Taproot)
+        words.unshift(0x01);
+
+        // Encode using Bech32m
+        return bech32m.encode(network.bech32, words);
     }
 
     // Convert a hash to a SegWit address

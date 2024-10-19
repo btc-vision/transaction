@@ -2,10 +2,7 @@ import { ChainId } from '../network/ChainId.js';
 import { Address } from '../keypair/Address.js';
 
 function deadAddress(): Address {
-    return new Address([
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0,
-    ]);
+    return Address.dead();
 }
 
 // Addresses Regtest
