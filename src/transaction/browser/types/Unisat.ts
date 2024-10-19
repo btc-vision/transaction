@@ -1,4 +1,3 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { Web3Provider } from '../Web3Provider.js';
 
 export enum UnisatNetwork {
@@ -45,7 +44,7 @@ export interface ToSignInputPublicKey extends ToSignInputBase {
 }
 
 export interface ToSignInputAddress extends ToSignInputBase {
-    readonly address: Address;
+    readonly address: string;
 }
 
 export type ToSignInput = ToSignInputPublicKey | ToSignInputAddress;
@@ -59,7 +58,7 @@ export interface Unisat {
     web3?: Web3Provider;
 
     sendBitcoin(
-        toAddress: Address,
+        toAddress: string,
         satoshis: number,
         options: { feeRate: number; memo?: string; memos?: string[] },
     ): Promise<string>;

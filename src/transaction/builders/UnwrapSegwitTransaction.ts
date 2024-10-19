@@ -3,7 +3,6 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
 import { payments, Psbt, Signer } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -11,6 +10,9 @@ import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/Psb
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { ECPairInterface } from 'ecpair';
+import { Selector } from '../../utils/types.js';
+import { ABICoder } from '../../abi/ABICoder.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 const abiCoder: ABICoder = new ABICoder();
 

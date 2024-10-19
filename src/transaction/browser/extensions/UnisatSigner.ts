@@ -1,4 +1,3 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { TapScriptSig } from 'bip174/src/lib/interfaces.js';
 import { Network, networks, Psbt } from 'bitcoinjs-lib';
 import { ECPairInterface } from 'ecpair';
@@ -24,9 +23,9 @@ export class UnisatSigner extends CustomKeypair {
         }
     }
 
-    private _p2tr: Address | undefined;
+    private _p2tr: string | undefined;
 
-    public get p2tr(): Address {
+    public get p2tr(): string {
         if (!this._p2tr) {
             throw new Error('P2TR address not set');
         }
@@ -34,9 +33,9 @@ export class UnisatSigner extends CustomKeypair {
         return this._p2tr;
     }
 
-    private _p2wpkh: Address | undefined;
+    private _p2wpkh: string | undefined;
 
-    public get p2wpkh(): Address {
+    public get p2wpkh(): string {
         if (!this._p2wpkh) {
             throw new Error('P2PKH address not set');
         }
@@ -44,9 +43,9 @@ export class UnisatSigner extends CustomKeypair {
         return this._p2wpkh;
     }
 
-    private _addresses: Address[] | undefined;
+    private _addresses: string[] | undefined;
 
-    public get addresses(): Address[] {
+    public get addresses(): string[] {
         if (!this._addresses) {
             throw new Error('Addresses not set');
         }

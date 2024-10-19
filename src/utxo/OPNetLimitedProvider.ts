@@ -1,7 +1,6 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { Network } from 'bitcoinjs-lib';
 import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
-import { IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
+import { Address, IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
 import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
 import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
 import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
@@ -249,7 +248,6 @@ export class OPNetLimitedProvider {
 
         const url: string = `${this.opnetAPIUrl}/api/v1/${this.rpc}`;
 
-        //try {
         const resp: Response = await fetch(url, params);
         if (!resp.ok) {
             throw new Error(`Failed to fetch to rpc: ${resp.statusText}`);
@@ -274,9 +272,6 @@ export class OPNetLimitedProvider {
         }
 
         return result;
-        //} catch (e) {
-        //    throw e;
-        //}
     }
 
     /**
@@ -305,7 +300,7 @@ export class OPNetLimitedProvider {
     /**
      * Fetches the wrap parameters from the OPNET node
      * @param {bigint} amount - The amount to wrap
-     * @param {Address} receiver - The receiver address
+     * @param {string} receiver - The receiver address
      * @returns {Promise<UnwrapGeneration | undefined>} - The wrap parameters fetched
      * @throws {Error} - If wrap parameters could not be fetched
      */
@@ -323,7 +318,7 @@ export class OPNetLimitedProvider {
             throw new Error('Invalid receiver address');
         }
 
-        const params = [1, amount.toString(), receiver];
+        const params = [1, amount.toString(), receiver.toHex()];
         const result = await this.rpcMethod('btc_generate', params);
 
         if (!result) {

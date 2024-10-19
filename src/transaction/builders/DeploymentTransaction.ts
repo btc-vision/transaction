@@ -11,7 +11,6 @@ import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
-import { Address } from '@btc-vision/bsi-binary';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { ECPairInterface } from 'ecpair';
 
@@ -22,7 +21,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract address
      * @protected
      */
-    protected readonly _contractAddress: Address;
+    protected readonly _contractAddress: string;
     /**
      * The tap leaf script
      * @private
@@ -122,14 +121,14 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     /**
      * @description Get the contract address (PKSH)
      */
-    public get contractAddress(): Address {
+    public get contractAddress(): string {
         return this._contractAddress;
     }
 
     /**
      * @description Get the P2TR address
      */
-    public get p2trAddress(): Address {
+    public get p2trAddress(): string {
         return this.to || this.getScriptAddress();
     }
 

@@ -2,7 +2,6 @@ import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
-import { Address } from '@btc-vision/bsi-binary';
 import { crypto as bitCrypto, Payment, Psbt, Signer, Stack } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
@@ -17,7 +16,7 @@ export interface ICustomTransactionParameters extends SharedInteractionParameter
     readonly script: (Buffer | Stack)[];
     readonly witnesses: Buffer[];
 
-    readonly to: Address;
+    readonly to: string;
 }
 
 /**
@@ -31,7 +30,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The contract address
      * @protected
      */
-    protected readonly _scriptAddress: Address;
+    protected readonly _scriptAddress: string;
     /**
      * The tap leaf script
      * @private
@@ -113,14 +112,14 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
     /**
      * @description Get the contract address (PKSH)
      */
-    public get scriptAddress(): Address {
+    public get scriptAddress(): string {
         return this._scriptAddress;
     }
 
     /**
      * @description Get the P2TR address
      */
-    public get p2trAddress(): Address {
+    public get p2trAddress(): string {
         return this.to || this.getScriptAddress();
     }
 

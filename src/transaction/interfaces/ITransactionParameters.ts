@@ -1,14 +1,15 @@
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { Address } from '@btc-vision/bsi-binary';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from './Tap.js';
+import { Address } from '../../keypair/Address.js';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
-    readonly from?: Address;
-    readonly to?: Address;
+    readonly from?: string;
+    readonly to?: string;
+
     utxos: UTXO[];
 
     nonWitnessUtxo?: Buffer;
@@ -39,13 +40,13 @@ export interface IInteractionParameters
     extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly calldata: Buffer;
 
-    readonly to: Address;
+    readonly to: string;
 }
 
 export interface IWrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
-    readonly to?: Address;
+    readonly to?: string;
+    readonly from: string;
 
-    readonly from: Address;
     readonly amount: bigint;
     readonly receiver?: Address;
 

@@ -1,5 +1,4 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { Address } from '@btc-vision/bsi-binary';
 import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
 import { address, initEccLib, Network, networks, payments, Signer } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
@@ -73,14 +72,14 @@ export class EcKeyPair {
      * @param {Buffer[]} pubKeys - The public keys to use
      * @param {number} minimumSignatureRequired - The minimum number of signatures required
      * @param {Network} network - The network to use
-     * @returns {Address} - The generated address
+     * @returns {string} - The generated address
      * @throws {Error} - If the address cannot be generated
      */
     public static generateMultiSigAddress(
         pubKeys: Buffer[],
         minimumSignatureRequired: number,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const publicKeys: Buffer[] = this.verifyPubKeys(pubKeys, network);
         if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
 
@@ -93,20 +92,6 @@ export class EcKeyPair {
         const p2wsh = payments.p2wsh({ redeem: p2ms, network: network });
         const address = p2wsh.address;
 
-        // fake params
-        /*const multiSignParams: MultiSignParameters = {
-            network: network,
-            utxos: [],
-            pubkeys: pubKeys,
-            minimumSignatures: minimumSignatureRequired,
-            feeRate: 100,
-            receiver: 'a',
-            requestedAmount: 1n,
-            refundVault: 'a',
-        };
-
-        const address = new MultiSignTransaction(multiSignParams).getScriptAddress();
-        */
         if (!address) {
             throw new Error('Failed to generate address');
         }
@@ -137,12 +122,12 @@ export class EcKeyPair {
      * Get a P2WPKH address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
-     * @returns {Address} - The address
+     * @returns {string} - The address
      */
     public static getP2WPKHAddress(
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const res = payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
 
         if (!res.address) {
@@ -156,7 +141,7 @@ export class EcKeyPair {
      * Get the address of a tweaked public key
      * @param {string} tweakedPubKeyHex - The tweaked public key hex string
      * @param {Network} network - The network to use
-     * @returns {Address} - The address
+     * @returns {string} - The address
      * @throws {Error} - If the address cannot be generated
      */
     public static tweakedPubKeyToAddress(tweakedPubKeyHex: string, network: Network): string {
@@ -175,7 +160,7 @@ export class EcKeyPair {
      * Get the address of a tweaked public key
      * @param {Buffer | Uint8Array} tweakedPubKeyBuffer - The tweaked public key buffer
      * @param {Network} network - The network to use
-     * @returns {Address} - The address
+     * @returns {string} - The address
      * @throws {Error} - If the address cannot be generated
      */
     public static tweakedPubKeyBufferToAddress(
@@ -201,7 +186,7 @@ export class EcKeyPair {
      * Get the address of a xOnly tweaked public key
      * @param {string} tweakedPubKeyHex - The xOnly tweaked public key hex string
      * @param {Network} network - The network to use
-     * @returns {Address} - The address
+     * @returns {string} - The address
      * @throws {Error} - If the address cannot be generated
      */
     public static xOnlyTweakedPubKeyToAddress(tweakedPubKeyHex: string, network: Network): string {
@@ -284,12 +269,12 @@ export class EcKeyPair {
 
     /**
      * Verify that a contract address is a valid p2tr address
-     * @param {Address} contractAddress - The contract address to verify
+     * @param {string} contractAddress - The contract address to verify
      * @param {Network} network - The network to use
      * @returns {boolean} - Whether the address is valid
      */
     public static verifyContractAddress(
-        contractAddress: Address,
+        contractAddress: string,
         network: Network = networks.bitcoin,
     ): boolean {
         return !!address.toOutputScript(contractAddress, network);
@@ -299,7 +284,7 @@ export class EcKeyPair {
      * Get the legacy segwit address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
-     * @returns {Address} - The legacy address
+     * @returns {string} - The legacy address
      */
     public static getLegacySegwitAddress(
         keyPair: ECPairInterface,
@@ -321,7 +306,7 @@ export class EcKeyPair {
      * Get the legacy address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
-     * @returns {Address} - The legacy address
+     * @returns {string} - The legacy address
      */
     public static getLegacyAddress(
         keyPair: ECPairInterface,
@@ -339,7 +324,7 @@ export class EcKeyPair {
      * Get the legacy address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
-     * @returns {Address} - The legacy address
+     * @returns {string} - The legacy address
      */
     public static getP2PKAddress(
         keyPair: ECPairInterface,
@@ -378,7 +363,7 @@ export class EcKeyPair {
      * Get taproot address from keypair
      * @param {ECPairInterface} keyPair - The keypair to get the taproot address for
      * @param {Network} network - The network to use
-     * @returns {Address} - The taproot address
+     * @returns {string} - The taproot address
      */
     public static getTaprootAddress(
         keyPair: ECPairInterface | Signer,
@@ -398,12 +383,12 @@ export class EcKeyPair {
 
     /**
      * Get taproot address from address
-     * @param {Address} inAddr - The address to convert to taproot
+     * @param {string} inAddr - The address to convert to taproot
      * @param {Network} network - The network to use
-     * @returns {Address} - The taproot address
+     * @returns {string} - The taproot address
      */
     public static getTaprootAddressFromAddress(
-        inAddr: Address,
+        inAddr: string,
         network: Network = networks.bitcoin,
     ): string {
         const { address } = payments.p2tr({

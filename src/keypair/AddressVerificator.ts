@@ -1,6 +1,5 @@
 import { address, initEccLib, Network } from 'bitcoinjs-lib';
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { Address } from '@btc-vision/bsi-binary';
 import { EcKeyPair } from './EcKeyPair.js';
 
 initEccLib(ecc);
@@ -23,7 +22,7 @@ export class AddressVerificator {
      * @returns - True if the address is a valid P2PKH address, false otherwise.
      * @remarks This method is useful for validating legacy addresses (P2PKH) without
      */
-    public static isValidP2TRAddress(inAddress: Address, network: Network): boolean {
+    public static isValidP2TRAddress(inAddress: string, network: Network): boolean {
         if (!inAddress || inAddress.length < 50) return false;
 
         let isValidTapRootAddress: boolean = false;

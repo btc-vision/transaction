@@ -72,6 +72,7 @@
         "@babel/preset-react": "^7.24.1",
         "@babel/preset-typescript": "^7.24.1",
         "@types/node": "^22.5.5",
+        "@types/sha.js": "^2.4.4",
         "eslint": "^9.10.0",
         "gulp": "^5.0.0",
         "gulp-cached": "^1.1.1",
@@ -91,7 +92,6 @@
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bsi-binary": "^1.0.42",
         "@btc-vision/bsi-bitcoin-rpc": "^1.0.29",
         "@btc-vision/logger": "^1.0.6",
         "@eslint/js": "^9.10.0",
@@ -111,6 +111,7 @@
         "gulp-clean": "^0.4.0",
         "gulp-eslint-new": "^2.3.0",
         "process": "^0.11.10",
+        "sha.js": "^2.4.11",
         "ts-loader": "^9.5.1",
         "ts-node": "^10.9.2",
         "typescript": "^5.6.2"

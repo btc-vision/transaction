@@ -6,7 +6,6 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
-import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -19,9 +18,9 @@ export interface MultiSignParameters
     readonly from?: undefined;
     readonly to?: undefined;
     readonly psbt?: Psbt;
-    readonly receiver: Address;
+    readonly receiver: string;
     readonly requestedAmount: bigint;
-    readonly refundVault: Address;
+    readonly refundVault: string;
 }
 
 export interface MultiSignFromBase64Params extends Omit<MultiSignParameters, 'psbt'> {
@@ -62,8 +61,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     protected readonly originalInputCount: number = 0;
     protected readonly requestedAmount: bigint;
 
-    protected readonly receiver: Address;
-    protected readonly refundVault: Address;
+    protected readonly receiver: string;
+    protected readonly refundVault: string;
     /**
      * @description Sign hash types
      * @protected

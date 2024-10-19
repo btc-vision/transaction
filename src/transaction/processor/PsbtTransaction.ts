@@ -1,4 +1,3 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { Network, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
 import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
@@ -10,7 +9,7 @@ export interface PsbtTransactionData extends ITweakedTransactionData {
 }
 
 export interface IWBTCUTXODocument {
-    readonly vault: Address;
+    readonly vault: string;
     readonly blockId: bigint;
 
     readonly hash: string;
@@ -21,8 +20,8 @@ export interface IWBTCUTXODocument {
 }
 
 export interface VaultUTXOs {
-    readonly vault: Address;
-    readonly publicKeys: Address[];
+    readonly vault: string;
+    readonly publicKeys: string[];
     readonly minimum: number;
     readonly utxos: IWBTCUTXODocument[];
 }

@@ -73,6 +73,18 @@ export * from './consensus/ConsensusConfig.js';
 export * from './consensus/Consensus.js';
 export * from './consensus/metadata/RoswellConsensus.js';
 
+/** Binary */
+export * from './utils/BufferHelper.js';
+export * from './utils/types.js';
+export * from './keypair/Address.js';
+export * from './event/NetEvent.js';
+export * from './deterministic/DeterministicMap.js';
+export * from './deterministic/DeterministicSet.js';
+export * from './deterministic/AddressMap.js';
+export * from './abi/ABICoder.js';
+export * from './buffer/BinaryWriter.js';
+export * from './buffer/BinaryReader.js';
+
 /** Custom signers */
 export * from './transaction/browser/BrowserSignerBase.js';
 export * from './transaction/browser/extensions/UnisatSigner.js';

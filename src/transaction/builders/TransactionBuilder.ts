@@ -8,7 +8,6 @@ import {
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { Address } from '@btc-vision/bsi-binary';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
@@ -108,13 +107,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The address where the transaction is sent to
      * @protected
      */
-    protected to: Address | undefined;
+    protected to: string | undefined;
 
     /**
      * @description The address where the transaction is sent from
      * @protected
      */
-    protected from: Address;
+    protected from: string;
 
     /**
      * @description The maximum fee rate of the transaction
@@ -163,7 +162,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         from: string | undefined,
         keypair: ECPairInterface | Signer,
         network: Network,
-    ): Address {
+    ): string {
         return from || EcKeyPair.getTaprootAddress(keypair, network);
     }
 
@@ -223,9 +222,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     /**
      * Set the destination address of the transaction
-     * @param {Address} address - The address to set
+     * @param {string} address - The address to set
      */
-    public setDestinationAddress(address: Address): void {
+    public setDestinationAddress(address: string): void {
         this.to = address; // this.getScriptAddress()
     }
 
@@ -354,7 +353,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Receiver address.
      * @public
-     * @returns {Address} - The receiver address
+     * @returns {string} - The receiver address
      */
     public toAddress(): string | undefined {
         return this.to;
@@ -362,9 +361,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     /**
      * @description Returns the script address
-     * @returns {Address} - The script address
+     * @returns {string} - The script address
      */
-    public address(): Address | undefined {
+    public address(): string | undefined {
         return this.tapData?.address;
     }
 

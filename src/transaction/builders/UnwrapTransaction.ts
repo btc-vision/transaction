@@ -3,7 +3,6 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ABICoder, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
 import { Network, Payment, payments, Psbt } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -17,6 +16,9 @@ import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Features } from '../../generators/Features.js';
+import { ABICoder } from '../../abi/ABICoder.js';
+import { Selector } from '../../utils/types.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 const abiCoder: ABICoder = new ABICoder();
 const numsPoint: Buffer = Buffer.from(
@@ -139,22 +141,6 @@ export class UnwrapTransaction extends SharedInteractionTransaction<TransactionT
 
         return Buffer.from(bufWriter.getBuffer());
     }
-
-    /*public tweakScalarPoints(): Uint8Array {
-        const key: Uint8Array = (this.signer as ECPairInterface).privateKey as Uint8Array;
-        //const r = bitcoin.crypto.sha256(Buffer.from('WTF_IS_OP_NET!', 'utf-8'));
-        const rG = ecc.pointMultiply(
-            Buffer.from(this.internalPubKeyToXOnly()), //EcKeyPair.fromPrivateKey(r).publicKey.subarray(1)
-            key,
-        );
-
-        if (!rG) throw new Error('Failed to tweak rG');
-
-        const tweaked = ecc.pointAdd(this.numsPoint, rG);
-        if (!tweaked) throw new Error('Failed to tweak rG');
-
-        return Buffer.from(tweaked);
-    }*/
 
     /**
      * @description Signs the transaction

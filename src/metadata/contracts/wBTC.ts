@@ -1,4 +1,3 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { Network, networks } from 'bitcoinjs-lib';
 import { ChainId } from '../../network/ChainId.js';
 import { ContractBaseMetadata } from '../ContractBaseMetadata.js';
@@ -23,7 +22,7 @@ export class wBTC extends ContractBaseMetadata {
      */
     public readonly decimals: number = 8;
 
-    protected readonly address: Address;
+    protected readonly address: string;
 
     constructor(
         protected network: Network = networks.bitcoin,
@@ -34,7 +33,7 @@ export class wBTC extends ContractBaseMetadata {
         this.address = wBTC.getAddress(network, chainId);
     }
 
-    public static getAddress(network: Network = networks.bitcoin, chainId?: ChainId): Address {
+    public static getAddress(network: Network = networks.bitcoin, chainId?: ChainId): string {
         switch (network.bech32) {
             case networks.bitcoin.bech32:
                 return this.getWBTCAddressForChain(chainId ?? ChainId.Bitcoin);
@@ -47,7 +46,7 @@ export class wBTC extends ContractBaseMetadata {
         }
     }
 
-    private static getWBTCAddressForChain(chainId: ChainId): Address {
+    private static getWBTCAddressForChain(chainId: ChainId): string {
         switch (chainId) {
             case ChainId.Bitcoin:
                 return 'unknown';

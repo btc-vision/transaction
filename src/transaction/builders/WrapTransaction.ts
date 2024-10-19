@@ -4,14 +4,15 @@ import { PsbtOutputExtendedAddress, TapLeafScript } from '../interfaces/Tap.js';
 import { IWrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { ABICoder, Address, BinaryWriter, Selector } from '@btc-vision/bsi-binary';
-import { TransactionBuilder } from './TransactionBuilder.js';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
-import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { Network } from 'bitcoinjs-lib';
 import { P2TR_MS } from '../shared/P2TR_MS.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
+import { Selector } from '../../utils/types.js';
+import { ABICoder } from '../../abi/ABICoder.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
+import { Address } from '../../keypair/Address.js';
 
 const abiCoder: ABICoder = new ABICoder();
 
@@ -31,7 +32,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
      * @private
      * @readonly
      */
-    public readonly vault: Address;
+    public readonly vault: string;
 
     /**
      * The amount to wrap
@@ -91,9 +92,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
             );
         }
 
-        const receiver: Address =
-            parameters.receiver ||
-            TransactionBuilder.getFrom(parameters.from, parameters.signer, parameters.network);
+        const receiver: Address = parameters.receiver || new Address(parameters.signer.publicKey);
 
         parameters.calldata = WrapTransaction.generateMintCalldata(
             parameters.amount,
@@ -146,7 +145,7 @@ export class WrapTransaction extends SharedInteractionTransaction<TransactionTyp
         if (!amount) throw new Error('Amount is required');
         if (!to) throw new Error('To address is required');
 
-        if (!AddressVerificator.isValidP2TRAddress(to, network)) {
+        if (!to.isValid(network)) {
             throw new Error(
                 `Oops! The address ${to} is not a valid P2TR address! If you wrap at this address, your funds will be lost!`,
             );

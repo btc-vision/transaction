@@ -1,5 +1,4 @@
 import { Network, Psbt, Signer } from 'bitcoinjs-lib';
-import { Address } from '@btc-vision/bsi-binary';
 
 /**
  * Create a custom keypair.
@@ -10,10 +9,10 @@ export abstract class CustomKeypair implements Signer {
 
     public abstract publicKey: Buffer;
 
-    public abstract addresses: Address[];
+    public abstract addresses: string[];
 
-    public abstract p2tr: Address;
-    public abstract p2wpkh: Address;
+    public abstract p2tr: string;
+    public abstract p2wpkh: string;
 
     protected constructor() {}
 

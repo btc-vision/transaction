@@ -1,4 +1,3 @@
-import { Address } from '@btc-vision/bsi-binary';
 import { Psbt, Transaction } from 'bitcoinjs-lib';
 import { Output } from 'bitcoinjs-lib/src/transaction.js';
 import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
@@ -30,17 +29,17 @@ import { PSBTTypes } from './psbt/PSBTTypes.js';
 export interface DeploymentResult {
     readonly transaction: [string, string];
 
-    readonly contractAddress: Address;
-    readonly p2trAddress: Address;
+    readonly contractAddress: string;
+    readonly p2trAddress: string;
 
     readonly utxos: UTXO[];
 }
 
 export interface WrapResult {
     readonly transaction: [string, string];
-    readonly vaultAddress: Address;
+    readonly vaultAddress: string;
     readonly amount: bigint;
-    readonly receiverAddress: Address;
+    readonly receiverAddress: string;
     readonly utxos: UTXO[];
 }
 
@@ -344,7 +343,7 @@ export class TransactionFactory {
             transaction: [signedTransaction.tx.toHex(), outTx.toHex()],
             vaultAddress: finalTransaction.vault,
             amount: finalTransaction.amount,
-            receiverAddress: finalTransaction.receiver,
+            receiverAddress: finalTransaction.receiver.p2tr(wrapParameters.network),
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, wrapParameters.from, 1),
         };
     }
@@ -522,12 +521,12 @@ export class TransactionFactory {
      * Get all new UTXOs of a generated transaction.
      * @param {TransactionBuilder<TransactionType>} original - The original transaction
      * @param {Transaction} tx - The transaction
-     * @param {Address} to - The address to filter
+     * @param {string} to - The address to filter
      */
     public getAllNewUTXOs(
         original: TransactionBuilder<TransactionType>,
         tx: Transaction,
-        to: Address,
+        to: string,
     ): UTXO[] {
         const outputs = original.getOutputs();
 
@@ -613,7 +612,7 @@ export class TransactionFactory {
         return params.priorityFee;
     }
 
-    private getUTXOAsTransaction(tx: Transaction, to: Address, index: number): UTXO[] {
+    private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {
         if (!tx.outs[index]) return [];
 
         const out: Output = tx.outs[index];

@@ -2,7 +2,6 @@ import { IWallet } from './interfaces/IWallet.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
 import { Network, networks } from 'bitcoinjs-lib';
-import { Address } from '@btc-vision/bsi-binary';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 
 /**
@@ -19,25 +18,37 @@ export class Wallet {
      * P2WPKH address for the wallet
      * @private
      */
-    private readonly _p2wpkh: Address;
+    private readonly _p2wpkh: string;
 
     /**
      * P2TR address for the wallet
      * @private
      */
-    private readonly _p2tr: Address;
+    private readonly _p2tr: string;
 
     /**
      * Legacy address for the wallet
      * @private
      */
-    private readonly _legacy: Address;
+    private readonly _legacy: string;
+
+    /**
+     * Legacy address for the wallet
+     * @private
+     */
+    private readonly _segwitLegacy: string;
 
     /**
      * Buffer public key
      * @private
      */
     private readonly _bufferPubKey: Buffer;
+
+    /**
+     * Tweaked key
+     * @private
+     */
+    private readonly _tweakedKey: Buffer;
 
     constructor(
         wallet: IWallet,
@@ -48,8 +59,22 @@ export class Wallet {
         this._p2wpkh = EcKeyPair.getP2WPKHAddress(this._keypair, this.network);
         this._p2tr = EcKeyPair.getTaprootAddress(this._keypair, this.network);
         this._legacy = EcKeyPair.getLegacyAddress(this._keypair, this.network);
+        this._segwitLegacy = EcKeyPair.getLegacySegwitAddress(this._keypair, this.network);
+
+        this._tweakedKey = Buffer.from(
+            EcKeyPair.tweakPublicKey(this._keypair.publicKey.toString('hex')),
+            'hex',
+        );
 
         this._bufferPubKey = Buffer.from(wallet.publicKey, 'hex');
+    }
+
+    /**
+     * Get the tweaked key
+     * @returns {Buffer}
+     */
+    public get tweakedPubKeyKey(): Buffer {
+        return this._tweakedKey;
     }
 
     /**
@@ -64,25 +89,25 @@ export class Wallet {
 
     /**
      * Get the P2WPKH address for the wallet
-     * @returns {Address}
+     * @returns {string}
      */
-    public get p2wpkh(): Address {
+    public get p2wpkh(): string {
         return this._p2wpkh;
     }
 
     /**
      * Get the P2TR address for the wallet
-     * @returns {Address}
+     * @returns {string}
      */
-    public get p2tr(): Address {
+    public get p2tr(): string {
         return this._p2tr;
     }
 
     /**
      * Get the legacy address for the wallet
-     * @returns {Address}
+     * @returns {string}
      */
-    public get legacy(): Address {
+    public get legacy(): string {
         return this._legacy;
     }
 
@@ -90,8 +115,16 @@ export class Wallet {
      * Get the addresses for the wallet
      * @returns {Address[]}
      */
-    public get addresses(): Address[] {
-        return [this.p2wpkh, this.p2tr, this.legacy];
+    public get addresses(): string[] {
+        return [this.p2wpkh, this.p2tr, this.legacy, this.segwitLegacy];
+    }
+
+    /**
+     * Get the segwit legacy address for the wallet
+     * @returns {string}
+     */
+    public get segwitLegacy(): string {
+        return this._segwitLegacy;
     }
 
     /**
