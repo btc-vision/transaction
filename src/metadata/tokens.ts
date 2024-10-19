@@ -7,7 +7,6 @@ function deadAddress(): Address {
 
 // Addresses Regtest
 export const FACTORY_ADDRESS_REGTEST: Address = deadAddress();
-
 export const POOL_ADDRESS_REGTEST: Address = deadAddress();
 export const WBTC_ADDRESS_REGTEST: Address = deadAddress();
 export const MOTO_ADDRESS_REGTEST: Address = deadAddress();
