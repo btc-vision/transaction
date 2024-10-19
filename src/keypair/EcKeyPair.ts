@@ -165,11 +165,28 @@ export class EcKeyPair {
         }
 
         // Convert the tweaked public key hex string to a Buffer
-        const tweakedPubKeyBuffer = Buffer.from(tweakedPubKeyHex, 'hex');
+        let tweakedPubKeyBuffer = Buffer.from(tweakedPubKeyHex, 'hex');
+        if (tweakedPubKeyBuffer.length !== 32) tweakedPubKeyBuffer = toXOnly(tweakedPubKeyBuffer);
 
+        return EcKeyPair.tweakedPubKeyBufferToAddress(tweakedPubKeyBuffer, network);
+    }
+
+    /**
+     * Get the address of a tweaked public key
+     * @param {Buffer | Uint8Array} tweakedPubKeyBuffer - The tweaked public key buffer
+     * @param {Network} network - The network to use
+     * @returns {Address} - The address
+     * @throws {Error} - If the address cannot be generated
+     */
+    public static tweakedPubKeyBufferToAddress(
+        tweakedPubKeyBuffer: Buffer | Uint8Array,
+        network: Network,
+    ): string {
         // Generate the Taproot address using the p2tr payment method
         const { address } = payments.p2tr({
-            pubkey: toXOnly(tweakedPubKeyBuffer),
+            pubkey: Buffer.isBuffer(tweakedPubKeyBuffer)
+                ? tweakedPubKeyBuffer
+                : Buffer.from(tweakedPubKeyBuffer),
             network: network,
         });
 
@@ -287,7 +304,7 @@ export class EcKeyPair {
     public static getLegacySegwitAddress(
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const wallet = payments.p2sh({
             redeem: payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network }),
             network: network,
@@ -309,7 +326,7 @@ export class EcKeyPair {
     public static getLegacyAddress(
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const wallet = payments.p2pkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
@@ -327,7 +344,7 @@ export class EcKeyPair {
     public static getP2PKAddress(
         keyPair: ECPairInterface,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const wallet = payments.p2pk({ pubkey: Buffer.from(keyPair.publicKey), network: network });
         if (!wallet.output) {
             throw new Error('Failed to generate wallet');
@@ -366,7 +383,7 @@ export class EcKeyPair {
     public static getTaprootAddress(
         keyPair: ECPairInterface | Signer,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const { address } = payments.p2tr({
             internalPubkey: toXOnly(Buffer.from(keyPair.publicKey)),
             network: network,
@@ -388,7 +405,7 @@ export class EcKeyPair {
     public static getTaprootAddressFromAddress(
         inAddr: Address,
         network: Network = networks.bitcoin,
-    ): Address {
+    ): string {
         const { address } = payments.p2tr({
             address: inAddr,
             network: network,
