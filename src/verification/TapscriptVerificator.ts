@@ -3,7 +3,7 @@ import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
-import { AddressGenerator } from '../generators/AddressGenerator.js';
+import { Address } from '../keypair/Address.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: Buffer;
@@ -70,7 +70,9 @@ export class TapscriptVerificator {
             saltHash,
         );
 
-        return AddressGenerator.generatePKSH(virtualAddress, network);
+        const address = new Address(virtualAddress);
+
+        return address.p2tr(network);
     }
 
     public static generateAddressFromScript(

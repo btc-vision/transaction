@@ -35,6 +35,19 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Create an address from a hex string
+     * @param {string} pubKey The public key
+     * @returns {Address} The address
+     */
+    public static fromString(pubKey: string): Address {
+        if (pubKey.startsWith('0x')) {
+            pubKey = pubKey.slice(2);
+        }
+
+        return new Address(Buffer.from(pubKey, 'hex'));
+    }
+
+    /**
      * Create an address from a public key
      * @returns {Address} The address
      * @param {ArrayLike<number>} bytes The public key

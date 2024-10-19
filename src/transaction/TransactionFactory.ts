@@ -30,6 +30,7 @@ export interface DeploymentResult {
     readonly transaction: [string, string];
 
     readonly contractAddress: string;
+    readonly contractPubKey: string;
     readonly p2trAddress: string;
 
     readonly utxos: UTXO[];
@@ -276,7 +277,8 @@ export class TransactionFactory {
 
         return {
             transaction: [signedTransaction.toHex(), outTx.toHex()],
-            contractAddress: finalTransaction.contractAddress,
+            contractAddress: finalTransaction.contractAddress.p2tr(deploymentParameters.network),
+            contractPubKey: finalTransaction.contractPubKey,
             p2trAddress: finalTransaction.p2trAddress,
             utxos: [refundUTXO],
         };

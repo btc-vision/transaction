@@ -10,9 +10,9 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { Compressor } from '../../bytecode/Compressor.js';
-import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { ECPairInterface } from 'ecpair';
+import { Address } from '../../keypair/Address.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -21,7 +21,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract address
      * @protected
      */
-    protected readonly _contractAddress: string;
+    protected readonly _contractAddress: Address;
     /**
      * The tap leaf script
      * @private
@@ -78,6 +78,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     private readonly contractSigner: Signer | ECPairInterface;
 
     /**
+     * The contract public key
+     * @private
+     */
+    private readonly _contractPubKey: string;
+
+    /**
      * The contract salt random bytes
      * @private
      */
@@ -115,13 +121,21 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         this.internalInit();
 
-        this._contractAddress = AddressGenerator.generatePKSH(this.contractSeed, this.network);
+        this._contractPubKey = '0x' + this.contractSigner.publicKey.toString('hex');
+        this._contractAddress = new Address(this.contractSigner.publicKey); //AddressGenerator.generatePKSH(this.contractSeed, this.network);
+    }
+
+    /**
+     * Get the contract public key
+     */
+    public get contractPubKey(): string {
+        return this._contractPubKey;
     }
 
     /**
      * @description Get the contract address (PKSH)
      */
-    public get contractAddress(): string {
+    public get contractAddress(): Address {
         return this._contractAddress;
     }
 
