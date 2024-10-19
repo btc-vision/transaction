@@ -84,6 +84,34 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Check if the address is bigger than another address
+     * @returns {boolean} If bigger
+     */
+    public isBiggerThan(a: Address): boolean {
+        for (let i = 0; i < this.length; i++) {
+            if (this[i] < a[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if the address is smaller than another address
+     * @returns {boolean} If smaller
+     */
+    public isSmallerThan(a: Address): boolean {
+        for (let i = 0; i < this.length; i++) {
+            if (this[i] > a[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Set the public key
      * @param {ArrayLike<number>} publicKey The public key
      * @returns {void}
