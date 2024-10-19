@@ -127,27 +127,6 @@ export class Address extends Uint8Array {
             const buf = Buffer.alloc(32);
             buf.set(publicKey);
 
-            /*let lowByte: number = 0;
-            try {
-                EcKeyPair.tweakPublicKey('02' + buf.toString('hex'));
-                lowByte = 2;
-            } catch (e) {
-                console.log(`Invalid pubkey (2) ${e}`);
-            }
-
-            try {
-                EcKeyPair.tweakPublicKey('03' + buf.toString('hex'));
-                lowByte = 3;
-            } catch (e) {
-                console.log(`Invalid pubkey (3) ${e}`);
-            }
-
-            if (lowByte === 0) {
-                console.log(AddressGenerator.generateTaprootAddress(buf, networks.regtest));
-
-                throw new Error('Invalid public key');
-            }*/
-
             super.set(publicKey);
         } else {
             this._keyPair = EcKeyPair.fromPublicKey(Uint8Array.from(publicKey));
