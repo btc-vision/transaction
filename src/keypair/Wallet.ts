@@ -3,6 +3,7 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
 import { Network, networks } from 'bitcoinjs-lib';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { Address } from './Address.js';
 
 /**
  * Wallet class
@@ -50,6 +51,12 @@ export class Wallet {
      */
     private readonly _tweakedKey: Buffer;
 
+    /**
+     * Address corresponding to the wallet
+     * @private
+     */
+    private readonly _address: Address;
+
     constructor(
         wallet: IWallet,
         public readonly network: Network = networks.bitcoin,
@@ -67,6 +74,15 @@ export class Wallet {
         );
 
         this._bufferPubKey = Buffer.from(wallet.publicKey, 'hex');
+        this._address = new Address(this._keypair.publicKey);
+    }
+
+    /**
+     * Get the address for the wallet
+     * @returns {Address}
+     */
+    public get address(): Address {
+        return this._address;
     }
 
     /**
