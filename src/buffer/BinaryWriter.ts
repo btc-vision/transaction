@@ -306,13 +306,13 @@ export class BinaryWriter {
     }
 
     private fromAddress(pubKey: Address): Uint8Array {
-        if (pubKey.byteLength > ADDRESS_BYTE_LENGTH) {
+        if (pubKey.tweakedBytes.byteLength > ADDRESS_BYTE_LENGTH) {
             throw new Error(
                 `Address is too long ${pubKey.byteLength} > ${ADDRESS_BYTE_LENGTH} bytes`,
             );
         }
 
-        return pubKey;
+        return pubKey.tweakedBytes;
     }
 
     private resize(size: u32): void {

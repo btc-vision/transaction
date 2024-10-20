@@ -1,5 +1,11 @@
-import { Network, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
-import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
+import {
+    Network,
+    Psbt,
+    PsbtInputExtended,
+    PsbtOutputExtended,
+    Signer,
+    Transaction,
+} from 'bitcoinjs-lib';
 import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
 
 export interface PsbtTransactionData extends ITweakedTransactionData {
@@ -117,6 +123,7 @@ export class PsbtTransaction extends TweakedTransaction {
     /**
      * @description Add an input to the transaction
      * @param input
+     * @param checkPartialSigs
      */
     public addInput(input: PsbtInputExtended, checkPartialSigs: boolean = false): void {
         this.transaction.addInput(input, checkPartialSigs);

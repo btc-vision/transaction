@@ -1,6 +1,6 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
-import { crypto as bitCrypto, Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { crypto as bitCrypto, Payment, Psbt, PsbtInput, Signer } from 'bitcoinjs-lib';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
@@ -8,7 +8,6 @@ import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerat
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { ECPairInterface } from 'ecpair';

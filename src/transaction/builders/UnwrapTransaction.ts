@@ -4,15 +4,21 @@ import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { Network, Payment, payments, Psbt } from 'bitcoinjs-lib';
+import {
+    Network,
+    Payment,
+    payments,
+    Psbt,
+    PsbtInput,
+    PsbtInputExtended,
+    PsbtOutputExtended,
+} from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
-import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
 import { MultiSignTransaction } from './MultiSignTransaction.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Features } from '../../generators/Features.js';

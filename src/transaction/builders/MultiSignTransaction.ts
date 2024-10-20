@@ -1,11 +1,20 @@
-import { PsbtInput, TapScriptSig } from 'bip174/src/lib/interfaces.js';
-import { crypto as bitcoinCrypto, opcodes, Payment, Psbt, script, Signer } from 'bitcoinjs-lib';
+import {
+    crypto as bitcoinCrypto,
+    opcodes,
+    Payment,
+    Psbt,
+    PsbtInput,
+    PsbtInputExtended,
+    PsbtOutputExtended,
+    script,
+    Signer,
+    TapScriptSig,
+} from 'bitcoinjs-lib';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
-import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';

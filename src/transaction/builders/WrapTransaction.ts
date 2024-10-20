@@ -1,12 +1,12 @@
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { PsbtOutputExtendedAddress, TapLeafScript } from '../interfaces/Tap.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
 import { IWrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
 import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
-import { Network } from 'bitcoinjs-lib';
+import { Network, PsbtOutputExtendedAddress } from 'bitcoinjs-lib';
 import { P2TR_MS } from '../shared/P2TR_MS.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { Selector } from '../../utils/types.js';

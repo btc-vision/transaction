@@ -1,5 +1,4 @@
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
-import { address, Payment, Psbt, Signer } from 'bitcoinjs-lib';
+import { address, Payment, Psbt, PsbtInput, Signer } from 'bitcoinjs-lib';
 import { Taptree } from 'bitcoinjs-lib/src/types.js';
 import { ECPairInterface } from 'ecpair';
 import { TransactionBuilder } from './TransactionBuilder.js';
@@ -187,35 +186,17 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        const txs: PsbtInput[] = transaction.data.inputs;
-        for (let i = 0; i < txs.length; i += 20) {
-            const batch = txs.slice(i, i + 20);
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                // multi sig input
+                transaction.signInput(0, this.scriptSigner);
+                transaction.signInput(0, this.getSignerKey());
 
-            const promises: Promise<void>[] = [];
-            for (let y = 0; y < batch.length; y++) {
-                const offset = i * 20 + y;
-                const input = batch[y];
-
-                promises.push(this.signIndividualInputs(transaction, input, offset));
-            }
-
-            await Promise.all(promises).catch((e: unknown) => {
-                throw e;
-            });
-        }
-
-        try {
-            transaction.finalizeInput(0, this.customFinalizer);
-        } catch (e) {
-            this.error(`Failed to finalize input 0: ${(e as Error).stack}`);
-        }
-
-        for (let i = 0; i < txs.length; i++) {
-            try {
+                transaction.finalizeInput(0, this.customFinalizer);
+            } else {
+                transaction.signInput(i, this.getSignerKey());
                 transaction.finalizeInput(i);
-
-                this.log(`Finalized input ${i}!`);
-            } catch {}
+            }
         }
     }
 
@@ -265,7 +246,7 @@ export abstract class SharedInteractionTransaction<
             this.internalPubKeyToXOnly(),
             input.tapScriptSig[0].signature,
             input.tapScriptSig[1].signature,
-        ];
+        ] as Buffer[];
     }
 
     /**
@@ -303,12 +284,6 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Tap leaf script is required');
         }
 
-        //console.log('finalizing input', input);
-
-        //if (!input.tapLeafScript) {
-        //    throw new Error('Tap script signature is required');
-        //}
-
         if (!this.contractSecret) {
             throw new Error('Contract secret is required');
         }
@@ -322,38 +297,6 @@ export abstract class SharedInteractionTransaction<
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
-
-    private async signIndividualInputs(
-        transaction: Psbt,
-        input: PsbtInput,
-        i: number,
-    ): Promise<void> {
-        let signed: boolean = false;
-
-        try {
-            await this.signInput(transaction, input, i, this.scriptSigner);
-            signed = true;
-        } catch {}
-
-        try {
-            await this.signInput(transaction, input, i);
-            signed = true;
-        } catch {}
-
-        if (signed) {
-            this.log(
-                `Signed input #${i} out of ${transaction.data.inputs.length}! {Signed: ${signed}}`,
-            );
-
-            return;
-        }
-
-        if (this.regenerated || this.ignoreSignatureErrors) {
-            return;
-        }
-
-        throw new Error('Failed to sign input');
-    }
 
     /**
      * Get the public keys

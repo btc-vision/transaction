@@ -3,8 +3,8 @@ import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
-import { PsbtOutputExtended } from './Tap.js';
 import { Address } from '../../keypair/Address.js';
+import { PsbtOutputExtended } from 'bitcoinjs-lib';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: string;

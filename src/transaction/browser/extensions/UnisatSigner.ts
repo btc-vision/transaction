@@ -1,5 +1,4 @@
-import { TapScriptSig } from 'bip174/src/lib/interfaces.js';
-import { Network, networks, Psbt } from 'bitcoinjs-lib';
+import { Network, networks, Psbt, TapScriptSig } from 'bitcoinjs-lib';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';

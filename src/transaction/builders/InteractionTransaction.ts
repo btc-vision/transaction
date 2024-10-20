@@ -31,7 +31,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             this.calldata,
             this.contractSecret,
         );
-        
+
         this.scriptTree = this.getScriptTree();
         this.internalInit();
     }

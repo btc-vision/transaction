@@ -4,10 +4,9 @@ import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { payments, Psbt, Signer } from 'bitcoinjs-lib';
+import { payments, Psbt, PsbtInputExtended, PsbtOutputExtended, Signer } from 'bitcoinjs-lib';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
-import { PsbtInputExtended, PsbtOutputExtended } from '../interfaces/Tap.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';
 import { ECPairInterface } from 'ecpair';
 import { Selector } from '../../utils/types.js';
@@ -195,6 +194,7 @@ export class UnwrapSegwitTransaction extends SharedInteractionTransaction<Transa
     /**
      * Builds the transaction.
      * @param {Psbt} transaction - The transaction to build
+     * @param checkPartialSigs
      * @protected
      * @returns {Promise<boolean>}
      * @throws {Error} - If something went wrong while building the transaction

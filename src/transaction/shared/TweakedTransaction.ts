@@ -1,11 +1,19 @@
 import { Logger } from '@btc-vision/logger';
-import { Network, Payment, payments, Psbt, Signer, Transaction } from 'bitcoinjs-lib';
+import {
+    Network,
+    Payment,
+    payments,
+    Psbt,
+    PsbtInput,
+    PsbtInputExtended,
+    Signer,
+    Transaction,
+} from 'bitcoinjs-lib';
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
-import { PsbtInput } from 'bip174/src/lib/interfaces.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { PsbtInputExtended, TapLeafScript } from '../interfaces/Tap.js';
+import { TapLeafScript } from '../interfaces/Tap.js';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { ChainId } from '../../network/ChainId.js';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';

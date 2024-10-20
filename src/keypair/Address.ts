@@ -9,9 +9,10 @@ export class Address extends Uint8Array {
     private isP2TROnly: boolean = false;
     #p2tr: string | undefined;
     #network: Network | undefined;
+    #tweakedBytes: Uint8Array | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
-        super(ADDRESS_BYTE_LENGTH);
+        super(bytes?.length || ADDRESS_BYTE_LENGTH);
 
         if (!bytes) {
             return;
@@ -33,6 +34,14 @@ export class Address extends Uint8Array {
         return this._keyPair;
     }
 
+    /**
+     * Get the tweaked bytes
+     * @returns {Uint8Array} The tweaked bytes
+     */
+    public get tweakedBytes(): Uint8Array {
+        return this.#tweakedBytes || this;
+    }
+
     public static dead(): Address {
         return Address.fromString(
             '0x04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f',
@@ -45,6 +54,10 @@ export class Address extends Uint8Array {
      * @returns {Address} The address
      */
     public static fromString(pubKey: string): Address {
+        if (!pubKey) {
+            throw new Error('Invalid public key');
+        }
+
         if (pubKey.startsWith('0x')) {
             pubKey = pubKey.slice(2);
         }
@@ -70,12 +83,15 @@ export class Address extends Uint8Array {
     }
 
     public equals(a: Address): boolean {
-        if (a.length !== this.length) {
+        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
+        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+
+        if (c.length !== b.length) {
             return false;
         }
 
-        for (let i = 0; i < this.length; i++) {
-            if (this[i] !== a[i]) {
+        for (let i = 0; i < b.length; i++) {
+            if (b[i] !== c[i]) {
                 return false;
             }
         }
@@ -89,9 +105,12 @@ export class Address extends Uint8Array {
      */
     public lessThan(a: Address): boolean {
         // Compare the two addresses byte-by-byte, treating them as big-endian uint256
+        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
+        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+
         for (let i = 0; i < 32; i++) {
-            const thisByte = this[i];
-            const aByte = a[i];
+            const thisByte = b[i];
+            const aByte = c[i];
 
             if (thisByte < aByte) {
                 return true; // this is less than a
@@ -109,9 +128,12 @@ export class Address extends Uint8Array {
      */
     public greaterThan(a: Address): boolean {
         // Compare the two addresses byte-by-byte, treating them as big-endian uint256
+        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
+        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+
         for (let i = 0; i < 32; i++) {
-            const thisByte = this[i];
-            const aByte = a[i];
+            const thisByte = b[i];
+            const aByte = c[i];
 
             if (thisByte > aByte) {
                 return true; // this is greater than a
@@ -130,7 +152,7 @@ export class Address extends Uint8Array {
      */
     public override set(publicKey: ArrayLike<number>): void {
         if (publicKey.length !== 33 && publicKey.length !== 32 && publicKey.length !== 65) {
-            throw new Error('Invalid public key length');
+            throw new Error(`Invalid public key length ${publicKey.length}`);
         }
 
         if (publicKey.length === 32) {
@@ -143,14 +165,14 @@ export class Address extends Uint8Array {
         } else {
             this._keyPair = EcKeyPair.fromPublicKey(Uint8Array.from(publicKey));
 
-            const tweaked = toXOnly(
+            this.#tweakedBytes = toXOnly(
                 Buffer.from(
                     EcKeyPair.tweakPublicKey(this._keyPair.publicKey.toString('hex')),
                     'hex',
                 ),
             );
 
-            super.set(Uint8Array.from(tweaked));
+            super.set(publicKey);
         }
     }
 
@@ -207,12 +229,10 @@ export class Address extends Uint8Array {
             return this.#p2tr;
         }
 
-        let p2trAddy: string | undefined;
-        if (this._keyPair) {
-            p2trAddy = EcKeyPair.getTaprootAddress(this.keyPair, network);
-        } else if (this.isP2TROnly) {
-            p2trAddy = EcKeyPair.tweakedPubKeyBufferToAddress(this, network);
-        }
+        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(
+            this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array),
+            network,
+        );
 
         if (p2trAddy) {
             this.#network = network;
