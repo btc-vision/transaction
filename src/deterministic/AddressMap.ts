@@ -35,10 +35,10 @@ export class AddressMap<V> extends Map<Address, V> {
         return false;
     }
 
-    public get(key: Address): V {
+    public get(key: Address): V | undefined {
         const index: i32 = this.indexOf(key);
         if (index == -1) {
-            throw new Error('Key not found in map');
+            return;
         }
         return this._values[index];
     }

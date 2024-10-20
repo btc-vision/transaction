@@ -9,12 +9,12 @@ export class AddressSet {
     }
 
     public add(address: Address): void {
-        if (!this.contains(address)) {
+        if (!this.has(address)) {
             this.keys.push(address);
         }
     }
 
-    public contains(address: Address): boolean {
+    public has(address: Address): boolean {
         for (let i = 0; i < this.keys.length; i++) {
             if (this.keys[i].equals(address)) {
                 return true;

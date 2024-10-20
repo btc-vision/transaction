@@ -87,28 +87,40 @@ export class Address extends Uint8Array {
      * Check if the address is bigger than another address
      * @returns {boolean} If bigger
      */
-    public isBiggerThan(a: Address): boolean {
-        for (let i = 0; i < this.length; i++) {
-            if (this[i] < a[i]) {
-                return false;
+    public lessThan(a: Address): boolean {
+        // Compare the two addresses byte-by-byte, treating them as big-endian uint256
+        for (let i = 0; i < 32; i++) {
+            const thisByte = this[i];
+            const aByte = a[i];
+
+            if (thisByte < aByte) {
+                return true; // this is less than a
+            } else if (thisByte > aByte) {
+                return false; // this is greater than or equal to a
             }
         }
 
-        return true;
+        return false;
     }
 
     /**
      * Check if the address is smaller than another address
      * @returns {boolean} If smaller
      */
-    public isSmallerThan(a: Address): boolean {
-        for (let i = 0; i < this.length; i++) {
-            if (this[i] > a[i]) {
-                return false;
+    public greaterThan(a: Address): boolean {
+        // Compare the two addresses byte-by-byte, treating them as big-endian uint256
+        for (let i = 0; i < 32; i++) {
+            const thisByte = this[i];
+            const aByte = a[i];
+
+            if (thisByte > aByte) {
+                return true; // this is greater than a
+            } else if (thisByte < aByte) {
+                return false; // this is less than or equal to a
             }
         }
 
-        return true;
+        return false;
     }
 
     /**

@@ -36,10 +36,10 @@ export class Map<K, V> {
         return -1;
     }
 
-    public get(key: K): V {
+    public get(key: K): V | undefined {
         const index: i32 = this.indexOf(key);
         if (index == -1) {
-            throw new Error('Key not found in map');
+            return undefined;
         }
         return this._values[index];
     }
