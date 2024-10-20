@@ -121,8 +121,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         this.internalInit();
 
-        this._contractPubKey = '0x' + this.contractSigner.publicKey.toString('hex');
-        this._contractAddress = new Address(this.contractSigner.publicKey); //AddressGenerator.generatePKSH(this.contractSeed, this.network);
+        this._contractPubKey = '0x' + this.contractSeed.toString('hex');
+        this._contractAddress = new Address(this.contractSeed);
     }
 
     /**
@@ -198,7 +198,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const amountSpent: bigint = this.getTransactionOPNetFee();
         this.addOutput({
             value: Number(amountSpent),
-            address: this.to,
+            address: this.contractAddress.p2tr(this.network),
         });
 
         await this.addRefundOutput(amountSpent);
@@ -296,7 +296,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
         const salt: Buffer = bitCrypto.hash256(this.randomBytes);
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
-
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
 
         return bitCrypto.hash256(buf);

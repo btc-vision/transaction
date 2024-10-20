@@ -47,6 +47,54 @@ export class TapscriptVerificator {
         return TapscriptVerificator.generateAddressFromScript(params, scriptTree);
     }
 
+    public static verifyControlBlock(
+        params: ContractAddressVerificationParams,
+        controlBlock: Buffer,
+    ): boolean {
+        const network = params.network || networks.bitcoin;
+        const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
+            params.deployerPubKey,
+            toXOnly(params.contractSaltPubKey),
+            network,
+        );
+
+        const compiledTargetScript: Buffer = scriptBuilder.compile(
+            params.bytecode,
+            params.originalSalt,
+            params.calldata,
+        );
+
+        const scriptTree: Taptree = [
+            {
+                output: compiledTargetScript,
+                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
+            },
+            {
+                output: TransactionBuilder.LOCK_LEAF_SCRIPT,
+                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
+            },
+        ];
+
+        const tapData = payments.p2tr({
+            internalPubkey: toXOnly(params.deployerPubKey),
+            network: network,
+            scriptTree: scriptTree,
+            redeem: {
+                pubkeys: [params.deployerPubKey, params.contractSaltPubKey],
+                output: compiledTargetScript,
+                redeemVersion: TapscriptVerificator.TAP_SCRIPT_VERSION,
+            },
+        });
+
+        const witness = tapData.witness;
+        if (!witness || witness.length === 0) {
+            return false;
+        }
+
+        const requiredControlBlock: Buffer = witness[witness.length - 1];
+        return requiredControlBlock.equals(controlBlock);
+    }
+
     public static getContractSeed(
         deployerPubKey: Buffer,
         bytecode: Buffer,
