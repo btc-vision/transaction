@@ -73,7 +73,7 @@ export class Wallet {
             'hex',
         );
 
-        this._bufferPubKey = Buffer.from(wallet.publicKey, 'hex');
+        this._bufferPubKey = this._keypair.publicKey;
         this._address = new Address(this._keypair.publicKey);
     }
 
