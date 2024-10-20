@@ -1,4 +1,3 @@
-import { i32 } from '../utils/types.js';
 import { Address } from '../keypair/Address.js';
 
 export class AddressSet {
@@ -6,6 +5,10 @@ export class AddressSet {
 
     public constructor(keys: Address[] = []) {
         this.keys = keys;
+    }
+
+    public get size(): number {
+        return this.keys.length;
     }
 
     public add(address: Address): void {
@@ -32,10 +35,6 @@ export class AddressSet {
         }
     }
 
-    public size(): i32 {
-        return this.keys.length;
-    }
-
     public clone(): AddressSet {
         const clone = new AddressSet();
 
@@ -58,5 +57,11 @@ export class AddressSet {
         }
 
         return clone;
+    }
+
+    *[Symbol.iterator]() {
+        for (let i = 0; i < this.keys.length; i++) {
+            yield this.keys[i];
+        }
     }
 }

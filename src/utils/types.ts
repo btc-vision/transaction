@@ -8,6 +8,7 @@ export type BufferLike = Uint8Array | Buffer;
 
 export type MemorySlotData<T> = T;
 export type PointerStorage = DeterministicMap<MemorySlotPointer, MemorySlotData<bigint>>;
+export type BlockchainStorage = DeterministicMap<string, PointerStorage>;
 
 export type i32 = number;
 export type u8 = number;

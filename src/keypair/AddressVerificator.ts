@@ -175,6 +175,7 @@ export class AddressVerificator {
                 }
             }
         } catch (error) {
+            console.log(error);
             // Ignore errors from Bech32/Bech32m decoding
         }
 

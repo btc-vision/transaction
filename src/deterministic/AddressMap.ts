@@ -54,4 +54,10 @@ export class AddressMap<V> extends Map<Address, V> {
 
         return true;
     }
+
+    *[Symbol.iterator](): IterableIterator<[Address, V]> {
+        for (const key of this._keys) {
+            yield [key, this.get(key) as V];
+        }
+    }
 }
