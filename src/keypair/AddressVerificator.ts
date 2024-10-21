@@ -118,8 +118,7 @@ export class AddressVerificator {
 
                 return true;
             }
-        } catch (error) {
-            // If any error occurs (invalid public key, etc.), return false
+        } catch {
             return false;
         }
 
@@ -156,9 +155,7 @@ export class AddressVerificator {
                 // P2SH: Could be P2SH (general) or P2SH-P2WPKH (wrapped SegWit)
                 return AddressTypes.P2SH_OR_P2SH_P2WPKH;
             }
-        } catch (error) {
-            // Ignore errors from Base58 decoding, it could be a Bech32 address
-        }
+        } catch {}
 
         try {
             // Try to decode as a Bech32 or Bech32m address (P2WPKH or P2TR)
@@ -174,10 +171,7 @@ export class AddressVerificator {
                     return AddressTypes.P2TR;
                 }
             }
-        } catch (error) {
-            console.log(error);
-            // Ignore errors from Bech32/Bech32m decoding
-        }
+        } catch {}
 
         return null; // Not a valid or recognized Bitcoin address type
     }
