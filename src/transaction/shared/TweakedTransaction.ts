@@ -1,11 +1,16 @@
 import { Logger } from '@btc-vision/logger';
 import {
+    address as bitAddress,
+    crypto as bitCrypto,
+    getFinalScripts,
     Network,
+    opcodes,
     Payment,
     payments,
     Psbt,
     PsbtInput,
     PsbtInputExtended,
+    script,
     Signer,
     Transaction,
 } from 'bitcoinjs-lib';
@@ -14,7 +19,7 @@ import { ECPairInterface } from 'ecpair';
 import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { ChainId } from '../../network/ChainId.js';
 import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
 
@@ -474,6 +479,8 @@ export abstract class TweakedTransaction extends Logger {
             await Promise.all(promises);
         }
 
+        transaction.finalizeInput(0, this.customFinalizerP2SH);
+
         try {
             transaction.finalizeAllInputs();
 
@@ -536,6 +543,65 @@ export abstract class TweakedTransaction extends Logger {
         return TweakedSigner.tweakSigner(signer as unknown as ECPairInterface, settings);
     }
 
+    protected generateP2SHRedeemScript(customWitnessScript: Buffer): Buffer | undefined {
+        const p2wsh = payments.p2wsh({
+            redeem: { output: customWitnessScript },
+            network: this.network,
+        });
+
+        // Step 2: Wrap the P2WSH inside a P2SH (Pay-to-Script-Hash)
+        const p2sh = payments.p2sh({
+            redeem: p2wsh,
+            network: this.network,
+        });
+
+        return p2sh.output;
+    }
+
+    protected generateP2SHRedeemScriptLegacy(inputAddr: string):
+        | {
+              redeemScript: Buffer;
+              outputScript: Buffer;
+          }
+        | undefined {
+        const pubKeyHash = bitCrypto.hash160(this.signer.publicKey);
+        const redeemScript: Buffer = script.compile([
+            opcodes.OP_DUP,
+            opcodes.OP_HASH160,
+            pubKeyHash,
+            opcodes.OP_EQUALVERIFY,
+            opcodes.OP_CHECKSIG,
+        ]);
+
+        const redeemScriptHash = bitCrypto.hash160(redeemScript);
+        const outputScript = script.compile([
+            opcodes.OP_HASH160,
+            redeemScriptHash,
+            opcodes.OP_EQUAL,
+        ]);
+
+        const p2wsh = payments.p2wsh({
+            redeem: { output: redeemScript }, // Use the custom redeem script
+            network: this.network,
+        });
+
+        // Step 3: Wrap the P2WSH in a P2SH
+        const p2sh = payments.p2sh({
+            redeem: p2wsh, // The P2WSH is wrapped inside the P2SH
+            network: this.network,
+        });
+
+        const address = bitAddress.fromOutputScript(outputScript, this.network);
+        if (address === inputAddr && p2sh.redeem && p2sh.redeem.output) {
+            return {
+                redeemScript,
+                outputScript: p2sh.redeem.output,
+            };
+        }
+
+        return;
+    }
+
     /**
      * Generate the PSBT input extended
      * @param {UTXO} utxo The UTXO
@@ -547,13 +613,60 @@ export abstract class TweakedTransaction extends Logger {
         const input: PsbtInputExtended = {
             hash: utxo.transactionId,
             index: utxo.outputIndex,
+            sequence: this.sequence,
             witnessUtxo: {
                 value: Number(utxo.value),
                 script: Buffer.from(utxo.scriptPubKey.hex, 'hex'),
             },
-            sequence: this.sequence,
         };
 
+        if (utxo.scriptPubKey.address) {
+            // auto detect for potential p2sh utxos
+            try {
+                const addressType: AddressTypes | null = AddressVerificator.detectAddressType(
+                    utxo.scriptPubKey.address,
+                    this.network,
+                );
+
+                if (addressType === AddressTypes.P2SH_OR_P2SH_P2WPKH) {
+                    // We can automatically reconstruct the redeem script.
+                    const redeemScript = this.generateP2SHRedeemScriptLegacy(
+                        utxo.scriptPubKey.address,
+                    );
+
+                    if (!redeemScript) {
+                        throw new Error('Failed to generate redeem script');
+                    }
+
+                    input.redeemScript = redeemScript.outputScript;
+                    input.witnessScript = redeemScript.redeemScript;
+                }
+            } catch (e) {
+                this.error(`Failed to detect address type for ${utxo.scriptPubKey.address} - ${e}`);
+            }
+        }
+
+        // LEGACY P2SH SUPPORT
+        if (utxo.nonWitnessUtxo) {
+            input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                ? utxo.nonWitnessUtxo
+                : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+        }
+
+        // SEGWIT SUPPORT
+        if (utxo.redeemScript) {
+            input.redeemScript = Buffer.isBuffer(utxo.redeemScript)
+                ? utxo.redeemScript
+                : Buffer.from(utxo.redeemScript, 'hex');
+
+            if (utxo.witnessScript) {
+                input.witnessScript = Buffer.isBuffer(utxo.witnessScript)
+                    ? utxo.witnessScript
+                    : Buffer.from(utxo.witnessScript, 'hex');
+            }
+        }
+
+        // TAPROOT.
         if (this.sighashTypes) {
             const inputSign = TweakedTransaction.calculateSignHash(this.sighashTypes);
             if (inputSign) input.sighashType = inputSign;
@@ -580,4 +693,46 @@ export abstract class TweakedTransaction extends Logger {
 
         return input;
     }
+
+    protected customFinalizerP2SH = (
+        inputIndex: number, // Which input is it?
+        input: PsbtInput, // The PSBT input contents
+        scriptA: Buffer, // The "meaningful" locking script Buffer (redeemScript for P2SH etc.)
+        isSegwit: boolean, // Is it segwit?
+        isP2SH: boolean, // Is it P2SH?
+        isP2WSH: boolean,
+    ): {
+        finalScriptSig: Buffer | undefined;
+        finalScriptWitness: Buffer | undefined;
+    } => {
+        const inputDecoded = this.inputs[inputIndex];
+        if (isP2SH && input.partialSig && inputDecoded && inputDecoded.redeemScript) {
+            const signatures = input.partialSig.map((sig) => sig.signature);
+
+            /*const fakeSignature = Buffer.from([
+                0x30,
+                0x45, // DER prefix: 0x30 (Compound), 0x45 (length = 69 bytes)
+                0x02,
+                0x20, // Integer marker: 0x02 (integer), 0x20 (length = 32 bytes)
+                ...Buffer.alloc(32, 0x00), // 32-byte fake 'r' value (all zeros)
+                0x02,
+                0x21, // Integer marker: 0x02 (integer), 0x21 (length = 33 bytes)
+                ...Buffer.alloc(33, 0x00), // 33-byte fake 's' value (all zeros)
+                0x01, // SIGHASH_ALL flag (0x01)
+            ]);*/
+
+            const scriptSig = script.compile([
+                ...signatures,
+                //fakeSignature,
+                inputDecoded.redeemScript,
+            ]);
+
+            return {
+                finalScriptSig: scriptSig, // Manually set the final scriptSig
+                finalScriptWitness: undefined, // Manually set the final scriptWitness
+            };
+        }
+
+        return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH);
+    };
 }

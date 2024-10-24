@@ -5,6 +5,9 @@ export interface UTXO {
     readonly outputIndex: number;
     readonly value: bigint;
     readonly scriptPubKey: ScriptPubKey;
+    redeemScript?: string | Buffer;
+    witnessScript?: string | Buffer;
+    nonWitnessUtxo?: string | Buffer;
 }
 
 export interface FetchUTXOParams {

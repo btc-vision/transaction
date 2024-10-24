@@ -6,6 +6,7 @@ export * from './bytecode/Compressor.js';
 /** Generators */
 export * from './generators/Generator.js';
 export * from './generators/builders/CalldataGenerator.js';
+export * from './generators/builders/LegacyCalldataGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/MultiSignGenerator.js';

@@ -6,8 +6,6 @@ initEccLib(ecc);
 
 export enum AddressTypes {
     P2PKH = 'P2PKH',
-    P2SH = 'P2SH',
-    P2SH_P2WPKH = 'P2SH-P2WPKH',
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',
     P2PK = 'P2PK',
     P2TR = 'P2TR',
@@ -126,6 +124,27 @@ export class AddressVerificator {
     }
 
     /**
+     * Checks if the address requires a redeem script to spend funds.
+     * @param {string} addy - The address to check.
+     * @param {Network} network - The network to validate against.
+     * @returns {boolean} - True if the address requires a redeem script, false otherwise.
+     */
+    public static requireRedeemScript(addy: string, network: Network): boolean {
+        try {
+            // First, try to decode as a Base58Check address (P2PKH, P2SH, or P2SH-P2WPKH)
+            const decodedBase58 = address.fromBase58Check(addy);
+
+            if (decodedBase58.version === network.pubKeyHash) {
+                return false;
+            }
+
+            return decodedBase58.version === network.scriptHash;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Validates if a given Bitcoin address is of the specified type and network.
      * - P2PKH (Legacy address starting with '1' for mainnet or 'm/n' for testnet)
      * - P2SH (Legacy address starting with '3' for mainnet or '2' for testnet)
@@ -138,7 +157,7 @@ export class AddressVerificator {
      * @param network - The Bitcoin network to validate against (mainnet, testnet, etc.).
      * @returns - The type of the valid Bitcoin address, or null if invalid.
      */
-    public static validateBitcoinAddress(addy: string, network: Network): AddressTypes | null {
+    public static detectAddressType(addy: string, network: Network): AddressTypes | null {
         if (AddressVerificator.isValidPublicKey(addy, network)) {
             return AddressTypes.P2PK;
         }
