@@ -37,7 +37,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         //opcodes.OP_VERIFY, - verify that this is not needed.
     ]);
 
-    public static readonly MINIMUM_DUST: bigint = 330n;
+    public static readonly MINIMUM_DUST: bigint = 50n;
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';

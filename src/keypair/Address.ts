@@ -82,6 +82,14 @@ export class Address extends Uint8Array {
         return '0x' + Buffer.from(this).toString('hex');
     }
 
+    /**
+     * Converts the address to a buffer
+     * @returns {Buffer} The buffer
+     */
+    public toBuffer(): Buffer {
+        return Buffer.from(this);
+    }
+
     public equals(a: Address): boolean {
         const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
         const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
