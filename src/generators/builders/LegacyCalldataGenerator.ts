@@ -9,12 +9,8 @@ import { Generator } from '../Generator.js';
  * Class to generate bitcoin script for interaction transactions
  */
 export class LegacyCalldataGenerator extends Generator {
-    constructor(
-        senderPubKey: Buffer,
-        contractSaltPubKey: Buffer,
-        network: Network = networks.bitcoin,
-    ) {
-        super(senderPubKey, contractSaltPubKey, network);
+    constructor(senderPubKey: Buffer, network: Network = networks.bitcoin) {
+        super(senderPubKey, Buffer.alloc(0), network);
     }
 
     /**
@@ -69,16 +65,11 @@ export class LegacyCalldataGenerator extends Generator {
         vaultPublicKeys: Buffer[] = [],
         minimumSignatures: number = 0,
     ): Buffer {
-        if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
-
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 
         let compiledData = [
             this.senderPubKey,
-            opcodes.OP_CHECKSIGVERIFY,
-
-            this.contractSaltPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             contractSecret,
