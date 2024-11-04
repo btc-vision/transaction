@@ -37,13 +37,9 @@ export class BitcoinUtils {
 
             return Buffer.from(array);
         } else {
-            // Fallback to Math.random() if window.crypto is not available
-            const randomValues = [];
-            for (let i = 0; i < length; i++) {
-                randomValues.push(Math.floor(Math.random() * 256));
-            }
-
-            return Buffer.from(randomValues);
+            throw new Error(
+                'No secure random number generator available. Please upgrade your environment.',
+            );
         }
     }
 

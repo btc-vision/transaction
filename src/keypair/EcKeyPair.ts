@@ -4,16 +4,20 @@ import { address, initEccLib, Network, networks, payments, Signer } from '@btc-v
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
-import { CURVE, Point, utils } from '@noble/secp256k1';
+import { CURVE, ProjectivePoint as Point } from '@noble/secp256k1';
 import { taggedHash } from '@btc-vision/bitcoin/src/crypto.js';
 
 initEccLib(ecc);
 
 const BIP32factory = typeof bip32 === 'function' ? bip32 : BIP32Factory;
-
 if (!BIP32factory) {
     throw new Error('Failed to load BIP32 library');
 }
+
+const mod = (a: bigint, b: bigint): bigint => {
+    const result = a % b;
+    return result >= 0n ? result : result + b;
+};
 
 /**
  * Class for handling EC key pairs
@@ -213,10 +217,10 @@ export class EcKeyPair {
     /**
      * Tweak a public key
      * @param {string} compressedPubKeyHex - The compressed public key hex string
-     * @returns {string} - The tweaked public key hex string
+     * @returns {Buffer} - The tweaked public key hex string
      * @throws {Error} - If the public key cannot be tweaked
      */
-    public static tweakPublicKey(compressedPubKeyHex: string): string {
+    public static tweakPublicKey(compressedPubKeyHex: string): Buffer {
         if (compressedPubKeyHex.startsWith('0x')) {
             compressedPubKeyHex = compressedPubKeyHex.slice(2);
         }
@@ -225,7 +229,7 @@ export class EcKeyPair {
         let P = Point.fromHex(compressedPubKeyHex);
 
         // Ensure the point has an even y-coordinate
-        if (!P.hasEvenY()) {
+        if ((P.y & 1n) !== 0n) {
             // Negate the point to get an even y-coordinate
             P = P.negate();
         }
@@ -235,13 +239,13 @@ export class EcKeyPair {
 
         // Compute the tweak t = H_tapTweak(x)
         const tHash = taggedHash('TapTweak', Buffer.from(x));
-        const t = utils.mod(BigInt('0x' + Buffer.from(tHash).toString('hex')), CURVE.n);
+        const t = mod(BigInt('0x' + Buffer.from(tHash).toString('hex')), CURVE.n);
 
         // Compute Q = P + t*G (where G is the generator point)
-        const Q = P.add(Point.BASE.multiply(t));
+        const Q = P.add(Point.BASE.mul(t));
 
         // Return the tweaked public key in compressed form (hex string)
-        return Q.toHex(true);
+        return Buffer.from(Q.toRawBytes(true));
     }
 
     /**
@@ -417,6 +421,6 @@ export class EcKeyPair {
         const privKey = fromSeed.privateKey;
         if (!privKey) throw new Error('Failed to generate key pair');
 
-        return this.ECPair.fromPrivateKey(privKey, { network });
+        return this.ECPair.fromPrivateKey(Buffer.from(privKey), { network });
     }
 }

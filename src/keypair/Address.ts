@@ -7,6 +7,7 @@ import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 export class Address extends Uint8Array {
     private isP2TROnly: boolean = false;
+
     #p2tr: string | undefined;
     #network: Network | undefined;
     #tweakedBytes: Uint8Array | undefined;
@@ -174,10 +175,7 @@ export class Address extends Uint8Array {
             this._keyPair = EcKeyPair.fromPublicKey(Uint8Array.from(publicKey));
 
             this.#tweakedBytes = toXOnly(
-                Buffer.from(
-                    EcKeyPair.tweakPublicKey(this._keyPair.publicKey.toString('hex')),
-                    'hex',
-                ),
+                EcKeyPair.tweakPublicKey(this._keyPair.publicKey.toString('hex')),
             );
 
             super.set(publicKey);

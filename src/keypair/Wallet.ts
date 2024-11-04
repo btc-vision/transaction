@@ -68,10 +68,7 @@ export class Wallet {
         this._legacy = EcKeyPair.getLegacyAddress(this._keypair, this.network);
         this._segwitLegacy = EcKeyPair.getLegacySegwitAddress(this._keypair, this.network);
 
-        this._tweakedKey = Buffer.from(
-            EcKeyPair.tweakPublicKey(this._keypair.publicKey.toString('hex')),
-            'hex',
-        );
+        this._tweakedKey = EcKeyPair.tweakPublicKey(this._keypair.publicKey.toString('hex'));
 
         this._bufferPubKey = this._keypair.publicKey;
         this._address = new Address(this._keypair.publicKey);
