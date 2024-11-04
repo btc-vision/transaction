@@ -1,4 +1,4 @@
-import { Network, networks } from 'bitcoinjs-lib';
+import { Network, networks } from '@btc-vision/bitcoin';
 import { ChainId } from '../../network/ChainId.js';
 import { ContractBaseMetadata } from '../ContractBaseMetadata.js';
 import { WBTC_ADDRESS_FRACTAL, WBTC_ADDRESS_REGTEST, WBTC_ADDRESS_TESTNET } from '../tokens.js';

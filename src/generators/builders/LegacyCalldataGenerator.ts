@@ -1,4 +1,4 @@
-import { Network, networks, opcodes, script } from 'bitcoinjs-lib';
+import { Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';

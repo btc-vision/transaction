@@ -1,9 +1,9 @@
-import { Network } from 'bitcoinjs-lib';
+import { Network } from '@btc-vision/bitcoin';
 import { EcKeyPair } from './EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/types.js';
 import { AddressVerificator } from './AddressVerificator.js';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 export class Address extends Uint8Array {
     private isP2TROnly: boolean = false;

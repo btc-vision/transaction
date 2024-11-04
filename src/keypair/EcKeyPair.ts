@@ -1,11 +1,11 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
 import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
-import { address, initEccLib, Network, networks, payments, Signer } from 'bitcoinjs-lib';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { address, initEccLib, Network, networks, payments, Signer } from '@btc-vision/bitcoin';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
 import { CURVE, Point, utils } from '@noble/secp256k1';
-import { taggedHash } from 'bitcoinjs-lib/src/crypto.js';
+import { taggedHash } from '@btc-vision/bitcoin/src/crypto.js';
 
 initEccLib(ecc);
 

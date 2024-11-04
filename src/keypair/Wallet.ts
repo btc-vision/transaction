@@ -1,8 +1,8 @@
 import { IWallet } from './interfaces/IWallet.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
-import { Network, networks } from 'bitcoinjs-lib';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { Network, networks } from '@btc-vision/bitcoin';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { Address } from './Address.js';
 
 /**

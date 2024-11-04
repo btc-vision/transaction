@@ -1,7 +1,7 @@
 import { bech32, bech32m } from 'bech32';
-import { initEccLib, Network } from 'bitcoinjs-lib';
+import { initEccLib, Network } from '@btc-vision/bitcoin';
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { ripemd160 } from 'bitcoinjs-lib/src/crypto.js';
+import { ripemd160 } from '@btc-vision/bitcoin/src/crypto.js';
 
 initEccLib(ecc);
 

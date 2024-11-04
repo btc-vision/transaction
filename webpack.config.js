@@ -73,7 +73,7 @@ export default {
             process: 'process/browser',
             stream: 'stream-browserify',
             zlib: 'browserify-zlib',
-            bitcoin: 'bitcoinjs-lib',
+            bitcoin: '@btc-vision/bitcoin',
         }),
     ],
 };

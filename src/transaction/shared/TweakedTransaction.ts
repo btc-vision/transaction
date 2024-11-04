@@ -13,15 +13,15 @@ import {
     script,
     Signer,
     Transaction,
-} from 'bitcoinjs-lib';
+} from '@btc-vision/bitcoin';
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { ChainId } from '../../network/ChainId.js';
-import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
+import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer | ECPairInterface;

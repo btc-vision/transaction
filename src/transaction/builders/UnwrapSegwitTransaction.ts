@@ -1,10 +1,10 @@
-import { Taptree } from 'bitcoinjs-lib/src/types.js';
+import { Taptree } from '@btc-vision/bitcoin/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IUnwrapParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { wBTC } from '../../metadata/contracts/wBTC.js';
-import { payments, Psbt, PsbtInputExtended, PsbtOutputExtended, Signer } from 'bitcoinjs-lib';
+import { payments, Psbt, PsbtInputExtended, PsbtOutputExtended, Signer } from '@btc-vision/bitcoin';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IWBTCUTXODocument, PsbtTransaction, VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { currentConsensusConfig } from '../../consensus/ConsensusConfig.js';

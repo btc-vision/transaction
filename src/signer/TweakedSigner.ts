@@ -1,7 +1,7 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { initEccLib, Network, Signer } from 'bitcoinjs-lib';
-import { tapTweakHash } from 'bitcoinjs-lib/src/payments/bip341.js';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { initEccLib, Network, Signer } from '@btc-vision/bitcoin';
+import { tapTweakHash } from '@btc-vision/bitcoin/src/payments/bip341.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
 

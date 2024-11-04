@@ -1,5 +1,5 @@
-import { Network, networks } from 'bitcoinjs-lib';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { Network, networks } from '@btc-vision/bitcoin';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 /** Bitcoin Script Generator */
 export abstract class Generator {

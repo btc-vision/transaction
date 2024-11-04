@@ -8,8 +8,8 @@ import {
     script,
     Signer,
     Transaction,
-} from 'bitcoinjs-lib';
-import { varuint } from 'bitcoinjs-lib/src/bufferutils.js';
+} from '@btc-vision/bitcoin';
+import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';

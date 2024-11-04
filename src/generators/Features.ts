@@ -1,4 +1,4 @@
-import { opcodes } from 'bitcoinjs-lib';
+import { opcodes } from '@btc-vision/bitcoin';
 
 export enum Features {
     UNWRAP = 0, // random number just to set the first value

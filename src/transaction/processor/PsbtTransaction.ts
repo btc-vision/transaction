@@ -5,7 +5,7 @@ import {
     PsbtOutputExtended,
     Signer,
     Transaction,
-} from 'bitcoinjs-lib';
+} from '@btc-vision/bitcoin';
 import { ITweakedTransactionData, TweakedTransaction } from '../shared/TweakedTransaction.js';
 
 export interface PsbtTransactionData extends ITweakedTransactionData {

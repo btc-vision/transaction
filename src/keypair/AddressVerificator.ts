@@ -1,4 +1,4 @@
-import { address, initEccLib, Network } from 'bitcoinjs-lib';
+import { address, initEccLib, Network } from '@btc-vision/bitcoin';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { EcKeyPair } from './EcKeyPair.js';
 

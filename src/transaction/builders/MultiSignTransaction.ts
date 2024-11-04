@@ -9,14 +9,14 @@ import {
     script,
     Signer,
     TapScriptSig,
-} from 'bitcoinjs-lib';
-import { Taptree } from 'bitcoinjs-lib/src/types.js';
+} from '@btc-vision/bitcoin';
+import { Taptree } from '@btc-vision/bitcoin/src/types.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
 

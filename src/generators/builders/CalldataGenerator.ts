@@ -1,4 +1,4 @@
-import { crypto, Network, networks, opcodes, script } from 'bitcoinjs-lib';
+import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -99,7 +99,7 @@ export class CalldataGenerator extends Generator {
 
             Generator.MAGIC,
         ];
-        
+
         // write pub keys, when requested.
         if (vaultPublicKeys.length > 0) {
             const pubKeyBuffer = CalldataGenerator.getPubKeyAsBuffer(vaultPublicKeys, this.network);

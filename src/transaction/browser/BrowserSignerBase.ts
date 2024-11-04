@@ -1,4 +1,4 @@
-import { Network, Psbt, Signer } from 'bitcoinjs-lib';
+import { Network, Psbt, Signer } from '@btc-vision/bitcoin';
 
 /**
  * Create a custom keypair.

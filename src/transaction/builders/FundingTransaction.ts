@@ -1,6 +1,6 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
-import { Signer } from 'bitcoinjs-lib';
+import { Signer } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ECPairInterface } from 'ecpair';
 

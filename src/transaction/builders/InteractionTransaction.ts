@@ -1,4 +1,4 @@
-import { Taptree } from 'bitcoinjs-lib/src/types.js';
+import { Taptree } from '@btc-vision/bitcoin/src/types.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';

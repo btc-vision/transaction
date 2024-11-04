@@ -1,4 +1,4 @@
-import { Network, networks, Psbt, TapScriptSig } from 'bitcoinjs-lib';
+import { Network, networks, Psbt, TapScriptSig } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';

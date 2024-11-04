@@ -10,7 +10,7 @@ import {
     TapMerkleRoot as _TapMerkleRoot,
     TapScriptSig as _TapScriptSig,
     TapTree as _TapTree,
-} from 'bitcoinjs-lib';
+} from '@btc-vision/bitcoin';
 
 export interface TapLeafScript {
     readonly leafVersion: number;

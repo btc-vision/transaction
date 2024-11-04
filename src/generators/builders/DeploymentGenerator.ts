@@ -1,4 +1,4 @@
-import { crypto, Network, networks, opcodes, script } from 'bitcoinjs-lib';
+import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 
 export class DeploymentGenerator extends Generator {

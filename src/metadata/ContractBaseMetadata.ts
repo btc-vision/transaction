@@ -1,4 +1,4 @@
-import { Network, networks } from 'bitcoinjs-lib';
+import { Network, networks } from '@btc-vision/bitcoin';
 
 export abstract class ContractBaseMetadata {
     protected abstract readonly address: string;

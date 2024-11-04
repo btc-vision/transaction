@@ -1,4 +1,4 @@
-import { Network, networks } from 'bitcoinjs-lib';
+import { Network, networks } from '@btc-vision/bitcoin';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 

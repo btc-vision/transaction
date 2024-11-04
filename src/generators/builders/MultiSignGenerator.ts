@@ -1,5 +1,5 @@
-import { opcodes, script } from 'bitcoinjs-lib';
-import { toXOnly } from 'bitcoinjs-lib/src/psbt/bip371.js';
+import { opcodes, script } from '@btc-vision/bitcoin';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 /**
  * Generate a bitcoin script for a multisign interaction

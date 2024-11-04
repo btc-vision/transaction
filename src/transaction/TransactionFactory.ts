@@ -1,5 +1,5 @@
-import { Psbt, Transaction } from 'bitcoinjs-lib';
-import { Output } from 'bitcoinjs-lib/src/transaction.js';
+import { Psbt, Transaction } from '@btc-vision/bitcoin';
+import { Output } from '@btc-vision/bitcoin/src/transaction.js';
 import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 import { wBTC } from '../metadata/contracts/wBTC.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';

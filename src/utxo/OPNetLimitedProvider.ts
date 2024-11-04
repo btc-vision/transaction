@@ -1,4 +1,4 @@
-import { Network } from 'bitcoinjs-lib';
+import { Network } from '@btc-vision/bitcoin';
 import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
 import { Address, IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
 import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';

@@ -1,4 +1,4 @@
-import { Network, networks, script, Stack } from 'bitcoinjs-lib';
+import { Network, networks, script, Stack } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 
 /**
