@@ -3,6 +3,7 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
+import { PartialSig } from 'bip174/src/lib/interfaces.js';
 
 declare global {
     interface Window {
@@ -138,14 +139,65 @@ export class UnisatSigner extends CustomKeypair {
         i: number,
         sighashTypes: number[],
     ): Promise<void> {
-        const firstSignature = await this.signTweaked(transaction, i, sighashTypes, false);
+        const input = transaction.data.inputs[i];
+        if (
+            input.tapKeySig ||
+            input.finalScriptSig ||
+            (Array.isArray(input.partialSig) &&
+                input.partialSig.length &&
+                this.hasAlreadyPartialSig(input.partialSig)) ||
+            (Array.isArray(input.tapScriptSig) &&
+                input.tapScriptSig.length &&
+                this.hasAlreadySignedTapScriptSig(input.tapScriptSig))
+        ) {
+            return;
+        }
+
+        const firstSignature = await this.signAllTweaked(transaction, sighashTypes, false);
         this.combine(transaction, firstSignature, i);
     }
 
     public async signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void> {
-        const secondSignature = await this.signTweaked(transaction, i, sighashTypes, true);
+        const input = transaction.data.inputs[i];
+        if (
+            input.tapKeySig ||
+            input.finalScriptSig ||
+            (Array.isArray(input.partialSig) &&
+                input.partialSig.length &&
+                this.hasAlreadyPartialSig(input.partialSig)) ||
+            (Array.isArray(input.tapScriptSig) &&
+                input.tapScriptSig.length &&
+                this.hasAlreadySignedTapScriptSig(input.tapScriptSig))
+        ) {
+            return;
+        }
 
-        this.combine(transaction, secondSignature, i);
+        const firstSignature = await this.signAllTweaked(transaction, sighashTypes, true);
+        this.combine(transaction, firstSignature, i);
+    }
+
+    private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
+        for (let i = 0; i < input.length; i++) {
+            const item = input[i];
+            const buf = Buffer.from(item.pubkey);
+            if (buf.equals(this.publicKey) && item.signature) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private hasAlreadyPartialSig(input: PartialSig[]): boolean {
+        for (let i = 0; i < input.length; i++) {
+            const item = input[i];
+            const buf = Buffer.from(item.pubkey);
+            if (buf.equals(this.publicKey) && item.signature) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private combine(transaction: Psbt, newPsbt: Psbt, i: number): void {
@@ -175,6 +227,34 @@ export class UnisatSigner extends CustomKeypair {
                 transaction.updateInput(i, { tapScriptSig: signedInput.tapScriptSig });
             }
         }
+    }
+
+    private async signAllTweaked(
+        transaction: Psbt,
+        sighashTypes: number[],
+        disableTweakSigner: boolean = false,
+    ): Promise<Psbt> {
+        const pubKey = this.publicKey.toString('hex');
+        const toSign = transaction.data.inputs.map((_, i) => {
+            return [
+                {
+                    index: i,
+                    publicKey: pubKey,
+                    sighashTypes,
+                    disableTweakSigner: disableTweakSigner,
+                },
+            ];
+        });
+
+        const opts: PsbtSignatureOptions = {
+            autoFinalized: false,
+            toSignInputs: toSign.flat(),
+        };
+
+        const psbt = transaction.toHex();
+        const signed = await this.unisat.signPsbt(psbt, opts);
+
+        return Psbt.fromHex(signed);
     }
 
     private async signTweaked(
