@@ -189,12 +189,23 @@ export abstract class SharedInteractionTransaction<
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             if (i === 0) {
                 // multi sig input
-                transaction.signInput(0, this.scriptSigner);
-                transaction.signInput(0, this.getSignerKey());
+                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i],
+                    i,
+                    this.getSignerKey(),
+                );
 
-                transaction.finalizeInput(0, this.customFinalizer);
+                transaction.finalizeInput(i, this.customFinalizer);
             } else {
-                transaction.signInput(i, this.getSignerKey());
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i],
+                    i,
+                    this.getSignerKey(),
+                );
+
                 transaction.finalizeInput(i);
             }
         }
