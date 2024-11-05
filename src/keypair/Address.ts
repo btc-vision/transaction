@@ -1,7 +1,6 @@
 import { Network } from '@btc-vision/bitcoin';
 import { EcKeyPair } from './EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
-import { ADDRESS_BYTE_LENGTH } from '../utils/types.js';
 import { AddressVerificator } from './AddressVerificator.js';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
@@ -21,7 +20,7 @@ export class Address extends Uint8Array {
     #keyPair: ECPairInterface | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
-        super(bytes?.length || ADDRESS_BYTE_LENGTH);
+        super(32);
 
         if (!bytes) {
             return;
@@ -185,7 +184,7 @@ export class Address extends Uint8Array {
             const tweakedBytes = toXOnly(
                 EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
             );
-
+            
             super.set(tweakedBytes);
         }
     }
