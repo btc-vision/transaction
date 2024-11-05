@@ -5,12 +5,20 @@ import { ADDRESS_BYTE_LENGTH } from '../utils/types.js';
 import { AddressVerificator } from './AddressVerificator.js';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
-export class Address extends Uint8Array {
-    private isP2TROnly: boolean = false;
+const hexPattern = /^[0-9a-fA-F]+$/;
+const isHexadecimal = (input: string): boolean => {
+    return hexPattern.test(input);
+};
 
+/**
+ * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
+ * @category KeyPair
+ */
+export class Address extends Uint8Array {
     #p2tr: string | undefined;
     #network: Network | undefined;
-    #tweakedBytes: Uint8Array | undefined;
+    #originalPublicKey: Uint8Array | undefined;
+    #keyPair: ECPairInterface | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(bytes?.length || ADDRESS_BYTE_LENGTH);
@@ -22,25 +30,24 @@ export class Address extends Uint8Array {
         this.set(bytes);
     }
 
-    private _keyPair: ECPairInterface | undefined;
-
     /**
-     * Get the key pair for the address
+     * If available, this will return the original public key associated with the address.
+     * @returns {Uint8Array} The original public key used to create the address.
      */
-    public get keyPair(): ECPairInterface {
-        if (!this._keyPair) {
-            throw new Error('Public key not set for address');
-        }
-
-        return this._keyPair;
+    public get originalPublicKey(): Uint8Array | undefined {
+        return this.#originalPublicKey;
     }
 
     /**
-     * Get the tweaked bytes
-     * @returns {Uint8Array} The tweaked bytes
+     * Get the key pair for the address
+     * @description This is only for internal use. Please use address.tweakedBytes instead.
      */
-    public get tweakedBytes(): Uint8Array {
-        return this.#tweakedBytes || this;
+    private get keyPair(): ECPairInterface {
+        if (!this.#keyPair) {
+            throw new Error('Public key not set for address');
+        }
+
+        return this.#keyPair;
     }
 
     public static dead(): Address {
@@ -61,6 +68,12 @@ export class Address extends Uint8Array {
 
         if (pubKey.startsWith('0x')) {
             pubKey = pubKey.slice(2);
+        }
+
+        if (!isHexadecimal(pubKey)) {
+            throw new Error(
+                'You must only pass public keys in hexadecimal format. If you have an address such as bc1q... you must convert it to a public key first. Please refer to await provider.getPublicKeyInfo("bc1q..."). If the public key associated with the address is not found, you must force the user to enter the destination public key. It looks like: 0x020373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c.',
+            );
         }
 
         return new Address(Buffer.from(pubKey, 'hex'));
@@ -92,15 +105,14 @@ export class Address extends Uint8Array {
     }
 
     public equals(a: Address): boolean {
-        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
-        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+        const b: Address = this as Address;
 
-        if (c.length !== b.length) {
+        if (a.length !== b.length) {
             return false;
         }
 
         for (let i = 0; i < b.length; i++) {
-            if (b[i] !== c[i]) {
+            if (b[i] !== a[i]) {
                 return false;
             }
         }
@@ -113,13 +125,11 @@ export class Address extends Uint8Array {
      * @returns {boolean} If bigger
      */
     public lessThan(a: Address): boolean {
-        // Compare the two addresses byte-by-byte, treating them as big-endian uint256
-        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
-        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+        const b: Address = this as Address;
 
         for (let i = 0; i < 32; i++) {
             const thisByte = b[i];
-            const aByte = c[i];
+            const aByte = a[i];
 
             if (thisByte < aByte) {
                 return true; // this is less than a
@@ -137,12 +147,11 @@ export class Address extends Uint8Array {
      */
     public greaterThan(a: Address): boolean {
         // Compare the two addresses byte-by-byte, treating them as big-endian uint256
-        const b = this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array);
-        const c = a.isP2TROnly ? a : (a.#tweakedBytes as Uint8Array);
+        const b = this as Address;
 
         for (let i = 0; i < 32; i++) {
             const thisByte = b[i];
-            const aByte = c[i];
+            const aByte = a[i];
 
             if (thisByte > aByte) {
                 return true; // this is greater than a
@@ -165,20 +174,19 @@ export class Address extends Uint8Array {
         }
 
         if (publicKey.length === 32) {
-            this.isP2TROnly = true;
-
             const buf = Buffer.alloc(32);
             buf.set(publicKey);
 
             super.set(publicKey);
         } else {
-            this._keyPair = EcKeyPair.fromPublicKey(Uint8Array.from(publicKey));
+            this.#originalPublicKey = Uint8Array.from(publicKey);
+            this.#keyPair = EcKeyPair.fromPublicKey(this.#originalPublicKey);
 
-            this.#tweakedBytes = toXOnly(
-                EcKeyPair.tweakPublicKey(this._keyPair.publicKey.toString('hex')),
+            const tweakedBytes = toXOnly(
+                EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
             );
 
-            super.set(publicKey);
+            super.set(tweakedBytes);
         }
     }
 
@@ -235,10 +243,7 @@ export class Address extends Uint8Array {
             return this.#p2tr;
         }
 
-        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(
-            this.isP2TROnly ? this : (this.#tweakedBytes as Uint8Array),
-            network,
-        );
+        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(this, network);
 
         if (p2trAddy) {
             this.#network = network;

@@ -90,8 +90,9 @@ export class BinaryWriter {
     }
 
     public writeAddress(value: Address): void {
-        const bytes = this.fromAddress(value);
-        this.writeBytes(bytes);
+        this.verifyAddress(value);
+
+        this.writeBytes(value);
     }
 
     public writeStringWithLength(value: string): void {
@@ -305,14 +306,12 @@ export class BinaryWriter {
         });
     }
 
-    private fromAddress(pubKey: Address): Uint8Array {
-        if (pubKey.tweakedBytes.byteLength > ADDRESS_BYTE_LENGTH) {
+    private verifyAddress(pubKey: Address): void {
+        if (pubKey.byteLength > ADDRESS_BYTE_LENGTH) {
             throw new Error(
                 `Address is too long ${pubKey.byteLength} > ${ADDRESS_BYTE_LENGTH} bytes`,
             );
         }
-
-        return pubKey.tweakedBytes;
     }
 
     private resize(size: u32): void {

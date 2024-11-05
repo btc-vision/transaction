@@ -216,13 +216,17 @@ export class EcKeyPair {
 
     /**
      * Tweak a public key
-     * @param {string} compressedPubKeyHex - The compressed public key hex string
+     * @param {string | Buffer} compressedPubKeyHex - The compressed public key hex string
      * @returns {Buffer} - The tweaked public key hex string
      * @throws {Error} - If the public key cannot be tweaked
      */
-    public static tweakPublicKey(compressedPubKeyHex: string): Buffer {
-        if (compressedPubKeyHex.startsWith('0x')) {
+    public static tweakPublicKey(compressedPubKeyHex: string | Buffer): Buffer {
+        if (typeof compressedPubKeyHex === 'string' && compressedPubKeyHex.startsWith('0x')) {
             compressedPubKeyHex = compressedPubKeyHex.slice(2);
+        }
+
+        if (typeof compressedPubKeyHex !== 'string') {
+            compressedPubKeyHex = compressedPubKeyHex.toString('hex');
         }
 
         // Convert the compressed public key hex string to a Point on the curve
