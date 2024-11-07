@@ -63,6 +63,9 @@
         "browserBuild": "webpack --mode production",
         "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src"
     },
+    "peerDependencies": {
+        "@btc-vision/bitcoin": "^6.3.0"
+    },
     "devDependencies": {
         "@babel/core": "^7.26.0",
         "@babel/plugin-proposal-class-properties": "^7.18.6",
