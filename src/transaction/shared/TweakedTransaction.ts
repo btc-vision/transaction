@@ -358,18 +358,38 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Signs an input of the transaction.
      * @param {Psbt} transaction - The transaction to sign
-     * @param {PsbtInput} input - The input to sign
+     * @param {PsbtInput} _input - The input to sign
      * @param {number} i - The index of the input
-     * @param {Signer} [signer] - The signer to use
+     * @param {Signer} signer - The signer to use
      * @protected
      */
     protected async signInput(
         transaction: Psbt,
-        input: PsbtInput,
+        _input: PsbtInput,
         i: number,
-        signer?: Signer | ECPairInterface,
+        signer: Signer | ECPairInterface,
     ): Promise<void> {
-        const signHash =
+        try {
+            if ('signInput' in signer) {
+                // @ts-expect-error - we know it's a signer
+                return await (signer.signInput(transaction, i) as Promise<void>);
+            }
+
+            transaction.signInput(i, signer);
+        } catch {
+            try {
+                if ('signTaprootInput' in signer) {
+                    // @ts-expect-error - we know it's a taproot signer
+                    return await (signer.signTaprootInput(transaction, i) as Promise<void>);
+                }
+
+                transaction.signTaprootInput(i, signer);
+            } catch {
+                throw new Error('Failed to sign input');
+            }
+        }
+
+        /*const signHash =
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
                 : undefined;
@@ -431,7 +451,7 @@ export abstract class TweakedTransaction extends Logger {
                     throw e;
                 }
             }
-        }
+        }*/
     }
 
     protected splitArray<T>(arr: T[], chunkSize: number): T[][] {
@@ -470,7 +490,7 @@ export abstract class TweakedTransaction extends Logger {
                 const input = batch[j];
 
                 try {
-                    promises.push(this.signInput(transaction, input, index));
+                    promises.push(this.signInput(transaction, input, index, this.signer));
                 } catch (e) {
                     this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
                 }
