@@ -1,9 +1,5 @@
 import { Network } from '@btc-vision/bitcoin';
-import { currentConsensusConfig } from '../consensus/ConsensusConfig.js';
-import { Address, IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
-import { UnwrappedGenerationParameters, WrappedGenerationParameters } from '../wbtc/Generate.js';
-import { UnwrapGeneration } from '../wbtc/UnwrapGeneration.js';
-import { WrappedGeneration } from '../wbtc/WrappedGenerationParameters.js';
+import { IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import {
     FetchUTXOParams,
@@ -280,7 +276,7 @@ export class OPNetLimitedProvider {
      * @returns {Promise<WrappedGeneration | undefined>} - The wrap parameters fetched
      * @throws {Error} - If wrap parameters could not be fetched
      */
-    public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
+    /*public async fetchWrapParameters(amount: bigint): Promise<WrappedGeneration | undefined> {
         if (amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
                 `Amount must be greater than the minimum consolidation amount ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT}sat.`,
@@ -295,7 +291,7 @@ export class OPNetLimitedProvider {
         }
 
         return new WrappedGeneration(result as WrappedGenerationParameters);
-    }
+    }*/
 
     /**
      * Fetches the wrap parameters from the OPNET node
@@ -304,7 +300,7 @@ export class OPNetLimitedProvider {
      * @returns {Promise<UnwrapGeneration | undefined>} - The wrap parameters fetched
      * @throws {Error} - If wrap parameters could not be fetched
      */
-    public async fetchUnWrapParameters(
+    /*public async fetchUnWrapParameters(
         amount: bigint,
         receiver: Address,
     ): Promise<UnwrapGeneration | undefined> {
@@ -326,5 +322,5 @@ export class OPNetLimitedProvider {
         }
 
         return new UnwrapGeneration(result as UnwrappedGenerationParameters);
-    }
+    }*/
 }

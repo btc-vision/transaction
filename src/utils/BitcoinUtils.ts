@@ -1,5 +1,4 @@
 import crypto, { createHash } from 'crypto';
-import { VaultUTXOs } from '../transaction/processor/PsbtTransaction.js';
 
 /**
  * Utility class for Bitcoin related functions
@@ -62,18 +61,18 @@ export class BitcoinUtils {
      * @param {VaultUTXOs[]} vaults - The vaults to order
      * @returns {VaultUTXOs[]} The ordered vaults
      */
-    public static orderVaultsByAddress(vaults: VaultUTXOs[]): VaultUTXOs[] {
+    /*public static orderVaultsByAddress(vaults: VaultUTXOs[]): VaultUTXOs[] {
         return vaults.sort((a, b) => {
             return a.vault.localeCompare(b.vault);
         });
-    }
+    }*/
 
     /**
      * Find the vault with the most public keys in a deterministic way.
      * @param {VaultUTXOs[]} vaults - The vaults to search
      * @returns {VaultUTXOs} The vault with the most public keys
      */
-    public static findVaultWithMostPublicKeys(vaults: VaultUTXOs[]): VaultUTXOs {
+    /*public static findVaultWithMostPublicKeys(vaults: VaultUTXOs[]): VaultUTXOs {
         vaults = BitcoinUtils.orderVaultsByAddress(vaults);
 
         let mostPublicKeys: number = 0;
@@ -88,5 +87,5 @@ export class BitcoinUtils {
         if (!vault) throw new Error('No vault with public keys found.');
 
         return vault;
-    }
+    }*/
 }

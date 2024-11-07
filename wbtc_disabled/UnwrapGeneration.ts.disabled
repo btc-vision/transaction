@@ -1,5 +1,5 @@
 import { UnwrappedGenerationParameters } from './Generate.js';
-import { VaultUTXOs } from '../transaction/processor/PsbtTransaction.js';
+import { VaultUTXOs } from '../src/transaction/processor/PsbtTransaction.js';
 
 export class UnwrapGeneration implements Omit<UnwrappedGenerationParameters, 'balance'> {
     public readonly vaultUTXOs: VaultUTXOs[];

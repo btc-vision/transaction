@@ -1,4 +1,4 @@
-import { VaultUTXOs } from '../transaction/processor/PsbtTransaction.js';
+import { VaultUTXOs } from '../src/transaction/processor/PsbtTransaction.js';
 
 export interface GenerationConstraints {
     /** Timestamp of the generation */

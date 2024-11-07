@@ -1,15 +1,11 @@
 import {
     IDeploymentParameters,
     IInteractionParameters,
-    IUnwrapParameters,
-    IWrapParameters,
 } from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { DeploymentResult, UnwrapResult, WrapResult } from '../TransactionFactory';
+import { DeploymentResult } from '../TransactionFactory';
 
 export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>;
-export type IWrapParametersWithoutSigner = Omit<IWrapParameters, 'signer'>;
-export type IUnwrapParametersWithoutSigner = Omit<IUnwrapParameters, 'signer'>;
 export type IDeploymentParametersWithoutSigner = Omit<IDeploymentParameters, 'signer' | 'network'>;
 
 export interface BroadcastTransactionOptions {
@@ -54,8 +50,4 @@ export interface Web3Provider {
     deployContract(params: IDeploymentParametersWithoutSigner): Promise<DeploymentResult>;
 
     broadcast(transactions: BroadcastTransactionOptions[]): Promise<BroadcastedTransaction[]>;
-
-    wrap(wrapParameters: IWrapParametersWithoutSigner): Promise<WrapResult>;
-
-    unwrap(unwrapParameters: IUnwrapParametersWithoutSigner): Promise<UnwrapResult>;
 }

@@ -1,7 +1,6 @@
-import { Psbt, Transaction } from '@btc-vision/bitcoin';
+import { Transaction } from '@btc-vision/bitcoin';
 import { Output } from '@btc-vision/bitcoin/src/transaction.js';
-import { currentConsensus, currentConsensusConfig } from '../consensus/ConsensusConfig.js';
-import { wBTC } from '../metadata/contracts/wBTC.js';
+import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import {
     CustomScriptTransaction,
@@ -11,19 +10,13 @@ import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
-import { UnwrapSegwitTransaction } from './builders/UnwrapSegwitTransaction.js';
-import { UnwrapTransaction } from './builders/UnwrapTransaction.js';
-import { WrapTransaction } from './builders/WrapTransaction.js';
 import { TransactionType } from './enums/TransactionType.js';
 import {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
     ITransactionParameters,
-    IUnwrapParameters,
-    IWrapParameters,
 } from './interfaces/ITransactionParameters.js';
-import { VaultUTXOs } from './processor/PsbtTransaction.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
 
 export interface DeploymentResult {
@@ -58,20 +51,14 @@ export interface BitcoinTransferResponse {
     readonly nextUTXOs: UTXO[];
 }
 
-export interface UnwrapResult {
+/*export interface UnwrapResult {
     readonly fundingTransaction: string;
     readonly psbt: string;
 
-    /**
-     * @description The fee refund or loss.
-     * @description If the amount is negative, it means that the user has to pay the difference. The difference is deducted from the amount.
-     * @description If the amount is positive, it means that the user will be refunded the difference.
-     * @type {bigint}
-     */
     readonly feeRefundOrLoss: bigint;
 
     readonly utxos: UTXO[];
-}
+}*/
 
 export class TransactionFactory {
     /**
@@ -290,7 +277,7 @@ export class TransactionFactory {
      * @returns {Promise<WrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
-    public async wrap(wrapParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult> {
+    /*public async wrap(wrapParameters: Omit<IWrapParameters, 'calldata'>): Promise<WrapResult> {
         if (wrapParameters.amount < currentConsensusConfig.VAULT_MINIMUM_AMOUNT) {
             throw new Error(
                 `Amount is too low. Minimum consolidation is ${currentConsensusConfig.VAULT_MINIMUM_AMOUNT} sat. Received ${wrapParameters.amount} sat. Make sure that you cover the unwrap consolidation fees of ${currentConsensusConfig.UNWRAP_CONSOLIDATION_PREPAID_FEES_SAT}sat.`,
@@ -348,7 +335,7 @@ export class TransactionFactory {
             receiverAddress: finalTransaction.receiver.p2tr(wrapParameters.network),
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, wrapParameters.from, 1),
         };
-    }
+    }*/
 
     /**
      * Unwrap bitcoin.
@@ -357,7 +344,7 @@ export class TransactionFactory {
      * @throws {Error} - If the transaction could not be signed
      * @deprecated
      */
-    public async unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+    /*public async unwrapSegwit(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
         console.error('The "unwrap" method is deprecated. Use unwrapTap instead.');
 
         const transaction: UnwrapSegwitTransaction = new UnwrapSegwitTransaction(unwrapParameters);
@@ -424,7 +411,7 @@ export class TransactionFactory {
             feeRefundOrLoss: estimatedFees,
             utxos: [],
         };
-    }
+    }*/
 
     /**
      * Unwrap bitcoin via taproot.
@@ -432,7 +419,8 @@ export class TransactionFactory {
      * @returns {Promise<UnwrapResult>} - The signed transaction
      * @throws {Error} - If the transaction could not be signed
      */
-    public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
+
+    /*public async unwrap(unwrapParameters: IUnwrapParameters): Promise<UnwrapResult> {
         if (!unwrapParameters.from) {
             throw new Error('Field "from" not provided.');
         }
@@ -495,7 +483,7 @@ export class TransactionFactory {
             feeRefundOrLoss: finalTransaction.getFeeLossOrRefund(),
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, unwrapParameters.from, 1),
         };
-    }
+    }*/
 
     /**
      * @description Creates a funding transaction.
@@ -566,7 +554,7 @@ export class TransactionFactory {
         };
     }
 
-    private calculateNumSignatures(vault: VaultUTXOs[]): bigint {
+    /*private calculateNumSignatures(vault: VaultUTXOs[]): bigint {
         let numSignatures = 0n;
 
         for (const v of vault) {
@@ -594,7 +582,7 @@ export class TransactionFactory {
         }
 
         return BigInt(size);
-    }
+    }*/
 
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
         const buf = Buffer.from(psbt, 'base64');

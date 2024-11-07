@@ -1,9 +1,6 @@
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { WrappedGeneration } from '../../wbtc/WrappedGenerationParameters.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
-import { VaultUTXOs } from '../processor/PsbtTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
-import { Address } from '../../keypair/Address.js';
 import { PsbtOutputExtended } from '@btc-vision/bitcoin';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
@@ -43,7 +40,7 @@ export interface IInteractionParameters
     readonly to: string;
 }
 
-export interface IWrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
+/*export interface IWrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly to?: string;
     readonly from: string;
 
@@ -56,7 +53,7 @@ export interface IWrapParameters extends Omit<SharedInteractionParameters, 'opti
 export interface IUnwrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
     readonly unwrapUTXOs: VaultUTXOs[];
     readonly amount: bigint;
-}
+}*/
 
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
     readonly bytecode: Buffer;

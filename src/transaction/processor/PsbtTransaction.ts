@@ -14,7 +14,7 @@ export interface PsbtTransactionData extends ITweakedTransactionData {
     readonly network: Network;
 }
 
-export interface IWBTCUTXODocument {
+/*export interface IWBTCUTXODocument {
     readonly vault: string;
     readonly blockId: bigint;
 
@@ -30,7 +30,7 @@ export interface VaultUTXOs {
     readonly publicKeys: string[];
     readonly minimum: number;
     readonly utxos: IWBTCUTXODocument[];
-}
+}*/
 
 export type FromBase64Params = Omit<PsbtTransactionData, 'psbt'>;
 
@@ -166,7 +166,7 @@ export class PsbtTransaction extends TweakedTransaction {
         return this.transaction;
     }
 
-    private getTotalOutputAmount(vaults: VaultUTXOs[]): bigint {
+    /*private getTotalOutputAmount(vaults: VaultUTXOs[]): bigint {
         let total = BigInt(0);
         for (const vault of vaults) {
             for (const utxo of vault.utxos) {
@@ -175,5 +175,5 @@ export class PsbtTransaction extends TweakedTransaction {
         }
 
         return total;
-    }
+    }*/
 }
