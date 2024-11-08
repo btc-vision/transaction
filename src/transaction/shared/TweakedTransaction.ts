@@ -14,14 +14,16 @@ import {
     Signer,
     Transaction,
 } from '@btc-vision/bitcoin';
+
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
-import { isTaprootInput, toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { ChainId } from '../../network/ChainId.js';
 import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
+import * as bscript from '@btc-vision/bitcoin/src/script.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer | ECPairInterface;
@@ -369,109 +371,56 @@ export abstract class TweakedTransaction extends Logger {
         i: number,
         signer: Signer | ECPairInterface,
     ): Promise<void> {
-        const isTaproot = isTaprootInput(input);
-        console.log('Is this input taproot?', isTaproot);
+        const publicKey = signer.publicKey;
+        const isTaproot = this.isTaprootInput(input);
+
+        let signed = false;
 
         if (isTaproot) {
-            await this.signTaprootInput(signer, transaction, i);
-        } else {
-            await this.signNonTaprootInput(signer, transaction, i);
-        }
+            const isScriptSpend = this.isTaprootScriptSpend(input, publicKey);
 
-        // Some scenarios might require both signatures
-        if (!this.isFullySigned(transaction, i)) {
-            console.log(`Transaction not fully signed, trying the other method`);
-
-            // Try signing with the other method
-            if (isTaproot) {
-                await this.signNonTaprootInput(signer, transaction, i);
-            } else {
-                await this.signTaprootInput(signer, transaction, i);
-            }
-        }
-
-        /*try {
-            if ('signInput' in signer) {
-                // @ts-expect-error - we know it's a signer
-                return await (signer.signInput(transaction, i) as Promise<void>);
-            }
-
-            transaction.signInput(i, signer);
-        } catch {
-            try {
-                if ('signTaprootInput' in signer) {
-                    // @ts-expect-error - we know it's a taproot signer
-                    return await (signer.signTaprootInput(transaction, i) as Promise<void>);
-                }
-
-                transaction.signTaprootInput(i, signer);
-            } catch {
-                throw new Error('Failed to sign input');
-            }
-        }*/
-        /*const signHash =
-            this.sighashTypes && this.sighashTypes.length
-                ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
-                : undefined;
-
-        signer = signer || this.getSignerKey();
-
-        let testedTap: boolean = false;
-        if (input.tapInternalKey) {
-            if (!this.tweakedSigner) this.tweakSigner();
-
-            let tweakedSigner: ECPairInterface | undefined;
-            if (signer !== this.signer) {
-                tweakedSigner = this.getTweakedSigner(true, signer);
-            } else {
-                tweakedSigner = this.tweakedSigner;
-            }
-
-            if (tweakedSigner) {
-                testedTap = true;
-
+            if (isScriptSpend) {
                 try {
-                    if ('signTaprootInput' in signer) {
-                        // @ts-expect-error - we know it's a taproot signer
-                        return await (signer.signTaprootInput(
-                            transaction,
-                            i,
-                            signHash,
-                        ) as Promise<void>);
-                    } else {
-                        transaction.signTaprootInput(i, tweakedSigner, undefined, signHash);
-                    }
+                    await this.signTaprootInput(signer, transaction, i);
+                    signed = true;
+                } catch (e) {
+                    this.error(`Failed to sign Taproot script path input ${i}: ${e}`);
+                }
+            } else {
+                let tweakedSigner: ECPairInterface | undefined;
+                if (signer !== this.signer) {
+                    tweakedSigner = this.getTweakedSigner(true, signer);
+                } else {
+                    if (!this.tweakedSigner) this.tweakSigner();
+                    tweakedSigner = this.tweakedSigner;
+                }
 
-                    return;
-                } catch {}
+                if (tweakedSigner) {
+                    try {
+                        await this.signTaprootInput(tweakedSigner, transaction, i);
+                        signed = true;
+                    } catch (e) {
+                        this.error(`Failed to sign Taproot key path input ${i}: ${e}`);
+                    }
+                } else {
+                    this.error(`Failed to obtain tweaked signer for input ${i}.`);
+                }
+            }
+        } else {
+            // Non-Taproot input
+            if (this.canSignNonTaprootInput(input, publicKey)) {
+                try {
+                    await this.signNonTaprootInput(signer, transaction, i);
+                    signed = true;
+                } catch (e) {
+                    this.error(`Failed to sign non-Taproot input ${i}: ${e}`);
+                }
             }
         }
 
-        try {
-            if ('signInput' in signer) {
-                // @ts-expect-error - we know it's a signer
-                return await (signer.signInput(transaction, i, signHash) as Promise<void>);
-            } else {
-                transaction.signInput(i, signer, signHash);
-            }
-        } catch (e) {
-            if (!testedTap) {
-                // and we try again taproot...
-
-                if ('signTaprootInput' in signer) {
-                    // @ts-expect-error - we know it's a taproot signer
-                    return await (signer.signTaprootInput(
-                        transaction,
-                        i,
-                        signHash,
-                    ) as Promise<void>);
-                } else if (this.tweakedSigner) {
-                    transaction.signTaprootInput(i, this.tweakedSigner, undefined, signHash);
-                } else {
-                    throw e;
-                }
-            }
-        }*/
+        if (!signed) {
+            throw new Error(`Cannot sign input ${i} with the provided signer.`);
+        }
     }
 
     protected splitArray<T>(arr: T[], chunkSize: number): T[][] {
@@ -480,7 +429,6 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         const result: T[][] = [];
-
         for (let i = 0; i < arr.length; i += chunkSize) {
             result.push(arr.slice(i, i + chunkSize));
         }
@@ -718,10 +666,9 @@ export abstract class TweakedTransaction extends Logger {
 
         if (i === 0 && this.nonWitnessUtxo) {
             input.nonWitnessUtxo = this.nonWitnessUtxo;
-            this.log(`Using non-witness utxo for input ${i}`);
         }
 
-        // automatically detect p2tr inputs.
+        // Automatically detect P2TR inputs.
         if (
             utxo.scriptPubKey.address &&
             AddressVerificator.isValidP2TRAddress(utxo.scriptPubKey.address, this.network)
@@ -759,18 +706,97 @@ export abstract class TweakedTransaction extends Logger {
         return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH);
     };
 
+    private isTaprootScriptSpend(input: PsbtInput, publicKey: Buffer): boolean {
+        if (input.tapLeafScript && input.tapLeafScript.length > 0) {
+            // Check if the signer's public key is involved in any tapLeafScript
+            for (const tapLeafScript of input.tapLeafScript) {
+                if (this.pubkeyInScript(publicKey, tapLeafScript.script)) {
+                    // The public key is in the script; it's a script spend
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to determine if an input is Taproot
+    private isTaprootInput(input: PsbtInput): boolean {
+        if (input.tapInternalKey || input.tapKeySig || input.tapScriptSig || input.tapLeafScript) {
+            return true;
+        }
+
+        if (input.witnessUtxo) {
+            const script = input.witnessUtxo.script;
+            // Check if the script is a P2TR output (OP_1 [32-byte key])
+            return script.length === 34 && script[0] === opcodes.OP_1 && script[1] === 0x20;
+        }
+
+        return false;
+    }
+
+    // Check if the signer can sign the non-Taproot input
+    private canSignNonTaprootInput(input: PsbtInput, publicKey: Buffer): boolean {
+        const script = this.getInputRelevantScript(input);
+        if (script) {
+            return this.pubkeyInScript(publicKey, script);
+        }
+        return false;
+    }
+
+    // Helper method to extract the relevant script from the input
+    private getInputRelevantScript(input: PsbtInput): Buffer | null {
+        if (input.redeemScript) {
+            return input.redeemScript;
+        }
+        if (input.witnessScript) {
+            return input.witnessScript;
+        }
+        if (input.witnessUtxo) {
+            return input.witnessUtxo.script;
+        }
+        if (input.nonWitnessUtxo) {
+            // Additional logic can be added to extract script from nonWitnessUtxo
+            return null;
+        }
+        return null;
+    }
+
+    // Helper method to check if a public key is in a script
+    private pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
+        return this.pubkeyPositionInScript(pubkey, script) !== -1;
+    }
+
+    private pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
+        const pubkeyHash = bitCrypto.hash160(pubkey);
+        const pubkeyXOnly = toXOnly(pubkey);
+
+        const decompiled = bscript.decompile(script);
+        if (decompiled === null) throw new Error('Unknown script error');
+
+        return decompiled.findIndex((element) => {
+            if (typeof element === 'number') return false;
+            return (
+                element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly)
+            );
+        });
+    }
+
     private async signTaprootInput(
         signer: Signer | ECPairInterface,
         transaction: Psbt,
         i: number,
+        tapLeafHash?: Buffer,
     ): Promise<void> {
         if ('signTaprootInput' in signer) {
-            await (signer.signTaprootInput as (tx: Psbt, i: number) => Promise<void>)(
-                transaction,
-                i,
-            );
+            await (
+                signer.signTaprootInput as (
+                    tx: Psbt,
+                    i: number,
+                    tapLeafHash?: Buffer,
+                ) => Promise<void>
+            )(transaction, i, tapLeafHash);
         } else {
-            transaction.signTaprootInput(i, signer);
+            transaction.signTaprootInput(i, signer); //tapLeafHash
         }
     }
 
@@ -784,11 +810,5 @@ export abstract class TweakedTransaction extends Logger {
         } else {
             transaction.signInput(i, signer);
         }
-    }
-
-    // Helper method to check if an input is fully signed
-    private isFullySigned(transaction: Psbt, index: number): boolean {
-        const input = transaction.data.inputs[index];
-        return !!input.finalScriptSig || !!input.finalScriptWitness;
     }
 }
