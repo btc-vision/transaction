@@ -16,7 +16,7 @@ import {
 } from '@btc-vision/bitcoin';
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
+import { isTaprootInput, toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificator.js';
@@ -358,18 +358,39 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Signs an input of the transaction.
      * @param {Psbt} transaction - The transaction to sign
-     * @param {PsbtInput} _input - The input to sign
+     * @param {PsbtInput} input - The input to sign
      * @param {number} i - The index of the input
      * @param {Signer} signer - The signer to use
      * @protected
      */
     protected async signInput(
         transaction: Psbt,
-        _input: PsbtInput,
+        input: PsbtInput,
         i: number,
         signer: Signer | ECPairInterface,
     ): Promise<void> {
-        try {
+        const isTaproot = isTaprootInput(input);
+        console.log('Is this input taproot?', isTaproot);
+
+        if (isTaproot) {
+            await this.signTaprootInput(signer, transaction, i);
+        } else {
+            await this.signNonTaprootInput(signer, transaction, i);
+        }
+
+        // Some scenarios might require both signatures
+        if (!this.isFullySigned(transaction, i)) {
+            console.log(`Transaction not fully signed, trying the other method`);
+
+            // Try signing with the other method
+            if (isTaproot) {
+                await this.signNonTaprootInput(signer, transaction, i);
+            } else {
+                await this.signTaprootInput(signer, transaction, i);
+            }
+        }
+
+        /*try {
             if ('signInput' in signer) {
                 // @ts-expect-error - we know it's a signer
                 return await (signer.signInput(transaction, i) as Promise<void>);
@@ -387,8 +408,7 @@ export abstract class TweakedTransaction extends Logger {
             } catch {
                 throw new Error('Failed to sign input');
             }
-        }
-
+        }*/
         /*const signHash =
             this.sighashTypes && this.sighashTypes.length
                 ? [TweakedTransaction.calculateSignHash(this.sighashTypes)]
@@ -715,11 +735,11 @@ export abstract class TweakedTransaction extends Logger {
     }
 
     protected customFinalizerP2SH = (
-        inputIndex: number, // Which input is it?
-        input: PsbtInput, // The PSBT input contents
-        scriptA: Buffer, // The "meaningful" locking script Buffer (redeemScript for P2SH etc.)
-        isSegwit: boolean, // Is it segwit?
-        isP2SH: boolean, // Is it P2SH?
+        inputIndex: number,
+        input: PsbtInput,
+        scriptA: Buffer,
+        isSegwit: boolean,
+        isP2SH: boolean,
         isP2WSH: boolean,
     ): {
         finalScriptSig: Buffer | undefined;
@@ -728,31 +748,47 @@ export abstract class TweakedTransaction extends Logger {
         const inputDecoded = this.inputs[inputIndex];
         if (isP2SH && input.partialSig && inputDecoded && inputDecoded.redeemScript) {
             const signatures = input.partialSig.map((sig) => sig.signature);
-
-            /*const fakeSignature = Buffer.from([
-                0x30,
-                0x45, // DER prefix: 0x30 (Compound), 0x45 (length = 69 bytes)
-                0x02,
-                0x20, // Integer marker: 0x02 (integer), 0x20 (length = 32 bytes)
-                ...Buffer.alloc(32, 0x00), // 32-byte fake 'r' value (all zeros)
-                0x02,
-                0x21, // Integer marker: 0x02 (integer), 0x21 (length = 33 bytes)
-                ...Buffer.alloc(33, 0x00), // 33-byte fake 's' value (all zeros)
-                0x01, // SIGHASH_ALL flag (0x01)
-            ]);*/
-
-            const scriptSig = script.compile([
-                ...signatures,
-                //fakeSignature,
-                inputDecoded.redeemScript,
-            ]);
+            const scriptSig = script.compile([...signatures, inputDecoded.redeemScript]);
 
             return {
-                finalScriptSig: scriptSig, // Manually set the final scriptSig
-                finalScriptWitness: undefined, // Manually set the final scriptWitness
+                finalScriptSig: scriptSig,
+                finalScriptWitness: undefined,
             };
         }
 
         return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH);
     };
+
+    private async signTaprootInput(
+        signer: Signer | ECPairInterface,
+        transaction: Psbt,
+        i: number,
+    ): Promise<void> {
+        if ('signTaprootInput' in signer) {
+            await (signer.signTaprootInput as (tx: Psbt, i: number) => Promise<void>)(
+                transaction,
+                i,
+            );
+        } else {
+            transaction.signTaprootInput(i, signer);
+        }
+    }
+
+    private async signNonTaprootInput(
+        signer: Signer | ECPairInterface,
+        transaction: Psbt,
+        i: number,
+    ): Promise<void> {
+        if ('signInput' in signer) {
+            await (signer.signInput as (tx: Psbt, i: number) => Promise<void>)(transaction, i);
+        } else {
+            transaction.signInput(i, signer);
+        }
+    }
+
+    // Helper method to check if an input is fully signed
+    private isFullySigned(transaction: Psbt, index: number): boolean {
+        const input = transaction.data.inputs[index];
+        return !!input.finalScriptSig || !!input.finalScriptWitness;
+    }
 }
