@@ -24,9 +24,10 @@ import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificat
 import { ChainId } from '../../network/ChainId.js';
 import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
 import * as bscript from '@btc-vision/bitcoin/src/script.js';
+import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 export interface ITweakedTransactionData {
-    readonly signer: Signer | ECPairInterface;
+    readonly signer: Signer | ECPairInterface | UnisatSigner;
     readonly network: Network;
     readonly chainId?: ChainId;
     readonly nonWitnessUtxo?: Buffer;
@@ -46,22 +47,27 @@ export enum TransactionSequence {
 export abstract class TweakedTransaction extends Logger {
     public readonly logColor: string = '#00ffe1';
     public finalized: boolean = false;
+
     /**
      * @description Was the transaction signed?
      */
-    protected signer: Signer | ECPairInterface;
+    protected signer: Signer | ECPairInterface | UnisatSigner;
+
     /**
      * @description Tweaked signer
      */
     protected tweakedSigner?: ECPairInterface;
+
     /**
      * @description The network of the transaction
      */
     protected network: Network;
+
     /**
      * @description Was the transaction signed?
      */
     protected signed: boolean = false;
+
     /**
      * @description The transaction
      * @protected
@@ -363,6 +369,7 @@ export abstract class TweakedTransaction extends Logger {
      * @param {PsbtInput} input - The input to sign
      * @param {number} i - The index of the input
      * @param {Signer} signer - The signer to use
+     * @param {boolean} [reverse=false] - Should the input be signed in reverse
      * @protected
      */
     protected async signInput(
@@ -370,45 +377,27 @@ export abstract class TweakedTransaction extends Logger {
         input: PsbtInput,
         i: number,
         signer: Signer | ECPairInterface,
+        reverse: boolean = false,
     ): Promise<void> {
         const publicKey = signer.publicKey;
-        const isTaproot = this.isTaprootInput(input);
+        let isTaproot = this.isTaprootInput(input);
 
-        let signed = false;
+        if (reverse) {
+            isTaproot = !isTaproot;
+        }
+
+        let signed: boolean = false;
 
         if (isTaproot) {
-            const isScriptSpend = this.isTaprootScriptSpend(input, publicKey);
-
-            if (isScriptSpend) {
-                try {
-                    await this.signTaprootInput(signer, transaction, i);
-                    signed = true;
-                } catch (e) {
-                    this.error(`Failed to sign Taproot script path input ${i}: ${e}`);
-                }
-            } else {
-                let tweakedSigner: ECPairInterface | undefined;
-                if (signer !== this.signer) {
-                    tweakedSigner = this.getTweakedSigner(true, signer);
-                } else {
-                    if (!this.tweakedSigner) this.tweakSigner();
-                    tweakedSigner = this.tweakedSigner;
-                }
-
-                if (tweakedSigner) {
-                    try {
-                        await this.signTaprootInput(tweakedSigner, transaction, i);
-                        signed = true;
-                    } catch (e) {
-                        this.error(`Failed to sign Taproot key path input ${i}: ${e}`);
-                    }
-                } else {
-                    this.error(`Failed to obtain tweaked signer for input ${i}.`);
-                }
+            try {
+                await this.attemptSignTaproot(transaction, input, i, signer, publicKey);
+                signed = true;
+            } catch (e) {
+                this.error(`Failed to sign Taproot script path input ${i}: ${e}`);
             }
         } else {
             // Non-Taproot input
-            if (this.canSignNonTaprootInput(input, publicKey)) {
+            if (!reverse ? this.canSignNonTaprootInput(input, publicKey) : true) {
                 try {
                     await this.signNonTaprootInput(signer, transaction, i);
                     signed = true;
@@ -419,7 +408,11 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         if (!signed) {
-            throw new Error(`Cannot sign input ${i} with the provided signer.`);
+            try {
+                await this.signInput(transaction, input, i, signer, true);
+            } catch {
+                throw new Error(`Cannot sign input ${i} with the provided signer.`);
+            }
         }
     }
 
@@ -443,6 +436,12 @@ export abstract class TweakedTransaction extends Logger {
      * @returns {Promise<void>}
      */
     protected async signInputs(transaction: Psbt): Promise<void> {
+        if ('multiSignPsbt' in this.signer) {
+            await this.signInputsWalletBased(transaction);
+            return;
+        }
+
+        // non web based signing.
         const txs: PsbtInput[] = transaction.data.inputs;
 
         const batchSize: number = 20;
@@ -467,15 +466,11 @@ export abstract class TweakedTransaction extends Logger {
             await Promise.all(promises);
         }
 
-        transaction.finalizeInput(0, this.customFinalizerP2SH);
-
-        try {
-            transaction.finalizeAllInputs();
-
-            this.finalized = true;
-        } catch (e) {
-            this.finalized = false;
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            transaction.finalizeInput(i, this.customFinalizerP2SH);
         }
+
+        this.finalized = true;
     }
 
     /**
@@ -706,6 +701,48 @@ export abstract class TweakedTransaction extends Logger {
         return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH);
     };
 
+    protected async signInputsWalletBased(transaction: Psbt): Promise<void> {
+        const signer: UnisatSigner = this.signer as UnisatSigner;
+
+        // then, we sign all the remaining inputs with the wallet signer.
+        await signer.multiSignPsbt([transaction]);
+
+        // Then, we finalize every input.
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            transaction.finalizeInput(i, this.customFinalizerP2SH);
+        }
+
+        this.finalized = true;
+    }
+
+    private async attemptSignTaproot(
+        transaction: Psbt,
+        input: PsbtInput,
+        i: number,
+        signer: Signer | ECPairInterface,
+        publicKey: Buffer,
+    ): Promise<void> {
+        const isScriptSpend = this.isTaprootScriptSpend(input, publicKey);
+
+        if (isScriptSpend) {
+            await this.signTaprootInput(signer, transaction, i);
+        } else {
+            let tweakedSigner: ECPairInterface | undefined;
+            if (signer !== this.signer) {
+                tweakedSigner = this.getTweakedSigner(true, signer);
+            } else {
+                if (!this.tweakedSigner) this.tweakSigner();
+                tweakedSigner = this.tweakedSigner;
+            }
+
+            if (tweakedSigner) {
+                await this.signTaprootInput(tweakedSigner, transaction, i);
+            } else {
+                this.error(`Failed to obtain tweaked signer for input ${i}.`);
+            }
+        }
+    }
+
     private isTaprootScriptSpend(input: PsbtInput, publicKey: Buffer): boolean {
         if (input.tapLeafScript && input.tapLeafScript.length > 0) {
             // Check if the signer's public key is involved in any tapLeafScript
@@ -788,13 +825,17 @@ export abstract class TweakedTransaction extends Logger {
         tapLeafHash?: Buffer,
     ): Promise<void> {
         if ('signTaprootInput' in signer) {
-            await (
-                signer.signTaprootInput as (
-                    tx: Psbt,
-                    i: number,
-                    tapLeafHash?: Buffer,
-                ) => Promise<void>
-            )(transaction, i, tapLeafHash);
+            try {
+                await (
+                    signer.signTaprootInput as (
+                        tx: Psbt,
+                        i: number,
+                        tapLeafHash?: Buffer,
+                    ) => Promise<void>
+                )(transaction, i, tapLeafHash);
+            } catch {
+                throw new Error('Failed to sign Taproot input with provided signer.');
+            }
         } else {
             transaction.signTaprootInput(i, signer); //tapLeafHash
         }

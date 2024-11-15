@@ -83,7 +83,7 @@ export interface Unisat {
 
     signPsbt(psbtHex: string, psbtOptions: PsbtSignatureOptions): Promise<string>;
 
-    signPsbts(psbtHex: string[], psbtOptions: PsbtSignatureOptions): Promise<string[]>;
+    signPsbts(psbtHex: string[], psbtOptions: PsbtSignatureOptions[]): Promise<string[]>;
 
     pushPsbt(psbtHex: string): Promise<string>;
 

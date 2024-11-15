@@ -1,9 +1,19 @@
-import { Network, networks, Psbt, TapScriptSig } from '@btc-vision/bitcoin';
+import {
+    crypto as bitCrypto,
+    Network,
+    networks,
+    opcodes,
+    Psbt,
+    PsbtInput,
+    script as bitScript,
+    TapScriptSig,
+} from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
 import { PartialSig } from 'bip174/src/lib/interfaces.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 declare global {
     interface Window {
@@ -122,15 +132,15 @@ export class UnisatSigner extends CustomKeypair {
         return this.publicKey;
     }
 
-    public sign(hash: Buffer, lowR?: boolean): Buffer {
+    public sign(_hash: Buffer, _lowR?: boolean): Buffer {
         throw new Error('Not implemented: sign');
     }
 
-    public signSchnorr(hash: Buffer): Buffer {
+    public signSchnorr(_hash: Buffer): Buffer {
         throw new Error('Not implemented: signSchnorr');
     }
 
-    public verify(hash: Buffer, signature: Buffer): boolean {
+    public verify(_hash: Buffer, _signature: Buffer): boolean {
         throw new Error('Not implemented: verify');
     }
 
@@ -174,6 +184,80 @@ export class UnisatSigner extends CustomKeypair {
 
         const firstSignature = await this.signAllTweaked(transaction, sighashTypes, true);
         this.combine(transaction, firstSignature, i);
+    }
+
+    public async multiSignPsbt(transactions: Psbt[]): Promise<void> {
+        const toSignPsbts: string[] = [];
+        const options: PsbtSignatureOptions[] = [];
+
+        for (const psbt of transactions) {
+            const hex = psbt.toHex();
+            toSignPsbts.push(hex);
+
+            const toSignInputs = psbt.data.inputs
+                .map((input, i) => {
+                    let needsToSign = false;
+                    let viaTaproot = false;
+
+                    if (isTaprootInput(input)) {
+                        if (input.tapLeafScript && input.tapLeafScript.length > 0) {
+                            for (const tapLeafScript of input.tapLeafScript) {
+                                if (pubkeyInScript(this.publicKey, tapLeafScript.script)) {
+                                    needsToSign = true;
+                                    viaTaproot = false; // for opnet, we use original keys.
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!needsToSign && input.tapInternalKey) {
+                            const tapInternalKey = input.tapInternalKey;
+                            const xOnlyPubKey = toXOnly(this.publicKey);
+
+                            if (tapInternalKey.equals(xOnlyPubKey)) {
+                                needsToSign = true;
+                                viaTaproot = true;
+                            }
+                        }
+                    } else {
+                        // Non-Taproot input
+                        const script = getInputRelevantScript(input);
+
+                        if (script && pubkeyInScript(this.publicKey, script)) {
+                            needsToSign = true;
+                            viaTaproot = false;
+                        }
+                    }
+
+                    if (needsToSign) {
+                        return {
+                            index: i,
+                            publicKey: this.publicKey.toString('hex'),
+                            disableTweakSigner: !viaTaproot,
+                        };
+                    } else {
+                        return null;
+                    }
+                })
+                .filter((v) => v !== null);
+
+            options.push({
+                autoFinalized: false,
+                toSignInputs: toSignInputs,
+            });
+        }
+
+        const signed = await this.unisat.signPsbt(toSignPsbts[0], options[0]);
+        const signedPsbts = Psbt.fromHex(signed); //signed.map((hex) => Psbt.fromHex(hex));
+
+        /*for (let i = 0; i < signedPsbts.length; i++) {
+            const psbtOriginal = transactions[i];
+            const psbtSigned = signedPsbts[i];
+
+            psbtOriginal.combine(psbtSigned);
+        }*/
+
+        transactions[0].combine(signedPsbts);
     }
 
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
@@ -257,30 +341,6 @@ export class UnisatSigner extends CustomKeypair {
         return Psbt.fromHex(signed);
     }
 
-    private async signTweaked(
-        transaction: Psbt,
-        i: number,
-        sighashTypes: number[],
-        disableTweakSigner: boolean = false,
-    ): Promise<Psbt> {
-        const opts: PsbtSignatureOptions = {
-            autoFinalized: false,
-            toSignInputs: [
-                {
-                    index: i,
-                    publicKey: this.publicKey.toString('hex'),
-                    sighashTypes,
-                    disableTweakSigner: disableTweakSigner,
-                },
-            ],
-        };
-
-        const psbt = transaction.toHex();
-        const signed = await this.unisat.signPsbt(psbt, opts);
-
-        return Psbt.fromHex(signed);
-    }
-
     private getNonDuplicateScriptSig(
         scriptSig1: TapScriptSig[],
         scriptSig2: TapScriptSig[],
@@ -295,4 +355,55 @@ export class UnisatSigner extends CustomKeypair {
 
         return nonDuplicate;
     }
+}
+
+// Helper functions
+function isTaprootInput(input: PsbtInput): boolean {
+    if (input.tapInternalKey || input.tapKeySig || input.tapScriptSig || input.tapLeafScript) {
+        return true;
+    }
+
+    if (input.witnessUtxo) {
+        const script = input.witnessUtxo.script;
+        return script.length === 34 && script[0] === opcodes.OP_1 && script[1] === 0x20;
+    }
+
+    return false;
+}
+
+function getInputRelevantScript(input: PsbtInput): Buffer | null {
+    if (input.redeemScript) {
+        return input.redeemScript;
+    }
+    if (input.witnessScript) {
+        return input.witnessScript;
+    }
+    if (input.witnessUtxo) {
+        return input.witnessUtxo.script;
+    }
+    if (input.nonWitnessUtxo) {
+        // Additional logic can be added here if needed
+        return null;
+    }
+    return null;
+}
+
+function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
+    return pubkeyPositionInScript(pubkey, script) !== -1;
+}
+
+function pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
+    const pubkeyHash = bitCrypto.hash160(pubkey);
+    const pubkeyXOnly = toXOnly(pubkey);
+
+    const decompiled = bitScript.decompile(script);
+    if (decompiled === null) throw new Error('Unknown script error');
+
+    return decompiled.findIndex((element) => {
+        if (typeof element === 'number') return false;
+        return (
+            Buffer.isBuffer(element) &&
+            (element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly))
+        );
+    });
 }

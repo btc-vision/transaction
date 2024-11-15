@@ -9,6 +9,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
+import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 /**
  * Shared interaction transaction
@@ -186,27 +187,10 @@ export abstract class SharedInteractionTransaction<
             return;
         }
 
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
-                );
-
-                transaction.finalizeInput(i, this.customFinalizer);
-            } else {
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
-                );
-
-                transaction.finalizeInput(i);
-            }
+        if ('multiSignPsbt' in this.signer) {
+            await this.signInputsWalletBased(transaction);
+        } else {
+            await this.signInputsNonWalletBased(transaction);
         }
     }
 
@@ -307,6 +291,52 @@ export abstract class SharedInteractionTransaction<
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
+
+    // custom for interactions
+    protected override async signInputsWalletBased(transaction: Psbt): Promise<void> {
+        const signer: UnisatSigner = this.signer as UnisatSigner;
+
+        // first, we sign the first input with the script signer.
+        await this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
+
+        // then, we sign all the remaining inputs with the wallet signer.
+        await signer.multiSignPsbt([transaction]);
+
+        // Then, we finalize every input.
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                transaction.finalizeInput(i, this.customFinalizer);
+            } else {
+                transaction.finalizeInput(i);
+            }
+        }
+    }
+
+    private async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
+
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i],
+                    i,
+                    this.getSignerKey(),
+                );
+
+                transaction.finalizeInput(i, this.customFinalizer);
+            } else {
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i],
+                    i,
+                    this.getSignerKey(),
+                );
+
+                transaction.finalizeInput(i);
+            }
+        }
+    }
 
     /**
      * Get the public keys

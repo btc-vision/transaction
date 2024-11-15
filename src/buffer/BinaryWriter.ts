@@ -63,8 +63,6 @@ export class BinaryWriter {
 
         const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue);
         if (bytesToHex.byteLength !== 32) {
-            console.log('Invalid u256 value:', bytesToHex);
-
             throw new Error(`Invalid u256 value: ${bigIntValue}`);
         }
 

@@ -22,6 +22,7 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
+import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 initEccLib(ecc);
 
@@ -91,7 +92,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description The signer of the transaction
      */
-    protected readonly signer: Signer | ECPairInterface;
+    protected readonly signer: Signer | ECPairInterface | UnisatSigner;
 
     /**
      * @description The network where the transaction will be broadcasted

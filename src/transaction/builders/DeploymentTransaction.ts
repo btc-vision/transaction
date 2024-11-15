@@ -12,6 +12,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
+import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -203,6 +204,25 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         await this.addRefundOutput(amountSpent);
     }
 
+    protected override async signInputsWalletBased(transaction: Psbt): Promise<void> {
+        const signer: UnisatSigner = this.signer as UnisatSigner;
+
+        // first, we sign the first input with the script signer.
+        await this.signInput(transaction, transaction.data.inputs[0], 0, this.contractSigner);
+
+        // then, we sign all the remaining inputs with the wallet signer.
+        await signer.multiSignPsbt([transaction]);
+
+        // Then, we finalize every input.
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                transaction.finalizeInput(i, this.customFinalizer);
+            } else {
+                transaction.finalizeInput(i);
+            }
+        }
+    }
+
     /**
      * Sign the inputs
      * @param {Psbt} transaction The transaction to sign
@@ -212,6 +232,11 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         if (!this.contractSigner) {
             await super.signInputs(transaction);
 
+            return;
+        }
+
+        if ('multiSignPsbt' in this.signer) {
+            await this.signInputsWalletBased(transaction);
             return;
         }
 
