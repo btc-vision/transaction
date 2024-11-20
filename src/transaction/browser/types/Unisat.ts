@@ -67,7 +67,7 @@ export interface Unisat {
 
     getNetwork(): Promise<UnisatNetwork>;
 
-    getChain(): Promise<UnisatChainType>;
+    getChain(): Promise<UnisatChainInfo>;
 
     getAccounts(): Promise<string[]>;
 
@@ -89,9 +89,17 @@ export interface Unisat {
 
     on(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 
-    on(event: 'chainChanged' | 'networkChanged', listener: (network: UnisatNetwork) => void): void;
+    on(event: 'chainChanged', listener: (chain: UnisatChainInfo) => void): void;
+
+    on(event: 'networkChanged', listener: (network: UnisatChainInfo) => void): void;
+
+    on(event: 'disconnect', listener: () => void): void;
 
     removeListener(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 
-    removeListener(event: 'networkChanged', listener: (network: UnisatNetwork) => void): void;
+    removeListener(event: 'chainChanged', listener: (chain: UnisatChainInfo) => void): void;
+
+    removeListener(event: 'networkChanged', listener: (network: UnisatChainInfo) => void): void;
+
+    removeListener(event: 'disconnect', listener: () => void): void;
 }

@@ -19,13 +19,17 @@ export class BitcoinUtils {
      * @returns {Buffer} The random bytes
      */
     public static rndBytes(): Buffer {
-        const buf = BitcoinUtils.getUnsafeRandomValues(64);
+        const buf = BitcoinUtils.getSafeRandomValues(64);
 
         return Buffer.from(buf);
     }
 
-    public static getUnsafeRandomValues(length: number): Buffer {
-        if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    public static getSafeRandomValues(length: number): Buffer {
+        if (
+            typeof globalThis.window !== 'undefined' &&
+            globalThis.window.crypto &&
+            typeof globalThis.window.crypto.getRandomValues === 'function'
+        ) {
             const array = new Uint8Array(length);
             window.crypto.getRandomValues(array);
 
@@ -36,6 +40,11 @@ export class BitcoinUtils {
 
             return Buffer.from(array);
         } else {
+            console.log(
+                `No secure random number generator available. Please upgrade your environment.`,
+                globalThis.window.crypto,
+                crypto,
+            );
             throw new Error(
                 'No secure random number generator available. Please upgrade your environment.',
             );
