@@ -56,6 +56,9 @@ export interface PsbtSignatureOptions {
 
 export interface Unisat {
     web3?: Web3Provider;
+    
+    disconnect: () => void;
+    connect: () => void;
 
     sendBitcoin(
         toAddress: string,
@@ -89,17 +92,16 @@ export interface Unisat {
 
     on(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 
-    on(event: 'chainChanged', listener: (chain: UnisatChainInfo) => void): void;
-
-    on(event: 'networkChanged', listener: (network: UnisatChainInfo) => void): void;
+    on(event: 'chainChanged' | 'networkChanged', listener: (chain: UnisatChainInfo) => void): void;
 
     on(event: 'disconnect', listener: () => void): void;
 
     removeListener(event: 'accountsChanged', listener: (accounts: string[]) => void): void;
 
-    removeListener(event: 'chainChanged', listener: (chain: UnisatChainInfo) => void): void;
-
-    removeListener(event: 'networkChanged', listener: (network: UnisatChainInfo) => void): void;
+    removeListener(
+        event: 'chainChanged' | 'networkChanged',
+        listener: (chain: UnisatChainInfo) => void,
+    ): void;
 
     removeListener(event: 'disconnect', listener: () => void): void;
 }
