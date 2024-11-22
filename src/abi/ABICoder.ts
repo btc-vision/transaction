@@ -8,11 +8,12 @@ export enum ABIDataTypes {
     UINT16 = 'UINT16',
     UINT32 = 'UINT32',
     UINT64 = 'UINT64',
+    UINT128 = 'UINT128',
+    UINT256 = 'UINT256',
     BOOL = 'BOOL',
     ADDRESS = 'ADDRESS',
     STRING = 'STRING',
     BYTES32 = 'BYTES32',
-    UINT256 = 'UINT256',
     TUPLE = 'TUPLE',
     BYTES = 'BYTES',
     ADDRESS_UINT256_TUPLE = 'ADDRESS_UINT256_TUPLE',
@@ -54,6 +55,9 @@ export class ABICoder {
                     break;
                 case ABIDataTypes.STRING:
                     result.push(byteReader.readStringWithLength());
+                    break;
+                case ABIDataTypes.UINT128:
+                    result.push(byteReader.readU128());
                     break;
                 case ABIDataTypes.UINT256:
                     result.push(byteReader.readU256());
@@ -97,36 +101,6 @@ export class ABICoder {
         }
 
         return result;
-    }
-
-    public encodePointer(key: string): bigint {
-        const hash = this.sha256(key);
-        const finalBuffer = Buffer.alloc(BufferHelper.EXPECTED_BUFFER_LENGTH);
-        const selector = hash.subarray(0, BufferHelper.EXPECTED_BUFFER_LENGTH); // 32 bytes
-
-        for (let i = 0; i < BufferHelper.EXPECTED_BUFFER_LENGTH; i++) {
-            finalBuffer[i] = selector[i];
-        }
-
-        return BigInt('0x' + finalBuffer.toString('hex'));
-    }
-
-    public encodePointerHash(pointer: number, sub: bigint): Uint8Array {
-        const finalBuffer = new Uint8Array(BufferHelper.EXPECTED_BUFFER_LENGTH + 2); // 32 bytes for `sub` + 2 bytes for `pointer`
-        // Encode pointer
-        finalBuffer[0] = pointer & 0xff;
-        finalBuffer[1] = (pointer >> 8) & 0xff;
-
-        // Convert `sub` to Uint8Array and append it
-        const subKey = this.bigIntToUint8Array(sub, BufferHelper.EXPECTED_BUFFER_LENGTH); // Assuming a function to convert BigInt to Uint8Array of fixed size
-        finalBuffer.set(subKey, 2);
-
-        const hashed = this.sha256(finalBuffer);
-        if (hashed.byteLength !== BufferHelper.EXPECTED_BUFFER_LENGTH) {
-            throw new Error('Invalid hash length');
-        }
-
-        return hashed;
     }
 
     public encodeSelector(selectorIdentifier: string): string {
