@@ -78,7 +78,7 @@ export class BinaryWriter {
 
         this.allocSafe(16);
 
-        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue);
+        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue, 16);
         if (bytesToHex.byteLength !== 16) {
             throw new Error(`Invalid u128 value: ${bigIntValue}`);
         }

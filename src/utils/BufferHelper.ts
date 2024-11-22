@@ -32,11 +32,10 @@ export class BufferHelper {
             input = '0' + input; // Pad with a leading zero if the length is odd
         }
 
-        const length = input.length / 2;
-        const buffer = new Uint8Array(length);
+        const lengthS = input.length / 2;
+        const buffer = new Uint8Array(lengthS);
 
-        for (let i = 0; i < length; i++) {
-            // Use substring(i * 2, i * 2 + 2) to replace substr(i * 2, 2)
+        for (let i = 0; i < lengthS; i++) {
             buffer[i] = parseInt(input.substring(i * 2, i * 2 + 2), 16);
         }
 
@@ -55,8 +54,8 @@ export class BufferHelper {
         return BigInt('0x' + hex);
     }
 
-    public static valueToUint8Array(value: bigint): Uint8Array {
-        const valueHex = value.toString(16).padStart(64, '0');
+    public static valueToUint8Array(value: bigint, length: number = 32): Uint8Array {
+        const valueHex = value.toString(16).padStart(length * 2, '0');
 
         return BufferHelper.hexToUint8Array(valueHex);
     }
