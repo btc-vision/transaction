@@ -55,6 +55,17 @@ export class BinaryReader {
         return result;
     }
 
+    public readU128Array(): bigint[] {
+        const length = this.readU16();
+        const result: bigint[] = new Array<bigint>(length);
+
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU128();
+        }
+
+        return result;
+    }
+
     public readU64Array(): bigint[] {
         const length = this.readU16();
         const result: bigint[] = new Array<bigint>(length);

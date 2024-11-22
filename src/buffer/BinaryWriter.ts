@@ -244,6 +244,16 @@ export class BinaryWriter {
         }
     }
 
+    public writeU128Array(value: bigint[]): void {
+        if (value.length > 65535) throw new Error('Array size is too large');
+
+        this.writeU16(value.length);
+
+        for (let i = 0; i < value.length; i++) {
+            this.writeU128(value[i]);
+        }
+    }
+
     public writeStringArray(value: string[]): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 

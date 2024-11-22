@@ -19,6 +19,7 @@ export enum ABIDataTypes {
     ADDRESS_UINT256_TUPLE = 'ADDRESS_UINT256_TUPLE',
     ARRAY_OF_ADDRESSES = 'ARRAY_OF_ADDRESSES',
     ARRAY_OF_UINT256 = 'ARRAY_OF_UINT256',
+    ARRAY_OF_UINT128 = 'ARRAY_OF_UINT128',
     ARRAY_OF_UINT64 = 'ARRAY_OF_UINT64',
     ARRAY_OF_UINT32 = 'ARRAY_OF_UINT32',
     ARRAY_OF_UINT16 = 'ARRAY_OF_UINT16',
@@ -79,6 +80,9 @@ export class ABICoder {
                     break;
                 case ABIDataTypes.ARRAY_OF_UINT256:
                     result.push(byteReader.readU256Array());
+                    break;
+                case ABIDataTypes.ARRAY_OF_UINT128:
+                    result.push(byteReader.readU128Array());
                     break;
                 case ABIDataTypes.ARRAY_OF_UINT64:
                     result.push(byteReader.readU64Array());
