@@ -71,6 +71,23 @@ export class BinaryWriter {
         }
     }
 
+    public writeU128(bigIntValue: bigint): void {
+        if (bigIntValue > 340282366920938463463374607431768211455n) {
+            throw new Error('Value is too large.');
+        }
+
+        this.allocSafe(16);
+
+        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue);
+        if (bytesToHex.byteLength !== 16) {
+            throw new Error(`Invalid u128 value: ${bigIntValue}`);
+        }
+
+        for (let i = 0; i < bytesToHex.byteLength; i++) {
+            this.writeU8(bytesToHex[i]);
+        }
+    }
+
     public writeBytes(value: Uint8Array | Buffer): void {
         this.allocSafe(value.byteLength);
 

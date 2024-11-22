@@ -191,6 +191,14 @@ export class BinaryReader {
         return result;
     }
 
+    public readU128(): bigint {
+        const next16Bytes = this.readBytes(16);
+
+        return BigInt(
+            '0x' + next16Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
+        );
+    }
+
     public readU256(): bigint {
         const next32Bytes = this.readBytes(32);
 
