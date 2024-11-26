@@ -5,6 +5,11 @@ import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
+export interface SignedMessage {
+    readonly signature: Uint8Array;
+    readonly message: Uint8Array;
+}
+
 class MessageSignerBase {
     public sha256(message: Buffer | Uint8Array): Buffer {
         return crypto.sha256(Buffer.from(message));
@@ -21,7 +26,7 @@ class MessageSignerBase {
         keypair: ECPairInterface,
         message: Uint8Array | Buffer | string,
         network: Network,
-    ): Uint8Array {
+    ): SignedMessage {
         const tweaked = TweakedSigner.tweakSigner(keypair, {
             network,
         });
@@ -39,7 +44,7 @@ class MessageSignerBase {
     public signMessage(
         keypair: ECPairInterface,
         message: Uint8Array | Buffer | string,
-    ): Uint8Array {
+    ): SignedMessage {
         if (typeof message === 'string') {
             message = Buffer.from(message, 'utf-8');
         }
@@ -49,7 +54,10 @@ class MessageSignerBase {
         }
 
         const hashedMessage = this.sha256(message);
-        return ecc.signSchnorr(hashedMessage, keypair.privateKey);
+        return {
+            signature: ecc.signSchnorr(hashedMessage, keypair.privateKey),
+            message: hashedMessage,
+        };
     }
 
     /**
