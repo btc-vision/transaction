@@ -184,7 +184,7 @@ export class Address extends Uint8Array {
             const tweakedBytes = toXOnly(
                 EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
             );
-            
+
             super.set(tweakedBytes);
         }
     }
@@ -226,10 +226,6 @@ export class Address extends Uint8Array {
      * Convert the address to a string
      */
     public toString(): string {
-        if (this.#p2tr) {
-            return this.#p2tr;
-        }
-
         return this.toHex();
     }
 
