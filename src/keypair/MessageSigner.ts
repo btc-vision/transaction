@@ -3,6 +3,7 @@ import * as ecc from '@bitcoinerlab/secp256k1';
 import { crypto, Network } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
+import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 class MessageSignerBase {
     public sha256(message: Buffer | Uint8Array): Buffer {
@@ -73,7 +74,7 @@ class MessageSignerBase {
         }
 
         const hashedMessage = this.sha256(message);
-        return ecc.verifySchnorr(hashedMessage, publicKey, signature);
+        return ecc.verifySchnorr(hashedMessage, toXOnly(Buffer.from(publicKey)), signature);
     }
 
     /**
@@ -81,7 +82,6 @@ class MessageSignerBase {
      * @param {Uint8Array | Buffer} publicKey - The public key as a Uint8Array or Buffer.
      * @param {Uint8Array | Buffer | string} message - The message to verify.
      * @param {Uint8Array | Buffer} signature - The signature to verify.
-     * @param {Network} [network] - The network to verify the signature for.
      * @returns True if the signature is valid, false otherwise.
      * @throws Error if the signature length is invalid.
      */
@@ -89,11 +89,10 @@ class MessageSignerBase {
         publicKey: Uint8Array | Buffer,
         message: Uint8Array | Buffer | string,
         signature: Uint8Array | Buffer,
-        network?: Network,
     ): boolean {
-        const tweakedPublicKey = EcKeyPair.fromPublicKey(publicKey, network);
+        const tweakedPublicKey = EcKeyPair.tweakPublicKey(Buffer.from(publicKey));
 
-        return this.verifySignature(tweakedPublicKey.publicKey, message, signature);
+        return this.verifySignature(tweakedPublicKey, message, signature);
     }
 }
 
