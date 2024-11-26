@@ -21,10 +21,11 @@ export * from './keypair/EcKeyPair.js';
 export * from './keypair/Wallet.js';
 export * from './keypair/interfaces/IWallet.js';
 export * from './keypair/AddressVerificator.js';
+export * from './keypair/MessageSigner.js';
 
 /** Metadata */
-//export * from './metadata/contracts/wBTC.js';
 export * from './metadata/ContractBaseMetadata.js';
+export * from './network/ChainId.js';
 
 /** Signer */
 export * from './signer/TweakedSigner.js';
@@ -39,17 +40,10 @@ export * from './transaction/enums/TransactionType.js';
 export * from './transaction/builders/InteractionTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
-//export * from './transaction/builders/WrapTransaction.ts.disabled';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
-//export * from './transaction/builders/UnwrapTransaction.ts.disabled';
 export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/MultiSignTransaction.js';
-
-/** wBTC */
-//export * from '../wbtc_disabled/WrappedGenerationParameters.js';
-//export * from '../wbtc_disabled/Generate.js';
-export * from './network/ChainId.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';
@@ -67,7 +61,6 @@ export * from './utxo/interfaces/BroadcastResponse.js';
 export * from './transaction/psbt/PSBTTypes.js';
 
 export * from './transaction/shared/P2TR_MS.js';
-//export * from '../wbtc_disabled/UnwrapGeneration.ts.disabled';
 
 /** Consensus */
 export * from './consensus/ConsensusConfig.js';
