@@ -228,6 +228,13 @@ export class Address extends Uint8Array {
     public toString(): string {
         return this.toHex();
     }
+    
+    /**
+     * Convert the address to a JSON string
+     */
+    public toJSON(): string {
+        return this.toHex();
+    }
 
     /**
      * Get the address in p2tr format
