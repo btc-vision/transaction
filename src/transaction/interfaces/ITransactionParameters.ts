@@ -33,8 +33,7 @@ export interface SharedInteractionParameters extends ITransactionParameters {
     readonly randomBytes?: Buffer;
 }
 
-export interface IInteractionParameters
-    extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
+export interface IInteractionParameters extends SharedInteractionParameters {
     readonly calldata: Buffer;
 
     readonly to: string;
