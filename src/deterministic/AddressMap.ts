@@ -4,7 +4,7 @@ import { Map } from './Map.js';
 
 export class AddressMap<V> extends Map<Address, V> {
     public set(key: Address, value: V): void {
-        const index: i32 = this._keys.indexOf(key);
+        const index: i32 = this.indexOf(key);
         if (index == -1) {
             this._keys.push(key);
             this._values.push(value);

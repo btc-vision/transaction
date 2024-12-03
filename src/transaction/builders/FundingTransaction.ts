@@ -40,7 +40,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
             });
         }
 
-        await this.addRefundOutput(this.amount);
+        await this.addRefundOutput(this.amount + this.addOptionalOutputsAndGetAmount());
     }
 
     protected splitInputs(amountSpent: bigint): void {

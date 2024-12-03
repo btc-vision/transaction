@@ -91,7 +91,8 @@ export class TransactionFactory {
         parameters.utxos = interactionParameters.utxos;
         parameters.amount =
             (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(interactionParameters);
+            this.getPriorityFee(interactionParameters) +
+            preTransaction.getOptionalOutputValue();
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -151,7 +152,6 @@ export class TransactionFactory {
         });
 
         // we don't sign that transaction, we just need the parameters.
-
         await preTransaction.generateTransactionMinimalSignatures();
 
         const parameters: IFundingTransactionParameters =
@@ -160,7 +160,8 @@ export class TransactionFactory {
         parameters.utxos = interactionParameters.utxos;
         parameters.amount =
             (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(interactionParameters);
+            this.getPriorityFee(interactionParameters) +
+            preTransaction.getOptionalOutputValue();
 
         const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
         if (!feeEstimationFundingTransaction) {
@@ -219,7 +220,8 @@ export class TransactionFactory {
 
         parameters.amount =
             (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(deploymentParameters);
+            this.getPriorityFee(deploymentParameters) +
+            preTransaction.getOptionalOutputValue();
 
         const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();

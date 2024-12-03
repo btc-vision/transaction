@@ -201,7 +201,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             address: this.contractAddress.p2tr(this.network),
         });
 
-        await this.addRefundOutput(amountSpent);
+        await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }
 
     protected override async signInputsWalletBased(transaction: Psbt): Promise<void> {

@@ -170,8 +170,9 @@ export abstract class SharedInteractionTransaction<
             address: this.to,
         });
 
+        const amount = this.addOptionalOutputsAndGetAmount();
         if (!this.disableAutoRefund) {
-            await this.addRefundOutput(amountSpent);
+            await this.addRefundOutput(amountSpent + amount);
         }
     }
 

@@ -177,7 +177,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             address: this.to,
         });
 
-        await this.addRefundOutput(amountSpent);
+        await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }
 
     /**

@@ -444,6 +444,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return outputs;
     }
 
+    public getOptionalOutputValue(): bigint {
+        if (!this.optionalOutputs) return 0n;
+
+        let total = 0n;
+        for (let i = 0; i < this.optionalOutputs.length; i++) {
+            total += BigInt(this.optionalOutputs[i].value);
+        }
+
+        return total;
+    }
+
     /**
      * @description Adds the refund output to the transaction
      * @param {bigint} amountSpent - The amount spent
@@ -452,8 +463,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         /** Add the refund output */
-        const sendBackAmount: bigint =
-            this.totalInputAmount - amountSpent - this.addOptionalOutputsAndGetAmount();
+        const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
             if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
                 await this.setFeeOutput({
