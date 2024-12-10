@@ -11,7 +11,7 @@ export default {
     watch: false,
     output: {
         filename: 'index.js',
-        path: import.meta.dirname + 'browser',
+        path: import.meta.dirname + '/browser',
         libraryTarget: 'module',
     },
     node: {
