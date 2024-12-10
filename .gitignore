@@ -404,7 +404,7 @@ src/tests
 ./bytecode
 
 build
-browser
+browser/*
 yarn.lock
 package-lock.json
 docs/*
