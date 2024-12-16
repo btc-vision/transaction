@@ -1,6 +1,15 @@
-import { ADDRESS_BYTE_LENGTH, BufferLike, i32, Selector, u16, u32, u8 } from '../utils/types.js';
-import { Address } from '../keypair/Address.js';
 import { AddressMap } from '../deterministic/AddressMap.js';
+import { Address } from '../keypair/Address.js';
+import {
+    ADDRESS_BYTE_LENGTH,
+    U128_BYTE_LENGTH,
+    U16_BYTE_LENGTH,
+    U256_BYTE_LENGTH,
+    U32_BYTE_LENGTH,
+    U64_BYTE_LENGTH,
+    U8_BYTE_LENGTH,
+} from '../utils/lengths.js';
+import { BufferLike, i32, Selector, u16, u32, u8 } from '../utils/types.js';
 
 export class BinaryReader {
     private buffer: DataView;
@@ -154,34 +163,34 @@ export class BinaryReader {
     }
 
     public readU8(): u8 {
-        this.verifyEnd(this.currentOffset + 1);
+        this.verifyEnd(this.currentOffset + U8_BYTE_LENGTH);
 
-        return this.buffer.getUint8(this.currentOffset++);
+        return this.buffer.getUint8(this.currentOffset + U8_BYTE_LENGTH);
     }
 
     public readU16(): u16 {
-        this.verifyEnd(this.currentOffset + 2);
+        this.verifyEnd(this.currentOffset + U16_BYTE_LENGTH);
 
         const value = this.buffer.getUint16(this.currentOffset, true);
-        this.currentOffset += 2;
+        this.currentOffset += U16_BYTE_LENGTH;
 
         return value;
     }
 
     public readU32(le: boolean = true): u32 {
-        this.verifyEnd(this.currentOffset + 4);
+        this.verifyEnd(this.currentOffset + U32_BYTE_LENGTH);
 
         const value = this.buffer.getUint32(this.currentOffset, le);
-        this.currentOffset += 4;
+        this.currentOffset += U32_BYTE_LENGTH;
 
         return value;
     }
 
     public readU64(): bigint {
-        this.verifyEnd(this.currentOffset + 8);
+        this.verifyEnd(this.currentOffset + U64_BYTE_LENGTH);
 
         const value: bigint = this.buffer.getBigUint64(this.currentOffset, true);
-        this.currentOffset += 8;
+        this.currentOffset += U64_BYTE_LENGTH;
 
         return value;
     }
@@ -203,7 +212,7 @@ export class BinaryReader {
     }
 
     public readU128(): bigint {
-        const next16Bytes = this.readBytes(16);
+        const next16Bytes = this.readBytes(U128_BYTE_LENGTH);
 
         return BigInt(
             '0x' + next16Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
@@ -211,7 +220,7 @@ export class BinaryReader {
     }
 
     public readU256(): bigint {
-        const next32Bytes = this.readBytes(32);
+        const next32Bytes = this.readBytes(U256_BYTE_LENGTH);
 
         return BigInt(
             '0x' + next32Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),

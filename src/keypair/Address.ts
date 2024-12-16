@@ -1,8 +1,9 @@
 import { Network } from '@btc-vision/bitcoin';
-import { EcKeyPair } from './EcKeyPair.js';
-import { ECPairInterface } from 'ecpair';
-import { AddressVerificator } from './AddressVerificator.js';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
+import { ECPairInterface } from 'ecpair';
+import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
+import { AddressVerificator } from './AddressVerificator.js';
+import { EcKeyPair } from './EcKeyPair.js';
 
 const hexPattern = /^[0-9a-fA-F]+$/;
 const isHexadecimal = (input: string): boolean => {
@@ -20,7 +21,7 @@ export class Address extends Uint8Array {
     #keyPair: ECPairInterface | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
-        super(32);
+        super(ADDRESS_BYTE_LENGTH);
 
         if (!bytes) {
             return;
@@ -126,7 +127,7 @@ export class Address extends Uint8Array {
     public lessThan(a: Address): boolean {
         const b: Address = this as Address;
 
-        for (let i = 0; i < 32; i++) {
+        for (let i = 0; i < ADDRESS_BYTE_LENGTH; i++) {
             const thisByte = b[i];
             const aByte = a[i];
 
@@ -148,7 +149,7 @@ export class Address extends Uint8Array {
         // Compare the two addresses byte-by-byte, treating them as big-endian uint256
         const b = this as Address;
 
-        for (let i = 0; i < 32; i++) {
+        for (let i = 0; i < ADDRESS_BYTE_LENGTH; i++) {
             const thisByte = b[i];
             const aByte = a[i];
 
@@ -168,12 +169,13 @@ export class Address extends Uint8Array {
      * @returns {void}
      */
     public override set(publicKey: ArrayLike<number>): void {
-        if (publicKey.length !== 33 && publicKey.length !== 32 && publicKey.length !== 65) {
+        const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
+        if (!validLengths.includes(publicKey.length)) {
             throw new Error(`Invalid public key length ${publicKey.length}`);
         }
 
-        if (publicKey.length === 32) {
-            const buf = Buffer.alloc(32);
+        if (publicKey.length === ADDRESS_BYTE_LENGTH) {
+            const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
             buf.set(publicKey);
 
             super.set(publicKey);
@@ -228,7 +230,7 @@ export class Address extends Uint8Array {
     public toString(): string {
         return this.toHex();
     }
-    
+
     /**
      * Convert the address to a JSON string
      */

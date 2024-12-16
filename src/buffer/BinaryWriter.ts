@@ -1,8 +1,17 @@
-import { BufferHelper } from '../utils/BufferHelper.js';
-import { ADDRESS_BYTE_LENGTH, i32, Selector, u16, u32, u64, u8 } from '../utils/types.js';
-import { Address } from '../keypair/Address.js';
-import { BinaryReader } from './BinaryReader.js';
 import { AddressMap } from '../deterministic/AddressMap.js';
+import { Address } from '../keypair/Address.js';
+import { BufferHelper } from '../utils/BufferHelper.js';
+import {
+    ADDRESS_BYTE_LENGTH,
+    U128_BYTE_LENGTH,
+    U16_BYTE_LENGTH,
+    U256_BYTE_LENGTH,
+    U32_BYTE_LENGTH,
+    U64_BYTE_LENGTH,
+    U8_BYTE_LENGTH,
+} from '../utils/lengths.js';
+import { i32, Selector, u16, u32, u64, u8 } from '../utils/types.js';
+import { BinaryReader } from './BinaryReader.js';
 
 export class BinaryWriter {
     private currentOffset: u32 = 0;
@@ -15,14 +24,14 @@ export class BinaryWriter {
     public writeU8(value: u8): void {
         if (value > 255) throw new Error('Value is too large.');
 
-        this.allocSafe(1);
+        this.allocSafe(U8_BYTE_LENGTH);
         this.buffer.setUint8(this.currentOffset++, value);
     }
 
     public writeU16(value: u16): void {
         if (value > 65535) throw new Error('Value is too large.');
 
-        this.allocSafe(2);
+        this.allocSafe(U16_BYTE_LENGTH);
         this.buffer.setUint16(this.currentOffset, value, true);
         this.currentOffset += 2;
     }
@@ -30,7 +39,7 @@ export class BinaryWriter {
     public writeU32(value: u32, le: boolean = true): void {
         if (value > 4294967295) throw new Error('Value is too large.');
 
-        this.allocSafe(4);
+        this.allocSafe(U32_BYTE_LENGTH);
         this.buffer.setUint32(this.currentOffset, value, le);
         this.currentOffset += 4;
     }
@@ -38,7 +47,7 @@ export class BinaryWriter {
     public writeU64(value: u64): void {
         if (value > 18446744073709551615n) throw new Error('Value is too large.');
 
-        this.allocSafe(8);
+        this.allocSafe(U64_BYTE_LENGTH);
         this.buffer.setBigUint64(this.currentOffset, value, true);
         this.currentOffset += 8;
     }
@@ -59,10 +68,10 @@ export class BinaryWriter {
             throw new Error('Value is too large.');
         }
 
-        this.allocSafe(32);
+        this.allocSafe(U256_BYTE_LENGTH);
 
         const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue);
-        if (bytesToHex.byteLength !== 32) {
+        if (bytesToHex.byteLength !== U256_BYTE_LENGTH) {
             throw new Error(`Invalid u256 value: ${bigIntValue}`);
         }
 
@@ -76,10 +85,10 @@ export class BinaryWriter {
             throw new Error('Value is too large.');
         }
 
-        this.allocSafe(16);
+        this.allocSafe(U128_BYTE_LENGTH);
 
-        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue, 16);
-        if (bytesToHex.byteLength !== 16) {
+        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue, U128_BYTE_LENGTH);
+        if (bytesToHex.byteLength !== U128_BYTE_LENGTH) {
             throw new Error(`Invalid u128 value: ${bigIntValue}`);
         }
 
@@ -111,7 +120,7 @@ export class BinaryWriter {
     }
 
     public writeStringWithLength(value: string): void {
-        this.allocSafe(value.length + 2);
+        this.allocSafe(U16_BYTE_LENGTH + value.length);
 
         this.writeU16(value.length);
         this.writeString(value);
@@ -134,7 +143,7 @@ export class BinaryWriter {
     }
 
     public writeTuple(values: bigint[]): void {
-        this.allocSafe(4 + values.length * 32);
+        this.allocSafe(U32_BYTE_LENGTH + values.length * U256_BYTE_LENGTH);
         this.writeU32(values.length);
 
         for (let i = 0; i < values.length; i++) {
