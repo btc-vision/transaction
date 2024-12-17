@@ -1,3 +1,4 @@
+import { U256_BYTE_LENGTH } from './lengths.js';
 import { MemorySlotPointer } from './types.js';
 
 export class BufferHelper {
@@ -54,7 +55,7 @@ export class BufferHelper {
         return BigInt('0x' + hex);
     }
 
-    public static valueToUint8Array(value: bigint, length: number = 32): Uint8Array {
+    public static valueToUint8Array(value: bigint, length: number = U256_BYTE_LENGTH): Uint8Array {
         const valueHex = value.toString(16).padStart(length * 2, '0');
 
         return BufferHelper.hexToUint8Array(valueHex);

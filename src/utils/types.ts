@@ -1,7 +1,5 @@
 import { DeterministicMap } from '../deterministic/DeterministicMap.js';
 
-export const ADDRESS_BYTE_LENGTH: number = 32;
-
 export type MemorySlotPointer = bigint;
 
 export type BufferLike = Uint8Array | Buffer;
