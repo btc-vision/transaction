@@ -47,6 +47,7 @@ export * from './transaction/builders/TransactionBuilder.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';
+export * from './utils/lengths.js';
 
 /** UTXO */
 export * from './utxo/interfaces/IUTXO.js';
@@ -89,3 +90,4 @@ export * from './transaction/browser/types/Xverse.js';
 
 export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';
+
