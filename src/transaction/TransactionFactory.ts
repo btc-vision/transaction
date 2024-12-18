@@ -146,6 +146,10 @@ export class TransactionFactory {
             throw new Error('Field "from" not provided.');
         }
 
+        if (!interactionParameters.utxos[0]) {
+            throw new Error('Missing at least one UTXO.');
+        }
+
         const preTransaction: InteractionTransaction = new InteractionTransaction({
             ...interactionParameters,
             utxos: [interactionParameters.utxos[0]], // we simulate one input here.
@@ -163,14 +167,20 @@ export class TransactionFactory {
             this.getPriorityFee(interactionParameters) +
             preTransaction.getOptionalOutputValue();
 
-        const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
+        const feeEstimationFundingTransaction = await this.createFundTransaction({
+            ...parameters,
+            optionalOutputs: [],
+        });
         if (!feeEstimationFundingTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
         parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
 
-        const signedTransaction = await this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction({
+            ...parameters,
+            optionalOutputs: [],
+        });
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
