@@ -165,7 +165,10 @@ export class BinaryReader {
     public readU8(): u8 {
         this.verifyEnd(this.currentOffset + U8_BYTE_LENGTH);
 
-        return this.buffer.getUint8(this.currentOffset + U8_BYTE_LENGTH);
+        const value = this.buffer.getUint8(this.currentOffset);
+        this.currentOffset += U8_BYTE_LENGTH;
+
+        return value;
     }
 
     public readU16(): u16 {
