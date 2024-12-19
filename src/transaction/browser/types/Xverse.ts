@@ -4,37 +4,40 @@ export enum XverseNetwork {
     signet = 'Signet',
 }
 
-export type XverseRPCResponse<T = unknown> = {
-    id: string;
-    jsonrpc: string;
-    result: T;
-};
+type XverseRPCResponse<T = unknown> =
+    | {
+          id: string;
+          jsonrpc: string;
+          result: T;
+      }
+    | {
+          id: string;
+          jsonrpc: string;
+          error: {
+              code: number;
+              message: string;
+          };
+      };
 
-export type XverseRPCError = {
-    id: string;
-    jsonrpc: string;
-    error: {
-        code: number;
-        message: string;
-    };
-};
+type XverseRPCGetAccountResponse = XverseRPCResponse<{
+    addresses: {
+        address: string;
+        addressType: string;
+        publicKey: string;
+        purpose: 'stacks' | 'payment' | 'ordinals'; // we only care about payment
+    }[];
+    walletType: string;
+}>;
 
-export type XverseRPCGetAccountResponse =
-    | XverseRPCResponse<{
-          addresses: {
-              address: string;
-              addressType: string;
-              publicKey: string;
-              purpose: string; // ordinals, payment or stacks (we only care about payment)
-          }[];
-      }>
-    | XverseRPCError;
+type XverseRPCSignPsbtResponse = XverseRPCResponse<{
+    psbt: string;
+}>;
 
-export type XverseRPCSignPsbtResponse =
-    | XverseRPCResponse<{
-          psbt: string;
-      }>
-    | XverseRPCError;
+type XverseRPCGetBalanceResponse = XverseRPCResponse<{
+    confirmed: string;
+    total: string;
+    unconfirmed: string;
+}>;
 
 interface InscriptionData {
     address: string;
@@ -82,23 +85,36 @@ interface SignedTransactionResult {
 }
 
 export interface Xverse {
-    connect: () => Promise<void>;
+    request(method: string, params: unknown): Promise<XverseRPCResponse>;
+    request(
+        method: 'wallet_connect' | 'wallet_getAccount',
+        params: null,
+    ): Promise<XverseRPCGetAccountResponse>;
+    request(method: 'wallet_disconnect', params: null): Promise<XverseRPCResponse<null>>;
+    request(method: 'getBalance', params: null): Promise<XverseRPCGetBalanceResponse>;
+    request(
+        method: 'signPsbt',
+        params: {
+            psbt: string;
+            signInputs:
+                | {
+                      [x: string]: number[];
+                  }
+                | undefined;
+            broadcast: boolean;
+        },
+    ): Promise<XverseRPCSignPsbtResponse>;
 
     addListener: (event: string, callback: (...args: unknown[]) => void) => void;
 
     createInscription: (data: InscriptionData) => Promise<InscriptionResult>;
-
     createRepeatInscriptions: (data: RepeatInscriptionsData) => Promise<InscriptionResult[]>;
-
-    request: (method: string, params: unknown) => Promise<XverseRPCResponse>;
 
     sendBtcTransaction: (transaction: BtcTransaction) => Promise<TransactionResult>;
 
     signMessage: (message: string) => Promise<SignedMessageResult>;
-
     signMultipleTransactions: (
         transactions: BtcTransaction[],
     ) => Promise<SignedTransactionResult[]>;
-
     signTransaction: (transaction: BtcTransaction) => Promise<SignedTransactionResult>;
 }

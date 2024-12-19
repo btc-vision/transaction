@@ -14,7 +14,7 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions } from '../types/Unisat.js';
-import { Xverse, XverseRPCGetAccountResponse, XverseRPCSignPsbtResponse } from '../types/Xverse.js';
+import { Xverse } from '../types/Xverse.js';
 
 declare global {
     interface Window {
@@ -95,10 +95,7 @@ export class XverseSigner extends CustomKeypair {
     public async init(): Promise<void> {
         if (this.isInitialized) return;
 
-        const connectResult = (await this.BitcoinProvider.request(
-            'wallet_connect',
-            null,
-        )) as XverseRPCGetAccountResponse;
+        const connectResult = await this.BitcoinProvider.request('wallet_connect', null);
 
         if ('error' in connectResult) throw new Error(connectResult.error.message);
 
@@ -198,7 +195,7 @@ export class XverseSigner extends CustomKeypair {
         const options: PsbtSignatureOptions[] = [];
 
         for (const psbt of transactions) {
-            const hex = psbt.toHex();
+            const hex = psbt.toBase64();
             toSignPsbts.push(hex);
 
             const toSignInputs = psbt.data.inputs
@@ -254,23 +251,24 @@ export class XverseSigner extends CustomKeypair {
             });
         }
 
-        // const signed = await this.unisat.signPsbt(toSignPsbts[0], options[0]);
+        const toSignInputs: {
+            [x: string]: number[];
+        } = {
+            [this.publicKey.toString('hex')]:
+                options[0].toSignInputs?.map((input) => input?.index) || [],
+        };
 
-        const callSign = (await this.BitcoinProvider.request('signPsbt', {
+        const callSign = await this.BitcoinProvider.request('signPsbt', {
             psbt: toSignPsbts[0],
-            signInputs: options[0].toSignInputs,
-        })) as XverseRPCSignPsbtResponse;
+            signInputs: toSignInputs,
+            broadcast: false,
+        });
+
+        console.log(callSign);
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
-        const signedPsbts = Psbt.fromBase64(callSign.result.psbt); //signed.map((hex) => Psbt.fromHex(hex));
-
-        /*for (let i = 0; i < signedPsbts.length; i++) {
-            const psbtOriginal = transactions[i];
-            const psbtSigned = signedPsbts[i];
-
-            psbtOriginal.combine(psbtSigned);
-        }*/
+        const signedPsbts = Psbt.fromBase64(callSign.result.psbt);
 
         transactions[0].combine(signedPsbts);
     }
@@ -351,10 +349,18 @@ export class XverseSigner extends CustomKeypair {
         };
 
         const psbt = transaction.toBase64();
-        const callSign = (await this.BitcoinProvider.request('signPsbt', {
+
+        const toSignInputs: {
+            [x: string]: number[];
+        } = {
+            [this.publicKey.toString('hex')]: opts.toSignInputs?.map((input) => input?.index) || [],
+        };
+
+        const callSign = await this.BitcoinProvider.request('signPsbt', {
             psbt,
-            signInputs: opts.toSignInputs,
-        })) as XverseRPCSignPsbtResponse;
+            signInputs: toSignInputs,
+            broadcast: false,
+        });
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
