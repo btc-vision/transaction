@@ -1,4 +1,4 @@
-import crypto, { createHash } from 'crypto';
+import { createHash } from 'crypto';
 
 /**
  * Utility class for Bitcoin related functions
@@ -34,16 +34,16 @@ export class BitcoinUtils {
             window.crypto.getRandomValues(array);
 
             return Buffer.from(array);
-        } else if (crypto && typeof crypto.getRandomValues === 'function') {
+        } else if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
             const array = new Uint8Array(length);
-            crypto.getRandomValues(array);
+            globalThis.crypto.getRandomValues(array);
 
             return Buffer.from(array);
         } else {
             console.log(
                 `No secure random number generator available. Please upgrade your environment.`,
                 globalThis.window.crypto,
-                crypto,
+                globalThis.crypto,
             );
             throw new Error(
                 'No secure random number generator available. Please upgrade your environment.',
