@@ -39,6 +39,15 @@ type XverseRPCGetBalanceResponse = XverseRPCResponse<{
     unconfirmed: string;
 }>;
 
+export type XVersePSBTInput = {
+    psbt: string;
+    signInputs:
+        | {
+              [x: string]: number[];
+          }
+        | undefined;
+};
+
 interface InscriptionData {
     address: string;
     amount: number;
@@ -92,18 +101,7 @@ export interface Xverse {
     ): Promise<XverseRPCGetAccountResponse>;
     request(method: 'wallet_disconnect', params: null): Promise<XverseRPCResponse<null>>;
     request(method: 'getBalance', params: null): Promise<XverseRPCGetBalanceResponse>;
-    request(
-        method: 'signPsbt',
-        params: {
-            psbt: string;
-            signInputs:
-                | {
-                      [x: string]: number[];
-                  }
-                | undefined;
-            broadcast: boolean;
-        },
-    ): Promise<XverseRPCSignPsbtResponse>;
+    request(method: 'signPsbt', params: XVersePSBTInput): Promise<XverseRPCSignPsbtResponse>;
 
     addListener: (event: string, callback: (...args: unknown[]) => void) => void;
 

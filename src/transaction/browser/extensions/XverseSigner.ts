@@ -254,14 +254,12 @@ export class XverseSigner extends CustomKeypair {
         const toSignInputs: {
             [x: string]: number[];
         } = {
-            [this.publicKey.toString('hex')]:
-                options[0].toSignInputs?.map((input) => input?.index) || [],
+            [this.p2wpkh]: options[0].toSignInputs?.map((input) => input.index) || [],
         };
 
         const callSign = await this.BitcoinProvider.request('signPsbt', {
             psbt: toSignPsbts[0],
             signInputs: toSignInputs,
-            broadcast: false,
         });
 
         console.log(callSign);
@@ -353,13 +351,12 @@ export class XverseSigner extends CustomKeypair {
         const toSignInputs: {
             [x: string]: number[];
         } = {
-            [this.publicKey.toString('hex')]: opts.toSignInputs?.map((input) => input?.index) || [],
+            [this.p2wpkh]: opts.toSignInputs?.map((input) => input.index) || [],
         };
 
         const callSign = await this.BitcoinProvider.request('signPsbt', {
             psbt,
             signInputs: toSignInputs,
-            broadcast: false,
         });
 
         if ('error' in callSign) throw new Error(callSign.error.message);
