@@ -1,13 +1,4 @@
-import {
-    crypto as bitCrypto,
-    script as bitScript,
-    Network,
-    networks,
-    opcodes,
-    Psbt,
-    PsbtInput,
-    TapScriptSig,
-} from '@btc-vision/bitcoin';
+import { Network, networks, Psbt, TapScriptSig } from '@btc-vision/bitcoin';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { PartialSig } from 'bip174/src/lib/interfaces.js';
 import { ECPairInterface } from 'ecpair';
@@ -15,6 +6,11 @@ import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions } from '../types/Unisat.js';
 import { Xverse, XverseRPCGetAccountResponse, XverseRPCSignPsbtResponse } from '../types/Xverse.js';
+import {
+    canSignNonTaprootInput,
+    isTaprootInput,
+    pubkeyInScript,
+} from '../../../signer/SignerUtils.js';
 
 declare global {
     interface Window {
@@ -226,14 +222,10 @@ export class XverseSigner extends CustomKeypair {
                                 viaTaproot = true;
                             }
                         }
-                    } else {
+                    } else if (canSignNonTaprootInput(input, this.publicKey)) {
                         // Non-Taproot input
-                        const script = getInputRelevantScript(input);
-
-                        if (script && pubkeyInScript(this.publicKey, script)) {
-                            needsToSign = true;
-                            viaTaproot = false;
-                        }
+                        needsToSign = true;
+                        viaTaproot = false;
                     }
 
                     if (needsToSign) {
@@ -375,55 +367,4 @@ export class XverseSigner extends CustomKeypair {
 
         return nonDuplicate;
     }
-}
-
-// Helper functions
-function isTaprootInput(input: PsbtInput): boolean {
-    if (input.tapInternalKey || input.tapKeySig || input.tapScriptSig || input.tapLeafScript) {
-        return true;
-    }
-
-    if (input.witnessUtxo) {
-        const script = input.witnessUtxo.script;
-        return script.length === 34 && script[0] === opcodes.OP_1 && script[1] === 0x20;
-    }
-
-    return false;
-}
-
-function getInputRelevantScript(input: PsbtInput): Buffer | null {
-    if (input.redeemScript) {
-        return input.redeemScript;
-    }
-    if (input.witnessScript) {
-        return input.witnessScript;
-    }
-    if (input.witnessUtxo) {
-        return input.witnessUtxo.script;
-    }
-    if (input.nonWitnessUtxo) {
-        // Additional logic can be added here if needed
-        return null;
-    }
-    return null;
-}
-
-function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
-    return pubkeyPositionInScript(pubkey, script) !== -1;
-}
-
-function pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
-    const pubkeyHash = bitCrypto.hash160(pubkey);
-    const pubkeyXOnly = toXOnly(pubkey);
-
-    const decompiled = bitScript.decompile(script);
-    if (decompiled === null) throw new Error('Unknown script error');
-
-    return decompiled.findIndex((element) => {
-        if (typeof element === 'number') return false;
-        return (
-            Buffer.isBuffer(element) &&
-            (element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly))
-        );
-    });
 }

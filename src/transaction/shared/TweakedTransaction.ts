@@ -20,11 +20,23 @@ import { ECPairInterface } from 'ecpair';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { AddressTypes, AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { ChainId } from '../../network/ChainId.js';
 import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
-import * as bscript from '@btc-vision/bitcoin/src/script.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import {
+    canSignNonTaprootInput,
+    isTaprootInput,
+    pubkeyInScript,
+} from '../../signer/SignerUtils.js';
+import {
+    isP2MS,
+    isP2PK,
+    isP2PKH,
+    isP2SHScript,
+    isP2TR,
+    isP2WPKH,
+    isP2WSHScript,
+} from '@btc-vision/bitcoin/src/psbt/psbtutils.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer | ECPairInterface | UnisatSigner;
@@ -370,6 +382,7 @@ export abstract class TweakedTransaction extends Logger {
      * @param {number} i - The index of the input
      * @param {Signer} signer - The signer to use
      * @param {boolean} [reverse=false] - Should the input be signed in reverse
+     * @param {boolean} [errored=false] - Was there an error
      * @protected
      */
     protected async signInput(
@@ -378,38 +391,48 @@ export abstract class TweakedTransaction extends Logger {
         i: number,
         signer: Signer | ECPairInterface,
         reverse: boolean = false,
+        errored: boolean = false,
     ): Promise<void> {
         const publicKey = signer.publicKey;
-        let isTaproot = this.isTaprootInput(input);
 
+        let isTaproot = isTaprootInput(input);
         if (reverse) {
             isTaproot = !isTaproot;
         }
 
         let signed: boolean = false;
-
+        let didError: boolean = false;
         if (isTaproot) {
             try {
                 await this.attemptSignTaproot(transaction, input, i, signer, publicKey);
                 signed = true;
             } catch (e) {
-                this.error(`Failed to sign Taproot script path input ${i}: ${e}`);
+                this.error(
+                    `Failed to sign Taproot script path input ${i} (reverse: ${reverse}): ${(e as Error).message}`,
+                );
+
+                didError = true;
             }
         } else {
             // Non-Taproot input
-            if (!reverse ? this.canSignNonTaprootInput(input, publicKey) : true) {
+            if (!reverse ? canSignNonTaprootInput(input, publicKey) : true) {
                 try {
                     await this.signNonTaprootInput(signer, transaction, i);
                     signed = true;
                 } catch (e) {
-                    this.error(`Failed to sign non-Taproot input ${i}: ${e}`);
+                    this.error(`Failed to sign non-Taproot input ${i}: ${(e as Error).stack}`);
+                    didError = true;
                 }
             }
         }
 
         if (!signed) {
+            if (didError && errored) {
+                throw new Error(`Failed to sign input ${i} with the provided signer.`);
+            }
+
             try {
-                await this.signInput(transaction, input, i, signer, true);
+                await this.signInput(transaction, input, i, signer, true, didError);
             } catch {
                 throw new Error(`Cannot sign input ${i} with the provided signer.`);
             }
@@ -585,14 +608,202 @@ export abstract class TweakedTransaction extends Logger {
         return;
     }
 
+    protected generateP2SHP2PKHRedeemScript(inputAddr: string):
+        | {
+              redeemScript: Buffer;
+              outputScript: Buffer;
+          }
+        | undefined {
+        const pubkey = Buffer.isBuffer(this.signer.publicKey)
+            ? this.signer.publicKey
+            : Buffer.from(this.signer.publicKey, 'hex');
+
+        const w = payments.p2wpkh({
+            pubkey: pubkey,
+            network: this.network,
+        });
+
+        const p = payments.p2sh({
+            redeem: w,
+            network: this.network,
+        });
+
+        const address = p.address;
+        const redeemScript = p.redeem?.output;
+        if (!redeemScript) {
+            throw new Error('Failed to generate P2SH-P2WPKH redeem script');
+        }
+
+        if (address === inputAddr && p.redeem && p.redeem.output && p.output) {
+            return {
+                redeemScript: p.redeem.output,
+                outputScript: p.output,
+            };
+        }
+
+        return;
+    }
+
     /**
-     * Generate the PSBT input extended
+     * Generate the PSBT input extended, supporting various script types
      * @param {UTXO} utxo The UTXO
      * @param {number} i The index of the input
      * @protected
      * @returns {PsbtInputExtended} The PSBT input extended
      */
     protected generatePsbtInputExtended(utxo: UTXO, i: number): PsbtInputExtended {
+        const script = Buffer.from(utxo.scriptPubKey.hex, 'hex');
+
+        const input: PsbtInputExtended = {
+            hash: utxo.transactionId,
+            index: utxo.outputIndex,
+            sequence: this.sequence,
+            witnessUtxo: {
+                value: Number(utxo.value),
+                script,
+            },
+        };
+
+        // Handle P2PKH (Legacy)
+        if (isP2PKH(script)) {
+            // Legacy input requires nonWitnessUtxo
+            if (utxo.nonWitnessUtxo) {
+                //delete input.witnessUtxo;
+                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                    ? utxo.nonWitnessUtxo
+                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+            } else {
+                throw new Error('Missing nonWitnessUtxo for P2PKH UTXO');
+            }
+        }
+
+        // Handle P2WPKH (SegWit)
+        else if (isP2WPKH(script)) {
+            // No redeemScript required for pure P2WPKH
+            // witnessUtxo is enough, no nonWitnessUtxo needed.
+        }
+
+        // Handle P2WSH (SegWit)
+        else if (isP2WSHScript(script)) {
+            // P2WSH requires a witnessScript
+            if (!utxo.witnessScript) {
+                // Can't just invent a witnessScript out of thin air. If not provided, it's an error.
+                throw new Error('Missing witnessScript for P2WSH UTXO');
+            }
+
+            input.witnessScript = Buffer.isBuffer(utxo.witnessScript)
+                ? utxo.witnessScript
+                : Buffer.from(utxo.witnessScript, 'hex');
+
+            // No nonWitnessUtxo needed for segwit
+        }
+
+        // Handle P2SH (Can be legacy or wrapping segwit)
+        else if (isP2SHScript(script)) {
+            // Redeem script is required for P2SH
+            let redeemScriptBuf: Buffer | undefined;
+
+            if (utxo.redeemScript) {
+                redeemScriptBuf = Buffer.isBuffer(utxo.redeemScript)
+                    ? utxo.redeemScript
+                    : Buffer.from(utxo.redeemScript, 'hex');
+            } else {
+                // Attempt to generate a redeem script if missing
+                if (!utxo.scriptPubKey.address) {
+                    throw new Error(
+                        'Missing redeemScript and no address to regenerate it for P2SH UTXO',
+                    );
+                }
+
+                const legacyScripts = this.generateP2SHP2PKHRedeemScript(utxo.scriptPubKey.address);
+                if (!legacyScripts) {
+                    throw new Error('Missing redeemScript for P2SH UTXO and unable to regenerate');
+                }
+
+                redeemScriptBuf = legacyScripts.redeemScript;
+            }
+
+            input.redeemScript = redeemScriptBuf;
+
+            // Check if redeemScript is wrapping segwit (like P2SH-P2WPKH or P2SH-P2WSH)
+            const payment = payments.p2sh({ redeem: { output: input.redeemScript } });
+            if (!payment.redeem) {
+                throw new Error('Failed to extract redeem script from P2SH UTXO');
+            }
+
+            const redeemOutput = payment.redeem.output;
+            if (!redeemOutput) {
+                throw new Error('Failed to extract redeem output from P2SH UTXO');
+            }
+
+            if (utxo.nonWitnessUtxo) {
+                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                    ? utxo.nonWitnessUtxo
+                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+            }
+
+            if (isP2WPKH(redeemOutput)) {
+                // P2SH-P2WPKH
+                // Use witnessUtxo + redeemScript
+                delete input.nonWitnessUtxo; // ensure we do NOT have nonWitnessUtxo
+                // witnessScript is not needed
+            } else if (isP2WSHScript(redeemOutput)) {
+                // P2SH-P2WSH
+                // Use witnessUtxo + redeemScript + witnessScript
+                delete input.nonWitnessUtxo; // ensure we do NOT have nonWitnessUtxo
+                if (!input.witnessScript) {
+                    throw new Error('Missing witnessScript for P2SH-P2WSH UTXO');
+                }
+            } else {
+                // Legacy P2SH
+                // Use nonWitnessUtxo
+                delete input.witnessUtxo; // ensure we do NOT have witnessUtxo
+            }
+        }
+
+        // Handle P2TR (Taproot)
+        else if (isP2TR(script)) {
+            // Taproot inputs do not require nonWitnessUtxo, witnessUtxo is sufficient.
+
+            // If there's a configured sighash type
+            if (this.sighashTypes) {
+                const inputSign = TweakedTransaction.calculateSignHash(this.sighashTypes);
+                if (inputSign) input.sighashType = inputSign;
+            }
+
+            // Taproot internal key
+            this.tweakSigner();
+            input.tapInternalKey = this.internalPubKeyToXOnly();
+        }
+
+        // Handle P2PK (legacy) or P2MS (bare multisig)
+        else if (isP2PK(script) || isP2MS(script)) {
+            // These are legacy scripts, need nonWitnessUtxo
+            if (utxo.nonWitnessUtxo) {
+                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                    ? utxo.nonWitnessUtxo
+                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+            } else {
+                throw new Error('Missing nonWitnessUtxo for P2PK or P2MS UTXO');
+            }
+        } else {
+            this.error(`Unknown or unsupported script type for output: ${utxo.scriptPubKey.hex}`);
+        }
+
+        // TapLeafScript if available
+        if (this.tapLeafScript) {
+            input.tapLeafScript = [this.tapLeafScript];
+        }
+
+        // If the first input and we have a global nonWitnessUtxo not yet set
+        if (i === 0 && this.nonWitnessUtxo) {
+            input.nonWitnessUtxo = this.nonWitnessUtxo;
+        }
+
+        return input;
+    }
+
+    /*protected generatePsbtInputExtended(utxo: UTXO, i: number): PsbtInputExtended {
         const input: PsbtInputExtended = {
             hash: utxo.transactionId,
             index: utxo.outputIndex,
@@ -655,10 +866,6 @@ export abstract class TweakedTransaction extends Logger {
             if (inputSign) input.sighashType = inputSign;
         }
 
-        if (this.tapLeafScript) {
-            input.tapLeafScript = [this.tapLeafScript];
-        }
-
         if (i === 0 && this.nonWitnessUtxo) {
             input.nonWitnessUtxo = this.nonWitnessUtxo;
         }
@@ -673,8 +880,10 @@ export abstract class TweakedTransaction extends Logger {
             input.tapInternalKey = this.internalPubKeyToXOnly();
         }
 
+        console.log(input);
+
         return input;
-    }
+    }*/
 
     protected customFinalizerP2SH = (
         inputIndex: number,
@@ -747,75 +956,13 @@ export abstract class TweakedTransaction extends Logger {
         if (input.tapLeafScript && input.tapLeafScript.length > 0) {
             // Check if the signer's public key is involved in any tapLeafScript
             for (const tapLeafScript of input.tapLeafScript) {
-                if (this.pubkeyInScript(publicKey, tapLeafScript.script)) {
+                if (pubkeyInScript(publicKey, tapLeafScript.script)) {
                     // The public key is in the script; it's a script spend
                     return true;
                 }
             }
         }
         return false;
-    }
-
-    // Helper method to determine if an input is Taproot
-    private isTaprootInput(input: PsbtInput): boolean {
-        if (input.tapInternalKey || input.tapKeySig || input.tapScriptSig || input.tapLeafScript) {
-            return true;
-        }
-
-        if (input.witnessUtxo) {
-            const script = input.witnessUtxo.script;
-            // Check if the script is a P2TR output (OP_1 [32-byte key])
-            return script.length === 34 && script[0] === opcodes.OP_1 && script[1] === 0x20;
-        }
-
-        return false;
-    }
-
-    // Check if the signer can sign the non-Taproot input
-    private canSignNonTaprootInput(input: PsbtInput, publicKey: Buffer): boolean {
-        const script = this.getInputRelevantScript(input);
-        if (script) {
-            return this.pubkeyInScript(publicKey, script);
-        }
-        return false;
-    }
-
-    // Helper method to extract the relevant script from the input
-    private getInputRelevantScript(input: PsbtInput): Buffer | null {
-        if (input.redeemScript) {
-            return input.redeemScript;
-        }
-        if (input.witnessScript) {
-            return input.witnessScript;
-        }
-        if (input.witnessUtxo) {
-            return input.witnessUtxo.script;
-        }
-        if (input.nonWitnessUtxo) {
-            // Additional logic can be added to extract script from nonWitnessUtxo
-            return null;
-        }
-        return null;
-    }
-
-    // Helper method to check if a public key is in a script
-    private pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
-        return this.pubkeyPositionInScript(pubkey, script) !== -1;
-    }
-
-    private pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
-        const pubkeyHash = bitCrypto.hash160(pubkey);
-        const pubkeyXOnly = toXOnly(pubkey);
-
-        const decompiled = bscript.decompile(script);
-        if (decompiled === null) throw new Error('Unknown script error');
-
-        return decompiled.findIndex((element) => {
-            if (typeof element === 'number') return false;
-            return (
-                element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly)
-            );
-        });
     }
 
     private async signTaprootInput(

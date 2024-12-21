@@ -104,6 +104,14 @@ export class Address extends Uint8Array {
         return Buffer.from(this);
     }
 
+    public originalPublicKeyBuffer(): Buffer {
+        if (!this.#originalPublicKey) {
+            throw new Error('Public key not set');
+        }
+
+        return Buffer.from(this.#originalPublicKey);
+    }
+
     public equals(a: Address): boolean {
         const b: Address = this as Address;
 
@@ -198,6 +206,13 @@ export class Address extends Uint8Array {
      */
     public isValid(network: Network): boolean {
         return AddressVerificator.isValidPublicKey(Buffer.from(this).toString('hex'), network);
+    }
+
+    /**
+     * Get the public key as address
+     */
+    public p2pk(): string {
+        return this.toHex();
     }
 
     /**

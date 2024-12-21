@@ -1,6 +1,6 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
-import { Signer } from '@btc-vision/bitcoin';
+import { opcodes, script, Signer } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ECPairInterface } from 'ecpair';
 
@@ -29,9 +29,14 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
+            const p2pkScript = script.compile([
+                Buffer.from(this.to.replace('0x', ''), 'hex'),
+                opcodes.OP_CHECKSIG,
+            ]);
+
             this.addOutput({
                 value: Number(this.amount),
-                script: Buffer.from(this.to.slice(2), 'hex'),
+                script: p2pkScript,
             });
         } else {
             this.addOutput({
