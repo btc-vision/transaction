@@ -17,8 +17,8 @@ import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js'
 
 declare global {
     interface Window {
-        opnet?: Unisat;
         unisat?: Unisat;
+        opnet?: Unisat;
     }
 }
 
