@@ -151,7 +151,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
-        this.isPubKeyDestination = this.to ? this.to.startsWith('0x') : false;
+        this.isPubKeyDestination = this.to
+            ? AddressVerificator.isValidPublicKey(this.to, this.network)
+            : false;
 
         this.optionalOutputs = parameters.optionalOutputs;
 

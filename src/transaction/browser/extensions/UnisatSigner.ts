@@ -3,10 +3,8 @@ import {
     script as bitScript,
     Network,
     networks,
-    opcodes,
     Psbt,
-    PsbtInput,
-    TapScriptSig,
+    TapScriptSig
 } from '@btc-vision/bitcoin';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { PartialSig } from 'bip174/src/lib/interfaces.js';
@@ -223,14 +221,10 @@ export class UnisatSigner extends CustomKeypair {
                                 viaTaproot = true;
                             }
                         }
-                    } else {
+                    } else if (canSignNonTaprootInput(input, this.publicKey)) {
                         // Non-Taproot input
-                        const script = getInputRelevantScript(input);
-
-                        if (script && pubkeyInScript(this.publicKey, script)) {
-                            needsToSign = true;
-                            viaTaproot = false;
-                        }
+                        needsToSign = true;
+                        viaTaproot = false;
                     }
 
                     if (needsToSign) {
@@ -359,37 +353,6 @@ export class UnisatSigner extends CustomKeypair {
 
         return nonDuplicate;
     }
-}
-
-// Helper functions
-function isTaprootInput(input: PsbtInput): boolean {
-    if (input.tapInternalKey || input.tapKeySig || input.tapScriptSig || input.tapLeafScript) {
-        return true;
-    }
-
-    if (input.witnessUtxo) {
-        const script = input.witnessUtxo.script;
-        return script.length === 34 && script[0] === opcodes.OP_1 && script[1] === 0x20;
-    }
-
-    return false;
-}
-
-function getInputRelevantScript(input: PsbtInput): Buffer | null {
-    if (input.redeemScript) {
-        return input.redeemScript;
-    }
-    if (input.witnessScript) {
-        return input.witnessScript;
-    }
-    if (input.witnessUtxo) {
-        return input.witnessUtxo.script;
-    }
-    if (input.nonWitnessUtxo) {
-        // Additional logic can be added here if needed
-        return null;
-    }
-    return null;
 }
 
 function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {

@@ -102,6 +102,7 @@ export class OPNetLimitedProvider {
                 outputIndex: utxo.outputIndex,
                 value: utxoValue,
                 scriptPubKey: utxo.scriptPubKey,
+                nonWitnessUtxo: Buffer.from(utxo.raw, 'base64'),
             });
 
             if (currentAmount > amountRequested) {
