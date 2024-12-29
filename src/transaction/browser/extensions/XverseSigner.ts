@@ -254,8 +254,6 @@ export class XverseSigner extends CustomKeypair {
             signInputs: toSignInputs,
         });
 
-        console.log(callSign);
-
         if ('error' in callSign) throw new Error(callSign.error.message);
 
         const signedPsbts = Psbt.fromBase64(callSign.result.psbt);
