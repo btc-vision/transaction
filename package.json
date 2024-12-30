@@ -102,7 +102,7 @@
         "babel-preset-react": "^6.24.1",
         "babelify": "^10.0.0",
         "bech32": "^2.0.0",
-        "bip174": "^3.0.0-rc.1",
+        "bip174": "^2.1.1",
         "bip32": "^5.0.0-rc.0",
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
