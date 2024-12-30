@@ -13,7 +13,6 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { ContractAddress } from '../ContractAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -91,6 +90,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     private readonly randomBytes: Buffer;
 
     public constructor(parameters: IDeploymentParameters) {
+        // TODO: Add legacy deployment, this is only p2tr.
         super(parameters);
 
         this.bytecode = Compressor.compress(parameters.bytecode);
