@@ -7,7 +7,7 @@ import {
     TapScriptSig,
 } from '@btc-vision/bitcoin';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
-import { PartialSig } from 'bip174';
+import { PartialSig } from 'bip174/src/lib/interfaces.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
