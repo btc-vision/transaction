@@ -13,6 +13,7 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { ContractAddress } from '../ContractAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -321,7 +322,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const salt: Buffer = bitCrypto.hash256(this.randomBytes);
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
-
         return bitCrypto.hash256(buf);
     }
 

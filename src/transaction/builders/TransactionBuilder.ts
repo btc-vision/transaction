@@ -473,6 +473,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                     address: this.from,
                     tapInternalKey: this.internalPubKeyToXOnly(),
                 });
+            } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
+                const pubKeyScript = script.compile([
+                    Buffer.from(this.from.replace('0x', ''), 'hex'),
+                    opcodes.OP_CHECKSIG,
+                ]);
+
+                await this.setFeeOutput({
+                    value: Number(sendBackAmount),
+                    script: pubKeyScript,
+                });
             } else {
                 await this.setFeeOutput({
                     value: Number(sendBackAmount),

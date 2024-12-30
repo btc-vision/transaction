@@ -109,14 +109,18 @@ export class AddressVerificator {
                 return true;
             }
 
+            const pubKeyBuffer = Buffer.from(input, 'hex');
+            if ((input.length === 130 && pubKeyBuffer[0] === 0x06) || pubKeyBuffer[0] === 0x07) {
+                return true;
+            }
+
             if (input.length === 66 || input.length === 130) {
                 // Check if the input can be parsed as a valid public key
-                const pubKeyBuffer = Buffer.from(input, 'hex');
                 EcKeyPair.fromPublicKey(pubKeyBuffer, network);
 
                 return true;
             }
-        } catch {
+        } catch (e) {
             return false;
         }
 

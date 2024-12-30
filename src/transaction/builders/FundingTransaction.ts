@@ -29,14 +29,14 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
-            const p2pkScript = script.compile([
+            const pubKeyScript = script.compile([
                 Buffer.from(this.to.replace('0x', ''), 'hex'),
                 opcodes.OP_CHECKSIG,
             ]);
 
             this.addOutput({
                 value: Number(this.amount),
-                script: p2pkScript,
+                script: pubKeyScript,
             });
         } else {
             this.addOutput({

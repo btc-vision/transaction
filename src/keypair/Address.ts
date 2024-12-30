@@ -1,4 +1,4 @@
-import { Network } from '@btc-vision/bitcoin';
+import { decompressPublicKey, Network, UncompressedPublicKey } from '@btc-vision/bitcoin';
 import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { ECPairInterface } from 'ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
@@ -19,6 +19,7 @@ export class Address extends Uint8Array {
     #network: Network | undefined;
     #originalPublicKey: Uint8Array | undefined;
     #keyPair: ECPairInterface | undefined;
+    #uncompressed: UncompressedPublicKey | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -88,6 +89,19 @@ export class Address extends Uint8Array {
         return new Address(bytes);
     }
 
+    public static uncompressedToCompressed(publicKey: ArrayLike<number>): Buffer {
+        const buffer = Uint8Array.from(publicKey);
+
+        const x = buffer.slice(1, 33);
+        const y = buffer.slice(33);
+
+        const compressed = Buffer.alloc(33);
+        compressed[0] = 0x02 + (y[y.length - 1] & 0x01);
+        compressed.set(x, 1);
+
+        return compressed;
+    }
+
     /**
      * Converts the address to a hex string
      * @returns {string} The hex string
@@ -102,6 +116,38 @@ export class Address extends Uint8Array {
      */
     public toBuffer(): Buffer {
         return Buffer.from(this);
+    }
+
+    public toUncompressedHex(): string {
+        if (!this.#uncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return '0x' + this.#uncompressed.uncompressed.toString('hex');
+    }
+
+    public toUncompressedBuffer(): Buffer {
+        if (!this.#uncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return this.#uncompressed.uncompressed;
+    }
+
+    public toHybridPublicKeyHex(): string {
+        if (!this.#uncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return '0x' + this.#uncompressed.hybrid.toString('hex');
+    }
+
+    public toHybridPublicKeyBuffer(): Buffer {
+        if (!this.#uncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return this.#uncompressed.hybrid;
     }
 
     public originalPublicKeyBuffer(): Buffer {
@@ -188,14 +234,7 @@ export class Address extends Uint8Array {
 
             super.set(publicKey);
         } else {
-            this.#originalPublicKey = Uint8Array.from(publicKey);
-            this.#keyPair = EcKeyPair.fromPublicKey(this.#originalPublicKey);
-
-            const tweakedBytes = toXOnly(
-                EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
-            );
-
-            super.set(tweakedBytes);
+            this.autoFormat(publicKey);
         }
     }
 
@@ -272,5 +311,26 @@ export class Address extends Uint8Array {
         }
 
         throw new Error('Public key not set');
+    }
+
+    private autoFormat(publicKey: ArrayLike<number>): void {
+        const firstByte = publicKey[0];
+
+        if (firstByte === 0x03 || firstByte === 0x02) {
+            // do nothing
+        } else if (firstByte === 0x04 || firstByte === 0x06 || firstByte === 0x07) {
+            // uncompressed
+            publicKey = Address.uncompressedToCompressed(publicKey);
+        }
+
+        this.#originalPublicKey = Uint8Array.from(publicKey);
+        this.#keyPair = EcKeyPair.fromPublicKey(this.#originalPublicKey);
+        this.#uncompressed = decompressPublicKey(this.#originalPublicKey);
+
+        const tweakedBytes: Buffer = toXOnly(
+            EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
+        );
+
+        super.set(tweakedBytes);
     }
 }

@@ -1,8 +1,6 @@
 // Helper functions
-import { crypto as bitCrypto, PsbtInput } from '@btc-vision/bitcoin';
-import { isP2TR } from '@btc-vision/bitcoin/src/psbt/psbtutils.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
-import * as bscript from '@btc-vision/bitcoin/src/script.js';
+import { PsbtInput } from '@btc-vision/bitcoin';
+import { isP2TR, pubkeyPositionInScript } from '@btc-vision/bitcoin/src/psbt/psbtutils.js';
 
 export function isTaprootInput(input: PsbtInput): boolean {
     return (
@@ -58,21 +56,12 @@ export function canSignNonTaprootInput(input: PsbtInput, publicKey: Buffer): boo
     return false;
 }
 
-export function pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
-    const pubkeyHash = bitCrypto.hash160(pubkey);
-    const pubkeyXOnly = toXOnly(pubkey);
-
-    const decompiled = bscript.decompile(script);
-    if (decompiled === null) throw new Error('Unknown script error');
-
-    const a = decompiled.findIndex((element) => {
-        if (typeof element === 'number') return false;
-        return element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly);
-    });
-
-    return a;
-}
-
+/**
+ * Checks if a public key is present in a script.
+ * @param pubkey The public key to check.
+ * @param script The script to search in.
+ * @returns A boolean indicating whether the public key is present in the script.
+ */
 export function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
     return pubkeyPositionInScript(pubkey, script) !== -1;
 }

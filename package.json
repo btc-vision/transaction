@@ -91,7 +91,7 @@
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bitcoin": "^6.3.1",
+        "@btc-vision/bitcoin": "file:../bitcoin",
         "@btc-vision/bsi-bitcoin-rpc": "^1.0.29",
         "@btc-vision/logger": "^1.0.6",
         "@eslint/js": "^9.14.0",
@@ -102,6 +102,7 @@
         "babel-preset-react": "^6.24.1",
         "babelify": "^10.0.0",
         "bech32": "^2.0.0",
+        "bip174": "^3.0.0-rc.1",
         "bip32": "^5.0.0-rc.0",
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
