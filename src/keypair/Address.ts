@@ -4,6 +4,7 @@ import { ECPairInterface } from 'ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
 import { AddressVerificator } from './AddressVerificator.js';
 import { EcKeyPair } from './EcKeyPair.js';
+import { ContractAddress } from '../transaction/ContractAddress.js';
 
 const hexPattern = /^[0-9a-fA-F]+$/;
 const isHexadecimal = (input: string): boolean => {
@@ -20,6 +21,7 @@ export class Address extends Uint8Array {
     #originalPublicKey: Uint8Array | undefined;
     #keyPair: ECPairInterface | undefined;
     #uncompressed: UncompressedPublicKey | undefined;
+    #tweakedUncompressed: Buffer | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -232,6 +234,8 @@ export class Address extends Uint8Array {
             const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
             buf.set(publicKey);
 
+            this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
+
             super.set(publicKey);
         } else {
             this.autoFormat(publicKey);
@@ -313,6 +317,22 @@ export class Address extends Uint8Array {
         throw new Error('Public key not set');
     }
 
+    public toTweakedHybridPublicKeyHex(): string {
+        if (!this.#tweakedUncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return '0x' + this.#tweakedUncompressed.toString('hex');
+    }
+
+    public toTweakedHybridPublicKeyBuffer(): Buffer {
+        if (!this.#tweakedUncompressed) {
+            throw new Error('Public key not set');
+        }
+
+        return this.#tweakedUncompressed;
+    }
+
     private autoFormat(publicKey: ArrayLike<number>): void {
         const firstByte = publicKey[0];
 
@@ -330,6 +350,8 @@ export class Address extends Uint8Array {
         const tweakedBytes: Buffer = toXOnly(
             EcKeyPair.tweakPublicKey(Buffer.from(this.#originalPublicKey)),
         );
+
+        this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(tweakedBytes);
 
         super.set(tweakedBytes);
     }
