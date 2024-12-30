@@ -91,4 +91,3 @@ export * from './transaction/browser/WalletConnection.js';
 
 export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';
-
