@@ -78,7 +78,11 @@ export class CalldataGenerator extends Generator {
             this.senderFirstByte,
             opcodes.OP_TOALTSTACK,
 
-            this.xSenderPubKey,
+            Buffer.from(
+                '060373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c6c4bc8c9ae26ed8f9831e3da372fbd26eaa48e9b788d1692b9d6f18393c58fc4',
+                'hex',
+            ),
+            //this.xSenderPubKey,
             opcodes.OP_CHECKSIGVERIFY,
 
             this.contractSaltPubKey,

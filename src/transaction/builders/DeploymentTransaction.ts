@@ -90,6 +90,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     private readonly randomBytes: Buffer;
 
     public constructor(parameters: IDeploymentParameters) {
+        // TODO: Add legacy deployment, this is only p2tr.
         super(parameters);
 
         this.bytecode = Compressor.compress(parameters.bytecode);
@@ -321,7 +322,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const salt: Buffer = bitCrypto.hash256(this.randomBytes);
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
-
         return bitCrypto.hash256(buf);
     }
 
