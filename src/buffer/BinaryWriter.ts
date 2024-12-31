@@ -354,7 +354,7 @@ export class BinaryWriter {
             buf[i] = this.buffer.getUint8(i);
         }
 
-        this.buffer = new DataView(buf.buffer);
+        this.buffer = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     }
 
     private getDefaultBuffer(length: number = 0): DataView {

@@ -17,7 +17,7 @@ export class BinaryReader {
     private currentOffset: i32 = 0;
 
     constructor(bytes: BufferLike) {
-        this.buffer = new DataView(bytes.buffer);
+        this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     }
 
     public static stringCompare(a: string, b: string): number {
@@ -37,7 +37,7 @@ export class BinaryReader {
     }
 
     public setBuffer(bytes: BufferLike): void {
-        this.buffer = new DataView(bytes.buffer);
+        this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
         this.currentOffset = 0;
     }
