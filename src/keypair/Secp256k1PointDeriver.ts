@@ -1,5 +1,4 @@
-// secp256k1 prime p
-const P = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 
 export class Secp256k1PointDeriver {
     /**
@@ -33,7 +32,7 @@ export class Secp256k1PointDeriver {
             throw new Error('xBytes must be exactly 32 bytes.');
         }
 
-        // 1. Convert input to a BigInt in [0, p-1]
+        // Convert input to a BigInt in [0, p-1]
         let xCandidate = this.bytesToBigInt(xBytes) % P;
 
         // 2. Loop up to maxTries to find a valid x
@@ -49,9 +48,7 @@ export class Secp256k1PointDeriver {
 
             tries++;
             if (tries > maxTries) {
-                throw new Error(
-                    `Could not find a valid x within ${maxTries} increments. Aborting.`,
-                );
+                throw new Error(`Could not find a valid X point within ${maxTries} increments.`);
             }
         }
 

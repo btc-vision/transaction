@@ -332,23 +332,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
 
-        // Start with an initial candidate
-        let candidate: Buffer = bitCrypto.hash256(buf);
-
-        // While not a valid x-coordinate, re-hash
-        while (!this.isValidXCoordinate(candidate)) {
-            candidate = bitCrypto.hash256(candidate);
-        }
-
-        return candidate;
-    }
-
-    private isValidXCoordinate(xBuffer: Buffer): boolean {
-        // Convert 32-byte buffer to BigInt
-        const x = BigInt('0x' + xBuffer.toString('hex'));
-
-        // For secp256k1, valid x is in (0, p)
-        return x > 0n && x < p;
+        return bitCrypto.hash256(buf);
     }
 
     /**
