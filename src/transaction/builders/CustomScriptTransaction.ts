@@ -1,14 +1,21 @@
-import { Taptree } from '@btc-vision/bitcoin/src/types.js';
+import {
+    crypto as bitCrypto,
+    Payment,
+    Psbt,
+    PsbtInput,
+    Signer,
+    Stack,
+    Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
-import { crypto as bitCrypto, Payment, Psbt, PsbtInput, Signer, Stack } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { ECPairInterface } from 'ecpair';
 
 export interface ICustomTransactionParameters extends SharedInteractionParameters {

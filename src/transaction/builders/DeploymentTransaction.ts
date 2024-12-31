@@ -1,11 +1,17 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
-import { crypto as bitCrypto, Payment, Psbt, PsbtInput, Signer } from '@btc-vision/bitcoin';
+import {
+    crypto as bitCrypto,
+    Payment,
+    Psbt,
+    PsbtInput,
+    Signer,
+    Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { Taptree } from '@btc-vision/bitcoin/src/types.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerator.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';

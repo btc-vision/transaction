@@ -5,13 +5,13 @@ import {
     Psbt,
     script as bitScript,
     TapScriptSig,
+    toXOnly,
 } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
 import { PartialSig } from 'bip174/src/lib/interfaces.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 
 declare global {

@@ -1,6 +1,12 @@
-import { crypto as bitCrypto, Network, networks, Payment, payments } from '@btc-vision/bitcoin';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
-import { Taptree } from '@btc-vision/bitcoin/src/types.js';
+import {
+    crypto as bitCrypto,
+    Network,
+    networks,
+    Payment,
+    payments,
+    Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
 import { Address } from '../keypair/Address.js';

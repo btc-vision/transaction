@@ -21,7 +21,7 @@ export class BufferHelper {
     }
 
     public static uint8ArrayToHex(input: Uint8Array): string {
-        return Buffer.from(input, 0, input.byteLength).toString('hex');
+        return Buffer.from(input.buffer, 0, input.byteLength).toString('hex');
     }
 
     public static hexToUint8Array(input: string): Uint8Array {

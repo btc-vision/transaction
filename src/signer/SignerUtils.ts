@@ -1,6 +1,5 @@
 // Helper functions
-import { PsbtInput } from '@btc-vision/bitcoin';
-import { isP2TR, pubkeyPositionInScript } from '@btc-vision/bitcoin/src/psbt/psbtutils.js';
+import { isP2TR, PsbtInput, pubkeyPositionInScript } from '@btc-vision/bitcoin';
 
 export function isTaprootInput(input: PsbtInput): boolean {
     return (

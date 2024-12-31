@@ -1,9 +1,8 @@
 import { ECPairInterface } from 'ecpair';
 import * as ecc from '@bitcoinerlab/secp256k1';
-import { crypto, Network } from '@btc-vision/bitcoin';
+import { crypto, Network, toXOnly } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 
 export interface SignedMessage {
     readonly signature: Uint8Array;

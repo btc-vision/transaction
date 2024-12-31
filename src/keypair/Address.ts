@@ -1,5 +1,4 @@
-import { decompressPublicKey, Network, UncompressedPublicKey } from '@btc-vision/bitcoin';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
+import { decompressPublicKey, Network, toXOnly, UncompressedPublicKey } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
 import { AddressVerificator } from './AddressVerificator.js';

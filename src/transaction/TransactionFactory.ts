@@ -1,5 +1,4 @@
-import { Transaction } from '@btc-vision/bitcoin';
-import { Output } from '@btc-vision/bitcoin/src/transaction.js';
+import { Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import {
@@ -230,7 +229,7 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
-        const out: Output = signedTransaction.outs[0];
+        const out: TxOutput = signedTransaction.outs[0];
         const newUtxo: UTXO = {
             transactionId: signedTransaction.getId(),
             outputIndex: 0, // always 0
@@ -254,7 +253,7 @@ export class TransactionFactory {
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
 
-        const out2: Output = signedTransaction.outs[1];
+        const out2: TxOutput = signedTransaction.outs[1];
         const refundUTXO: UTXO = {
             transactionId: signedTransaction.getId(),
             outputIndex: 1, // always 1
@@ -364,7 +363,7 @@ export class TransactionFactory {
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {
         if (!tx.outs[index]) return [];
 
-        const out: Output = tx.outs[index];
+        const out: TxOutput = tx.outs[index];
         const newUtxo: UTXO = {
             transactionId: tx.getId(),
             outputIndex: index,
