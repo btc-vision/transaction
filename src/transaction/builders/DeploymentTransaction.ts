@@ -20,6 +20,8 @@ import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
+const p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
@@ -324,11 +326,29 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('Bytecode is required');
         }
 
+        // Concatenate deployer pubkey, salt, and sha256(bytecode)
         const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
         const salt: Buffer = bitCrypto.hash256(this.randomBytes);
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
-        return bitCrypto.hash256(buf);
+
+        // Start with an initial candidate
+        let candidate: Buffer = bitCrypto.hash256(buf);
+
+        // While not a valid x-coordinate, re-hash
+        while (!this.isValidXCoordinate(candidate)) {
+            candidate = bitCrypto.hash256(candidate);
+        }
+
+        return candidate;
+    }
+
+    private isValidXCoordinate(xBuffer: Buffer): boolean {
+        // Convert 32-byte buffer to BigInt
+        const x = BigInt('0x' + xBuffer.toString('hex'));
+
+        // For secp256k1, valid x is in (0, p)
+        return x > 0n && x < p;
     }
 
     /**
