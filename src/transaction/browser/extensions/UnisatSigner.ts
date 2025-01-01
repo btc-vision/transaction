@@ -1,18 +1,18 @@
 import {
     crypto as bitCrypto,
+    script as bitScript,
     Network,
     networks,
     Psbt,
-    script as bitScript,
     TapScriptSig,
     toXOnly,
 } from '@btc-vision/bitcoin';
+import { PartialSig } from 'bip174/src/lib/interfaces.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
+import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
-import { PartialSig } from 'bip174/src/lib/interfaces.js';
-import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 
 declare global {
     interface Window {
@@ -112,6 +112,10 @@ export class UnisatSigner extends CustomKeypair {
         }
 
         const publicKey = await this.unisat.getPublicKey();
+        if (publicKey === '') {
+            throw new Error('Unlock your wallet first');
+        }
+
         this._publicKey = Buffer.from(publicKey, 'hex');
 
         this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
