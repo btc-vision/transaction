@@ -1,7 +1,7 @@
 {
     "name": "@btc-vision/transaction",
     "type": "module",
-    "version": "1.1.18",
+    "version": "1.1.17",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -71,7 +71,7 @@
         "@babel/preset-flow": "^7.25.9",
         "@babel/preset-react": "^7.25.9",
         "@babel/preset-typescript": "^7.26.0",
-        "@types/node": "^22.8.7",
+        "@types/node": "^22.10.2",
         "@types/sha.js": "^2.4.4",
         "eslint": "^9.14.0",
         "gulp": "^5.0.0",
@@ -82,17 +82,15 @@
         "prettier": "^3.3.3",
         "stream-browserify": "^3.0.0",
         "stream-http": "^3.2.0",
-        "typedoc": "^0.26.11",
-        "typedoc-material-theme": "^1.1.0",
-        "typescript-eslint": "^8.13.0",
-        "webpack": "^5.96.1",
-        "webpack-cli": "^5.1.4"
+        "typedoc": "^0.27.6",
+        "typescript-eslint": "^8.19.0",
+        "webpack-cli": "^6.0.1"
     },
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bitcoin": "^6.3.1",
-        "@btc-vision/bsi-bitcoin-rpc": "^1.0.30",
+        "@btc-vision/bitcoin": "file:../bitcoin",
+        "@btc-vision/bsi-bitcoin-rpc": "^1.0.29",
         "@btc-vision/logger": "^1.0.6",
         "@eslint/js": "^9.14.0",
         "@noble/secp256k1": "^2.1.0",
@@ -114,6 +112,7 @@
         "sha.js": "^2.4.11",
         "ts-loader": "^9.5.1",
         "ts-node": "^10.9.2",
-        "typescript": "^5.6.3"
+        "typescript": "^5.7.2",
+        "webpack": "^5.97.1"
     }
 }

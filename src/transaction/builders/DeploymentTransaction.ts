@@ -1,11 +1,17 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
-import { crypto as bitCrypto, Payment, Psbt, PsbtInput, Signer } from '@btc-vision/bitcoin';
+import {
+    crypto as bitCrypto,
+    Payment,
+    Psbt,
+    PsbtInput,
+    Signer,
+    Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { Taptree } from '@btc-vision/bitcoin/src/types.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerator.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
@@ -13,6 +19,8 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+
+const p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -318,10 +326,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('Bytecode is required');
         }
 
+        // Concatenate deployer pubkey, salt, and sha256(bytecode)
         const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
         const salt: Buffer = bitCrypto.hash256(this.randomBytes);
         const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
         const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
+
         return bitCrypto.hash256(buf);
     }
 

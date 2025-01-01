@@ -93,3 +93,4 @@ export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';
 
 export * from './transaction/ContractAddress.js';
+export * from './keypair/Secp256k1PointDeriver.js';

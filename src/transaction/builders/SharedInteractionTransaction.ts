@@ -1,5 +1,4 @@
-import { address, Payment, Psbt, PsbtInput, Signer } from '@btc-vision/bitcoin';
-import { Taptree } from '@btc-vision/bitcoin/src/types.js';
+import { address, Payment, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -8,7 +7,6 @@ import { SharedInteractionParameters } from '../interfaces/ITransactionParameter
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 /**

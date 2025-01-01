@@ -3,6 +3,13 @@ import {
     address as bitAddress,
     crypto as bitCrypto,
     getFinalScripts,
+    isP2MS,
+    isP2PK,
+    isP2PKH,
+    isP2SHScript,
+    isP2TR,
+    isP2WPKH,
+    isP2WSHScript,
     Network,
     opcodes,
     Payment,
@@ -12,31 +19,22 @@ import {
     PsbtInputExtended,
     script,
     Signer,
+    toXOnly,
     Transaction,
+    varuint,
 } from '@btc-vision/bitcoin';
 
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
-import { toXOnly } from '@btc-vision/bitcoin/src/psbt/bip371.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ChainId } from '../../network/ChainId.js';
-import { varuint } from '@btc-vision/bitcoin/src/bufferutils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import {
     canSignNonTaprootInput,
     isTaprootInput,
     pubkeyInScript,
 } from '../../signer/SignerUtils.js';
-import {
-    isP2MS,
-    isP2PK,
-    isP2PKH,
-    isP2SHScript,
-    isP2TR,
-    isP2WPKH,
-    isP2WSHScript,
-} from '@btc-vision/bitcoin/src/psbt/psbtutils.js';
 
 export interface ITweakedTransactionData {
     readonly signer: Signer | ECPairInterface | UnisatSigner;
