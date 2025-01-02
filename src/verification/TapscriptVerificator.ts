@@ -112,23 +112,6 @@ export class TapscriptVerificator {
         return bitCrypto.hash256(buf);
     }
 
-    public static generateContractVirtualAddress(
-        deployerPubKey: Buffer,
-        bytecode: Buffer,
-        saltHash: Buffer,
-        network: Network = networks.bitcoin,
-    ): string {
-        const virtualAddress: Buffer = TapscriptVerificator.getContractSeed(
-            deployerPubKey,
-            bytecode,
-            saltHash,
-        );
-
-        const address = new Address(virtualAddress);
-
-        return address.p2tr(network);
-    }
-
     public static generateAddressFromScript(
         params: ContractAddressVerificationParams,
         scriptTree: Taptree,
