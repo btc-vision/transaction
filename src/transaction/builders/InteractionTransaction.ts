@@ -30,6 +30,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
             this.contractSecret,
+            this.preimage,
         );
 
         this.scriptTree = this.getScriptTree();

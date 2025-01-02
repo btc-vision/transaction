@@ -11,12 +11,14 @@ import { InteractionTransaction } from './builders/InteractionTransaction.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
 import { TransactionType } from './enums/TransactionType.js';
 import {
+    IChallengeSolutionTransactionParameters,
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
     ITransactionParameters,
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
+import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -24,6 +26,8 @@ export interface DeploymentResult {
     readonly contractAddress: string;
     readonly contractPubKey: string;
     readonly p2trAddress: string;
+
+    readonly preimage: string;
 
     readonly utxos: UTXO[];
 }
@@ -43,11 +47,25 @@ export interface FundingTransactionResponse {
     readonly nextUTXOs: UTXO[];
 }
 
-export interface BitcoinTransferResponse {
-    readonly tx: string;
-    readonly original: FundingTransaction;
+export interface ChallengeSolutionResponse {
+    readonly tx: Transaction;
+    readonly original: ChallengeSolutionTransaction;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
+}
+
+export interface BitcoinTransferBase {
+    readonly tx: string;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
+}
+
+export interface ChallengeSolution extends BitcoinTransferBase {
+    readonly original: ChallengeSolutionTransaction;
+}
+
+export interface BitcoinTransferResponse extends BitcoinTransferBase {
+    readonly original: FundingTransaction;
 }
 
 export class TransactionFactory {
@@ -127,7 +145,7 @@ export class TransactionFactory {
      */
     public async signInteraction(
         interactionParameters: IInteractionParameters,
-    ): Promise<[string, string, UTXO[]]> {
+    ): Promise<[string, string, UTXO[], string]> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -185,6 +203,7 @@ export class TransactionFactory {
             ...interactionParameters,
             utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
             randomBytes: preTransaction.getRndBytes(),
+            preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
         };
@@ -197,6 +216,7 @@ export class TransactionFactory {
             signedTransaction.tx.toHex(),
             outTx.toHex(),
             this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
+            preTransaction.getPreimage().toString('hex'),
         ];
     }
 
@@ -244,6 +264,7 @@ export class TransactionFactory {
             ...deploymentParameters,
             utxos: [newUtxo],
             randomBytes: preTransaction.getRndBytes(),
+            preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
             optionalOutputs: [],
         };
@@ -270,6 +291,7 @@ export class TransactionFactory {
             contractPubKey: finalTransaction.contractPubKey,
             p2trAddress: finalTransaction.p2trAddress,
             utxos: [refundUTXO],
+            preimage: preTransaction.getPreimage().toString('hex'),
         };
     }
 
@@ -286,7 +308,27 @@ export class TransactionFactory {
         }
 
         const resp = await this.createFundTransaction(parameters);
+        return {
+            estimatedFees: resp.estimatedFees,
+            original: resp.original,
+            tx: resp.tx.toHex(),
+            nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
+        };
+    }
 
+    /**
+     * @description Creates a challenge solution transaction.
+     * @param {IChallengeSolutionTransactionParameters} parameters - The challenge solution transaction parameters
+     * @returns {Promise<ChallengeSolution>} - The signed transaction
+     */
+    public async createChallengeSolution(
+        parameters: IChallengeSolutionTransactionParameters,
+    ): Promise<ChallengeSolution> {
+        if (!parameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+
+        const resp = await this._createChallengeSolution(parameters);
         return {
             estimatedFees: resp.estimatedFees,
             original: resp.original,
@@ -321,6 +363,27 @@ export class TransactionFactory {
         }
 
         return utxos;
+    }
+
+    private async _createChallengeSolution(
+        parameters: IChallengeSolutionTransactionParameters,
+    ): Promise<ChallengeSolutionResponse> {
+        if (!parameters.to) throw new Error('Field "to" not provided.');
+
+        const challengeTransaction: ChallengeSolutionTransaction = new ChallengeSolutionTransaction(
+            parameters,
+        );
+        const signedTransaction: Transaction = await challengeTransaction.signTransaction();
+        if (!signedTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        return {
+            tx: signedTransaction,
+            original: challengeTransaction,
+            estimatedFees: challengeTransaction.estimatedFees,
+            nextUTXOs: this.getUTXOAsTransaction(signedTransaction, parameters.to, 0),
+        };
     }
 
     private async createFundTransaction(

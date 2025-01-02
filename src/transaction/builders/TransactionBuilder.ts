@@ -26,6 +26,9 @@ import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 initEccLib(ecc);
 
+export const MINIMUM_AMOUNT_REWARD: bigint = 540n;
+export const MINIMUM_AMOUNT_CA: bigint = 330n;
+
 /**
  * Allows to build a transaction like you would on Ethereum.
  * @description The transaction builder class

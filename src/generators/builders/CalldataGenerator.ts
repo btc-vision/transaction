@@ -56,18 +56,16 @@ export class CalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
+     * @param preimage
      * @param {number[]} [features=[]] - The features to use (optional)
-     * @param {Buffer[]} [vaultPublicKeys=[]] - The public keys of the vault (optional)
-     * @param {number} [minimumSignatures=0] - The minimum number of signatures (optional)
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
      */
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
+        preimage: Buffer,
         features: Features[] = [],
-        vaultPublicKeys: Buffer[] = [],
-        minimumSignatures: number = 0,
     ): Buffer {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
@@ -78,15 +76,19 @@ export class CalldataGenerator extends Generator {
             this.senderFirstByte,
             opcodes.OP_TOALTSTACK,
 
+            // CHALLENGE PREIMAGE FOR REWARD,
+            preimage,
+            opcodes.OP_TOALTSTACK,
+
             this.xSenderPubKey,
+            opcodes.OP_DUP,
+            opcodes.OP_HASH256,
+            crypto.hash256(this.xSenderPubKey),
+            opcodes.OP_EQUALVERIFY,
             opcodes.OP_CHECKSIGVERIFY,
 
             this.contractSaltPubKey,
             opcodes.OP_CHECKSIGVERIFY,
-
-            opcodes.OP_HASH160,
-            crypto.hash160(this.xSenderPubKey),
-            opcodes.OP_EQUALVERIFY,
 
             opcodes.OP_HASH160,
             crypto.hash160(contractSecret),
@@ -99,39 +101,6 @@ export class CalldataGenerator extends Generator {
 
             Generator.MAGIC,
         ];
-
-        // write pub keys, when requested.
-        if (vaultPublicKeys.length > 0) {
-            const pubKeyBuffer = CalldataGenerator.getPubKeyAsBuffer(vaultPublicKeys, this.network);
-            const pubKeyDataChunks: Buffer[][] = this.splitBufferIntoChunks(pubKeyBuffer);
-
-            compiledData = compiledData.concat(
-                ...[
-                    opcodes.OP_0, // provide opnet public keys
-                    ...pubKeyDataChunks,
-                ],
-            );
-
-            if (minimumSignatures) {
-                // verify that the minimum is not greater than 255
-                if (minimumSignatures > 255) {
-                    throw new Error('Minimum signatures cannot exceed 255');
-                }
-
-                // we use a 2 bytes buffer even if we limit to 255 so it does not use an opcode for the number
-                const minSigBuffer = Buffer.alloc(2);
-                minSigBuffer.writeUint16LE(minimumSignatures, 0);
-
-                compiledData = compiledData.concat(
-                    ...[
-                        opcodes.OP_1, // provide minimum signatures
-                        minSigBuffer,
-                    ],
-                );
-            } else {
-                throw new Error('Minimum signatures must be provided');
-            }
-        }
 
         const featureOpcodes = features.map((feature) => FeatureOpCodes[feature]); // Get the opcodes for the features
 

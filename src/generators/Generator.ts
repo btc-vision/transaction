@@ -10,7 +10,7 @@ export abstract class Generator {
     /**
      * The magic number of OPNet
      */
-    public static readonly MAGIC: Buffer = Buffer.from('bsi', 'utf-8');
+    public static readonly MAGIC: Buffer = Buffer.from('op', 'utf-8');
 
     /**
      * The public key of the sender

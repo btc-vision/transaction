@@ -9,8 +9,11 @@ export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 export * from './generators/builders/LegacyCalldataGenerator.js';
 export * from './generators/builders/MultiSignGenerator.js';
+export * from './generators/builders/MineableReward.js';
 export * from './generators/Features.js';
 export * from './generators/Generator.js';
+
+export * from './transaction/mineable/ChallengeGenerator.js';
 
 /** Address */
 export * from './generators/AddressGenerator.js';
@@ -44,6 +47,7 @@ export * from './transaction/builders/InteractionTransaction.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
+export * from './transaction/builders/ChallengeSolutionTransaction.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';

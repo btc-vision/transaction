@@ -814,7 +814,7 @@ export abstract class TweakedTransaction extends Logger {
     } => {
         const inputDecoded = this.inputs[inputIndex];
         if (isP2SH && input.partialSig && inputDecoded && inputDecoded.redeemScript) {
-            const signatures = input.partialSig.map((sig) => sig.signature);
+            const signatures = input.partialSig.map((sig) => sig.signature) || [];
             const scriptSig = script.compile([...signatures, inputDecoded.redeemScript]);
 
             return {

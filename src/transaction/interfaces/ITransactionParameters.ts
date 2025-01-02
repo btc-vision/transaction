@@ -26,10 +26,17 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
     splitInputsInto?: number;
 }
 
+export interface IChallengeSolutionTransactionParameters extends ITransactionParameters {
+    amount: bigint;
+
+    readonly challengeSolution: Buffer;
+}
+
 export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer;
     disableAutoRefund?: boolean;
 
+    readonly preimage?: Buffer;
     readonly randomBytes?: Buffer;
 }
 
@@ -39,24 +46,10 @@ export interface IInteractionParameters extends SharedInteractionParameters {
     readonly to: string;
 }
 
-/*export interface IWrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
-    readonly to?: string;
-    readonly from: string;
-
-    readonly amount: bigint;
-    readonly receiver?: Address;
-
-    readonly generationParameters: WrappedGeneration;
-}
-
-export interface IUnwrapParameters extends Omit<SharedInteractionParameters, 'optionalOutputs'> {
-    readonly unwrapUTXOs: VaultUTXOs[];
-    readonly amount: bigint;
-}*/
-
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
     readonly bytecode: Buffer;
     readonly calldata?: Buffer;
 
     readonly randomBytes?: Buffer;
+    readonly preimage?: Buffer;
 }

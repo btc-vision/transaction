@@ -1,6 +1,10 @@
 import { address, Payment, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
-import { TransactionBuilder } from './TransactionBuilder.js';
+import {
+    MINIMUM_AMOUNT_CA,
+    MINIMUM_AMOUNT_REWARD,
+    TransactionBuilder,
+} from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -8,6 +12,8 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { randomBytes } from 'crypto';
+import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
 
 /**
  * Shared interaction transaction
@@ -29,6 +35,9 @@ export abstract class SharedInteractionTransaction<
 
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
+
+    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
+    protected readonly rewardChallenge: IMineableReward;
 
     protected calldataGenerator: CalldataGenerator;
 
@@ -63,7 +72,13 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Calldata is required');
         }
 
+        this.preimage = parameters.preimage || BitcoinUtils.getSafeRandomValues(128);
+
         this.disableAutoRefund = parameters.disableAutoRefund || false;
+        this.rewardChallenge = ChallengeGenerator.generateMineableReward(
+            this.preimage,
+            this.network,
+        );
 
         this.calldata = Compressor.compress(parameters.calldata);
 
@@ -91,6 +106,13 @@ export abstract class SharedInteractionTransaction<
      */
     public getRndBytes(): Buffer {
         return this.randomBytes;
+    }
+
+    /**
+     * Get the preimage
+     */
+    public getPreimage(): Buffer {
+        return this.preimage;
     }
 
     /**
@@ -134,8 +156,6 @@ export abstract class SharedInteractionTransaction<
      * @throws {Error} If the to address is required
      */
     protected override async buildTransaction(): Promise<void> {
-        if (!this.to) throw new Error('To address is required');
-
         const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -162,16 +182,7 @@ export abstract class SharedInteractionTransaction<
             this.addInputsFromUTXO();
         }
 
-        const amountSpent: bigint = this.getTransactionOPNetFee();
-        this.addOutput({
-            value: Number(amountSpent),
-            address: this.to,
-        });
-
-        const amount = this.addOptionalOutputsAndGetAmount();
-        if (!this.disableAutoRefund) {
-            await this.addRefundOutput(amountSpent + amount);
-        }
+        await this.createMineableRewardOutputs();
     }
 
     /**
@@ -236,7 +247,6 @@ export abstract class SharedInteractionTransaction<
 
         return [
             this.contractSecret,
-            this.internalPubKeyToXOnly(),
             input.tapScriptSig[0].signature,
             input.tapScriptSig[1].signature,
         ] as Buffer[];
@@ -308,6 +318,39 @@ export abstract class SharedInteractionTransaction<
             } else {
                 transaction.finalizeInput(i);
             }
+        }
+    }
+
+    private async createMineableRewardOutputs(): Promise<void> {
+        if (!this.to) throw new Error('To address is required');
+
+        const amountSpent: bigint = this.getTransactionOPNetFee();
+        const amountLeft: bigint = amountSpent - MINIMUM_AMOUNT_REWARD;
+
+        let amountToCA: bigint;
+        if (MINIMUM_AMOUNT_REWARD > amountSpent) {
+            amountToCA = amountSpent;
+        } else {
+            amountToCA = MINIMUM_AMOUNT_CA;
+        }
+
+        // ALWAYS THE FIRST INPUT.
+        this.addOutput({
+            value: Number(amountToCA),
+            address: this.to,
+        });
+
+        // ALWAYS SECOND.
+        if (amountLeft > MINIMUM_AMOUNT_REWARD) {
+            this.addOutput({
+                value: Number(amountLeft),
+                address: this.rewardChallenge.address,
+            });
+        }
+
+        const amount = this.addOptionalOutputsAndGetAmount();
+        if (!this.disableAutoRefund) {
+            await this.addRefundOutput(amountSpent + amount);
         }
     }
 

@@ -1,4 +1,4 @@
-import { Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -70,6 +70,10 @@ export class LegacyCalldataGenerator extends Generator {
 
         let compiledData = [
             this.senderPubKey,
+            opcodes.OP_DUP,
+            opcodes.OP_HASH256,
+            crypto.hash256(this.senderPubKey),
+            opcodes.OP_EQUALVERIFY,
             opcodes.OP_CHECKSIGVERIFY,
 
             contractSecret,

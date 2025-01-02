@@ -9,7 +9,11 @@ import {
     Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
-import { TransactionBuilder } from './TransactionBuilder.js';
+import {
+    MINIMUM_AMOUNT_CA,
+    MINIMUM_AMOUNT_REWARD,
+    TransactionBuilder,
+} from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -19,12 +23,17 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
 
 const p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
+
+    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
+    protected readonly rewardChallenge: IMineableReward;
+
     /**
      * The contract address
      * @protected
@@ -110,6 +119,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         }
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
+        this.preimage = parameters.preimage || BitcoinUtils.getSafeRandomValues(128);
+
+        this.rewardChallenge = ChallengeGenerator.generateMineableReward(
+            this.preimage,
+            this.network,
+        );
 
         this.contractSeed = this.getContractSeed();
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
@@ -123,6 +138,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.compiledTargetScript = this.deploymentGenerator.compile(
             this.bytecode,
             this.randomBytes,
+            this.preimage,
             this.calldata,
         );
 
@@ -161,6 +177,14 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      */
     public getRndBytes(): Buffer {
         return this.randomBytes;
+    }
+
+    /**
+     * Get the contract bytecode
+     * @returns {Buffer} The contract bytecode
+     */
+    public getPreimage(): Buffer {
+        return this.preimage;
     }
 
     /**
@@ -205,10 +229,28 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.addInputsFromUTXO();
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
+        const amountLeft: bigint = amountSpent - MINIMUM_AMOUNT_REWARD;
+
+        let amountToCA: bigint;
+        if (MINIMUM_AMOUNT_REWARD > amountSpent) {
+            amountToCA = amountSpent;
+        } else {
+            amountToCA = MINIMUM_AMOUNT_CA;
+        }
+
+        // ALWAYS THE FIRST INPUT.
         this.addOutput({
-            value: Number(amountSpent),
+            value: Number(amountToCA),
             address: this.contractAddress.p2tr(this.network),
         });
+
+        // ALWAYS SECOND.
+        if (amountLeft > MINIMUM_AMOUNT_REWARD) {
+            this.addOutput({
+                value: Number(amountLeft),
+                address: this.rewardChallenge.address,
+            });
+        }
 
         await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }

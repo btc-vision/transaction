@@ -14,11 +14,17 @@ export class DeploymentGenerator extends Generator {
      * Compile a bitcoin script representing a contract deployment
      * @param {Buffer} contractBytecode - The contract bytecode
      * @param {Buffer} contractSalt - The contract salt
+     * @param {Buffer} preimage - The preimage for reward
      * @param {Buffer} [calldata] - The calldata to be passed to the contract
      * @returns {Buffer} - The compiled script
      */
-    public compile(contractBytecode: Buffer, contractSalt: Buffer, calldata?: Buffer): Buffer {
-        const asm = this.getAsm(contractBytecode, contractSalt, calldata);
+    public compile(
+        contractBytecode: Buffer,
+        contractSalt: Buffer,
+        preimage: Buffer,
+        calldata?: Buffer,
+    ): Buffer {
+        const asm = this.getAsm(contractBytecode, contractSalt, preimage, calldata);
         const compiled = script.compile(asm);
 
         /**
@@ -35,6 +41,7 @@ export class DeploymentGenerator extends Generator {
     private getAsm(
         contractBytecode: Buffer,
         contractSalt: Buffer,
+        preimage: Buffer,
         calldata?: Buffer,
     ): (number | Buffer)[] {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
@@ -46,15 +53,19 @@ export class DeploymentGenerator extends Generator {
             this.senderFirstByte,
             opcodes.OP_TOALTSTACK,
 
+            // CHALLENGE PREIMAGE FOR REWARD,
+            preimage,
+            opcodes.OP_TOALTSTACK,
+
             this.xSenderPubKey,
+            opcodes.OP_DUP,
+            opcodes.OP_HASH256,
+            crypto.hash256(this.xSenderPubKey),
+            opcodes.OP_EQUALVERIFY,
             opcodes.OP_CHECKSIGVERIFY,
 
             this.contractSaltPubKey,
             opcodes.OP_CHECKSIGVERIFY,
-
-            opcodes.OP_HASH160,
-            crypto.hash160(this.xSenderPubKey),
-            opcodes.OP_EQUALVERIFY,
 
             opcodes.OP_HASH256,
             crypto.hash256(contractSalt),

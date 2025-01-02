@@ -3,8 +3,7 @@ export enum TransactionType {
     FUNDING = 1,
     DEPLOYMENT = 2,
     INTERACTION = 3,
-    WBTC_WRAP = 4,
-    WBTC_UNWRAP = 5,
-    MULTI_SIG = 6,
-    CUSTOM_CODE = 7,
+    MULTI_SIG = 4,
+    CUSTOM_CODE = 5,
+    CHALLENGE_SOLUTION = 6,
 }
