@@ -1,6 +1,6 @@
-import { Address } from '../../opnet';
-import { UnisatSigner } from './extensions/UnisatSigner';
-import { XverseSigner } from './extensions/XverseSigner';
+import { Address } from '../../opnet.js';
+import { UnisatSigner } from './extensions/UnisatSigner.js';
+import { XverseSigner } from './extensions/XverseSigner.js';
 
 export enum SupportedWallets {
     Unisat = 'unisat',
