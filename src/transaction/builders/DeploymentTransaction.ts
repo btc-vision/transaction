@@ -229,13 +229,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.addInputsFromUTXO();
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
-        const amountLeft: bigint = amountSpent - MINIMUM_AMOUNT_REWARD;
 
         let amountToCA: bigint;
-        if (MINIMUM_AMOUNT_REWARD > amountSpent) {
-            amountToCA = amountSpent;
-        } else {
+        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
             amountToCA = MINIMUM_AMOUNT_CA;
+        } else {
+            amountToCA = amountSpent;
         }
 
         // ALWAYS THE FIRST INPUT.
@@ -245,9 +244,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         });
 
         // ALWAYS SECOND.
-        if (amountLeft > MINIMUM_AMOUNT_REWARD) {
+        if (
+            amountToCA === MINIMUM_AMOUNT_CA &&
+            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
+        ) {
             this.addOutput({
-                value: Number(amountLeft),
+                value: Number(amountSpent - amountToCA),
                 address: this.rewardChallenge.address,
             });
         }
@@ -393,7 +395,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         const scriptSolution = [
             this.randomBytes,
-            this.internalPubKeyToXOnly(),
             input.tapScriptSig[0].signature,
             input.tapScriptSig[1].signature,
         ];

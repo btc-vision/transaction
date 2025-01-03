@@ -1,10 +1,6 @@
 import { address, Payment, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
-import {
-    MINIMUM_AMOUNT_CA,
-    MINIMUM_AMOUNT_REWARD,
-    TransactionBuilder,
-} from './TransactionBuilder.js';
+import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -12,7 +8,6 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { randomBytes } from 'crypto';
 import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
 
 /**
@@ -325,13 +320,12 @@ export abstract class SharedInteractionTransaction<
         if (!this.to) throw new Error('To address is required');
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
-        const amountLeft: bigint = amountSpent - MINIMUM_AMOUNT_REWARD;
 
         let amountToCA: bigint;
-        if (MINIMUM_AMOUNT_REWARD > amountSpent) {
-            amountToCA = amountSpent;
-        } else {
+        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
             amountToCA = MINIMUM_AMOUNT_CA;
+        } else {
+            amountToCA = amountSpent;
         }
 
         // ALWAYS THE FIRST INPUT.
@@ -341,9 +335,12 @@ export abstract class SharedInteractionTransaction<
         });
 
         // ALWAYS SECOND.
-        if (amountLeft > MINIMUM_AMOUNT_REWARD) {
+        if (
+            amountToCA === MINIMUM_AMOUNT_CA &&
+            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
+        ) {
             this.addOutput({
-                value: Number(amountLeft),
+                value: Number(amountSpent - amountToCA),
                 address: this.rewardChallenge.address,
             });
         }

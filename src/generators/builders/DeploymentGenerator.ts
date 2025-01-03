@@ -48,7 +48,7 @@ export class DeploymentGenerator extends Generator {
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
-
+        
         const compiledData = [
             this.senderFirstByte,
             opcodes.OP_TOALTSTACK,
