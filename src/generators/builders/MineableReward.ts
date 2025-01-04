@@ -58,6 +58,9 @@ export class MineableReward extends Generator {
     }
 
     private isTestnet(): boolean {
-        return this.network === networks.testnet || this.network === networks.regtest;
+        return (
+            this.network.bech32 === networks.testnet.bech32 ||
+            this.network.bech32 === networks.regtest.bech32
+        );
     }
 }
