@@ -22,14 +22,14 @@ export class BinaryWriter {
     }
 
     public writeU8(value: u8): void {
-        if (value > 255) throw new Error('Value is too large.');
+        if (value > 255) throw new Error('u8 value is too large.');
 
         this.allocSafe(U8_BYTE_LENGTH);
         this.buffer.setUint8(this.currentOffset++, value);
     }
 
     public writeU16(value: u16): void {
-        if (value > 65535) throw new Error('Value is too large.');
+        if (value > 65535) throw new Error('u16 value is too large.');
 
         this.allocSafe(U16_BYTE_LENGTH);
         this.buffer.setUint16(this.currentOffset, value, true);
@@ -37,7 +37,7 @@ export class BinaryWriter {
     }
 
     public writeU32(value: u32, le: boolean = true): void {
-        if (value > 4294967295) throw new Error('Value is too large.');
+        if (value > 4294967295) throw new Error('u32 value is too large.');
 
         this.allocSafe(U32_BYTE_LENGTH);
         this.buffer.setUint32(this.currentOffset, value, le);
@@ -45,7 +45,7 @@ export class BinaryWriter {
     }
 
     public writeU64(value: u64): void {
-        if (value > 18446744073709551615n) throw new Error('Value is too large.');
+        if (value > 18446744073709551615n) throw new Error('u64 value is too large.');
 
         this.allocSafe(U64_BYTE_LENGTH);
         this.buffer.setBigUint64(this.currentOffset, value, true);
@@ -65,7 +65,7 @@ export class BinaryWriter {
             bigIntValue >
             115792089237316195423570985008687907853269984665640564039457584007913129639935n
         ) {
-            throw new Error('Value is too large.');
+            throw new Error('u256 value is too large.');
         }
 
         this.allocSafe(U256_BYTE_LENGTH);
@@ -82,7 +82,7 @@ export class BinaryWriter {
 
     public writeU128(bigIntValue: bigint): void {
         if (bigIntValue > 340282366920938463463374607431768211455n) {
-            throw new Error('Value is too large.');
+            throw new Error('u128 value is too large.');
         }
 
         this.allocSafe(U128_BYTE_LENGTH);
