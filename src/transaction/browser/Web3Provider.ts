@@ -3,7 +3,7 @@ import {
     IInteractionParameters,
 } from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { DeploymentResult } from '../TransactionFactory';
+import { DeploymentResult, InteractionResponse } from '../TransactionFactory';
 
 export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>;
 export type IDeploymentParametersWithoutSigner = Omit<IDeploymentParameters, 'signer' | 'network'>;
@@ -41,11 +41,11 @@ export interface BroadcastedTransaction {
 export interface Web3Provider {
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
-    ): Promise<[string, string, UTXO[]]>;
+    ): Promise<InteractionResponse>;
 
     signAndBroadcastInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
-    ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[]]>;
+    ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[], string]>;
 
     deployContract(params: IDeploymentParametersWithoutSigner): Promise<DeploymentResult>;
 

@@ -19,6 +19,7 @@ import {
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
 import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
+import { InteractionParametersWithoutSigner } from './browser/Web3Provider.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -58,6 +59,14 @@ export interface BitcoinTransferBase {
     readonly tx: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
+}
+
+export interface InteractionResponse {
+    readonly fundingTransaction: string;
+    readonly interactionTransaction: string;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
+    readonly preimage: string;
 }
 
 export interface ChallengeSolution extends BitcoinTransferBase {
@@ -141,11 +150,11 @@ export class TransactionFactory {
 
     /**
      * @description Generates the required transactions.
-     * @returns {Promise<[string, string]>} - The signed transaction
+     * @returns {Promise<InteractionResponse>} - The signed transaction
      */
     public async signInteraction(
-        interactionParameters: IInteractionParameters,
-    ): Promise<[string, string, UTXO[], string]> {
+        interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
+    ): Promise<InteractionResponse> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -156,6 +165,16 @@ export class TransactionFactory {
 
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
+        }
+
+        // If OP_WALLET is used...
+        const opWalletInteraction = await this.detectInteractionOPWallet(interactionParameters);
+        if (opWalletInteraction) {
+            return opWalletInteraction;
+        }
+
+        if (!('signer' in interactionParameters)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
         const preTransaction: InteractionTransaction = new InteractionTransaction({
@@ -212,12 +231,17 @@ export class TransactionFactory {
 
         // We have to regenerate using the new utxo
         const outTx: Transaction = await finalTransaction.signTransaction();
-        return [
-            signedTransaction.tx.toHex(),
-            outTx.toHex(),
-            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
-            preTransaction.getPreimage().toString('hex'),
-        ];
+        return {
+            fundingTransaction: signedTransaction.tx.toHex(),
+            interactionTransaction: outTx.toHex(),
+            estimatedFees: preTransaction.estimatedFees,
+            nextUTXOs: this.getUTXOAsTransaction(
+                signedTransaction.tx,
+                interactionParameters.from,
+                1,
+            ), // always 1
+            preimage: preTransaction.getPreimage().toString('hex'),
+        };
     }
 
     /**
@@ -363,6 +387,22 @@ export class TransactionFactory {
         }
 
         return utxos;
+    }
+
+    private async detectInteractionOPWallet(
+        interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
+    ): Promise<InteractionResponse | null> {
+        if (typeof window === 'undefined' || !window.opnet || !window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = window.opnet.web3;
+        const interaction = await opnet.signInteraction(interactionParameters);
+        if (!interaction) {
+            throw new Error('Could not sign interaction transaction.');
+        }
+
+        return interaction;
     }
 
     private async _createChallengeSolution(
