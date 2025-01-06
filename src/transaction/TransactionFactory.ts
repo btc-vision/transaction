@@ -397,7 +397,13 @@ export class TransactionFactory {
         }
 
         const opnet = window.opnet.web3;
-        const interaction = await opnet.signInteraction(interactionParameters);
+        const interaction = await opnet.signInteraction({
+            ...interactionParameters,
+
+            // @ts-expect-error no, this is ok
+            signer: undefined,
+        });
+
         if (!interaction) {
             throw new Error('Could not sign interaction transaction.');
         }
