@@ -102,7 +102,7 @@ export class UnisatSigner extends CustomKeypair {
         if (this.isInitialized) {
             return;
         }
-        
+
         const network = await this.unisat.getNetwork();
         switch (network) {
             case UnisatNetwork.mainnet:
