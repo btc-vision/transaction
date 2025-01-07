@@ -1,9 +1,9 @@
 import {
     crypto as bitCrypto,
-    script as bitScript,
     Network,
     networks,
     Psbt,
+    script as bitScript,
     TapScriptSig,
     toXOnly,
 } from '@btc-vision/bitcoin';
@@ -12,7 +12,7 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
-import { PsbtSignatureOptions, Unisat, UnisatNetwork } from '../types/Unisat.js';
+import { PsbtSignatureOptions, SignatureType, Unisat, UnisatNetwork } from '../types/Unisat.js';
 
 declare global {
     interface Window {
@@ -91,11 +91,18 @@ export class UnisatSigner extends CustomKeypair {
         return module;
     }
 
+    public async signData(data: Buffer, type: SignatureType): Promise<Buffer> {
+        const str = data.toString('hex');
+        const signature = await this.unisat.signData(str, type);
+
+        return Buffer.from(signature, 'hex');
+    }
+
     public async init(): Promise<void> {
         if (this.isInitialized) {
             return;
         }
-
+        
         const network = await this.unisat.getNetwork();
         switch (network) {
             case UnisatNetwork.mainnet:

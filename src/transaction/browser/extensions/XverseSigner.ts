@@ -9,7 +9,7 @@ import {
 } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions } from '../types/Unisat.js';
-import { Xverse } from '../types/Xverse.js';
+import { SigningProtocol, Xverse } from '../types/Xverse.js';
 
 declare global {
     interface Window {
@@ -121,6 +121,36 @@ export class XverseSigner extends CustomKeypair {
         this._addresses = [this._p2wpkh, this._p2tr];
 
         this.isInitialized = true;
+    }
+
+    public async signData(
+        data: Buffer,
+        address: string,
+        protocol: SigningProtocol,
+    ): Promise<Buffer> {
+        if (!this.isInitialized) {
+            throw new Error('UnisatSigner not initialized');
+        }
+
+        const callSign = await this.BitcoinProvider.request('signMessage', {
+            address,
+            message: data.toString(),
+            protocol,
+        });
+
+        if ('error' in callSign) throw new Error(callSign.error.message);
+
+        const res = callSign.result as {
+            signature: string;
+            messageHash: string;
+            address: string;
+        };
+
+        if (!res.signature) {
+            throw new Error('Signature not found');
+        }
+
+        return Buffer.from(res.signature, 'hex');
     }
 
     public getPublicKey(): Buffer {

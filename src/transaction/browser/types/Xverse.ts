@@ -93,26 +93,36 @@ interface SignedTransactionResult {
     raw: string;
 }
 
+export enum SigningProtocol {
+    ECDSA = 'ECDSA',
+    BIP322 = 'BIP322',
+}
+
 export interface Xverse {
-    request(method: string, params: unknown): Promise<XverseRPCResponse>;
-    request(
-        method: 'wallet_connect' | 'wallet_getAccount',
-        params: null,
-    ): Promise<XverseRPCGetAccountResponse>;
-    request(method: 'wallet_disconnect', params: null): Promise<XverseRPCResponse<null>>;
-    request(method: 'getBalance', params: null): Promise<XverseRPCGetBalanceResponse>;
-    request(method: 'signPsbt', params: XVersePSBTInput): Promise<XverseRPCSignPsbtResponse>;
-
     addListener: (event: string, callback: (...args: unknown[]) => void) => void;
-
     createInscription: (data: InscriptionData) => Promise<InscriptionResult>;
     createRepeatInscriptions: (data: RepeatInscriptionsData) => Promise<InscriptionResult[]>;
-
     sendBtcTransaction: (transaction: BtcTransaction) => Promise<TransactionResult>;
-
-    signMessage: (message: string) => Promise<SignedMessageResult>;
+    signMessage: (
+        address: string,
+        message: string,
+        protocol: SigningProtocol,
+    ) => Promise<SignedMessageResult>;
     signMultipleTransactions: (
         transactions: BtcTransaction[],
     ) => Promise<SignedTransactionResult[]>;
     signTransaction: (transaction: BtcTransaction) => Promise<SignedTransactionResult>;
+
+    request(method: string, params: unknown): Promise<XverseRPCResponse>;
+
+    request(
+        method: 'wallet_connect' | 'wallet_getAccount',
+        params: null,
+    ): Promise<XverseRPCGetAccountResponse>;
+
+    request(method: 'wallet_disconnect', params: null): Promise<XverseRPCResponse<null>>;
+
+    request(method: 'getBalance', params: null): Promise<XverseRPCGetBalanceResponse>;
+
+    request(method: 'signPsbt', params: XVersePSBTInput): Promise<XverseRPCSignPsbtResponse>;
 }

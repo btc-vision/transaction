@@ -33,6 +33,11 @@ export enum MessageType {
     bip322 = 'bip322-simple',
 }
 
+export enum SignatureType {
+    ecdsa = 'ecdsa',
+    schnorr = 'schnorr',
+}
+
 interface ToSignInputBase {
     readonly index: number;
     readonly sighashTypes?: number[];
@@ -56,7 +61,7 @@ export interface PsbtSignatureOptions {
 
 export interface Unisat {
     web3?: Web3Provider;
-    
+
     disconnect: () => void;
     connect: () => void;
 
@@ -81,6 +86,8 @@ export interface Unisat {
     getBalance(): Promise<Balance>;
 
     signMessage(message: string, type?: MessageType): Promise<string>;
+
+    signData(hex: string, type?: SignatureType): Promise<string>;
 
     pushTx(options: { rawtx: string }): Promise<string>;
 
