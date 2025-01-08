@@ -15,6 +15,9 @@ The OP_NET Transaction Builder library allows you to create and sign transaction
 TypeScript, this library provides a comprehensive set of functions to facilitate the creation, reading, and manipulation
 of OP_NET transactions, smart contracts, and other OP_NET-related technologies.
 
+You can create any sort of transaction, and you don't have to bother about managing signer types or anything
+complicated.
+
 ## Getting Started
 
 ### Prerequisites
@@ -30,8 +33,7 @@ npm i @btc-vision/transaction
 
 ### Documentation
 
-Documentation is available at [https://transaction.opnet.org](https://transaction.opnet.org) or in the `docs/` directory
-of the repository.
+Documentation is available at [docs.opnet.org](https://docs.opnet.org)
 
 #### Development
 
@@ -47,23 +49,6 @@ of the repository.
    ```bash
    npm i
    ```
-
-## Deployments, Wrapping and Unwrapping
-
-WARNING: POSSIBLY OUTDATED
-
-To learn how to wrap and unwrap Bitcoin on OP_NET, please refer to
-the [Wrap.md](https://github.com/btc-vision/transaction/blob/main/Wrap.md) guide.
-
-To learn how to unwrap Bitcoin on OP_NET, please refer to
-the [Unwrap.md](https://github.com/btc-vision/transaction/blob/main/Unwrap.md) guide.
-
-To learn how to deploy smart contracts on OP_NET, please refer to
-the [Deploy.md](https://github.com/btc-vision/transaction/blob/main/Deploy.md) guide.
-
-## Usage
-
-OUTDATED EXAMPLE. New examples will be added soon.
 
 ## Contribution
 
