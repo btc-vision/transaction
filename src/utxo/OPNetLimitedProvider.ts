@@ -211,8 +211,8 @@ export class OPNetLimitedProvider {
             network,
             to: wallet.p2tr,
             splitInputsInto,
-            priorityFee: 330n,
-            gasSatFee: 0n,
+            priorityFee: 0n,
+            gasSatFee: 330n,
         };
 
         const transactionFactory = new TransactionFactory();
