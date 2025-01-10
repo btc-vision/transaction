@@ -21,7 +21,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
 
 export interface MultiSignParameters
-    extends Omit<ITransactionParameters, 'priorityFee' | 'signer'> {
+    extends Omit<ITransactionParameters, 'gasSatFee' | 'priorityFee' | 'signer'> {
     readonly pubkeys: Buffer[];
     readonly minimumSignatures: number;
     readonly from?: undefined;
@@ -97,6 +97,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                 bitcoinCrypto.sha256(Buffer.from('aaaaaaaa', 'utf-8')),
             ),
             priorityFee: 0n,
+            gasSatFee: 0n,
         });
 
         if (!parameters.pubkeys) {

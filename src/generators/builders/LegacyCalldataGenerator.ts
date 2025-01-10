@@ -52,23 +52,30 @@ export class LegacyCalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
+     * @param {Buffer} preimage - The preimage to use
+     * @param {bigint} maxPriority - The maximum priority
      * @param {number[]} [features=[]] - The features to use (optional)
-     * @param {Buffer[]} [vaultPublicKeys=[]] - The public keys of the vault (optional)
-     * @param {number} [minimumSignatures=0] - The minimum number of signatures (optional)
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
      */
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
+        preimage: Buffer,
+        maxPriority: bigint,
         features: Features[] = [],
-        vaultPublicKeys: Buffer[] = [],
-        minimumSignatures: number = 0,
     ): Buffer {
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 
         let compiledData = [
+            this.getHeader(maxPriority),
+            opcodes.OP_TOALTSTACK,
+
+            // CHALLENGE PREIMAGE FOR REWARD,
+            preimage,
+            opcodes.OP_TOALTSTACK,
+
             this.senderPubKey,
             opcodes.OP_DUP,
             opcodes.OP_HASH256,
@@ -86,42 +93,6 @@ export class LegacyCalldataGenerator extends Generator {
 
             Generator.MAGIC,
         ];
-
-        // write pub keys, when requested.
-        if (vaultPublicKeys.length > 0) {
-            const pubKeyBuffer = LegacyCalldataGenerator.getPubKeyAsBuffer(
-                vaultPublicKeys,
-                this.network,
-            );
-            const pubKeyDataChunks: Buffer[][] = this.splitBufferIntoChunks(pubKeyBuffer);
-
-            compiledData = compiledData.concat(
-                ...[
-                    opcodes.OP_0, // provide opnet public keys
-                    ...pubKeyDataChunks,
-                ],
-            );
-
-            if (minimumSignatures) {
-                // verify that the minimum is not greater than 255
-                if (minimumSignatures > 255) {
-                    throw new Error('Minimum signatures cannot exceed 255');
-                }
-
-                // we use a 2 bytes buffer even if we limit to 255 so it does not use an opcode for the number
-                const minSigBuffer = Buffer.alloc(2);
-                minSigBuffer.writeUint16LE(minimumSignatures, 0);
-
-                compiledData = compiledData.concat(
-                    ...[
-                        opcodes.OP_1, // provide minimum signatures
-                        minSigBuffer,
-                    ],
-                );
-            } else {
-                throw new Error('Minimum signatures must be provided');
-            }
-        }
 
         const featureOpcodes = features.map((feature) => FeatureOpCodes[feature]); // Get the opcodes for the features
 

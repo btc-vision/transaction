@@ -139,6 +139,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.bytecode,
             this.randomBytes,
             this.preimage,
+            this.priorityFee,
             this.calldata,
         );
 

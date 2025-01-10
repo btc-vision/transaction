@@ -462,11 +462,12 @@ export class TransactionFactory {
     }
 
     private getPriorityFee(params: ITransactionParameters): bigint {
-        if (params.priorityFee < TransactionBuilder.MINIMUM_DUST) {
+        const totalFee = params.priorityFee + params.gasSatFee;
+        if (totalFee < TransactionBuilder.MINIMUM_DUST) {
             return TransactionBuilder.MINIMUM_DUST;
         }
 
-        return params.priorityFee;
+        return totalFee;
     }
 
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {

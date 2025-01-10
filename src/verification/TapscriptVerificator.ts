@@ -16,6 +16,7 @@ export interface ContractAddressVerificationParams {
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
     readonly preimage: Buffer;
+    readonly priorityFee: bigint;
     readonly calldata?: Buffer;
     readonly network?: Network;
 }
@@ -37,6 +38,7 @@ export class TapscriptVerificator {
             params.bytecode,
             params.originalSalt,
             params.preimage,
+            params.priorityFee,
             params.calldata,
         );
 
@@ -69,6 +71,7 @@ export class TapscriptVerificator {
             params.bytecode,
             params.originalSalt,
             params.preimage,
+            params.priorityFee,
             params.calldata,
         );
 

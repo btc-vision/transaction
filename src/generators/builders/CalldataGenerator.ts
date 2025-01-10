@@ -4,6 +4,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { FeatureOpCodes, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -57,6 +58,7 @@ export class CalldataGenerator extends Generator {
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
      * @param preimage
+     * @param maxPriority - Amount of satoshis to spend max on priority fee
      * @param {number[]} [features=[]] - The features to use (optional)
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
@@ -65,6 +67,7 @@ export class CalldataGenerator extends Generator {
         calldata: Buffer,
         contractSecret: Buffer,
         preimage: Buffer,
+        maxPriority: bigint,
         features: Features[] = [],
     ): Buffer {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
@@ -73,7 +76,7 @@ export class CalldataGenerator extends Generator {
         if (!dataChunks.length) throw new Error('No data chunks found');
 
         let compiledData = [
-            this.senderFirstByte,
+            this.getHeader(maxPriority),
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,

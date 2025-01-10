@@ -111,6 +111,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @description The opnet priority fee of the transaction
      */
     protected priorityFee: bigint;
+    protected gasSatFee: bigint;
 
     /**
      * @description The utxos used in the transaction
@@ -151,6 +152,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.network = parameters.network;
         this.feeRate = parameters.feeRate;
         this.priorityFee = parameters.priorityFee ?? 0n;
+        this.gasSatFee = parameters.gasSatFee ?? 0n;
         this.utxos = parameters.utxos;
         this.to = parameters.to || undefined;
 
@@ -230,6 +232,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             network: this.network,
             feeRate: this.feeRate,
             priorityFee: this.priorityFee ?? 0n,
+            gasSatFee: this.gasSatFee ?? 0n,
             from: this.from,
             amount: this.estimatedFees,
             optionalOutputs: this.optionalOutputs,
@@ -530,8 +533,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {bigint}
      */
     protected getTransactionOPNetFee(): bigint {
-        if (this.priorityFee > TransactionBuilder.MINIMUM_DUST) {
-            return this.priorityFee;
+        const totalFee = this.priorityFee + this.gasSatFee;
+        if (totalFee > TransactionBuilder.MINIMUM_DUST) {
+            return totalFee;
         }
 
         return TransactionBuilder.MINIMUM_DUST;

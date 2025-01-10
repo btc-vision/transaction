@@ -1,4 +1,5 @@
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
+import { BinaryWriter } from '../buffer/BinaryWriter.js';
 
 /** Bitcoin Script Generator */
 export abstract class Generator {
@@ -49,6 +50,14 @@ export abstract class Generator {
 
     public get senderFirstByte(): Buffer {
         return Buffer.from([this.senderPubKey[0], 0, 0, 0]);
+    }
+
+    public getHeader(maxPriority: bigint): Buffer {
+        const writer = new BinaryWriter(8 + 4);
+        writer.writeBytes(this.senderFirstByte);
+        writer.writeU64(maxPriority);
+
+        return Buffer.from(writer.getBuffer());
     }
 
     /**

@@ -18,6 +18,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     readonly feeRate: number;
     readonly priorityFee: bigint;
+    readonly gasSatFee: bigint;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {
