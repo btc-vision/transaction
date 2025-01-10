@@ -119,6 +119,10 @@ export abstract class SharedInteractionTransaction<
     protected generateSecret(): Buffer {
         if (!this.to) throw new Error('To address is required');
 
+        if (this.to.startsWith('0x')) {
+            throw new Error(`Legacy not support at this time. Reserved for future use.`);
+        }
+
         return address.fromBech32(this.to).data;
     }
 
