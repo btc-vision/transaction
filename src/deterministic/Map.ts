@@ -15,8 +15,8 @@ export class Map<K, V> {
     public values(): V[] {
         return this._values;
     }
-    
-    public entires(): [K, V][] {
+
+    public entries(): [K, V][] {
         const result: [K, V][] = [];
         for (let i: i32 = 0; i < this._keys.length; i++) {
             result.push([this._keys[i], this._values[i]]);
