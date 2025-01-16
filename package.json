@@ -89,7 +89,7 @@
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.1.1",
-        "@btc-vision/bitcoin": "^6.3.4",
+        "@btc-vision/bitcoin": "file:../bitcoin",
         "@btc-vision/bitcoin-rpc": "^1.0.0",
         "@btc-vision/logger": "^1.0.6",
         "@eslint/js": "^9.14.0",
