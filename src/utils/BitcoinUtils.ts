@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
 
+const hexPattern = /^[0-9a-fA-F]+$/;
+
 /**
  * Utility class for Bitcoin related functions
  */
@@ -51,6 +53,10 @@ export class BitcoinUtils {
         }
     }
 
+    public static isValidHex(hex: string): boolean {
+        return hexPattern.test(hex);
+    }
+
     /**
      * Hashes the given data
      * @param {Buffer} data - The data to hash
@@ -64,37 +70,4 @@ export class BitcoinUtils {
 
         return `0x${Buffer.from(hash).toString('hex')}`;
     }
-
-    /**
-     * Deterministically order vaults by address
-     * @param {VaultUTXOs[]} vaults - The vaults to order
-     * @returns {VaultUTXOs[]} The ordered vaults
-     */
-    /*public static orderVaultsByAddress(vaults: VaultUTXOs[]): VaultUTXOs[] {
-        return vaults.sort((a, b) => {
-            return a.vault.localeCompare(b.vault);
-        });
-    }*/
-
-    /**
-     * Find the vault with the most public keys in a deterministic way.
-     * @param {VaultUTXOs[]} vaults - The vaults to search
-     * @returns {VaultUTXOs} The vault with the most public keys
-     */
-    /*public static findVaultWithMostPublicKeys(vaults: VaultUTXOs[]): VaultUTXOs {
-        vaults = BitcoinUtils.orderVaultsByAddress(vaults);
-
-        let mostPublicKeys: number = 0;
-        let vault: VaultUTXOs | undefined;
-        for (const v of vaults) {
-            if (v.publicKeys.length > mostPublicKeys) {
-                mostPublicKeys = v.publicKeys.length;
-                vault = v;
-            }
-        }
-
-        if (!vault) throw new Error('No vault with public keys found.');
-
-        return vault;
-    }*/
 }

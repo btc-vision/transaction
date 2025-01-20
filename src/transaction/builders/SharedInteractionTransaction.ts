@@ -388,13 +388,13 @@ export abstract class SharedInteractionTransaction<
      * @returns {Buffer[]} The public keys
      */
     private getPubKeys(): Buffer[] {
-        const pubkeys = [Buffer.from(this.signer.publicKey)];
+        const pubKeys = [Buffer.from(this.signer.publicKey)];
 
         if (this.scriptSigner) {
-            pubkeys.push(Buffer.from(this.scriptSigner.publicKey));
+            pubKeys.push(Buffer.from(this.scriptSigner.publicKey));
         }
 
-        return pubkeys;
+        return pubKeys;
     }
 
     /**

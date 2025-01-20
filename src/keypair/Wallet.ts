@@ -1,8 +1,8 @@
-import { IWallet } from './interfaces/IWallet.js';
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
+import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 
 /**
  * Wallet class
@@ -57,20 +57,31 @@ export class Wallet {
     private readonly _address: Address;
 
     constructor(
-        wallet: IWallet,
+        privateKeyOrWif: string,
         public readonly network: Network = networks.bitcoin,
     ) {
-        this._keypair = EcKeyPair.fromWIF(wallet.privateKey, this.network);
+        const parsedPrivateKey = privateKeyOrWif.startsWith('0x')
+            ? privateKeyOrWif.replace('0x', '')
+            : privateKeyOrWif;
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this._keypair, this.network);
-        this._p2tr = EcKeyPair.getTaprootAddress(this._keypair, this.network);
-        this._legacy = EcKeyPair.getLegacyAddress(this._keypair, this.network);
-        this._segwitLegacy = EcKeyPair.getLegacySegwitAddress(this._keypair, this.network);
-
-        this._tweakedKey = EcKeyPair.tweakPublicKey(this._keypair.publicKey.toString('hex'));
+        if (BitcoinUtils.isValidHex(parsedPrivateKey)) {
+            this._keypair = EcKeyPair.fromPrivateKey(
+                Buffer.from(parsedPrivateKey, 'hex'),
+                this.network,
+            );
+        } else {
+            this._keypair = EcKeyPair.fromWIF(parsedPrivateKey, this.network);
+        }
 
         this._bufferPubKey = this._keypair.publicKey;
         this._address = new Address(this._keypair.publicKey);
+
+        this._p2tr = this._address.p2tr(this.network);
+        this._p2wpkh = this._address.p2wpkh(this.network);
+        this._legacy = this._address.p2pkh(this.network);
+        this._segwitLegacy = this._address.p2wpkh(this.network);
+
+        this._tweakedKey = this._address.toBuffer();
     }
 
     /**
@@ -168,6 +179,6 @@ export class Wallet {
      * @returns {Wallet} The wallet
      */
     public static fromWif(wif: string, network: Network = networks.bitcoin): Wallet {
-        return new Wallet({ privateKey: wif, address: '', publicKey: '' }, network);
+        return new Wallet(wif, network);
     }
 }

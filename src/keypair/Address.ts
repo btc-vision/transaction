@@ -4,11 +4,7 @@ import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
 import { AddressVerificator } from './AddressVerificator.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { ContractAddress } from '../transaction/ContractAddress.js';
-
-const hexPattern = /^[0-9a-fA-F]+$/;
-const isHexadecimal = (input: string): boolean => {
-    return hexPattern.test(input);
-};
+import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 
 /**
  * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
@@ -72,7 +68,7 @@ export class Address extends Uint8Array {
             pubKey = pubKey.slice(2);
         }
 
-        if (!isHexadecimal(pubKey)) {
+        if (!BitcoinUtils.isValidHex(pubKey)) {
             throw new Error(
                 'You must only pass public keys in hexadecimal format. If you have an address such as bc1q... you must convert it to a public key first. Please refer to await provider.getPublicKeyInfo("bc1q..."). If the public key associated with the address is not found, you must force the user to enter the destination public key. It looks like: 0x020373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c.',
             );

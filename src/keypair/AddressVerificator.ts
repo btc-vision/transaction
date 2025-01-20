@@ -1,6 +1,7 @@
 import { address, initEccLib, Network } from '@btc-vision/bitcoin';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { EcKeyPair } from './EcKeyPair.js';
+import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 
 initEccLib(ecc);
 
@@ -100,8 +101,7 @@ export class AddressVerificator {
 
             // Compressed public keys are 66 characters long (0x02 or 0x03 prefix + 32 bytes)
             // Uncompressed public keys are 130 characters long (0x04 prefix + 64 bytes)
-            const hexRegex = /^[0-9a-fA-F]+$/;
-            if (!hexRegex.test(input)) {
+            if (!BitcoinUtils.isValidHex(input)) {
                 return false;
             }
 
