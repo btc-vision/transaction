@@ -181,4 +181,12 @@ export class Wallet {
     public static fromWif(wif: string, network: Network = networks.bitcoin): Wallet {
         return new Wallet(wif, network);
     }
+
+    /**
+     * Create a new fresh wallet
+     * @param {Network} network The network
+     */
+    public static new(network: Network = networks.bitcoin): Wallet {
+        return new Wallet(EcKeyPair.generateWallet(network).privateKey, network);
+    }
 }
