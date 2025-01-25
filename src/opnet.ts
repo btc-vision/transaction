@@ -8,8 +8,8 @@ export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 export * from './generators/builders/LegacyCalldataGenerator.js';
-export * from './generators/builders/MultiSignGenerator.js';
 export * from './generators/builders/MineableReward.js';
+export * from './generators/builders/MultiSignGenerator.js';
 export * from './generators/Features.js';
 export * from './generators/Generator.js';
 
@@ -40,6 +40,7 @@ export * from './transaction/interfaces/Tap.js';
 export * from './transaction/TransactionFactory.js';
 
 /** Builders */
+export * from './transaction/builders/ChallengeSolutionTransaction.js';
 export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
@@ -47,7 +48,6 @@ export * from './transaction/builders/InteractionTransaction.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
-export * from './transaction/builders/ChallengeSolutionTransaction.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';
@@ -91,10 +91,9 @@ export * from './transaction/browser/extensions/UnisatSigner.js';
 export * from './transaction/browser/extensions/XverseSigner.js';
 export * from './transaction/browser/types/Unisat.js';
 export * from './transaction/browser/types/Xverse.js';
-export * from './transaction/browser/WalletConnection.js';
 
 export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';
 
-export * from './transaction/ContractAddress.js';
 export * from './keypair/Secp256k1PointDeriver.js';
+export * from './transaction/ContractAddress.js';
