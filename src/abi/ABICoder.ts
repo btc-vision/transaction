@@ -10,6 +10,7 @@ export enum ABIDataTypes {
     UINT64 = 'UINT64',
     UINT128 = 'UINT128',
     UINT256 = 'UINT256',
+    INT128 = 'INT128',
     BOOL = 'BOOL',
     ADDRESS = 'ADDRESS',
     STRING = 'STRING',
@@ -62,6 +63,9 @@ export class ABICoder {
                     break;
                 case ABIDataTypes.UINT256:
                     result.push(byteReader.readU256());
+                    break;
+                case ABIDataTypes.INT128:
+                    result.push(byteReader.readI128());
                     break;
                 case ABIDataTypes.TUPLE: // very basic for now, only contains uint256
                     result.push(byteReader.readTuple());

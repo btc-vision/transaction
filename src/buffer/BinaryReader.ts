@@ -2,6 +2,7 @@ import { AddressMap } from '../deterministic/AddressMap.js';
 import { Address } from '../keypair/Address.js';
 import {
     ADDRESS_BYTE_LENGTH,
+    I128_BYTE_LENGTH,
     U128_BYTE_LENGTH,
     U16_BYTE_LENGTH,
     U256_BYTE_LENGTH,
@@ -228,6 +229,21 @@ export class BinaryReader {
         return BigInt(
             '0x' + next32Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
         );
+    }
+
+    readI128() {
+        const next16Bytes = this.readBytes(I128_BYTE_LENGTH);
+        let value = BigInt(
+            '0x' + next16Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
+        );
+
+        if (next16Bytes[0] & 0x80) {
+            const mask = (BigInt(1) << BigInt(128)) - BigInt(1);
+            value = (value ^ mask) + BigInt(1);
+            value = -value;
+        }
+
+        return value;
     }
 
     public readBytes(length: u32, zeroStop: boolean = false): Uint8Array {
