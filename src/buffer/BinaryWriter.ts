@@ -3,6 +3,7 @@ import { Address } from '../keypair/Address.js';
 import { BufferHelper } from '../utils/BufferHelper.js';
 import {
     ADDRESS_BYTE_LENGTH,
+    I128_BYTE_LENGTH,
     U128_BYTE_LENGTH,
     U16_BYTE_LENGTH,
     U256_BYTE_LENGTH,
@@ -58,6 +59,28 @@ export class BinaryWriter {
 
     public writeBoolean(value: boolean): void {
         this.writeU8(value ? 1 : 0);
+    }
+
+    public writeI128(bigIntValue: bigint): void {
+        if (
+            bigIntValue >
+                170141183460469231731687303715884105727n ||
+            bigIntValue <
+                -170141183460469231731687303715884105728n
+        ) {
+            throw new Error('i128 value is too large.');
+        }
+
+        this.allocSafe(I128_BYTE_LENGTH);
+
+        const bytesToHex = BufferHelper.valueToUint8Array(bigIntValue, I128_BYTE_LENGTH);
+        if (bytesToHex.byteLength !== I128_BYTE_LENGTH) {
+            throw new Error(`Invalid i128 value: ${bigIntValue}`);
+        }
+
+        for (let i = 0; i < bytesToHex.byteLength; i++) {
+            this.writeU8(bytesToHex[i]);
+        }
     }
 
     public writeU256(bigIntValue: bigint): void {
