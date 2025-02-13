@@ -1,9 +1,9 @@
 import {
     crypto as bitCrypto,
+    script as bitScript,
     Network,
     networks,
     Psbt,
-    script as bitScript,
     TapScriptSig,
     toXOnly,
 } from '@btc-vision/bitcoin';
@@ -83,9 +83,9 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public get unisat(): Unisat {
-        const module = window.opnet || window.unisat;
+        const module = window.unisat;
         if (!module) {
-            throw new Error('OPWallet extension not found');
+            throw new Error('Unisat extension not found');
         }
 
         return module;
