@@ -33,14 +33,6 @@ export interface DeploymentResult {
     readonly utxos: UTXO[];
 }
 
-export interface WrapResult {
-    readonly transaction: [string, string];
-    readonly vaultAddress: string;
-    readonly amount: bigint;
-    readonly receiverAddress: string;
-    readonly utxos: UTXO[];
-}
-
 export interface FundingTransactionResponse {
     readonly tx: Transaction;
     readonly original: FundingTransaction;

@@ -118,8 +118,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.verifyCalldata();
         }
 
+        if(!parameters.preimage) throw new Error('Preimage is required');
+
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
-        this.preimage = parameters.preimage || BitcoinUtils.getSafeRandomValues(128);
+        this.preimage = parameters.preimage;
 
         this.rewardChallenge = ChallengeGenerator.generateMineableReward(
             this.preimage,

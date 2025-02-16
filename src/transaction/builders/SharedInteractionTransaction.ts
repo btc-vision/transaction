@@ -67,7 +67,11 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Calldata is required');
         }
 
-        this.preimage = parameters.preimage || BitcoinUtils.getSafeRandomValues(128);
+        if(!parameters.preimage) {
+            throw new Error('Preimage is required');
+        }
+
+        this.preimage = parameters.preimage;
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.rewardChallenge = ChallengeGenerator.generateMineableReward(

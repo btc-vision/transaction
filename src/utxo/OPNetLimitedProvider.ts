@@ -14,6 +14,10 @@ export interface WalletUTXOs {
     readonly spentTransactions: RawUTXOResponse[];
 }
 
+export interface PreimageData {
+    readonly preimage: Buffer;
+}
+
 /**
  * Allows to fetch UTXO data from any OPNET node
  */
@@ -175,6 +179,19 @@ export class OPNetLimitedProvider {
         }
 
         return result as BroadcastResponse;
+    }
+
+    /**
+     * Fetches the preimage from the OPNET node
+     * @returns {Promise<PreimageData | undefined>} - The preimage fetched
+     */
+    public async getPreimage(): Promise<PreimageData | undefined> {
+        const result = await this.rpcMethod('btc_preimage', []);
+        if (!result) {
+            return;
+        }
+
+        return result as PreimageData;
     }
 
     /**

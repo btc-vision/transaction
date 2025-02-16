@@ -37,7 +37,7 @@ export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer;
     disableAutoRefund?: boolean;
 
-    readonly preimage?: Buffer;
+    readonly preimage: Buffer;
     readonly randomBytes?: Buffer;
 }
 
@@ -52,5 +52,5 @@ export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'
     readonly calldata?: Buffer;
 
     readonly randomBytes?: Buffer;
-    readonly preimage?: Buffer;
+    readonly preimage: Buffer;
 }
