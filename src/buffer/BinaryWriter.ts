@@ -163,15 +163,6 @@ export class BinaryWriter {
         this.buffer = this.getDefaultBuffer(4);
     }
 
-    public writeTuple(values: bigint[]): void {
-        this.allocSafe(U32_BYTE_LENGTH + values.length * U256_BYTE_LENGTH);
-        this.writeU32(values.length);
-
-        for (let i = 0; i < values.length; i++) {
-            this.writeU256(values[i]);
-        }
-    }
-
     public toBytesReader(): BinaryReader {
         return new BinaryReader(this.getBuffer());
     }
@@ -200,7 +191,7 @@ export class BinaryWriter {
         this.writeSelector(selector);
     }
 
-    public writeAddressValueTupleMap(map: AddressMap<bigint>): void {
+    public writeAddressValueTuple(map: AddressMap<bigint>): void {
         if (map.size > 65535) throw new Error('Map size is too large');
 
         this.writeU16(map.size);

@@ -152,17 +152,6 @@ export class BinaryReader {
         return this.readBytes(length);
     }
 
-    public readTuple(): bigint[] {
-        const length = this.readU32();
-        const result: bigint[] = new Array<bigint>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU256();
-        }
-
-        return result;
-    }
-
     public readU8(): u8 {
         this.verifyEnd(this.currentOffset + U8_BYTE_LENGTH);
 
