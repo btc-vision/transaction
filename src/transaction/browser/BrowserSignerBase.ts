@@ -30,7 +30,7 @@ export abstract class CustomKeypair implements Signer {
 
     public abstract signSchnorr(hash: Buffer): Buffer;
 
-    public abstract verify(hash: Buffer, signature: Buffer): Buffer;
+    public abstract verify(hash: Buffer, signature: Buffer): boolean | Buffer;
 
     public abstract init(): Promise<void>;
 }

@@ -1,9 +1,9 @@
 import {
     crypto as bitCrypto,
-    script as bitScript,
     Network,
     networks,
     Psbt,
+    script as bitScript,
     TapScriptSig,
     toXOnly,
 } from '@btc-vision/bitcoin';
