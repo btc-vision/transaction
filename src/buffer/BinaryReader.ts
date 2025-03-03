@@ -14,13 +14,13 @@ import { BufferLike, i32, Selector, u16, u32, u8 } from '../utils/types.js';
 
 export class BinaryReader {
     private buffer: DataView;
-
     private currentOffset: i32 = 0;
 
     constructor(bytes: BufferLike) {
         this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     }
 
+    // Helpers for comparisons; unchanged
     public static stringCompare(a: string, b: string): number {
         return a.localeCompare(b);
     }
@@ -39,112 +39,171 @@ export class BinaryReader {
 
     public setBuffer(bytes: BufferLike): void {
         this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-
         this.currentOffset = 0;
     }
 
-    public readAddressArray(): Address[] {
-        const length = this.readU16();
-        const result: Address[] = new Array<Address>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readAddress();
-        }
-
-        return result;
+    /**
+     * Reads a single unsigned byte (u8).
+     */
+    public readU8(): u8 {
+        this.verifyEnd(this.currentOffset + U8_BYTE_LENGTH);
+        const value = this.buffer.getUint8(this.currentOffset);
+        this.currentOffset += U8_BYTE_LENGTH;
+        return value;
     }
 
-    public readU256Array(): bigint[] {
-        const length = this.readU16();
-        const result: bigint[] = new Array<bigint>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU256();
-        }
-
-        return result;
+    /**
+     * Reads an unsigned 16-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readU16(be: boolean = true): u16 {
+        this.verifyEnd(this.currentOffset + U16_BYTE_LENGTH);
+        const value = this.buffer.getUint16(this.currentOffset, !be);
+        this.currentOffset += U16_BYTE_LENGTH;
+        return value;
     }
 
-    public readU128Array(): bigint[] {
-        const length = this.readU16();
-        const result: bigint[] = new Array<bigint>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU128();
-        }
-
-        return result;
+    /**
+     * Reads an unsigned 32-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readU32(be: boolean = true): u32 {
+        this.verifyEnd(this.currentOffset + U32_BYTE_LENGTH);
+        const value = this.buffer.getUint32(this.currentOffset, !be);
+        this.currentOffset += U32_BYTE_LENGTH;
+        return value;
     }
 
-    public readU64Array(): bigint[] {
-        const length = this.readU16();
-        const result: bigint[] = new Array<bigint>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU64();
-        }
-
-        return result;
+    /**
+     * Reads an unsigned 64-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readU64(be: boolean = true): bigint {
+        this.verifyEnd(this.currentOffset + U64_BYTE_LENGTH);
+        const value = this.buffer.getBigUint64(this.currentOffset, !be);
+        this.currentOffset += U64_BYTE_LENGTH;
+        return value;
     }
 
-    public readU32Array(): u32[] {
-        const length = this.readU16();
-        const result: u32[] = new Array<u32>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU32();
+    /**
+     * Reads a 128-bit unsigned integer. By default, read big-endian.
+     * @param be - Endianness; true => big-endian (default).
+     */
+    public readU128(be: boolean = true): bigint {
+        const raw = this.readBytes(U128_BYTE_LENGTH);
+        let bytes = raw;
+        // If data was written in little-endian, we reverse before interpreting
+        if (!be) {
+            bytes = this.reverseBytes(raw);
         }
-
-        return result;
+        return BigInt('0x' + this.toHexString(bytes));
     }
 
-    public readU16Array(): u16[] {
-        const length = this.readU16();
-        const result: u16[] = new Array<u16>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU16();
+    /**
+     * Reads a 256-bit unsigned integer. Same approach as readU128.
+     * @param be - Endianness; true => big-endian (default).
+     */
+    public readU256(be: boolean = true): bigint {
+        const raw = this.readBytes(U256_BYTE_LENGTH);
+        let bytes = raw;
+        if (!be) {
+            bytes = this.reverseBytes(raw);
         }
-
-        return result;
+        return BigInt('0x' + this.toHexString(bytes));
     }
 
-    public readU8Array(): u8[] {
-        const length = this.readU16();
-        const result: u8[] = new Array<u8>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readU8();
+    /**
+     * Reads a 128-bit signed integer. Interpret the sign bit if big-endian.
+     * @param be - Endianness; true => big-endian (default).
+     */
+    public readI128(be: boolean = true): bigint {
+        const raw = this.readBytes(I128_BYTE_LENGTH);
+        let bytes = raw;
+        if (!be) {
+            bytes = this.reverseBytes(raw);
         }
 
-        return result;
-    }
+        // Construct as a 128-bit two's complement
+        let value = BigInt('0x' + this.toHexString(bytes));
 
-    public readStringArray(): string[] {
-        const length = this.readU16();
-        const result: string[] = new Array<string>(length);
-
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readStringWithLength();
+        // If the top bit is set (sign bit in big-endian), interpret negative
+        const signBitMask = 0x80;
+        if (bytes[0] & signBitMask) {
+            // (1 << 128)
+            const twoTo128 = BigInt(1) << BigInt(128);
+            // 2's complement
+            value = value - twoTo128;
         }
-
-        return result;
+        return value;
     }
 
-    public readBytesArray(): Uint8Array[] {
-        const length = this.readU16();
-        const result: Uint8Array[] = new Array<Uint8Array>(length);
+    /**
+     * Read a boolean (u8 != 0).
+     */
+    public readBoolean(): boolean {
+        return this.readU8() !== 0;
+    }
 
-        for (let i = 0; i < length; i++) {
-            result[i] = this.readBytesWithLength();
+    /**
+     * Reads 32 bits as a `Selector` in *little-endian*
+     */
+    public readSelector(): Selector {
+        // so we readU32(false) => read in little-endian
+        return this.readU32(false);
+    }
+
+    /**
+     * Reads a raw sequence of bytes (length must be known).
+     * If zeroStop = true, stops if we encounter 0x00 early.
+     */
+    public readBytes(length: u32, zeroStop: boolean = false): Uint8Array {
+        this.verifyEnd(this.currentOffset + length);
+        let bytes = new Uint8Array(length);
+
+        for (let i: u32 = 0; i < length; i++) {
+            const b = this.buffer.getUint8(this.currentOffset++);
+            if (zeroStop && b === 0) {
+                bytes = bytes.subarray(0, i);
+                break;
+            }
+            bytes[i] = b;
         }
-
-        return result;
+        return bytes;
     }
 
-    public readBytesWithLength(maxLength: number = 0): Uint8Array {
-        const length = this.readU32();
+    /**
+     * Reads a string of the given length in raw bytes. By default, do NOT zero-stop
+     * (matching how we wrote the raw bytes).
+     */
+    public readString(length: u16): string {
+        const textDecoder = new TextDecoder();
+        const bytes = this.readBytes(length, false);
+        return textDecoder.decode(bytes);
+    }
 
+    /**
+     * Reads a string that was written as [u16 length][raw bytes].
+     */
+    public readStringWithLength(be: boolean = true): string {
+        const length = this.readU16(be);
+        return this.readString(length);
+    }
+
+    /**
+     * Reads an address.
+     */
+    public readAddress(): Address {
+        const bytes: u8[] = Array.from(this.readBytes(ADDRESS_BYTE_LENGTH));
+        return new Address(bytes);
+    }
+
+    /**
+     * Reads bytes written as [u32 length][bytes].
+     * @param maxLength if > 0, enforces an upper bound
+     * @param be
+     */
+    public readBytesWithLength(maxLength: number = 0, be: boolean = true): Uint8Array {
+        const length = this.readU32(be);
         if (maxLength > 0 && length > maxLength) {
             throw new Error('Data length exceeds maximum length.');
         }
@@ -152,133 +211,109 @@ export class BinaryReader {
         return this.readBytes(length);
     }
 
-    public readU8(): u8 {
-        this.verifyEnd(this.currentOffset + U8_BYTE_LENGTH);
+    // ------------------ Array readers ------------------ //
 
-        const value = this.buffer.getUint8(this.currentOffset);
-        this.currentOffset += U8_BYTE_LENGTH;
-
-        return value;
+    public readAddressArray(be: boolean = true): Address[] {
+        const length = this.readU16(be);
+        const result: Address[] = new Array<Address>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readAddress();
+        }
+        return result;
     }
 
-    public readU16(): u16 {
-        this.verifyEnd(this.currentOffset + U16_BYTE_LENGTH);
-
-        const value = this.buffer.getUint16(this.currentOffset, true);
-        this.currentOffset += U16_BYTE_LENGTH;
-
-        return value;
+    public readU256Array(be: boolean = true): bigint[] {
+        const length = this.readU16(be);
+        const result: bigint[] = new Array<bigint>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU256(be);
+        }
+        return result;
     }
 
-    public readU32(le: boolean = true): u32 {
-        this.verifyEnd(this.currentOffset + U32_BYTE_LENGTH);
-
-        const value = this.buffer.getUint32(this.currentOffset, le);
-        this.currentOffset += U32_BYTE_LENGTH;
-
-        return value;
+    public readU128Array(be: boolean = true): bigint[] {
+        const length = this.readU16(be);
+        const result: bigint[] = new Array<bigint>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU128(be);
+        }
+        return result;
     }
 
-    public readU64(): bigint {
-        this.verifyEnd(this.currentOffset + U64_BYTE_LENGTH);
-
-        const value: bigint = this.buffer.getBigUint64(this.currentOffset, true);
-        this.currentOffset += U64_BYTE_LENGTH;
-
-        return value;
+    public readU64Array(be: boolean = true): bigint[] {
+        const length = this.readU16(be);
+        const result: bigint[] = new Array<bigint>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU64(be);
+        }
+        return result;
     }
 
-    public readAddressValueTuple(): AddressMap<bigint> {
-        const length = this.readU16();
+    public readU32Array(be: boolean = true): u32[] {
+        const length = this.readU16(be);
+        const result: u32[] = new Array<u32>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU32(be);
+        }
+        return result;
+    }
+
+    public readU16Array(be: boolean = true): u16[] {
+        const length = this.readU16(be);
+        const result: u16[] = new Array<u16>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU16(be);
+        }
+        return result;
+    }
+
+    public readU8Array(): u8[] {
+        const length = this.readU16(true); // by default big-endian
+        const result: u8[] = new Array<u8>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readU8();
+        }
+        return result;
+    }
+
+    public readStringArray(be: boolean = true): string[] {
+        const length = this.readU16(be);
+        const result: string[] = new Array<string>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readStringWithLength(be);
+        }
+        return result;
+    }
+
+    public readBytesArray(be: boolean = true): Uint8Array[] {
+        const length = this.readU16(be);
+        const result: Uint8Array[] = new Array<Uint8Array>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readBytesWithLength(0, be);
+        }
+        return result;
+    }
+
+    /**
+     * Reads [u16 length][ (address, u256) pairs ].
+     */
+    public readAddressValueTuple(be: boolean = true): AddressMap<bigint> {
+        const length = this.readU16(be);
         const result = new AddressMap<bigint>();
 
         for (let i = 0; i < length; i++) {
             const address = this.readAddress();
-            const value = this.readU256();
+            const value = this.readU256(be);
 
-            if (result.has(address)) throw new Error('Duplicate address found in map');
-
+            if (result.has(address)) {
+                throw new Error('Duplicate address found in map');
+            }
             result.set(address, value);
         }
-
         return result;
     }
 
-    public readU128(): bigint {
-        const next16Bytes = this.readBytes(U128_BYTE_LENGTH);
-
-        return BigInt(
-            '0x' + next16Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
-        );
-    }
-
-    public readU256(): bigint {
-        const next32Bytes = this.readBytes(U256_BYTE_LENGTH);
-
-        return BigInt(
-            '0x' + next32Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
-        );
-    }
-
-    readI128() {
-        const next16Bytes = this.readBytes(I128_BYTE_LENGTH);
-        let value = BigInt(
-            '0x' + next16Bytes.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''),
-        );
-
-        if (next16Bytes[0] & 0x80) {
-            const mask = (BigInt(1) << BigInt(128)) - BigInt(1);
-            value = (value ^ mask) + BigInt(1);
-            value = -value;
-        }
-
-        return value;
-    }
-
-    public readBytes(length: u32, zeroStop: boolean = false): Uint8Array {
-        let bytes: Uint8Array = new Uint8Array(length);
-        for (let i: u32 = 0; i < length; i++) {
-            const byte: u8 = this.readU8();
-            if (zeroStop && byte === 0) {
-                bytes = bytes.slice(0, i);
-                break;
-            }
-
-            bytes[i] = byte;
-        }
-
-        return bytes;
-    }
-
-    public readString(length: u16): string {
-        const textDecoder = new TextDecoder();
-        const bytes = this.readBytes(length, true);
-
-        return textDecoder.decode(bytes);
-    }
-
-    public readSelector(): Selector {
-        return this.readU32(false);
-    }
-
-    public readStringWithLength(): string {
-        const length = this.readU16();
-
-        return this.readString(length);
-    }
-
-    public readBoolean(): boolean {
-        return this.readU8() !== 0;
-    }
-
-    public readAddress(): Address {
-        const bytes: u8[] = new Array<u8>(ADDRESS_BYTE_LENGTH);
-        for (let i: u32 = 0; i < ADDRESS_BYTE_LENGTH; i++) {
-            bytes[i] = this.readU8();
-        }
-
-        return new Address(bytes);
-    }
+    // --------------------------------------------------- //
 
     public getOffset(): u16 {
         return this.currentOffset;
@@ -288,9 +323,32 @@ export class BinaryReader {
         this.currentOffset = offset;
     }
 
+    /**
+     * Verifies we have enough bytes in the buffer to read up to `size`.
+     */
     public verifyEnd(size: i32): void {
-        if (this.currentOffset > this.buffer.byteLength) {
-            throw new Error(`Expected to read ${size} bytes but read ${this.currentOffset} bytes`);
+        if (size > this.buffer.byteLength) {
+            throw new Error(
+                `Attempt to read beyond buffer length: requested up to byte offset ${size}, but buffer is only ${this.buffer.byteLength} bytes.`,
+            );
         }
+    }
+
+    /**
+     * Utility: reverses a byte array in-place or returns a reversed copy.
+     */
+    private reverseBytes(bytes: Uint8Array): Uint8Array {
+        const out = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) {
+            out[i] = bytes[bytes.length - 1 - i];
+        }
+        return out;
+    }
+
+    /**
+     * Utility: turn bytes into a hex string without `0x` prefix.
+     */
+    private toHexString(bytes: Uint8Array): string {
+        return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
     }
 }

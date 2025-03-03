@@ -29,27 +29,27 @@ export class BinaryWriter {
         this.buffer.setUint8(this.currentOffset++, value);
     }
 
-    public writeU16(value: u16): void {
+    public writeU16(value: u16, be: boolean = true): void {
         if (value > 65535) throw new Error('u16 value is too large.');
 
         this.allocSafe(U16_BYTE_LENGTH);
-        this.buffer.setUint16(this.currentOffset, value, true);
+        this.buffer.setUint16(this.currentOffset, value, !be);
         this.currentOffset += 2;
     }
 
-    public writeU32(value: u32, le: boolean = true): void {
+    public writeU32(value: u32, be: boolean = true): void {
         if (value > 4294967295) throw new Error('u32 value is too large.');
 
         this.allocSafe(U32_BYTE_LENGTH);
-        this.buffer.setUint32(this.currentOffset, value, le);
+        this.buffer.setUint32(this.currentOffset, value, !be);
         this.currentOffset += 4;
     }
 
-    public writeU64(value: u64): void {
+    public writeU64(value: u64, be: boolean = true): void {
         if (value > 18446744073709551615n) throw new Error('u64 value is too large.');
 
         this.allocSafe(U64_BYTE_LENGTH);
-        this.buffer.setBigUint64(this.currentOffset, value, true);
+        this.buffer.setBigUint64(this.currentOffset, value, !be);
         this.currentOffset += 8;
     }
 
@@ -61,7 +61,7 @@ export class BinaryWriter {
         this.writeU8(value ? 1 : 0);
     }
 
-    public writeI128(bigIntValue: bigint): void {
+    public writeI128(bigIntValue: bigint, be: boolean = true): void {
         if (
             bigIntValue > 170141183460469231731687303715884105727n ||
             bigIntValue < -170141183460469231731687303715884105728n
@@ -76,12 +76,18 @@ export class BinaryWriter {
             throw new Error(`Invalid i128 value: ${bigIntValue}`);
         }
 
-        for (let i = 0; i < bytesToHex.byteLength; i++) {
-            this.writeU8(bytesToHex[i]);
+        if (be) {
+            for (let i = 0; i < bytesToHex.byteLength; i++) {
+                this.writeU8(bytesToHex[i]);
+            }
+        } else {
+            for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
+                this.writeU8(bytesToHex[i]);
+            }
         }
     }
 
-    public writeU256(bigIntValue: bigint): void {
+    public writeU256(bigIntValue: bigint, be: boolean = true): void {
         if (
             bigIntValue >
             115792089237316195423570985008687907853269984665640564039457584007913129639935n
@@ -96,12 +102,18 @@ export class BinaryWriter {
             throw new Error(`Invalid u256 value: ${bigIntValue}`);
         }
 
-        for (let i = 0; i < bytesToHex.byteLength; i++) {
-            this.writeU8(bytesToHex[i]);
+        if (be) {
+            for (let i = 0; i < bytesToHex.byteLength; i++) {
+                this.writeU8(bytesToHex[i]);
+            }
+        } else {
+            for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
+                this.writeU8(bytesToHex[i]);
+            }
         }
     }
 
-    public writeU128(bigIntValue: bigint): void {
+    public writeU128(bigIntValue: bigint, be: boolean = true): void {
         if (bigIntValue > 340282366920938463463374607431768211455n) {
             throw new Error('u128 value is too large.');
         }
@@ -113,8 +125,14 @@ export class BinaryWriter {
             throw new Error(`Invalid u128 value: ${bigIntValue}`);
         }
 
-        for (let i = 0; i < bytesToHex.byteLength; i++) {
-            this.writeU8(bytesToHex[i]);
+        if (be) {
+            for (let i = 0; i < bytesToHex.byteLength; i++) {
+                this.writeU8(bytesToHex[i]);
+            }
+        } else {
+            for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
+                this.writeU8(bytesToHex[i]);
+            }
         }
     }
 
@@ -186,15 +204,10 @@ export class BinaryWriter {
         }
     }
 
-    public writeABISelector(name: string, selector: Selector): void {
-        this.writeStringWithLength(name);
-        this.writeSelector(selector);
-    }
-
-    public writeAddressValueTuple(map: AddressMap<bigint>): void {
+    public writeAddressValueTuple(map: AddressMap<bigint>, be: boolean = true): void {
         if (map.size > 65535) throw new Error('Map size is too large');
 
-        this.writeU16(map.size);
+        this.writeU16(map.size, be);
 
         const keys = Array.from(map.keys());
         for (let i = 0; i < keys.length; i++) {
@@ -204,29 +217,7 @@ export class BinaryWriter {
             if (value === null || value === undefined) throw new Error('Value not found');
 
             this.writeAddress(key);
-            this.writeU256(value);
-        }
-    }
-
-    public writeLimitedAddressBytesMap(map: AddressMap<Uint8Array[]>): void {
-        if (map.size > 8) throw new Error('Too many contract calls');
-
-        this.writeU8(map.size);
-
-        const keys: Address[] = Array.from(map.keys());
-        for (let i: i32 = 0; i < keys.length; i++) {
-            const address: Address = keys[i];
-            const calls: Uint8Array[] | undefined = map.get(address);
-
-            if (!calls) throw new Error('Calls not found');
-            if (calls.length > 10) throw new Error('Too many calls.');
-
-            this.writeAddress(address);
-            this.writeU8(calls.length);
-
-            for (let j: i32 = 0; j < calls.length; j++) {
-                this.writeBytesWithLength(calls[j]);
-            }
+            this.writeU256(value, be);
         }
     }
 
@@ -245,32 +236,32 @@ export class BinaryWriter {
         }
     }
 
-    public writeU32Array(value: u32[]): void {
+    public writeU32Array(value: u32[], be: boolean = true): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 
-        this.writeU16(value.length);
+        this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU32(value[i]);
+            this.writeU32(value[i], be);
         }
     }
 
-    public writeU256Array(value: bigint[]): void {
+    public writeU256Array(value: bigint[], be: boolean = true): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 
-        this.writeU16(value.length);
+        this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU256(value[i]);
+            this.writeU256(value[i], be);
         }
     }
 
-    public writeU128Array(value: bigint[]): void {
+    public writeU128Array(value: bigint[], be: boolean = true): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 
-        this.writeU16(value.length);
+        this.writeU16(value.length, be);
         for (let i = 0; i < value.length; i++) {
-            this.writeU128(value[i]);
+            this.writeU128(value[i], be);
         }
     }
 
@@ -284,13 +275,13 @@ export class BinaryWriter {
         }
     }
 
-    public writeU16Array(value: u16[]): void {
+    public writeU16Array(value: u16[], be: boolean = true): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 
-        this.writeU16(value.length);
+        this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU16(value[i]);
+            this.writeU16(value[i], be);
         }
     }
 
@@ -304,13 +295,13 @@ export class BinaryWriter {
         }
     }
 
-    public writeU64Array(value: bigint[]): void {
+    public writeU64Array(value: bigint[], be: boolean = true): void {
         if (value.length > 65535) throw new Error('Array size is too large');
 
-        this.writeU16(value.length);
+        this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU64(value[i]);
+            this.writeU64(value[i], be);
         }
     }
 
@@ -322,33 +313,6 @@ export class BinaryWriter {
         for (let i = 0; i < value.length; i++) {
             this.writeBytesWithLength(value[i]);
         }
-    }
-
-    public writeSelectorArray(value: Selector[]): void {
-        if (value.length > 65535) throw new Error('Array size is too large');
-
-        this.writeU16(value.length);
-
-        for (let i = 0; i < value.length; i++) {
-            this.writeSelector(value[i]);
-        }
-    }
-
-    private getChecksum(): u32 {
-        let checksum: u32 = 0;
-        for (let i = 0; i < this.buffer.byteLength; i++) {
-            checksum += this.buffer.getUint8(i);
-        }
-
-        return checksum % 2 ** 32;
-    }
-
-    private writeMethodSelectorMap(value: Set<Selector>): void {
-        this.writeU16(value.size);
-
-        value.forEach((selector: Selector, _value: Selector, _set: Set<Selector>): void => {
-            this.writeSelector(selector);
-        });
     }
 
     private verifyAddress(pubKey: Address): void {
