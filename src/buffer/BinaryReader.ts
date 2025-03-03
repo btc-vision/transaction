@@ -145,11 +145,10 @@ export class BinaryReader {
     }
 
     /**
-     * Reads 32 bits as a `Selector` in *little-endian*
+     * Reads 32 bits
      */
     public readSelector(): Selector {
-        // so we readU32(false) => read in little-endian
-        return this.readU32(false);
+        return this.readU32(true);
     }
 
     /**

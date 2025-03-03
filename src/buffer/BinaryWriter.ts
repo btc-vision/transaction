@@ -54,7 +54,7 @@ export class BinaryWriter {
     }
 
     public writeSelector(value: Selector): void {
-        this.writeU32(value, false);
+        this.writeU32(value, true);
     }
 
     public writeBoolean(value: boolean): void {
