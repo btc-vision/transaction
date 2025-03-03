@@ -90,9 +90,10 @@ export class BinaryWriter {
     public writeU256(bigIntValue: bigint, be: boolean = true): void {
         if (
             bigIntValue >
-            115792089237316195423570985008687907853269984665640564039457584007913129639935n
+                115792089237316195423570985008687907853269984665640564039457584007913129639935n &&
+            bigIntValue < 0n
         ) {
-            throw new Error('u256 value is too large.');
+            throw new Error('u256 value is too large or negative.');
         }
 
         this.allocSafe(U256_BYTE_LENGTH);
@@ -114,8 +115,8 @@ export class BinaryWriter {
     }
 
     public writeU128(bigIntValue: bigint, be: boolean = true): void {
-        if (bigIntValue > 340282366920938463463374607431768211455n) {
-            throw new Error('u128 value is too large.');
+        if (bigIntValue > 340282366920938463463374607431768211455n && bigIntValue < 0n) {
+            throw new Error('u128 value is too large or negative.');
         }
 
         this.allocSafe(U128_BYTE_LENGTH);
@@ -325,7 +326,6 @@ export class BinaryWriter {
 
     private resize(size: u32): void {
         const buf: Uint8Array = new Uint8Array(this.buffer.byteLength + size);
-
         for (let i: i32 = 0; i < this.buffer.byteLength; i++) {
             buf[i] = this.buffer.getUint8(i);
         }
