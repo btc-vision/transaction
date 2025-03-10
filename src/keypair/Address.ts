@@ -54,6 +54,10 @@ export class Address extends Uint8Array {
         );
     }
 
+    public static zero(): Address {
+        return new Address();
+    }
+
     /**
      * Create an address from a hex string
      * @param {string} pubKey The public key
