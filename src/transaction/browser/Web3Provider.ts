@@ -5,8 +5,15 @@ import {
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { DeploymentResult, InteractionResponse } from '../TransactionFactory';
 
-export type InteractionParametersWithoutSigner = Omit<IInteractionParameters, 'signer'>;
-export type IDeploymentParametersWithoutSigner = Omit<IDeploymentParameters, 'signer' | 'network'>;
+export type InteractionParametersWithoutSigner = Omit<
+    IInteractionParameters,
+    'signer' | 'preimage'
+>;
+
+export type IDeploymentParametersWithoutSigner = Omit<
+    IDeploymentParameters,
+    'signer' | 'network' | 'preimage'
+>;
 
 export interface BroadcastTransactionOptions {
     raw: string;
