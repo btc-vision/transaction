@@ -1,7 +1,7 @@
+import { PsbtOutputExtended } from '@btc-vision/bitcoin';
+import { ChainId } from '../../network/ChainId.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
-import { ChainId } from '../../network/ChainId.js';
-import { PsbtOutputExtended } from '@btc-vision/bitcoin';
 
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: string;
@@ -13,6 +13,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     estimatedFees?: bigint;
 
     optionalOutputs?: PsbtOutputExtended[];
+    optionalInputs?: UTXO[];
 
     chainId?: ChainId;
 

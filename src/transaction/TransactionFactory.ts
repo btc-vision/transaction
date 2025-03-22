@@ -1,6 +1,8 @@
 import { Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
+import { InteractionParametersWithoutSigner } from './browser/Web3Provider.js';
+import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
 import {
     CustomScriptTransaction,
     ICustomTransactionParameters,
@@ -18,8 +20,6 @@ import {
     ITransactionParameters,
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
-import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
-import { InteractionParametersWithoutSigner } from './browser/Web3Provider.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -147,6 +147,8 @@ export class TransactionFactory {
     public async signInteraction(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
     ): Promise<InteractionResponse> {
+        console.log('TRANSACTION PACKAGE INTERACTION PARAMETERS', interactionParameters);
+
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -189,6 +191,7 @@ export class TransactionFactory {
         const feeEstimationFundingTransaction = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
+            optionalInputs: [],
         });
         if (!feeEstimationFundingTransaction) {
             throw new Error('Could not sign funding transaction.');
@@ -199,6 +202,7 @@ export class TransactionFactory {
         const signedTransaction = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
+            optionalInputs: [],
         });
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
@@ -283,6 +287,7 @@ export class TransactionFactory {
             preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
             optionalOutputs: [],
+            optionalInputs: [],
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
@@ -387,6 +392,8 @@ export class TransactionFactory {
         if (typeof window === 'undefined' || !window.opnet || !window.opnet.web3) {
             return null;
         }
+
+        console.log('TRANSACTION PACKAGE INTERACTION PARAMETERS OP_WALLET', interactionParameters);
 
         const opnet = window.opnet.web3;
         const interaction = await opnet.signInteraction({

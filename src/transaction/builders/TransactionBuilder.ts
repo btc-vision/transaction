@@ -1,3 +1,4 @@
+import * as ecc from '@bitcoinerlab/secp256k1';
 import {
     initEccLib,
     Network,
@@ -10,19 +11,18 @@ import {
     Transaction,
     varuint,
 } from '@btc-vision/bitcoin';
-import * as ecc from '@bitcoinerlab/secp256k1';
-import { UpdateInput } from '../interfaces/Tap.js';
+import { ECPairInterface } from 'ecpair';
+import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { EcKeyPair } from '../../keypair/EcKeyPair.js';
+import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import {
     IFundingTransactionParameters,
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
-import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ECPairInterface } from 'ecpair';
-import { AddressVerificator } from '../../keypair/AddressVerificator.js';
+import { UpdateInput } from '../interfaces/Tap.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
-import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 initEccLib(ecc);
 
@@ -66,6 +66,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @param {ITransactionParameters} parameters - The transaction parameters
      */
     public optionalOutputs: PsbtOutputExtended[] | undefined;
+    public optionalInputs: UTXO[] | undefined;
 
     /**
      * @description The transaction itself.
@@ -161,6 +162,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             : false;
 
         this.optionalOutputs = parameters.optionalOutputs;
+        this.optionalInputs = parameters.optionalInputs;
 
         this.from = TransactionBuilder.getFrom(parameters.from, this.signer, this.network);
 
@@ -236,6 +238,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             from: this.from,
             amount: this.estimatedFees,
             optionalOutputs: this.optionalOutputs,
+            optionalInputs: this.optionalInputs,
         };
     }
 
@@ -551,6 +554,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         for (const utxo of this.utxos) {
             total += utxo.value;
         }
+        if (this.optionalInputs) {
+            for (const input of this.optionalInputs) {
+                total += input.value;
+            }
+        }
         return total;
     }
 
@@ -602,6 +610,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             for (let i = 0; i < this.utxos.length; i++) {
                 const utxo = this.utxos[i];
+                const input = this.generatePsbtInputExtended(utxo, i);
+
+                this.addInput(input);
+            }
+        }
+
+        if (this.optionalInputs) {
+            for (let i = 0; i < this.optionalInputs.length; i++) {
+                const utxo = this.optionalInputs[i];
                 const input = this.generatePsbtInputExtended(utxo, i);
 
                 this.addInput(input);
