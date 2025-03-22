@@ -119,6 +119,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected utxos: UTXO[];
 
     /**
+     * @description The inputs of the transaction
+     * @protected
+     */
+    protected optionalInputs: UTXO[];
+
+    /**
      * @description The address where the transaction is sent to
      * @protected
      */
@@ -154,6 +160,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.priorityFee = parameters.priorityFee ?? 0n;
         this.gasSatFee = parameters.gasSatFee ?? 0n;
         this.utxos = parameters.utxos;
+        this.optionalInputs = parameters.optionalInputs || [];
         this.to = parameters.to || undefined;
 
         this.isPubKeyDestination = this.to
@@ -236,6 +243,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             from: this.from,
             amount: this.estimatedFees,
             optionalOutputs: this.optionalOutputs,
+            optionalInputs: this.optionalInputs,
         };
     }
 
@@ -551,6 +559,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         for (const utxo of this.utxos) {
             total += utxo.value;
         }
+
+        for (const utxo of this.optionalInputs) {
+            total += utxo.value;
+        }
+
         return total;
     }
 
@@ -562,6 +575,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected calculateTotalVOutAmount(): bigint {
         let total: bigint = 0n;
         for (const utxo of this.utxos) {
+            total += utxo.value;
+        }
+
+        for (const utxo of this.optionalInputs) {
             total += utxo.value;
         }
 
@@ -602,6 +619,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             for (let i = 0; i < this.utxos.length; i++) {
                 const utxo = this.utxos[i];
+                const input = this.generatePsbtInputExtended(utxo, i);
+
+                this.addInput(input);
+            }
+        }
+
+        if (this.optionalInputs) {
+            for (let i = 0; i < this.optionalInputs.length; i++) {
+                const utxo = this.optionalInputs[i];
                 const input = this.generatePsbtInputExtended(utxo, i);
 
                 this.addInput(input);
@@ -672,6 +698,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected verifyUTXOValidity(): void {
         for (const utxo of this.utxos) {
+            if (!utxo.scriptPubKey) {
+                throw new Error('Address is required');
+            }
+        }
+
+        for (const utxo of this.optionalInputs) {
             if (!utxo.scriptPubKey) {
                 throw new Error('Address is required');
             }

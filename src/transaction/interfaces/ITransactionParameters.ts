@@ -11,7 +11,8 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     nonWitnessUtxo?: Buffer;
     estimatedFees?: bigint;
-
+    
+    optionalInputs?: UTXO[];
     optionalOutputs?: PsbtOutputExtended[];
 
     chainId?: ChainId;

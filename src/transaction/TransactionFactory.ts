@@ -103,7 +103,12 @@ export class TransactionFactory {
             this.getPriorityFee(interactionParameters) +
             preTransaction.getOptionalOutputValue();
 
-        const feeEstimationFundingTransaction = await this.createFundTransaction({ ...parameters });
+        const feeEstimationFundingTransaction = await this.createFundTransaction({
+            ...parameters,
+            optionalOutputs: [],
+            optionalInputs: [],
+        });
+
         if (!feeEstimationFundingTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -189,7 +194,9 @@ export class TransactionFactory {
         const feeEstimationFundingTransaction = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
+            optionalInputs: [],
         });
+
         if (!feeEstimationFundingTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -199,7 +206,9 @@ export class TransactionFactory {
         const signedTransaction = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
+            optionalInputs: [],
         });
+
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -259,7 +268,12 @@ export class TransactionFactory {
             this.getPriorityFee(deploymentParameters) +
             preTransaction.getOptionalOutputValue();
 
-        const fundingTransaction: FundingTransaction = new FundingTransaction(parameters);
+        const fundingTransaction: FundingTransaction = new FundingTransaction({
+            ...parameters,
+            optionalInputs: [],
+            optionalOutputs: [],
+        });
+
         const signedTransaction: Transaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
@@ -283,6 +297,7 @@ export class TransactionFactory {
             preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
             optionalOutputs: [],
+            optionalInputs: [],
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
