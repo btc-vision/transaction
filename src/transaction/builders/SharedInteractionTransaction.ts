@@ -67,7 +67,7 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Calldata is required');
         }
 
-        if(!parameters.preimage) {
+        if (!parameters.preimage) {
             throw new Error('Preimage is required');
         }
 
@@ -319,7 +319,36 @@ export abstract class SharedInteractionTransaction<
             if (i === 0) {
                 transaction.finalizeInput(i, this.customFinalizer);
             } else {
-                transaction.finalizeInput(i);
+                try {
+                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                } catch (e) {
+                    transaction.finalizeInput(i);
+                }
+            }
+        }
+    }
+
+    protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
+        for (let i = 0; i < transaction.data.inputs.length; i++) {
+            if (i === 0) {
+                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
+
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i],
+                    i,
+                    this.getSignerKey(),
+                );
+
+                transaction.finalizeInput(0, this.customFinalizer);
+            } else {
+                await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
+
+                try {
+                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                } catch (e) {
+                    transaction.finalizeInput(i);
+                }
             }
         }
     }
@@ -356,32 +385,6 @@ export abstract class SharedInteractionTransaction<
         const amount = this.addOptionalOutputsAndGetAmount();
         if (!this.disableAutoRefund) {
             await this.addRefundOutput(amountSpent + amount);
-        }
-    }
-
-    private async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
-
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
-                );
-
-                transaction.finalizeInput(i, this.customFinalizer);
-            } else {
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
-                );
-
-                transaction.finalizeInput(i);
-            }
         }
     }
 

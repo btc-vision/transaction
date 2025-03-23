@@ -626,9 +626,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         if (this.optionalInputs) {
-            for (let i = 0; i < this.optionalInputs.length; i++) {
-                const utxo = this.optionalInputs[i];
-                const input = this.generatePsbtInputExtended(utxo, i);
+            for (
+                let i = this.utxos.length;
+                i < this.optionalInputs.length + this.utxos.length;
+                i++
+            ) {
+                const utxo = this.optionalInputs[i - this.utxos.length];
+                const input = this.generatePsbtInputExtended(utxo, i, true);
 
                 this.addInput(input);
             }

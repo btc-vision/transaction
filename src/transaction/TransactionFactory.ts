@@ -174,9 +174,30 @@ export class TransactionFactory {
             throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
+        const inputs = (interactionParameters.optionalInputs || []).map((input) => {
+            let nonWitness = input.nonWitnessUtxo;
+            if (
+                nonWitness &&
+                !(nonWitness instanceof Uint8Array) &&
+                typeof nonWitness === 'object'
+            ) {
+                nonWitness = Buffer.from(
+                    Uint8Array.from(
+                        Object.values(input.nonWitnessUtxo as unknown as Record<number, number>),
+                    ),
+                );
+            }
+
+            return {
+                ...input,
+                nonWitnessUtxo: nonWitness,
+            };
+        });
+
         const preTransaction: InteractionTransaction = new InteractionTransaction({
             ...interactionParameters,
             utxos: [interactionParameters.utxos[0]], // we simulate one input here.
+            optionalInputs: inputs,
         });
 
         // we don't sign that transaction, we just need the parameters.
@@ -221,11 +242,14 @@ export class TransactionFactory {
 
         const newParams: IInteractionParameters = {
             ...interactionParameters,
-            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
+            utxos: [
+                ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
+            ], // always 0
             randomBytes: preTransaction.getRndBytes(),
             preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
+            optionalInputs: inputs,
         };
 
         const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
@@ -399,7 +423,7 @@ export class TransactionFactory {
     private async detectInteractionOPWallet(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
     ): Promise<InteractionResponse | null> {
-        if (typeof window === 'undefined' || !window.opnet || !window.opnet.web3) {
+        if (typeof window === 'undefined' || !window || !window.opnet || !window.opnet.web3) {
             return null;
         }
 
@@ -426,6 +450,7 @@ export class TransactionFactory {
         const challengeTransaction: ChallengeSolutionTransaction = new ChallengeSolutionTransaction(
             parameters,
         );
+
         const signedTransaction: Transaction = await challengeTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');

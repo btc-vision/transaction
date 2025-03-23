@@ -83,6 +83,8 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public get unisat(): Unisat {
+        if (!window) throw new Error('Window not found');
+
         const module = window.unisat;
         if (!module) {
             throw new Error('Unisat extension not found');

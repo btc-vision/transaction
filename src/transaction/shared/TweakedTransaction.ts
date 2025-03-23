@@ -462,6 +462,10 @@ export abstract class TweakedTransaction extends Logger {
             return;
         }
 
+        await this.signInputsNonWalletBased(transaction);
+    }
+
+    protected async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
         // non web based signing.
         const txs: PsbtInput[] = transaction.data.inputs;
 
@@ -646,10 +650,15 @@ export abstract class TweakedTransaction extends Logger {
      * Generate the PSBT input extended, supporting various script types
      * @param {UTXO} utxo The UTXO
      * @param {number} i The index of the input
+     * @param {UTXO} extra Extra UTXO
      * @protected
      * @returns {PsbtInputExtended} The PSBT input extended
      */
-    protected generatePsbtInputExtended(utxo: UTXO, i: number): PsbtInputExtended {
+    protected generatePsbtInputExtended(
+        utxo: UTXO,
+        i: number,
+        extra: boolean = false,
+    ): PsbtInputExtended {
         const script = Buffer.from(utxo.scriptPubKey.hex, 'hex');
 
         const input: PsbtInputExtended = {
@@ -788,15 +797,29 @@ export abstract class TweakedTransaction extends Logger {
             this.error(`Unknown or unsupported script type for output: ${utxo.scriptPubKey.hex}`);
         }
 
-        // TapLeafScript if available
-        if (this.tapLeafScript) {
-            input.tapLeafScript = [this.tapLeafScript];
+        if (i === 0) {
+            // TapLeafScript if available
+            if (this.tapLeafScript) {
+                input.tapLeafScript = [this.tapLeafScript];
+            }
         }
 
         // If the first input and we have a global nonWitnessUtxo not yet set
         if (i === 0 && this.nonWitnessUtxo) {
             input.nonWitnessUtxo = this.nonWitnessUtxo;
         }
+
+        /*if (utxo.nonWitnessUtxo && extra) {
+            const witness = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                ? utxo.nonWitnessUtxo
+                : typeof utxo.nonWitnessUtxo === 'string'
+                  ? Buffer.from(utxo.nonWitnessUtxo, 'hex')
+                  : (utxo.nonWitnessUtxo as unknown) instanceof Uint8Array
+                    ? Buffer.from(utxo.nonWitnessUtxo)
+                    : undefined;
+
+            input.nonWitnessUtxo = witness;
+        }*/
 
         return input;
     }
@@ -861,7 +884,16 @@ export abstract class TweakedTransaction extends Logger {
             }
 
             if (tweakedSigner) {
-                await this.signTaprootInput(tweakedSigner, transaction, i);
+                try {
+                    await this.signTaprootInput(tweakedSigner, transaction, i);
+                } catch (e) {
+                    tweakedSigner = this.getTweakedSigner(false, this.signer);
+                    if (!tweakedSigner) {
+                        throw new Error(`Failed to obtain tweaked signer for input ${i}.`);
+                    }
+
+                    await this.signTaprootInput(tweakedSigner, transaction, i);
+                }
             } else {
                 this.error(`Failed to obtain tweaked signer for input ${i}.`);
             }
