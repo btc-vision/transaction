@@ -1,3 +1,5 @@
+import { Unisat } from './transaction/browser/types/Unisat.js';
+
 export { version } from './_version.js';
 
 /** Bytecode */
@@ -97,3 +99,10 @@ export * from './transaction/browser/Web3Provider.js';
 
 export * from './keypair/Secp256k1PointDeriver.js';
 export * from './transaction/ContractAddress.js';
+
+declare global {
+    interface Window {
+        unisat?: Unisat;
+        opnet?: Unisat;
+    }
+}

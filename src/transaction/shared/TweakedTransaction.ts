@@ -802,11 +802,10 @@ export abstract class TweakedTransaction extends Logger {
             if (this.tapLeafScript) {
                 input.tapLeafScript = [this.tapLeafScript];
             }
-        }
 
-        // If the first input and we have a global nonWitnessUtxo not yet set
-        if (i === 0 && this.nonWitnessUtxo) {
-            input.nonWitnessUtxo = this.nonWitnessUtxo;
+            if (this.nonWitnessUtxo) {
+                input.nonWitnessUtxo = this.nonWitnessUtxo;
+            }
         }
 
         /*if (utxo.nonWitnessUtxo && extra) {

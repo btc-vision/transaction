@@ -14,11 +14,9 @@ import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUt
 import { CustomKeypair } from '../BrowserSignerBase.js';
 import { PsbtSignatureOptions, SignatureType, Unisat, UnisatNetwork } from '../types/Unisat.js';
 
-declare global {
-    interface Window {
-        unisat?: Unisat;
-        opnet?: Unisat;
-    }
+export interface WindowWithWallets {
+    unisat?: Unisat;
+    opnet?: Unisat;
 }
 
 export class UnisatSigner extends CustomKeypair {
@@ -85,7 +83,7 @@ export class UnisatSigner extends CustomKeypair {
     public get unisat(): Unisat {
         if (!window) throw new Error('Window not found');
 
-        const module = window.unisat;
+        const module = (window as WindowWithWallets).unisat;
         if (!module) {
             throw new Error('Unisat extension not found');
         }

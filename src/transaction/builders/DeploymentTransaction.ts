@@ -118,7 +118,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.verifyCalldata();
         }
 
-        if(!parameters.preimage) throw new Error('Preimage is required');
+        if (!parameters.preimage) throw new Error('Preimage is required');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
         this.preimage = parameters.preimage;
@@ -274,7 +274,11 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             if (i === 0) {
                 transaction.finalizeInput(i, this.customFinalizer);
             } else {
-                transaction.finalizeInput(i);
+                try {
+                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                } catch (e) {
+                    transaction.finalizeInput(i);
+                }
             }
         }
     }
@@ -305,7 +309,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 transaction.finalizeInput(0, this.customFinalizer);
             } else {
                 transaction.signInput(i, this.getSignerKey());
-                transaction.finalizeInput(i);
+
+                try {
+                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                } catch (e) {
+                    transaction.finalizeInput(i);
+                }
             }
         }
     }

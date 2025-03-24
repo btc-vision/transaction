@@ -19,7 +19,11 @@ import {
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
 import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
-import { InteractionParametersWithoutSigner } from './browser/Web3Provider.js';
+import {
+    IDeploymentParametersWithoutSigner,
+    InteractionParametersWithoutSigner,
+} from './browser/Web3Provider.js';
+import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -174,26 +178,7 @@ export class TransactionFactory {
             throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
-        const inputs = (interactionParameters.optionalInputs || []).map((input) => {
-            let nonWitness = input.nonWitnessUtxo;
-            if (
-                nonWitness &&
-                !(nonWitness instanceof Uint8Array) &&
-                typeof nonWitness === 'object'
-            ) {
-                nonWitness = Buffer.from(
-                    Uint8Array.from(
-                        Object.values(input.nonWitnessUtxo as unknown as Record<number, number>),
-                    ),
-                );
-            }
-
-            return {
-                ...input,
-                nonWitnessUtxo: nonWitness,
-            };
-        });
-
+        const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
         const preTransaction: InteractionTransaction = new InteractionTransaction({
             ...interactionParameters,
             utxos: [interactionParameters.utxos[0]], // we simulate one input here.
@@ -277,20 +262,45 @@ export class TransactionFactory {
     public async signDeployment(
         deploymentParameters: IDeploymentParameters,
     ): Promise<DeploymentResult> {
-        const preTransaction: DeploymentTransaction = new DeploymentTransaction(
-            deploymentParameters,
-        );
+        const opWalletDeployment = await this.detectDeploymentOPWallet(deploymentParameters);
+        if (opWalletDeployment) {
+            return opWalletDeployment;
+        }
 
-        // Initial generation
-        await preTransaction.signTransaction();
+        if (!('signer' in deploymentParameters)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
+        }
+
+        const inputs = this.parseOptionalInputs(deploymentParameters.optionalInputs);
+        const preTransaction: DeploymentTransaction = new DeploymentTransaction({
+            ...deploymentParameters,
+            utxos: [deploymentParameters.utxos[0]], // we simulate one input here.
+            optionalInputs: inputs,
+        });
+
+        // we don't sign that transaction, we just need the parameters.
+        await preTransaction.generateTransactionMinimalSignatures();
 
         const parameters: IFundingTransactionParameters =
             await preTransaction.getFundingTransactionParameters();
 
+        parameters.utxos = deploymentParameters.utxos;
         parameters.amount =
             (await preTransaction.estimateTransactionFees()) +
             this.getPriorityFee(deploymentParameters) +
             preTransaction.getOptionalOutputValue();
+
+        const feeEstimationFundingTransaction = await this.createFundTransaction({
+            ...parameters,
+            optionalOutputs: [],
+            optionalInputs: [],
+        });
+
+        if (!feeEstimationFundingTransaction) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
 
         const fundingTransaction: FundingTransaction = new FundingTransaction({
             ...parameters,
@@ -316,12 +326,12 @@ export class TransactionFactory {
 
         const newParams: IDeploymentParameters = {
             ...deploymentParameters,
-            utxos: [newUtxo],
+            utxos: [newUtxo], // always 0
             randomBytes: preTransaction.getRndBytes(),
             preimage: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
-            optionalOutputs: [],
-            optionalInputs: [],
+            estimatedFees: preTransaction.estimatedFees,
+            optionalInputs: inputs,
         };
 
         const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
@@ -420,14 +430,41 @@ export class TransactionFactory {
         return utxos;
     }
 
+    private parseOptionalInputs(optionalInputs?: UTXO[]): UTXO[] {
+        return (optionalInputs || []).map((input) => {
+            let nonWitness = input.nonWitnessUtxo;
+            if (
+                nonWitness &&
+                !(nonWitness instanceof Uint8Array) &&
+                typeof nonWitness === 'object'
+            ) {
+                nonWitness = Buffer.from(
+                    Uint8Array.from(
+                        Object.values(input.nonWitnessUtxo as unknown as Record<number, number>),
+                    ),
+                );
+            }
+
+            return {
+                ...input,
+                nonWitnessUtxo: nonWitness,
+            };
+        });
+    }
+
     private async detectInteractionOPWallet(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
     ): Promise<InteractionResponse | null> {
-        if (typeof window === 'undefined' || !window || !window.opnet || !window.opnet.web3) {
+        if (typeof window === 'undefined') {
             return null;
         }
 
-        const opnet = window.opnet.web3;
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = _window.opnet.web3;
         const interaction = await opnet.signInteraction({
             ...interactionParameters,
 
@@ -440,6 +477,33 @@ export class TransactionFactory {
         }
 
         return interaction;
+    }
+
+    private async detectDeploymentOPWallet(
+        deploymentParameters: IDeploymentParameters | IDeploymentParametersWithoutSigner,
+    ): Promise<DeploymentResult | null> {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = _window.opnet.web3;
+        const deployment = await opnet.deployContract({
+            ...deploymentParameters,
+
+            // @ts-expect-error no, this is ok
+            signer: undefined,
+        });
+
+        if (!deployment) {
+            throw new Error('Could not sign interaction transaction.');
+        }
+
+        return deployment;
     }
 
     private async _createChallengeSolution(
