@@ -2,9 +2,8 @@ import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin'
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { FeatureOpCodes, Features } from '../Features.js';
+import { Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -59,7 +58,7 @@ export class CalldataGenerator extends Generator {
      * @param {Buffer} contractSecret - The contract secret
      * @param preimage
      * @param maxPriority - Amount of satoshis to spend max on priority fee
-     * @param {number[]} [features=[]] - The features to use (optional)
+     * @param {Feature<Features>[]} features - The features to use
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
      */
@@ -68,15 +67,25 @@ export class CalldataGenerator extends Generator {
         contractSecret: Buffer,
         preimage: Buffer,
         maxPriority: bigint,
-        features: Features[] = [],
+        features: Feature<Features>[] = [],
     ): Buffer {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 
-        let compiledData = [
-            this.getHeader(maxPriority),
+        const featuresList: Features[] = [];
+        const featureData: (number | Buffer | Buffer[])[] = [];
+        for (let i = 0; i < features.length; i++) {
+            const feature = features[i];
+            featuresList.push(feature.opcode);
+
+            const data = this.encodeFeature(feature);
+            featureData.push(...data);
+        }
+
+        let compiledData: (number | Buffer | Buffer[])[] = [
+            this.getHeader(maxPriority, featuresList),
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
@@ -105,11 +114,9 @@ export class CalldataGenerator extends Generator {
             Generator.MAGIC,
         ];
 
-        const featureOpcodes = features.map((feature) => FeatureOpCodes[feature]); // Get the opcodes for the features
-
         // Write calldata
         compiledData = compiledData.concat(
-            ...featureOpcodes,
+            ...featureData,
             ...[opcodes.OP_1NEGATE, ...dataChunks, opcodes.OP_ELSE, opcodes.OP_1, opcodes.OP_ENDIF],
         );
 

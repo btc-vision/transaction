@@ -1,9 +1,14 @@
-import { opcodes } from '@btc-vision/bitcoin';
+import { LoadedStorage } from '../transaction/interfaces/ITransactionParameters.js';
 
 export enum Features {
-    UNWRAP = 0, // random number just to set the first value
+    ACCESS_LIST = 1,
 }
 
-export const FeatureOpCodes: { [key: number]: number } = {
-    [Features.UNWRAP]: opcodes.OP_16,
-};
+export interface Feature<T extends Features> {
+    opcode: T;
+    data: unknown;
+}
+
+export interface AccessListFeature extends Feature<Features.ACCESS_LIST> {
+    data: LoadedStorage;
+}

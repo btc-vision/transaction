@@ -3,6 +3,7 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
+import { Feature, Features } from '../../generators/Features.js';
 
 /**
  * Class for interaction transactions
@@ -32,9 +33,23 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             this.contractSecret,
             this.preimage,
             this.priorityFee,
+            this.generateFeatures(parameters),
         );
 
         this.scriptTree = this.getScriptTree();
         this.internalInit();
+    }
+
+    private generateFeatures(parameters: IInteractionParameters): Feature<Features>[] {
+        const features: Feature<Features>[] = [];
+
+        if (parameters.loadedStorage) {
+            features.push({
+                opcode: Features.ACCESS_LIST,
+                data: parameters.loadedStorage,
+            });
+        }
+
+        return features;
     }
 }

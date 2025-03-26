@@ -2,8 +2,8 @@ import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin'
 import { ECPairInterface } from 'ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { FeatureOpCodes, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
+import { Feature, Features } from '../Features.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -63,13 +63,23 @@ export class LegacyCalldataGenerator extends Generator {
         contractSecret: Buffer,
         preimage: Buffer,
         maxPriority: bigint,
-        features: Features[] = [],
+        features: Feature<Features>[] = [],
     ): Buffer {
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 
+        const featuresList: Features[] = [];
+        const featureData: (number | Buffer | Buffer[])[] = [];
+        for (let i = 0; i < features.length; i++) {
+            const feature = features[i];
+            featuresList.push(feature.opcode);
+
+            const data = this.encodeFeature(feature);
+            featureData.push(...data);
+        }
+
         let compiledData = [
-            this.getHeader(maxPriority),
+            this.getHeader(maxPriority, featuresList),
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
@@ -94,11 +104,9 @@ export class LegacyCalldataGenerator extends Generator {
             Generator.MAGIC,
         ];
 
-        const featureOpcodes = features.map((feature) => FeatureOpCodes[feature]); // Get the opcodes for the features
-
         // Write calldata
         compiledData = compiledData.concat(
-            ...featureOpcodes,
+            ...featureData,
             ...[opcodes.OP_1NEGATE, ...dataChunks, opcodes.OP_ELSE, opcodes.OP_1, opcodes.OP_ENDIF],
         );
 

@@ -1,5 +1,8 @@
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
+import { AccessListFeature, Feature, Features } from './Features.js';
+import { Address } from '../keypair/Address.js';
+import { Compressor } from '../bytecode/Compressor.js';
 
 /** Bitcoin Script Generator */
 export abstract class Generator {
@@ -48,13 +51,22 @@ export abstract class Generator {
         this.xSenderPubKey = toXOnly(senderPubKey);
     }
 
-    public get senderFirstByte(): Buffer {
-        return Buffer.from([this.senderPubKey[0], 0, 0, 0]);
+    public buildHeader(features: Features[]): Buffer {
+        let flags: number = 0;
+
+        for (const feature of features) {
+            flags |= feature;
+        }
+
+        const bytesU24 = Buffer.alloc(3);
+        bytesU24.writeUIntBE(flags, 0, 3);
+
+        return Buffer.from([this.senderPubKey[0], ...bytesU24]);
     }
 
-    public getHeader(maxPriority: bigint): Buffer {
-        const writer = new BinaryWriter(8 + 4);
-        writer.writeBytes(this.senderFirstByte);
+    public getHeader(maxPriority: bigint, features: Features[] = []): Buffer {
+        const writer = new BinaryWriter(12);
+        writer.writeBytes(this.buildHeader(features));
         writer.writeU64(maxPriority);
 
         return Buffer.from(writer.getBuffer());
@@ -91,5 +103,42 @@ export abstract class Generator {
         }
 
         return chunks;
+    }
+
+    protected encodeFeature(feature: Feature<Features>): Buffer[][] {
+        switch (feature.opcode) {
+            case Features.ACCESS_LIST:
+                return this.splitBufferIntoChunks(
+                    this.encodeAccessListFeature(feature as AccessListFeature),
+                );
+            default:
+                throw new Error(`Unknown feature type: ${feature.opcode}`);
+        }
+    }
+
+    private encodeAccessListFeature(feature: AccessListFeature): Buffer {
+        const writer = new BinaryWriter();
+
+        writer.writeU16(Object.keys(feature.data).length);
+
+        for (const contract in feature.data) {
+            const parsedContract = Address.fromString(contract);
+            const data = feature.data[contract];
+
+            writer.writeAddress(parsedContract);
+            writer.writeU32(data.length);
+
+            for (const pointer of data) {
+                const pointerBuffer = Buffer.from(pointer, 'base64');
+
+                if (pointerBuffer.length !== 32) {
+                    throw new Error(`Invalid pointer length: ${pointerBuffer.length}`);
+                }
+
+                writer.writeBytes(pointerBuffer);
+            }
+        }
+
+        return Compressor.compress(Buffer.from(writer.getBuffer()));
     }
 }

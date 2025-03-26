@@ -1,5 +1,6 @@
 import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
+import { Feature, Features } from '../Features.js';
 
 export class DeploymentGenerator extends Generator {
     constructor(
@@ -46,14 +47,28 @@ export class DeploymentGenerator extends Generator {
         preimage: Buffer,
         maxPriority: bigint,
         calldata?: Buffer,
+        features?: Feature<Features>[],
     ): (number | Buffer)[] {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
+        const featuresList: Features[] = [];
+        const featureData: (number | Buffer | Buffer[])[] = [];
+
+        if (features) {
+            for (let i = 0; i < features.length; i++) {
+                const feature = features[i];
+                featuresList.push(feature.opcode);
+
+                const data = this.encodeFeature(feature);
+                featureData.push(...data);
+            }
+        }
+
         const compiledData = [
-            this.getHeader(maxPriority),
+            this.getHeader(maxPriority, featuresList),
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
@@ -80,6 +95,7 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_IF,
 
             Generator.MAGIC,
+            ...featureData,
             opcodes.OP_0,
             ...calldataChunks,
             opcodes.OP_1NEGATE,

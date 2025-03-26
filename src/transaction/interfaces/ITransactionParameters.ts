@@ -3,6 +3,10 @@ import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from '@btc-vision/bitcoin';
 
+export interface LoadedStorage {
+    [key: string]: string[];
+}
+
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: string;
     readonly to?: string;
@@ -11,7 +15,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     nonWitnessUtxo?: Buffer;
     estimatedFees?: bigint;
-    
+
     optionalInputs?: UTXO[];
     optionalOutputs?: PsbtOutputExtended[];
 
@@ -40,6 +44,8 @@ export interface SharedInteractionParameters extends ITransactionParameters {
 
     readonly preimage: Buffer;
     readonly randomBytes?: Buffer;
+
+    readonly loadedStorage?: LoadedStorage;
 }
 
 export interface IInteractionParameters extends SharedInteractionParameters {
