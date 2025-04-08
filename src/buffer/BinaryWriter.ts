@@ -45,6 +45,8 @@ export class BinaryWriter {
         this.currentOffset += 4;
     }
 
+    b;
+
     public writeU64(value: u64, be: boolean = true): void {
         if (value > 18446744073709551615n) throw new Error('u64 value is too large.');
 

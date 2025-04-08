@@ -42,6 +42,14 @@ export class BinaryReader {
         this.currentOffset = 0;
     }
 
+    public length(): number {
+        return this.buffer.byteLength;
+    }
+
+    public bytesLeft(): number {
+        return this.buffer.byteLength - this.currentOffset;
+    }
+
     /**
      * Reads a single unsigned byte (u8).
      */
