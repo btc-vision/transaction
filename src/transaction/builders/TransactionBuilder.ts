@@ -36,6 +36,7 @@ export const MINIMUM_AMOUNT_CA: bigint = 330n;
  * @class TransactionBuilder
  */
 export abstract class TransactionBuilder<T extends TransactionType> extends TweakedTransaction {
+    // Cancel script
     public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
         opcodes.OP_0,
         //opcodes.OP_VERIFY, - verify that this is not needed.
