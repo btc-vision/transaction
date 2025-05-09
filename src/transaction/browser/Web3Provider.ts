@@ -4,6 +4,7 @@ import {
 } from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { DeploymentResult, InteractionResponse } from '../TransactionFactory';
+import { ICustomTransactionParameters } from '../builders/CustomScriptTransaction.js';
 
 export type InteractionParametersWithoutSigner = Omit<
     IInteractionParameters,
@@ -13,6 +14,11 @@ export type InteractionParametersWithoutSigner = Omit<
 export type IDeploymentParametersWithoutSigner = Omit<
     IDeploymentParameters,
     'signer' | 'network' | 'preimage'
+>;
+
+export type CustomTransactionWithoutSigner = Omit<
+    ICustomTransactionParameters,
+    'signer' | 'preimage'
 >;
 
 export interface BroadcastTransactionOptions {

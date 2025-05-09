@@ -7,12 +7,14 @@ import {
     networks,
     payments,
     Signer,
-    taggedHash,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
-import { CURVE, ProjectivePoint as Point } from '@noble/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import { bytesToNumberBE, concatBytes, utf8ToBytes } from '@noble/curves/abstract/utils';
+import { mod } from '@noble/curves/abstract/modular';
+import { sha256 } from '@noble/hashes/sha2';
 
 initEccLib(ecc);
 
@@ -21,10 +23,16 @@ if (!BIP32factory) {
     throw new Error('Failed to load BIP32 library');
 }
 
-const mod = (a: bigint, b: bigint): bigint => {
-    const result = a % b;
-    return result >= 0n ? result : result + b;
-};
+secp256k1.utils.precompute(8);
+
+const { ProjectivePoint: Point, CURVE } = secp256k1;
+
+const TAP_TAG = utf8ToBytes('TapTweak');
+const TAP_TAG_HASH = sha256(TAP_TAG);
+
+function tapTweakHash(x: Uint8Array): Uint8Array {
+    return sha256(concatBytes(TAP_TAG_HASH, TAP_TAG_HASH, x));
+}
 
 /**
  * Class for handling EC key pairs
@@ -225,40 +233,42 @@ export class EcKeyPair {
 
     /**
      * Tweak a public key
-     * @param {string | Buffer} compressedPubKeyHex - The compressed public key hex string
+     * @param {Buffer | Uint8Array | string} pub - The public key to tweak
      * @returns {Buffer} - The tweaked public key hex string
      * @throws {Error} - If the public key cannot be tweaked
      */
-    public static tweakPublicKey(compressedPubKeyHex: string | Buffer): Buffer {
-        if (typeof compressedPubKeyHex === 'string' && compressedPubKeyHex.startsWith('0x')) {
-            compressedPubKeyHex = compressedPubKeyHex.slice(2);
-        }
+    public static tweakPublicKey(pub: Uint8Array | Buffer | string): Buffer {
+        if (typeof pub === 'string' && pub.startsWith('0x')) pub = pub.slice(2);
 
-        if (typeof compressedPubKeyHex !== 'string') {
-            compressedPubKeyHex = compressedPubKeyHex.toString('hex');
-        }
+        const P = Point.fromHex(pub);
+        const Peven = (P.y & 1n) === 0n ? P : P.negate();
 
-        // Convert the compressed public key hex string to a Point on the curve
-        let P = Point.fromHex(compressedPubKeyHex);
+        const xBytes = Peven.toRawBytes(true).subarray(1);
+        const tBytes = tapTweakHash(xBytes);
+        const t = mod(bytesToNumberBE(tBytes), CURVE.n);
 
-        // Ensure the point has an even y-coordinate
-        if ((P.y & 1n) !== 0n) {
-            // Negate the point to get an even y-coordinate
-            P = P.negate();
-        }
-
-        // Get the x-coordinate (32 bytes) of the point
-        const x = P.toRawBytes(true).slice(1); // Remove the prefix byte
-
-        // Compute the tweak t = H_tapTweak(x)
-        const tHash = taggedHash('TapTweak', Buffer.from(x));
-        const t = mod(BigInt('0x' + Buffer.from(tHash).toString('hex')), CURVE.n);
-
-        // Compute Q = P + t*G (where G is the generator point)
-        const Q = P.add(Point.BASE.mul(t));
-
-        // Return the tweaked public key in compressed form (hex string)
+        const Q = Peven.add(Point.BASE.multiply(t));
         return Buffer.from(Q.toRawBytes(true));
+    }
+
+    /**
+     * Tweak a batch of public keys
+     * @param {readonly Uint8Array[]} pubkeys - The public keys to tweak
+     * @param {bigint} tweakScalar - The scalar to use for tweaking
+     * @returns {Uint8Array[]} - The tweaked public keys
+     */
+    public static tweakBatchSharedT(
+        pubkeys: readonly Uint8Array[],
+        tweakScalar: bigint,
+    ): Uint8Array[] {
+        const T = Point.BASE.multiply(tweakScalar);
+
+        return pubkeys.map((bytes) => {
+            const P = Point.fromHex(bytes);
+            const P_even = P.hasEvenY() ? P : P.negate();
+            const Q = P_even.add(T);
+            return Q.toRawBytes(true);
+        });
     }
 
     /**
@@ -330,6 +340,24 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
     ): string {
         const wallet = payments.p2pkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
+        if (!wallet.address) {
+            throw new Error('Failed to generate wallet');
+        }
+
+        return wallet.address;
+    }
+
+    /**
+     * Get the legacy address from a keypair
+     * @param publicKey
+     * @param {Network} network - The network to use
+     * @returns {string} - The legacy address
+     */
+    public static getP2PKH(
+        publicKey: Buffer | Uint8Array,
+        network: Network = networks.bitcoin,
+    ): string {
+        const wallet = payments.p2pkh({ pubkey: Buffer.from(publicKey), network: network });
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
         }

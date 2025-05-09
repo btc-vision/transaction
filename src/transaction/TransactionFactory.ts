@@ -89,13 +89,22 @@ export class TransactionFactory {
             throw new Error('Field "from" not provided.');
         }
 
+        if (!interactionParameters.utxos[0]) {
+            throw new Error('Missing at least one UTXO.');
+        }
+
+        if (!('signer' in interactionParameters)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
+        }
+
+        const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
         const preTransaction: CustomScriptTransaction = new CustomScriptTransaction({
             ...interactionParameters,
             utxos: [interactionParameters.utxos[0]], // we simulate one input here.
+            optionalInputs: inputs,
         });
 
         // we don't sign that transaction, we just need the parameters.
-
         await preTransaction.generateTransactionMinimalSignatures();
 
         const parameters: IFundingTransactionParameters =
@@ -119,7 +128,12 @@ export class TransactionFactory {
 
         parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
 
-        const signedTransaction = await this.createFundTransaction(parameters);
+        const signedTransaction = await this.createFundTransaction({
+            ...parameters,
+            optionalOutputs: [],
+            optionalInputs: [],
+        });
+
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
@@ -132,10 +146,13 @@ export class TransactionFactory {
 
         const newParams: ICustomTransactionParameters = {
             ...interactionParameters,
-            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0), // always 0
+            utxos: [
+                ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
+            ], // always 0
             randomBytes: preTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
+            optionalInputs: inputs,
         };
 
         const finalTransaction: CustomScriptTransaction = new CustomScriptTransaction(newParams);
