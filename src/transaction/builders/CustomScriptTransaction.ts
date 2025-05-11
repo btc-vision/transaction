@@ -202,7 +202,10 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             if (i === 0) {
                 // multi sig input
-                transaction.signInput(0, this.contractSigner);
+                try {
+                    transaction.signInput(0, this.contractSigner);
+                } catch (e) {}
+
                 transaction.signInput(0, this.getSignerKey());
 
                 transaction.finalizeInput(0, this.customFinalizer);
@@ -250,6 +253,21 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         };
     }
 
+    protected getScriptSolution(input: PsbtInput): Buffer[] {
+        if (!input.tapScriptSig) {
+            throw new Error('Tap script signature is required');
+        }
+
+        const witnesses: Buffer[] = [...this.witnesses];
+        if (input.tapScriptSig) {
+            for (const sig of input.tapScriptSig) {
+                witnesses.push(sig.signature);
+            }
+        }
+
+        return witnesses;
+    }
+
     /**
      * Generate the contract seed for the deployment
      * @private
@@ -261,14 +279,14 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
     /**
      * Finalize the transaction
      * @param _inputIndex
-     * @param _input
+     * @param input
      */
-    private customFinalizer = (_inputIndex: number, _input: PsbtInput) => {
+    private customFinalizer = (_inputIndex: number, input: PsbtInput) => {
         if (!this.tapLeafScript) {
             throw new Error('Tap leaf script is required');
         }
 
-        const scriptSolution = this.witnesses;
+        const scriptSolution = this.getScriptSolution(input);
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
             .concat(this.tapLeafScript.controlBlock);
