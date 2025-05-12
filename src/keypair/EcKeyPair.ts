@@ -339,6 +339,24 @@ export class EcKeyPair {
 
     /**
      * Get the legacy address from a keypair
+     * @param publicKey
+     * @param {Network} network - The network to use
+     * @returns {string} - The legacy address
+     */
+    public static getP2PKH(
+        publicKey: Buffer | Uint8Array,
+        network: Network = networks.bitcoin,
+    ): string {
+        const wallet = payments.p2pkh({ pubkey: Buffer.from(publicKey), network: network });
+        if (!wallet.address) {
+            throw new Error('Failed to generate wallet');
+        }
+
+        return wallet.address;
+    }
+
+    /**
+     * Get the legacy address from a keypair
      * @param {ECPairInterface} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
      * @returns {string} - The legacy address
