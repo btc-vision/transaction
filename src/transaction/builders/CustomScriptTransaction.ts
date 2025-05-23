@@ -19,10 +19,13 @@ import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { ECPairInterface } from 'ecpair';
 
 export interface ICustomTransactionParameters extends SharedInteractionParameters {
-    readonly script: (Buffer | Stack)[];
-    readonly witnesses: Buffer[];
+    script: (Buffer | Stack)[];
+    witnesses: Buffer[];
 
-    readonly to: string;
+    /** optional Taproot annex payload (without the 0x50 prefix) */
+    annex?: Buffer;
+
+    to: string;
 }
 
 /**
@@ -91,6 +94,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @private
      */
     private readonly witnesses: Buffer[];
+    private readonly annexData?: Buffer;
 
     public constructor(parameters: ICustomTransactionParameters) {
         super(parameters);
@@ -290,6 +294,15 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
             .concat(this.tapLeafScript.controlBlock);
+
+        if (this.annexData && this.annexData.length > 0) {
+            const annex =
+                this.annexData[0] === 0x50
+                    ? this.annexData
+                    : Buffer.concat([Buffer.from([0x50]), this.annexData]);
+
+            witness.push(annex);
+        }
 
         return {
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
