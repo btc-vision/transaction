@@ -182,7 +182,7 @@ export class BinaryReader {
      * Reads a string of the given length in raw bytes. By default, do NOT zero-stop
      * (matching how we wrote the raw bytes).
      */
-    public readString(length: u16): string {
+    public readString(length: u32): string {
         const textDecoder = new TextDecoder();
         const bytes = this.readBytes(length, false);
         return textDecoder.decode(bytes);
@@ -192,7 +192,7 @@ export class BinaryReader {
      * Reads a string that was written as [u16 length][raw bytes].
      */
     public readStringWithLength(be: boolean = true): string {
-        const length = this.readU16(be);
+        const length = this.readU32(be);
         return this.readString(length);
     }
 

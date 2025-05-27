@@ -160,9 +160,9 @@ export class BinaryWriter {
     }
 
     public writeStringWithLength(value: string): void {
-        this.allocSafe(U16_BYTE_LENGTH + value.length);
+        this.allocSafe(U32_BYTE_LENGTH + value.length);
 
-        this.writeU16(value.length);
+        this.writeU32(value.length);
         this.writeString(value);
     }
 
