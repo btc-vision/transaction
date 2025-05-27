@@ -151,8 +151,8 @@ export abstract class TweakedTransaction extends Logger {
 
         function readVarInt(): number {
             const varint = varuint.decode(Buffer, offset);
-            offset += varuint.decode.bytes;
-            return varint;
+            offset += varint.bytes;
+            return varint.numberValue || 0;
         }
 
         function readVarSlice(): Buffer {

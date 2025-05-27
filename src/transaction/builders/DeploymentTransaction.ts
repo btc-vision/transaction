@@ -30,10 +30,8 @@ const p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
-
     protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
     protected readonly rewardChallenge: IMineableReward;
-
     /**
      * The contract address
      * @protected
@@ -44,6 +42,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @private
      */
     protected tapLeafScript: TapLeafScript | null = null;
+    private readonly deploymentVersion: number = 0x00;
     /**
      * The target script redeem
      * @private
@@ -105,6 +104,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @private
      */
     private readonly randomBytes: Buffer;
+    private _computedAddress: string | undefined;
 
     public constructor(parameters: IDeploymentParameters) {
         // TODO: Add legacy deployment, this is only p2tr.
@@ -190,6 +190,20 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         return this.preimage;
     }
 
+    public getContractAddress(): string {
+        if (this._computedAddress) {
+            return this._computedAddress;
+        }
+
+        this._computedAddress = EcKeyPair.p2op(
+            this.contractSeed,
+            this.network,
+            this.deploymentVersion,
+        );
+
+        return this._computedAddress;
+    }
+
     /**
      * Get the contract signer public key
      * @protected
@@ -243,7 +257,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         // ALWAYS THE FIRST INPUT.
         this.addOutput({
             value: Number(amountToCA),
-            address: this.contractAddress.p2tr(this.network),
+            address: this.getContractAddress(),
         });
 
         // ALWAYS SECOND.

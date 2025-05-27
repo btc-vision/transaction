@@ -7,6 +7,7 @@ initEccLib(ecc);
 
 export enum AddressTypes {
     P2PKH = 'P2PKH',
+    P2OP = 'P2OP',
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',
     P2PK = 'P2PK',
     P2TR = 'P2TR',
@@ -169,11 +170,11 @@ export class AddressVerificator {
         try {
             // First, try to decode as a Base58Check address (P2PKH, P2SH, or P2SH-P2WPKH)
             const decodedBase58 = address.fromBase58Check(addy);
-
             if (decodedBase58.version === network.pubKeyHash) {
                 // P2PKH: Legacy address (starting with '1' for mainnet, 'm/n' for testnet)
                 return AddressTypes.P2PKH;
             }
+
             if (decodedBase58.version === network.scriptHash) {
                 // P2SH: Could be P2SH (general) or P2SH-P2WPKH (wrapped SegWit)
                 return AddressTypes.P2SH_OR_P2SH_P2WPKH;
@@ -183,12 +184,16 @@ export class AddressVerificator {
         try {
             // Try to decode as a Bech32 or Bech32m address (P2WPKH or P2TR)
             const decodedBech32 = address.fromBech32(addy);
+            if (decodedBech32.prefix === network.bech32Opnet && decodedBech32.version === 16) {
+                return AddressTypes.P2OP;
+            }
 
             if (decodedBech32.prefix === network.bech32) {
                 // P2WPKH: SegWit address (starting with 'bc1q' for mainnet, 'tb1q' for testnet)
                 if (decodedBech32.version === 0 && decodedBech32.data.length === 20) {
                     return AddressTypes.P2WPKH;
                 }
+
                 // P2TR: Taproot address (starting with 'bc1p' for mainnet, 'tb1p' for testnet)
                 if (decodedBech32.version === 1 && decodedBech32.data.length === 32) {
                     return AddressTypes.P2TR;

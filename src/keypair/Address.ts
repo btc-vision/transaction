@@ -12,6 +12,7 @@ import { BitcoinUtils } from '../utils/BitcoinUtils.js';
  */
 export class Address extends Uint8Array {
     #p2tr: string | undefined;
+    #p2op: string | undefined;
     #network: Network | undefined;
     #originalPublicKey: Uint8Array | undefined;
     #keyPair: ECPairInterface | undefined;
@@ -311,6 +312,26 @@ export class Address extends Uint8Array {
             this.#p2tr = p2trAddy;
 
             return p2trAddy;
+        }
+
+        throw new Error('Public key not set');
+    }
+
+    /**
+     * Get an opnet address encoded in bech32m format.
+     * @param network
+     */
+    public p2op(network: Network): string {
+        if (this.#p2op && this.#network === network) {
+            return this.#p2op;
+        }
+
+        const p2opAddy: string | undefined = EcKeyPair.p2op(this, network);
+        if (p2opAddy) {
+            this.#network = network;
+            this.#p2op = p2opAddy;
+
+            return p2opAddy;
         }
 
         throw new Error('Public key not set');

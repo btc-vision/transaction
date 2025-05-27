@@ -1,11 +1,14 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
 import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
-import {
+import bitcoin, {
     address,
+    fromOutputScript,
     initEccLib,
     Network,
     networks,
+    opcodes,
     payments,
+    script,
     Signer,
     toXOnly,
 } from '@btc-vision/bitcoin';
@@ -201,6 +204,32 @@ export class EcKeyPair {
         }
 
         return address;
+    }
+
+    /**
+     * Generate a P2OP address
+     * @param bytes - The bytes to use for the P2OP address
+     * @param network - The network to use
+     * @param deploymentVersion - The deployment version (default is 0)
+     * @returns {string} - The generated P2OP address
+     */
+    public static p2op(
+        bytes: Buffer | Uint8Array,
+        network: Network = networks.bitcoin,
+        deploymentVersion: number = 0,
+    ): string {
+        // custom opnet contract addresses
+        const witnessProgram = Buffer.concat([
+            Buffer.from([deploymentVersion]),
+            bitcoin.crypto.hash160(Buffer.from(bytes)),
+        ]);
+
+        if (witnessProgram.length < 2 || witnessProgram.length > 40) {
+            throw new Error('Witness program must be 2-40 bytes.');
+        }
+
+        const scriptData = script.compile([opcodes.OP_16, witnessProgram]);
+        return fromOutputScript(scriptData, network);
     }
 
     /**
