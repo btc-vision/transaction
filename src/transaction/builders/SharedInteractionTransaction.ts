@@ -1,4 +1,4 @@
-import { address, P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
+import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -120,7 +120,8 @@ export abstract class SharedInteractionTransaction<
      * @returns {Buffer} The secret
      * @throws {Error} If the to address is invalid
      */
-    protected generateSecret(): Buffer {
+
+    /*protected generateSecret(): Buffer {
         if (!this.to) throw new Error('To address is required');
 
         if (this.to.startsWith('0x')) {
@@ -128,7 +129,7 @@ export abstract class SharedInteractionTransaction<
         }
 
         return address.fromBech32(this.to).data;
-    }
+    }*/
 
     /**
      * Get the internal pubkey as an x-only key
