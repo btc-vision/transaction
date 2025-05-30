@@ -52,6 +52,7 @@ export interface IInteractionParameters extends SharedInteractionParameters {
     readonly calldata: Buffer;
 
     readonly to: string;
+    readonly contract?: string;
 }
 
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {

@@ -26,7 +26,14 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
     public constructor(parameters: IInteractionParameters) {
         super(parameters);
 
-        this.contractSecret = this.generateSecret();
+        if (!parameters.contract) {
+            throw new Error('parameters.contract is required for interaction transaction.');
+        }
+
+        this.contractSecret = Buffer.from(parameters.contract, 'hex');
+        if (this.contractSecret.length !== 32) {
+            throw new Error('Invalid contract secret length. Expected 32 bytes.');
+        }
 
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
