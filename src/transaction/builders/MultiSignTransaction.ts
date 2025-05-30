@@ -1,7 +1,8 @@
 import {
     crypto as bitcoinCrypto,
     opcodes,
-    Payment,
+    P2TRPayment,
+    PaymentType,
     Psbt,
     PsbtInput,
     PsbtInputExtended,
@@ -58,8 +59,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
 
     public type: TransactionType.MULTI_SIG = TransactionType.MULTI_SIG;
 
-    protected targetScriptRedeem: Payment | null = null;
-    protected leftOverFundsScriptRedeem: Payment | null = null;
+    protected targetScriptRedeem: P2TRPayment | null = null;
+    protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
     protected readonly compiledTargetScript: Buffer;
     protected readonly scriptTree: Taptree;
@@ -545,16 +546,16 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      */
     protected override async signInputs(_transaction: Psbt): Promise<void> {}
 
-    protected override generateScriptAddress(): Payment {
+    protected override generateScriptAddress(): P2TRPayment {
         return {
             internalPubkey: toXOnly(MultiSignTransaction.numsPoint), //this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
-            //pubkeys: this.publicKeys,
+            name: PaymentType.P2TR,
         };
     }
 
-    protected override generateTapData(): Payment {
+    protected override generateTapData(): P2TRPayment {
         const selectedRedeem = this.targetScriptRedeem;
         if (!selectedRedeem) {
             throw new Error('Left over funds script redeem is required');
@@ -569,6 +570,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             network: this.network,
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
+            name: PaymentType.P2TR,
         };
     }
 
@@ -662,11 +664,13 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
+            name: PaymentType.P2TR,
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
+            name: PaymentType.P2TR,
             output: MultiSignTransaction.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };

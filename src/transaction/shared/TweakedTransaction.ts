@@ -12,8 +12,10 @@ import {
     isP2WSHScript,
     Network,
     opcodes,
+    P2TRPayment,
     Payment,
     payments,
+    PaymentType,
     Psbt,
     PsbtInput,
     PsbtInputExtended,
@@ -91,11 +93,11 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * @description The script data of the transaction
      */
-    protected scriptData: Payment | null = null;
+    protected scriptData: P2TRPayment | null = null;
     /**
      * @description The tap data of the transaction
      */
-    protected tapData: Payment | null = null;
+    protected tapData: P2TRPayment | null = null;
     /**
      * @description The inputs of the transaction
      */
@@ -345,10 +347,11 @@ export abstract class TweakedTransaction extends Logger {
         return vSize * feeRate;
     }
 
-    protected generateTapData(): Payment {
+    protected generateTapData(): P2TRPayment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
+            name: PaymentType.P2TR,
         };
     }
 
@@ -357,10 +360,11 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      * @returns {Payment}
      */
-    protected generateScriptAddress(): Payment {
+    protected generateScriptAddress(): P2TRPayment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
+            name: PaymentType.P2TR,
         };
     }
 

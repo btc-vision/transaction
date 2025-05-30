@@ -1,4 +1,4 @@
-import { address, Payment, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
+import { address, P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -25,8 +25,8 @@ export abstract class SharedInteractionTransaction<
      */
     public readonly randomBytes: Buffer;
 
-    protected targetScriptRedeem: Payment | null = null;
-    protected leftOverFundsScriptRedeem: Payment | null = null;
+    protected targetScriptRedeem: P2TRPayment | null = null;
+    protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
@@ -207,15 +207,16 @@ export abstract class SharedInteractionTransaction<
         }
     }
 
-    protected override generateScriptAddress(): Payment {
+    protected override generateScriptAddress(): P2TRPayment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
+            name: PaymentType.P2TR,
         };
     }
 
-    protected override generateTapData(): Payment {
+    protected override generateTapData(): P2TRPayment {
         const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -233,6 +234,7 @@ export abstract class SharedInteractionTransaction<
             network: this.network,
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
+            name: PaymentType.P2TR,
         };
     }
 
@@ -416,11 +418,13 @@ export abstract class SharedInteractionTransaction<
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
+            name: PaymentType.P2TR,
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
+            name: PaymentType.P2TR,
             output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };

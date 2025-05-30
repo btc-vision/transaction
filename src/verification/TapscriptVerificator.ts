@@ -91,7 +91,7 @@ export class TapscriptVerificator {
             network: network,
             scriptTree: scriptTree,
             redeem: {
-                pubkeys: [params.deployerPubKey, params.contractSaltPubKey],
+                //pubkeys: [params.deployerPubKey, params.contractSaltPubKey],
                 output: compiledTargetScript,
                 redeemVersion: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },

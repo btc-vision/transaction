@@ -1,6 +1,8 @@
 import {
     crypto as bitCrypto,
+    P2TRPayment,
     Payment,
+    PaymentType,
     Psbt,
     PsbtInput,
     Signer,
@@ -49,12 +51,12 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The target script redeem
      * @private
      */
-    private targetScriptRedeem: Payment | null = null;
+    private targetScriptRedeem: P2TRPayment | null = null;
     /**
      * The left over funds script redeem
      * @private
      */
-    private leftOverFundsScriptRedeem: Payment | null = null;
+    private leftOverFundsScriptRedeem: P2TRPayment | null = null;
     /**
      * The compiled target script
      * @private
@@ -158,7 +160,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             this.to = this.getScriptAddress();
         }
 
-        const selectedRedeem = this.contractSigner
+        const selectedRedeem: Payment | null = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
@@ -224,11 +226,12 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the tap output
      * @protected
      */
-    protected override generateScriptAddress(): Payment {
+    protected override generateScriptAddress(): P2TRPayment {
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
+            name: PaymentType.P2TR,
         };
     }
 
@@ -236,7 +239,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Generate the tap data
      * @protected
      */
-    protected override generateTapData(): Payment {
+    protected override generateTapData(): P2TRPayment {
         const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -254,6 +257,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             network: this.network,
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
+            name: PaymentType.P2TR,
         };
     }
 
@@ -329,13 +333,15 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
-            pubkeys: this.getPubKeys(),
+            name: PaymentType.P2TR,
+            //pubkeys: this.getPubKeys(),
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
-            pubkeys: this.getPubKeys(),
+            name: PaymentType.P2TR,
+            //pubkeys: this.getPubKeys(),
             output: this.getLeafScript(),
             redeemVersion: 192,
         };

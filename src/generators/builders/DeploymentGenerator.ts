@@ -2,6 +2,9 @@ import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin'
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
 
+export const OPNET_DEPLOYMENT_VERSION = 0x00;
+export const versionBuffer = Buffer.from([OPNET_DEPLOYMENT_VERSION]);
+
 export class DeploymentGenerator extends Generator {
     constructor(
         senderPubKey: Buffer,
@@ -52,6 +55,7 @@ export class DeploymentGenerator extends Generator {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
+
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
         const featuresList: Features[] = [];

@@ -2,7 +2,8 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import {
     crypto as bitCrypto,
-    Payment,
+    P2TRPayment,
+    PaymentType,
     Psbt,
     PsbtInput,
     Signer,
@@ -15,7 +16,10 @@ import {
     TransactionBuilder,
 } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { DeploymentGenerator } from '../../generators/builders/DeploymentGenerator.js';
+import {
+    DeploymentGenerator,
+    versionBuffer,
+} from '../../generators/builders/DeploymentGenerator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
@@ -25,11 +29,11 @@ import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
 
-const p = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
-
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
+
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
+
     protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
     protected readonly rewardChallenge: IMineableReward;
     /**
@@ -47,12 +51,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The target script redeem
      * @private
      */
-    private targetScriptRedeem: Payment | null = null;
+    private targetScriptRedeem: P2TRPayment | null = null;
     /**
      * The left over funds script redeem
      * @private
      */
-    private leftOverFundsScriptRedeem: Payment | null = null;
+    private leftOverFundsScriptRedeem: P2TRPayment | null = null;
     /**
      * The compiled target script
      * @private
@@ -107,10 +111,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     private _computedAddress: string | undefined;
 
     public constructor(parameters: IDeploymentParameters) {
-        // TODO: Add legacy deployment, this is only p2tr.
         super(parameters);
 
-        this.bytecode = Compressor.compress(parameters.bytecode);
+        this.bytecode = Compressor.compress(Buffer.concat([versionBuffer, parameters.bytecode]));
+
         this.verifyBytecode();
 
         if (parameters.calldata) {
@@ -337,8 +341,9 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the tap output
      * @protected
      */
-    protected override generateScriptAddress(): Payment {
+    protected override generateScriptAddress(): P2TRPayment {
         return {
+            name: PaymentType.P2TR,
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
@@ -349,7 +354,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Generate the tap data
      * @protected
      */
-    protected override generateTapData(): Payment {
+    protected override generateTapData(): P2TRPayment {
         const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -363,6 +368,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         }
 
         return {
+            name: PaymentType.P2TR,
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
             scriptTree: this.scriptTree,
@@ -454,13 +460,15 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      */
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
-            pubkeys: this.getPubKeys(),
+            name: PaymentType.P2TR,
+            //pubkeys: this.getPubKeys(),
             output: this.compiledTargetScript,
             redeemVersion: 192,
         };
 
         this.leftOverFundsScriptRedeem = {
-            pubkeys: this.getPubKeys(),
+            name: PaymentType.P2TR,
+            //pubkeys: this.getPubKeys(),
             output: this.getLeafScript(),
             redeemVersion: 192,
         };
