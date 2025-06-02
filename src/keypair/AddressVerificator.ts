@@ -184,7 +184,11 @@ export class AddressVerificator {
         try {
             // Try to decode as a Bech32 or Bech32m address (P2WPKH or P2TR)
             const decodedBech32 = address.fromBech32(addy);
-            if (decodedBech32.prefix === network.bech32Opnet && decodedBech32.version === 16) {
+            if (
+                (decodedBech32.prefix === network.bech32Opnet ||
+                    decodedBech32.prefix === network.bech32) &&
+                decodedBech32.version === 16
+            ) {
                 return AddressTypes.P2OP;
             }
 
