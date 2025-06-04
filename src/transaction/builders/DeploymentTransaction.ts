@@ -290,10 +290,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         // Then, we finalize every input.
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             if (i === 0) {
-                transaction.finalizeInput(i, this.customFinalizer);
+                transaction.finalizeInput(i, this.customFinalizer.bind(this));
             } else {
                 try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
                 } catch (e) {
                     transaction.finalizeInput(i);
                 }
@@ -324,12 +324,12 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 transaction.signInput(0, this.contractSigner);
                 transaction.signInput(0, this.getSignerKey());
 
-                transaction.finalizeInput(0, this.customFinalizer);
+                transaction.finalizeInput(0, this.customFinalizer.bind(this));
             } else {
                 transaction.signInput(i, this.getSignerKey());
 
                 try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
                 } catch (e) {
                     transaction.finalizeInput(i);
                 }

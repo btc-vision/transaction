@@ -10,6 +10,7 @@ import {
     isP2TR,
     isP2WPKH,
     isP2WSHScript,
+    isUnknownSegwitVersion,
     Network,
     opcodes,
     P2TRPayment,
@@ -43,6 +44,8 @@ export interface ITweakedTransactionData {
     readonly network: Network;
     readonly chainId?: ChainId;
     readonly nonWitnessUtxo?: Buffer;
+    readonly noSignatures?: boolean;
+    readonly unlockScript?: Buffer[];
 }
 
 /**
@@ -126,6 +129,8 @@ export abstract class TweakedTransaction extends Logger {
 
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
+    protected noSignatures: boolean = false;
+    protected unlockScript: Buffer[] | undefined;
 
     protected constructor(data: ITweakedTransactionData) {
         super();
@@ -133,7 +138,9 @@ export abstract class TweakedTransaction extends Logger {
         this.signer = data.signer;
         this.network = data.network;
 
+        this.noSignatures = data.noSignatures || false;
         this.nonWitnessUtxo = data.nonWitnessUtxo;
+        this.unlockScript = data.unlockScript;
 
         this.isBrowser = typeof window !== 'undefined';
     }
@@ -476,27 +483,29 @@ export abstract class TweakedTransaction extends Logger {
         const batchSize: number = 20;
         const batches = this.splitArray(txs, batchSize);
 
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
-            const promises: Promise<void>[] = [];
-            const offset = i * batchSize;
+        if (!this.noSignatures) {
+            for (let i = 0; i < batches.length; i++) {
+                const batch = batches[i];
+                const promises: Promise<void>[] = [];
+                const offset = i * batchSize;
 
-            for (let j = 0; j < batch.length; j++) {
-                const index = offset + j;
-                const input = batch[j];
+                for (let j = 0; j < batch.length; j++) {
+                    const index = offset + j;
+                    const input = batch[j];
 
-                try {
-                    promises.push(this.signInput(transaction, input, index, this.signer));
-                } catch (e) {
-                    this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                    try {
+                        promises.push(this.signInput(transaction, input, index, this.signer));
+                    } catch (e) {
+                        this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                    }
                 }
-            }
 
-            await Promise.all(promises);
+                await Promise.all(promises);
+            }
         }
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH);
+            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
         }
 
         this.finalized = true;
@@ -654,14 +663,14 @@ export abstract class TweakedTransaction extends Logger {
      * Generate the PSBT input extended, supporting various script types
      * @param {UTXO} utxo The UTXO
      * @param {number} i The index of the input
-     * @param {UTXO} extra Extra UTXO
+     * @param {UTXO} _extra Extra UTXO
      * @protected
      * @returns {PsbtInputExtended} The PSBT input extended
      */
     protected generatePsbtInputExtended(
         utxo: UTXO,
         i: number,
-        extra: boolean = false,
+        _extra: boolean = false,
     ): PsbtInputExtended {
         const script = Buffer.from(utxo.scriptPubKey.hex, 'hex');
 
@@ -689,7 +698,7 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         // Handle P2WPKH (SegWit)
-        else if (isP2WPKH(script)) {
+        else if (isP2WPKH(script) || isUnknownSegwitVersion(script)) {
             // No redeemScript required for pure P2WPKH
             // witnessUtxo is enough, no nonWitnessUtxo needed.
         }
@@ -849,7 +858,16 @@ export abstract class TweakedTransaction extends Logger {
             };
         }
 
-        return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH);
+        return getFinalScripts(
+            inputIndex,
+            input,
+            scriptA,
+            isSegwit,
+            isP2SH,
+            isP2WSH,
+            true,
+            this.unlockScript,
+        );
     };
 
     protected async signInputsWalletBased(transaction: Psbt): Promise<void> {
@@ -860,7 +878,7 @@ export abstract class TweakedTransaction extends Logger {
 
         // Then, we finalize every input.
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH);
+            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
         }
 
         this.finalized = true;

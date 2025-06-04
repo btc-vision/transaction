@@ -20,6 +20,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     optionalOutputs?: PsbtOutputExtended[];
 
     chainId?: ChainId;
+    noSignatures?: boolean;
 
     readonly feeRate: number;
     readonly priorityFee: bigint;

@@ -320,10 +320,10 @@ export abstract class SharedInteractionTransaction<
         // Then, we finalize every input.
         for (let i = 0; i < transaction.data.inputs.length; i++) {
             if (i === 0) {
-                transaction.finalizeInput(i, this.customFinalizer);
+                transaction.finalizeInput(i, this.customFinalizer.bind(this));
             } else {
                 try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
                 } catch (e) {
                     transaction.finalizeInput(i);
                 }
@@ -343,12 +343,12 @@ export abstract class SharedInteractionTransaction<
                     this.getSignerKey(),
                 );
 
-                transaction.finalizeInput(0, this.customFinalizer);
+                transaction.finalizeInput(0, this.customFinalizer.bind(this));
             } else {
                 await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
 
                 try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH);
+                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
                 } catch (e) {
                     transaction.finalizeInput(i);
                 }
