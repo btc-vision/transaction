@@ -146,26 +146,24 @@ export class BinaryWriter {
     }
 
     public writeString(value: string): void {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(value);
+        this.allocSafe(value.length);
 
-        this.allocSafe(bytes.length);
-        this.writeBytes(bytes);
-    }
-
-    public writeStringWithLength(value: string): void {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(value);
-
-        this.allocSafe(U32_BYTE_LENGTH + bytes.length);
-        this.writeU32(bytes.length);
-        this.writeBytes(bytes);
+        for (let i: i32 = 0; i < value.length; i++) {
+            this.writeU8(value.charCodeAt(i));
+        }
     }
 
     public writeAddress(value: Address): void {
         this.verifyAddress(value);
 
         this.writeBytes(value);
+    }
+
+    public writeStringWithLength(value: string): void {
+        this.allocSafe(U32_BYTE_LENGTH + value.length);
+
+        this.writeU32(value.length);
+        this.writeString(value);
     }
 
     public getBuffer(clear: boolean = true): Uint8Array {
