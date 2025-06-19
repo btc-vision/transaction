@@ -28,7 +28,7 @@ if (!BIP32factory) {
 
 secp256k1.utils.precompute(8);
 
-const { ProjectivePoint: Point, CURVE } = secp256k1;
+const { Point, CURVE } = secp256k1;
 
 const TAP_TAG = utf8ToBytes('TapTweak');
 const TAP_TAG_HASH = sha256(TAP_TAG);
@@ -272,12 +272,12 @@ export class EcKeyPair {
         const P = Point.fromHex(pub);
         const Peven = (P.y & 1n) === 0n ? P : P.negate();
 
-        const xBytes = Peven.toRawBytes(true).subarray(1);
+        const xBytes = Peven.toBytes(true).subarray(1);
         const tBytes = tapTweakHash(xBytes);
         const t = mod(bytesToNumberBE(tBytes), CURVE.n);
 
         const Q = Peven.add(Point.BASE.multiply(t));
-        return Buffer.from(Q.toRawBytes(true));
+        return Buffer.from(Q.toBytes(true));
     }
 
     /**
@@ -294,9 +294,9 @@ export class EcKeyPair {
 
         return pubkeys.map((bytes) => {
             const P = Point.fromHex(bytes);
-            const P_even = P.hasEvenY() ? P : P.negate();
+            const P_even = P.y % 2n === 0n ? P : P.negate();
             const Q = P_even.add(T);
-            return Q.toRawBytes(true);
+            return Q.toBytes(true);
         });
     }
 
