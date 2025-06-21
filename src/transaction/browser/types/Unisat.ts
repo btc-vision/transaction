@@ -85,7 +85,7 @@ export interface Unisat {
 
     getBalance(): Promise<Balance>;
 
-    signMessage(message: string, type?: MessageType): Promise<string>;
+    signMessage(message: string | Buffer, type?: MessageType): Promise<string>;
 
     signData(hex: string, type?: SignatureType): Promise<string>;
 

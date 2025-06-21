@@ -90,7 +90,7 @@
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.2.0",
         "@btc-vision/bitcoin": "^6.4.6",
-        "@btc-vision/bitcoin-rpc": "^1.0.1",
+        "@btc-vision/bitcoin-rpc": "^1.0.2",
         "@btc-vision/logger": "^1.0.6",
         "@eslint/js": "^9.28.0",
         "@noble/secp256k1": "^2.2.3",
