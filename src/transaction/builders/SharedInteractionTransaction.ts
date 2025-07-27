@@ -9,6 +9,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
+import { Preimage } from '../../epoch/IPreimage.js';
 
 /**
  * Shared interaction transaction
@@ -31,7 +32,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
+    protected readonly preimage: Preimage; // ALWAYS 128 bytes for the preimage
     protected readonly rewardChallenge: IMineableReward;
 
     protected calldataGenerator: CalldataGenerator;
@@ -110,7 +111,7 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the preimage
      */
-    public getPreimage(): Buffer {
+    public getPreimage(): Preimage {
         return this.preimage;
     }
 

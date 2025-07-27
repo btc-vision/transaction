@@ -24,13 +24,14 @@ import {
     InteractionParametersWithoutSigner,
 } from './browser/Web3Provider.js';
 import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
+import { RawPreimage } from '../epoch/interfaces/IPreimage.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
 
     readonly contractAddress: string;
     readonly contractPubKey: string;
-    readonly preimage: string;
+    readonly preimage: RawPreimage;
 
     readonly utxos: UTXO[];
 }
@@ -60,7 +61,7 @@ export interface InteractionResponse {
     readonly interactionTransaction: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
-    readonly preimage: string;
+    readonly preimage: RawPreimage;
 }
 
 export interface ChallengeSolution extends BitcoinTransferBase {
@@ -265,7 +266,7 @@ export class TransactionFactory {
                 interactionParameters.from,
                 1,
             ), // always 1
-            preimage: preTransaction.getPreimage().toString('hex'),
+            preimage: preTransaction.getPreimage().toRaw(),
         };
     }
 
@@ -370,7 +371,7 @@ export class TransactionFactory {
             contractAddress: finalTransaction.getContractAddress(), //finalTransaction.contractAddress.p2tr(deploymentParameters.network),
             contractPubKey: finalTransaction.contractPubKey,
             utxos: [refundUTXO],
-            preimage: preTransaction.getPreimage().toString('hex'),
+            preimage: preTransaction.getPreimage().toRaw(),
         };
     }
 

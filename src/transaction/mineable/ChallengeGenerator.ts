@@ -1,5 +1,6 @@
 import bitcoin, { Network } from '@btc-vision/bitcoin';
 import { MineableReward } from '../../generators/builders/MineableReward.js';
+import { Preimage } from '../../epoch/IPreimage.js';
 
 export interface IMineableReward {
     address: string;
@@ -8,9 +9,9 @@ export interface IMineableReward {
 }
 
 export class ChallengeGenerator {
-    public static generateMineableReward(preimage1: Buffer, network: Network): IMineableReward {
+    public static generateMineableReward(preimage: Preimage, network: Network): IMineableReward {
         const mineableReward = new MineableReward(Buffer.alloc(0), network);
-        const redeemScript = mineableReward.compile(preimage1);
+        const redeemScript = mineableReward.compile(preimage.solution);
         const p2sh = bitcoin.payments.p2sh({
             redeem: { output: redeemScript },
             network,

@@ -9,13 +9,14 @@ import {
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
+import { Preimage } from '../epoch/IPreimage.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: Buffer;
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
-    readonly preimage: Buffer;
+    readonly preimage: Preimage;
     readonly priorityFee: bigint;
     readonly calldata?: Buffer;
     readonly network?: Network;

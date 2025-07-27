@@ -28,13 +28,14 @@ import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
+import { Preimage } from '../../epoch/IPreimage.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
+    protected readonly preimage: Preimage; // ALWAYS 128 bytes for the preimage
     protected readonly rewardChallenge: IMineableReward;
     /**
      * The contract address
@@ -190,7 +191,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract bytecode
      * @returns {Buffer} The contract bytecode
      */
-    public getPreimage(): Buffer {
+    public getPreimage(): Preimage {
         return this.preimage;
     }
 
