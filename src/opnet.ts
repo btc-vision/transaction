@@ -51,6 +51,11 @@ export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
 
+/** Epoch */
+export * from './epoch/interfaces/IPreimage.js';
+export * from './epoch/validator/EpochValidator.js';
+export * from './epoch/IPreimage.js';
+
 /** Utils */
 export * from './utils/BitcoinUtils.js';
 export * from './utils/lengths.js';
