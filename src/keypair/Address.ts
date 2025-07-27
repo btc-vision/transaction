@@ -5,6 +5,7 @@ import { AddressVerificator } from './AddressVerificator.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { ContractAddress } from '../transaction/ContractAddress.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
+import { ITimeLockOutput, TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
 
 /**
  * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
@@ -315,6 +316,39 @@ export class Address extends Uint8Array {
         }
 
         throw new Error('Public key not set');
+    }
+
+    /**
+     * Generate a P2WSH address with CSV (CheckSequenceVerify) timelock
+     * The resulting address can only be spent after the specified number of blocks
+     * have passed since the UTXO was created.
+     *
+     * @param {bigint | number | string} blockNumber - The number of blocks that must pass before spending (1-65535)
+     * @param {Network} network - The Bitcoin network to use
+     * @returns {ITimeLockOutput} The timelocked address and its witness script
+     * @throws {Error} If the block number is out of range or public key is not available
+     */
+    public toCSV(blockNumber: bigint | number | string, network: Network): ITimeLockOutput {
+        const n = Number(blockNumber);
+
+        // First, let's validate the block number to ensure it's within the valid range
+        // CSV uses sequence numbers, which have special encoding for block-based locks
+        if (n < 1 || n > 65535) {
+            throw new Error('CSV block number must be between 1 and 65535');
+        }
+
+        // We need the original public key in compressed format for the script
+        // Your class stores this in #originalPublicKey when a key is set
+        if (!this.#originalPublicKey) {
+            throw new Error('Cannot create CSV address: public key not set');
+        }
+
+        // Convert the public key to Buffer format that TimeLockGenerator expects
+        const publicKeyBuffer = Buffer.from(this.#originalPublicKey);
+
+        // Now we can use your TimeLockGenerator to create the timelocked address
+        // Converting bigint to number is safe here because we've already validated the range
+        return TimeLockGenerator.generateTimeLockAddress(publicKeyBuffer, network, n);
     }
 
     /**

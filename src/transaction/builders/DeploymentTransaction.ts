@@ -27,16 +27,17 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
 import { Preimage } from '../../epoch/IPreimage.js';
+import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly preimage: Preimage; // ALWAYS 128 bytes for the preimage
-    protected readonly rewardChallenge: IMineableReward;
+    protected readonly preimage: Preimage;
+    protected readonly epochChallenge: ITimeLockOutput;
+
     /**
      * The contract address
      * @protected
@@ -128,8 +129,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
         this.preimage = parameters.preimage;
 
-        this.rewardChallenge = ChallengeGenerator.generateMineableReward(
-            this.preimage,
+        this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
+            this.preimage.publicKey.originalPublicKeyBuffer(),
             this.network,
         );
 
@@ -272,7 +273,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         ) {
             this.addOutput({
                 value: Number(amountSpent - amountToCA),
-                address: this.rewardChallenge.address,
+                address: this.epochChallenge.address,
             });
         }
 

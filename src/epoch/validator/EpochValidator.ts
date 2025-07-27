@@ -49,8 +49,11 @@ export class EpochValidator {
      */
     public static countMatchingBits(hash1: Buffer, hash2: Buffer): number {
         let matchingBits = 0;
-        const minLength = Math.min(hash1.length, hash2.length);
+        if (hash1.length !== hash2.length) {
+            throw new Error('Hashes must be of the same length');
+        }
 
+        const minLength = Math.min(hash1.length, hash2.length);
         for (let i = 0; i < minLength; i++) {
             const byte1 = hash1[i];
             const byte2 = hash2[i];
@@ -75,7 +78,10 @@ export class EpochValidator {
     /**
      * Verify an epoch solution using IPreimage
      */
-    public static async verifySolution(preimage: IPreimage): Promise<boolean> {
+    public static async verifySolution(
+        preimage: IPreimage,
+        log: boolean = false,
+    ): Promise<boolean> {
         try {
             const verification = preimage.verification;
             const calculatedPreimage = this.calculatePreimage(
@@ -88,7 +94,6 @@ export class EpochValidator {
             const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
 
             if (!computedSolutionBuffer.equals(preimage.solution)) {
-                console.error('Solution mismatch');
                 return false;
             }
 
@@ -98,26 +103,18 @@ export class EpochValidator {
             );
 
             if (matchingBits !== preimage.difficulty) {
-                console.error(
-                    `Difficulty mismatch: expected ${preimage.difficulty}, got ${matchingBits}`,
-                );
                 return false;
             }
 
             const expectedStartBlock = preimage.epochNumber * this.BLOCKS_PER_EPOCH;
             const expectedEndBlock = expectedStartBlock + this.BLOCKS_PER_EPOCH - 1n;
 
-            if (
+            return !(
                 verification.startBlock !== expectedStartBlock ||
                 verification.endBlock !== expectedEndBlock
-            ) {
-                console.error('Epoch bounds mismatch');
-                return false;
-            }
-
-            return true;
+            );
         } catch (error) {
-            console.error('Verification error:', error);
+            if (log) console.error('Verification error:', error);
             return false;
         }
     }
