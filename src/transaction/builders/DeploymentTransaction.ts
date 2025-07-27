@@ -276,7 +276,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 address: this.epochChallenge.address,
             });
         }
-
+        
         await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }
 

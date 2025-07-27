@@ -71,12 +71,15 @@ export class DeploymentGenerator extends Generator {
                 featureData.push(...data);
             }
         }
-
+        
         const compiledData = [
             this.getHeader(maxPriority, featuresList),
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
+            preimage.publicKey.originalPublicKeyBuffer(),
+            opcodes.OP_TOALTSTACK,
+
             preimage.solution,
             opcodes.OP_TOALTSTACK,
 

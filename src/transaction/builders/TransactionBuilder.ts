@@ -184,6 +184,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         });
     }
 
+    public addOPReturn(buffer: Buffer): void {
+        const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
+
+        this.addOutput({
+            value: 0,
+            script: compileScript,
+        });
+    }
+
     public static getFrom(
         from: string | undefined,
         keypair: ECPairInterface | Signer,
@@ -368,8 +377,23 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     public addOutput(output: PsbtOutputExtended): void {
-        if (output.value === 0) return;
-        if (output.value < TransactionBuilder.MINIMUM_DUST) {
+        if (output.value === 0) {
+            const script = output as {
+                script: Buffer;
+            };
+
+            if (!script.script || script.script.length === 0) {
+                throw new Error('Output value is 0 and no script provided');
+            }
+
+            if (script.script.length < 2) {
+                throw new Error('Output script is too short');
+            }
+
+            if (script.script[0] !== opcodes.OP_RETURN) {
+                throw new Error('Output script must start with OP_RETURN when value is 0');
+            }
+        } else if (output.value < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,
             );
