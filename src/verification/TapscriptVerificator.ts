@@ -10,6 +10,7 @@ import {
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
 import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
+import { Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: Buffer;
@@ -18,6 +19,7 @@ export interface ContractAddressVerificationParams {
     readonly bytecode: Buffer;
     readonly challenge: ChallengeSolution;
     readonly priorityFee: bigint;
+    readonly features: Feature<Features>[];
     readonly calldata?: Buffer;
     readonly network?: Network;
 }
@@ -41,6 +43,7 @@ export class TapscriptVerificator {
             params.challenge,
             params.priorityFee,
             params.calldata,
+            params.features,
         );
 
         const scriptTree: Taptree = [

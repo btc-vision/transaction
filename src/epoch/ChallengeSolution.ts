@@ -104,7 +104,7 @@ export class ChallengeSolution implements IChallengeSolution {
 
     public getSubmission(): ChallengeSubmission | undefined {
         if (!this.submission) {
-            throw new Error('No submission provided in request.');
+            return;
         }
 
         if (!this.verifySubmissionSignature()) {
