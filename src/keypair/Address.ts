@@ -323,13 +323,13 @@ export class Address extends Uint8Array {
      * The resulting address can only be spent after the specified number of blocks
      * have passed since the UTXO was created.
      *
-     * @param {bigint | number | string} blockNumber - The number of blocks that must pass before spending (1-65535)
+     * @param {bigint | number | string} duration - The number of blocks that must pass before spending (1-65535)
      * @param {Network} network - The Bitcoin network to use
      * @returns {ITimeLockOutput} The timelocked address and its witness script
      * @throws {Error} If the block number is out of range or public key is not available
      */
-    public toCSV(blockNumber: bigint | number | string, network: Network): ITimeLockOutput {
-        const n = Number(blockNumber);
+    public toCSV(duration: bigint | number | string, network: Network): ITimeLockOutput {
+        const n = Number(duration);
 
         // First, let's validate the block number to ensure it's within the valid range
         // CSV uses sequence numbers, which have special encoding for block-based locks
