@@ -149,7 +149,7 @@ export abstract class Generator {
     }
 
     private encodeChallengeSubmission(feature: EpochSubmissionFeature): Buffer {
-        if (!feature.data.verifySignature()) {
+        if ('verifySignature' in feature.data && !feature.data.verifySignature()) {
             throw new Error('Invalid signature in challenge submission feature');
         }
 
