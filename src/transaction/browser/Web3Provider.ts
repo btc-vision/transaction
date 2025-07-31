@@ -8,17 +8,17 @@ import { ICustomTransactionParameters } from '../builders/CustomScriptTransactio
 
 export type InteractionParametersWithoutSigner = Omit<
     IInteractionParameters,
-    'signer' | 'preimage'
+    'signer' | 'challenge'
 >;
 
 export type IDeploymentParametersWithoutSigner = Omit<
     IDeploymentParameters,
-    'signer' | 'network' | 'preimage'
+    'signer' | 'network' | 'challenge'
 >;
 
 export type CustomTransactionWithoutSigner = Omit<
     ICustomTransactionParameters,
-    'signer' | 'preimage'
+    'signer' | 'challenge'
 >;
 
 export interface BroadcastTransactionOptions {

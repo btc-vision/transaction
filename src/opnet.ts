@@ -10,12 +10,11 @@ export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 export * from './generators/builders/LegacyCalldataGenerator.js';
-export * from './generators/builders/MineableReward.js';
 export * from './generators/builders/MultiSignGenerator.js';
 export * from './generators/Features.js';
 export * from './generators/Generator.js';
 
-export * from './transaction/mineable/ChallengeGenerator.js';
+export * from './transaction/mineable/TimelockGenerator.js';
 
 /** Address */
 export * from './generators/AddressGenerator.js';
@@ -42,7 +41,6 @@ export * from './transaction/interfaces/Tap.js';
 export * from './transaction/TransactionFactory.js';
 
 /** Builders */
-export * from './transaction/builders/ChallengeSolutionTransaction.js';
 export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
@@ -50,6 +48,11 @@ export * from './transaction/builders/InteractionTransaction.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
+
+/** Epoch */
+export * from './epoch/interfaces/IChallengeSolution.js';
+export * from './epoch/validator/EpochValidator.js';
+export * from './epoch/ChallengeSolution.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';

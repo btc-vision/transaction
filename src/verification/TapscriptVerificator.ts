@@ -9,14 +9,17 @@ import {
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
+import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
+import { Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: Buffer;
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
-    readonly preimage: Buffer;
+    readonly challenge: ChallengeSolution;
     readonly priorityFee: bigint;
+    readonly features: Feature<Features>[];
     readonly calldata?: Buffer;
     readonly network?: Network;
 }
@@ -37,9 +40,10 @@ export class TapscriptVerificator {
         const compiledTargetScript: Buffer = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
-            params.preimage,
+            params.challenge,
             params.priorityFee,
             params.calldata,
+            params.features,
         );
 
         const scriptTree: Taptree = [
@@ -70,9 +74,10 @@ export class TapscriptVerificator {
         const compiledTargetScript: Buffer = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
-            params.preimage,
+            params.challenge,
             params.priorityFee,
             params.calldata,
+            params.features,
         );
 
         const scriptTree: Taptree = [
@@ -91,7 +96,6 @@ export class TapscriptVerificator {
             network: network,
             scriptTree: scriptTree,
             redeem: {
-                //pubkeys: [params.deployerPubKey, params.contractSaltPubKey],
                 output: compiledTargetScript,
                 redeemVersion: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },

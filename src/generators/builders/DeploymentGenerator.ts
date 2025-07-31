@@ -1,6 +1,7 @@
 import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 export const OPNET_DEPLOYMENT_VERSION = 0x00;
 export const versionBuffer = Buffer.from([OPNET_DEPLOYMENT_VERSION]);
@@ -18,19 +19,28 @@ export class DeploymentGenerator extends Generator {
      * Compile a bitcoin script representing a contract deployment
      * @param {Buffer} contractBytecode - The contract bytecode
      * @param {Buffer} contractSalt - The contract salt
-     * @param {Buffer} preimage - The preimage for reward
+     * @param {ChallengeSolution} preimage - The preimage for reward
      * @param {bigint} maxPriority - The maximum priority for the contract
      * @param {Buffer} [calldata] - The calldata to be passed to the contract
+     * @param {Feature<Features>[]} [features] - Optional features to include in the script
      * @returns {Buffer} - The compiled script
      */
     public compile(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: Buffer,
+        preimage: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
+        features?: Feature<Features>[],
     ): Buffer {
-        const asm = this.getAsm(contractBytecode, contractSalt, preimage, maxPriority, calldata);
+        const asm = this.getAsm(
+            contractBytecode,
+            contractSalt,
+            preimage,
+            maxPriority,
+            calldata,
+            features,
+        );
         const compiled = script.compile(asm);
 
         /**
@@ -47,7 +57,7 @@ export class DeploymentGenerator extends Generator {
     private getAsm(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: Buffer,
+        preimage: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         features?: Feature<Features>[],
@@ -55,7 +65,6 @@ export class DeploymentGenerator extends Generator {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
-
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
         const featuresList: Features[] = [];
@@ -76,7 +85,10 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            preimage,
+            preimage.publicKey.originalPublicKeyBuffer(),
+            opcodes.OP_TOALTSTACK,
+
+            preimage.solution,
             opcodes.OP_TOALTSTACK,
 
             this.xSenderPubKey,

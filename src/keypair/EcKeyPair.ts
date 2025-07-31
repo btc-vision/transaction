@@ -26,9 +26,8 @@ if (!BIP32factory) {
     throw new Error('Failed to load BIP32 library');
 }
 
-secp256k1.utils.precompute(8);
-
-const { Point, CURVE } = secp256k1;
+const Point = secp256k1.Point;
+const CURVE_N = Point.Fn.ORDER;
 
 const TAP_TAG = utf8ToBytes('TapTweak');
 const TAP_TAG_HASH = sha256(TAP_TAG);
@@ -47,6 +46,12 @@ function tapTweakHash(x: Uint8Array): Uint8Array {
 export class EcKeyPair {
     public static BIP32: BIP32API = BIP32factory(ecc);
     public static ECPair: ECPairAPI = ECPairFactory(ecc);
+
+    // Initialize precomputation for better performance
+    static {
+        // Precompute tables for the base point for better performance
+        Point.BASE.precompute(8);
+    }
 
     /**
      * Generate a keypair from a WIF
@@ -274,7 +279,7 @@ export class EcKeyPair {
 
         const xBytes = Peven.toBytes(true).subarray(1);
         const tBytes = tapTweakHash(xBytes);
-        const t = mod(bytesToNumberBE(tBytes), CURVE.n);
+        const t = mod(bytesToNumberBE(tBytes), CURVE_N);
 
         const Q = Peven.add(Point.BASE.multiply(t));
         return Buffer.from(Q.toBytes(true));

@@ -1,5 +1,4 @@
-import { TransactionType } from '../enums/TransactionType.js';
-import { IChallengeSolutionTransactionParameters } from '../interfaces/ITransactionParameters.js';
+/*import { TransactionType } from '../enums/TransactionType.js';
 import { getFinalScripts, opcodes, Psbt, PsbtInput, script, Signer } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { ECPairInterface } from 'ecpair';
@@ -69,7 +68,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
         finalScriptWitness: Buffer | undefined;
     } => {
         const inputDecoded = this.inputs[inputIndex];
-        
+
         if (isP2SH && inputDecoded && inputDecoded.redeemScript) {
             const scriptSig = script.compile([this.challengeSolution, inputDecoded.redeemScript]);
 
@@ -85,4 +84,4 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
     protected override getSignerKey(): Signer | ECPairInterface {
         return this.signer;
     }
-}
+}*/

@@ -148,6 +148,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected isPubKeyDestination: boolean;
 
+    protected note?: Buffer;
+
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
 
@@ -163,6 +165,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.optionalInputs = parameters.optionalInputs || [];
         this.to = parameters.to || undefined;
+
+        if (parameters.note) {
+            if (typeof parameters.note === 'string') {
+                this.note = Buffer.from(parameters.note, 'utf8');
+            } else {
+                this.note = parameters.note;
+            }
+        }
 
         this.isPubKeyDestination = this.to
             ? AddressVerificator.isValidPublicKey(this.to, this.network)
@@ -226,6 +236,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         writeVector(witness);
 
         return buffer;
+    }
+
+    public addOPReturn(buffer: Buffer): void {
+        const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
+
+        this.addOutput({
+            value: 0,
+            script: compileScript,
+        });
     }
 
     public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
@@ -368,8 +387,23 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     public addOutput(output: PsbtOutputExtended): void {
-        if (output.value === 0) return;
-        if (output.value < TransactionBuilder.MINIMUM_DUST) {
+        if (output.value === 0) {
+            const script = output as {
+                script: Buffer;
+            };
+
+            if (!script.script || script.script.length === 0) {
+                throw new Error('Output value is 0 and no script provided');
+            }
+
+            if (script.script.length < 2) {
+                throw new Error('Output script is too short');
+            }
+
+            if (script.script[0] !== opcodes.OP_RETURN) {
+                throw new Error('Output script must start with OP_RETURN when value is 0');
+            }
+        } else if (output.value < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,
             );
@@ -479,6 +513,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Promise<void>}
      */
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
+        if (this.note) {
+            this.addOPReturn(this.note);
+        }
+
         /** Add the refund output */
         const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {

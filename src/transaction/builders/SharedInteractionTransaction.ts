@@ -8,7 +8,8 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
+import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 /**
  * Shared interaction transaction
@@ -31,8 +32,8 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
-    protected readonly rewardChallenge: IMineableReward;
+    protected readonly challenge: ChallengeSolution;
+    protected readonly epochChallenge: ITimeLockOutput;
 
     protected calldataGenerator: CalldataGenerator;
 
@@ -67,15 +68,15 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Calldata is required');
         }
 
-        if (!parameters.preimage) {
-            throw new Error('Preimage is required');
+        if (!parameters.challenge) {
+            throw new Error('Challenge solution is required');
         }
 
-        this.preimage = parameters.preimage;
+        this.challenge = parameters.challenge;
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
-        this.rewardChallenge = ChallengeGenerator.generateMineableReward(
-            this.preimage,
+        this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
+            this.challenge.publicKey.originalPublicKeyBuffer(),
             this.network,
         );
 
@@ -110,26 +111,9 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the preimage
      */
-    public getPreimage(): Buffer {
-        return this.preimage;
+    public getPreimage(): ChallengeSolution {
+        return this.challenge;
     }
-
-    /**
-     * Generate the secret for the interaction
-     * @protected
-     * @returns {Buffer} The secret
-     * @throws {Error} If the to address is invalid
-     */
-
-    /*protected generateSecret(): Buffer {
-        if (!this.to) throw new Error('To address is required');
-
-        if (this.to.startsWith('0x')) {
-            throw new Error(`Legacy not support at this time. Reserved for future use.`);
-        }
-
-        return address.fromBech32(this.to).data;
-    }*/
 
     /**
      * Get the internal pubkey as an x-only key
@@ -381,7 +365,7 @@ export abstract class SharedInteractionTransaction<
         ) {
             this.addOutput({
                 value: Number(amountSpent - amountToCA),
-                address: this.rewardChallenge.address,
+                address: this.epochChallenge.address,
             });
         }
 

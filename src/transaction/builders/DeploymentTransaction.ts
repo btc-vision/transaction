@@ -27,15 +27,18 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { ChallengeGenerator, IMineableReward } from '../mineable/ChallengeGenerator.js';
+import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { Feature, Features } from '../../generators/Features.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly preimage: Buffer; // ALWAYS 128 bytes for the preimage
-    protected readonly rewardChallenge: IMineableReward;
+    protected readonly preimage: ChallengeSolution;
+    protected readonly epochChallenge: ITimeLockOutput;
+
     /**
      * The contract address
      * @protected
@@ -122,13 +125,13 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.verifyCalldata();
         }
 
-        if (!parameters.preimage) throw new Error('Preimage is required');
+        if (!parameters.challenge) throw new Error('Challenge solution is required');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
-        this.preimage = parameters.preimage;
+        this.preimage = parameters.challenge;
 
-        this.rewardChallenge = ChallengeGenerator.generateMineableReward(
-            this.preimage,
+        this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
+            this.preimage.publicKey.originalPublicKeyBuffer(),
             this.network,
         );
 
@@ -147,6 +150,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.preimage,
             this.priorityFee,
             this.calldata,
+            this.generateFeatures(parameters),
         );
 
         this.scriptTree = this.getScriptTree();
@@ -190,7 +194,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract bytecode
      * @returns {Buffer} The contract bytecode
      */
-    public getPreimage(): Buffer {
+    public getPreimage(): ChallengeSolution {
         return this.preimage;
     }
 
@@ -271,7 +275,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         ) {
             this.addOutput({
                 value: Number(amountSpent - amountToCA),
-                address: this.rewardChallenge.address,
+                address: this.epochChallenge.address,
             });
         }
 
@@ -374,6 +378,20 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
         };
+    }
+
+    private generateFeatures(parameters: IDeploymentParameters): Feature<Features>[] {
+        const features: Feature<Features>[] = [];
+
+        const submission = parameters.challenge.getSubmission();
+        if (submission) {
+            features.push({
+                opcode: Features.EPOCH_SUBMISSION,
+                data: submission,
+            });
+        }
+
+        return features;
     }
 
     private verifyCalldata(): void {

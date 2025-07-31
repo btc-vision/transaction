@@ -2,6 +2,7 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from '@btc-vision/bitcoin';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 export interface LoadedStorage {
     [key: string]: string[];
@@ -22,6 +23,8 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     chainId?: ChainId;
     noSignatures?: boolean;
 
+    readonly note?: string | Buffer;
+
     readonly feeRate: number;
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
@@ -33,17 +36,11 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
     splitInputsInto?: number;
 }
 
-export interface IChallengeSolutionTransactionParameters extends ITransactionParameters {
-    amount: bigint;
-
-    readonly challengeSolution: Buffer;
-}
-
 export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer;
     disableAutoRefund?: boolean;
 
-    readonly preimage: Buffer;
+    readonly challenge: ChallengeSolution;
     readonly randomBytes?: Buffer;
 
     readonly loadedStorage?: LoadedStorage;
@@ -61,5 +58,5 @@ export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'
     readonly calldata?: Buffer;
 
     readonly randomBytes?: Buffer;
-    readonly preimage: Buffer;
+    readonly challenge: ChallengeSolution;
 }
