@@ -29,6 +29,7 @@ import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { Feature, Features } from '../../generators/Features.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -149,6 +150,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.preimage,
             this.priorityFee,
             this.calldata,
+            this.generateFeatures(parameters),
         );
 
         this.scriptTree = this.getScriptTree();
@@ -376,6 +378,20 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
         };
+    }
+
+    private generateFeatures(parameters: IDeploymentParameters): Feature<Features>[] {
+        const features: Feature<Features>[] = [];
+
+        const submission = parameters.challenge.getSubmission();
+        if (submission) {
+            features.push({
+                opcode: Features.EPOCH_SUBMISSION,
+                data: submission,
+            });
+        }
+
+        return features;
     }
 
     private verifyCalldata(): void {

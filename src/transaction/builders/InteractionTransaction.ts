@@ -58,6 +58,14 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             });
         }
 
+        const submission = parameters.challenge.getSubmission();
+        if (submission) {
+            features.push({
+                opcode: Features.EPOCH_SUBMISSION,
+                data: submission,
+            });
+        }
+
         return features;
     }
 }

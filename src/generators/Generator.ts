@@ -1,6 +1,6 @@
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
-import { AccessListFeature, Feature, Features } from './Features.js';
+import { AccessListFeature, EpochSubmissionFeature, Feature, Features } from './Features.js';
 import { Address } from '../keypair/Address.js';
 import { Compressor } from '../bytecode/Compressor.js';
 
@@ -107,10 +107,16 @@ export abstract class Generator {
 
     protected encodeFeature(feature: Feature<Features>): Buffer[][] {
         switch (feature.opcode) {
-            case Features.ACCESS_LIST:
+            case Features.ACCESS_LIST: {
                 return this.splitBufferIntoChunks(
                     this.encodeAccessListFeature(feature as AccessListFeature),
                 );
+            }
+            case Features.EPOCH_SUBMISSION: {
+                return this.splitBufferIntoChunks(
+                    this.encodeChallengeSubmission(feature as EpochSubmissionFeature),
+                );
+            }
             default:
                 throw new Error(`Unknown feature type: ${feature.opcode}`);
         }
@@ -140,5 +146,21 @@ export abstract class Generator {
         }
 
         return Compressor.compress(Buffer.from(writer.getBuffer()));
+    }
+
+    private encodeChallengeSubmission(feature: EpochSubmissionFeature): Buffer {
+        if (!feature.data.verifySignature()) {
+            throw new Error('Invalid signature in challenge submission feature');
+        }
+
+        const writer = new BinaryWriter();
+        writer.writeBytes(feature.data.publicKey.originalPublicKeyBuffer());
+        writer.writeBytes(feature.data.solution);
+
+        if (feature.data.graffiti) {
+            writer.writeBytesWithLength(feature.data.graffiti);
+        }
+
+        return Buffer.from(writer.getBuffer());
     }
 }

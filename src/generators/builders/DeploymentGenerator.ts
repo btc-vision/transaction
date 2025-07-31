@@ -22,6 +22,7 @@ export class DeploymentGenerator extends Generator {
      * @param {ChallengeSolution} preimage - The preimage for reward
      * @param {bigint} maxPriority - The maximum priority for the contract
      * @param {Buffer} [calldata] - The calldata to be passed to the contract
+     * @param {Feature<Features>[]} [features] - Optional features to include in the script
      * @returns {Buffer} - The compiled script
      */
     public compile(
@@ -30,8 +31,16 @@ export class DeploymentGenerator extends Generator {
         preimage: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
+        features?: Feature<Features>[],
     ): Buffer {
-        const asm = this.getAsm(contractBytecode, contractSalt, preimage, maxPriority, calldata);
+        const asm = this.getAsm(
+            contractBytecode,
+            contractSalt,
+            preimage,
+            maxPriority,
+            calldata,
+            features,
+        );
         const compiled = script.compile(asm);
 
         /**
@@ -56,7 +65,6 @@ export class DeploymentGenerator extends Generator {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
-
         const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
         const featuresList: Features[] = [];
