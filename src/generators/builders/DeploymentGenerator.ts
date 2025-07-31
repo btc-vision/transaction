@@ -19,7 +19,7 @@ export class DeploymentGenerator extends Generator {
      * Compile a bitcoin script representing a contract deployment
      * @param {Buffer} contractBytecode - The contract bytecode
      * @param {Buffer} contractSalt - The contract salt
-     * @param {ChallengeSolution} preimage - The preimage for reward
+     * @param {ChallengeSolution} challenge - The challenge for reward
      * @param {bigint} maxPriority - The maximum priority for the contract
      * @param {Buffer} [calldata] - The calldata to be passed to the contract
      * @param {Feature<Features>[]} [features] - Optional features to include in the script
@@ -28,7 +28,7 @@ export class DeploymentGenerator extends Generator {
     public compile(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: ChallengeSolution,
+        challenge: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         features?: Feature<Features>[],
@@ -36,7 +36,7 @@ export class DeploymentGenerator extends Generator {
         const asm = this.getAsm(
             contractBytecode,
             contractSalt,
-            preimage,
+            challenge,
             maxPriority,
             calldata,
             features,
@@ -57,7 +57,7 @@ export class DeploymentGenerator extends Generator {
     private getAsm(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: ChallengeSolution,
+        challenge: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         features?: Feature<Features>[],
@@ -85,10 +85,10 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            preimage.publicKey.originalPublicKeyBuffer(),
+            challenge.publicKey.originalPublicKeyBuffer(),
             opcodes.OP_TOALTSTACK,
 
-            preimage.solution,
+            challenge.solution,
             opcodes.OP_TOALTSTACK,
 
             this.xSenderPubKey,

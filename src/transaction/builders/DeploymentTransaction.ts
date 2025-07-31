@@ -36,7 +36,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly preimage: ChallengeSolution;
+    protected readonly challenge: ChallengeSolution;
     protected readonly epochChallenge: ITimeLockOutput;
 
     /**
@@ -128,10 +128,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         if (!parameters.challenge) throw new Error('Challenge solution is required');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
-        this.preimage = parameters.challenge;
+        this.challenge = parameters.challenge;
 
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
-            this.preimage.publicKey.originalPublicKeyBuffer(),
+            this.challenge.publicKey.originalPublicKeyBuffer(),
             this.network,
         );
 
@@ -147,7 +147,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.compiledTargetScript = this.deploymentGenerator.compile(
             this.bytecode,
             this.randomBytes,
-            this.preimage,
+            this.challenge,
             this.priorityFee,
             this.calldata,
             this.generateFeatures(parameters),
@@ -195,7 +195,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @returns {Buffer} The contract bytecode
      */
     public getPreimage(): ChallengeSolution {
-        return this.preimage;
+        return this.challenge;
     }
 
     public getContractAddress(): string {

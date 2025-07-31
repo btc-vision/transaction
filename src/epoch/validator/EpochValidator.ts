@@ -79,21 +79,21 @@ export class EpochValidator {
      * Verify an epoch solution using IPreimage
      */
     public static async verifySolution(
-        preimage: IChallengeSolution,
+        challenge: IChallengeSolution,
         log: boolean = false,
     ): Promise<boolean> {
         try {
-            const verification = preimage.verification;
+            const verification = challenge.verification;
             const calculatedPreimage = this.calculatePreimage(
                 verification.targetChecksum,
-                preimage.publicKey.toBuffer(),
-                preimage.salt,
+                challenge.publicKey.toBuffer(),
+                challenge.salt,
             );
 
             const computedSolution = await this.sha1(this.bufferToUint8Array(calculatedPreimage));
             const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
 
-            if (!computedSolutionBuffer.equals(preimage.solution)) {
+            if (!computedSolutionBuffer.equals(challenge.solution)) {
                 return false;
             }
 
@@ -102,11 +102,11 @@ export class EpochValidator {
                 verification.targetHash,
             );
 
-            if (matchingBits !== preimage.difficulty) {
+            if (matchingBits !== challenge.difficulty) {
                 return false;
             }
 
-            const expectedStartBlock = preimage.epochNumber * this.BLOCKS_PER_EPOCH;
+            const expectedStartBlock = challenge.epochNumber * this.BLOCKS_PER_EPOCH;
             const expectedEndBlock = expectedStartBlock + this.BLOCKS_PER_EPOCH - 1n;
 
             return !(
@@ -142,8 +142,8 @@ export class EpochValidator {
     /**
      * Validate epoch winner from Preimage instance
      */
-    public static async validatePreimage(preimage: IChallengeSolution): Promise<boolean> {
-        return await this.verifySolution(preimage);
+    public static async validateChallengeSolution(challenge: IChallengeSolution): Promise<boolean> {
+        return await this.verifySolution(challenge);
     }
 
     /**

@@ -115,16 +115,16 @@ export class ChallengeSolution implements IChallengeSolution {
     }
 
     /**
-     * Verify this preimage
-     * @returns {Promise<boolean>} True if the preimage is valid
+     * Verify this challenge
+     * @returns {Promise<boolean>} True if the challenge is valid
      */
     public async verify(): Promise<boolean> {
-        return EpochValidator.validatePreimage(this);
+        return EpochValidator.validateChallengeSolution(this);
     }
 
     /**
-     * Get the preimage buffer (alias for solution)
-     * @returns {Buffer} The solution/preimage as a buffer
+     * Get the preimage challenge
+     * @returns {Buffer} The solution/challenge as a buffer
      */
     public toBuffer(): Buffer {
         return this.solution;
@@ -162,7 +162,7 @@ export class ChallengeSolution implements IChallengeSolution {
     }
 
     /**
-     * Calculate the expected solution hash for this preimage
+     * Calculate the expected solution hash for this challenge
      * @returns {Promise<Buffer>} The calculated solution hash
      */
     public async calculateSolution(): Promise<Buffer> {
@@ -174,7 +174,7 @@ export class ChallengeSolution implements IChallengeSolution {
     }
 
     /**
-     * Check if the preimage meets a specific difficulty requirement
+     * Check if the challenge meets a specific difficulty requirement
      * @param {number} minDifficulty The minimum difficulty required
      * @returns {Promise<{valid: boolean; difficulty: number}>} Validation result
      */

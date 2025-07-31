@@ -29,7 +29,7 @@ export interface DeploymentResult {
 
     readonly contractAddress: string;
     readonly contractPubKey: string;
-    readonly preimage: RawChallenge;
+    readonly challenge: RawChallenge;
 
     readonly utxos: UTXO[];
 }
@@ -52,7 +52,7 @@ export interface InteractionResponse {
     readonly interactionTransaction: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
-    readonly preimage: RawChallenge;
+    readonly challenge: RawChallenge;
 }
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
@@ -253,7 +253,7 @@ export class TransactionFactory {
                 interactionParameters.from,
                 1,
             ), // always 1
-            preimage: preTransaction.getPreimage().toRaw(),
+            challenge: preTransaction.getPreimage().toRaw(),
         };
     }
 
@@ -358,7 +358,7 @@ export class TransactionFactory {
             contractAddress: finalTransaction.getContractAddress(), //finalTransaction.contractAddress.p2tr(deploymentParameters.network),
             contractPubKey: finalTransaction.contractPubKey,
             utxos: [refundUTXO],
-            preimage: preTransaction.getPreimage().toRaw(),
+            challenge: preTransaction.getPreimage().toRaw(),
         };
     }
 

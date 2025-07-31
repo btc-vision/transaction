@@ -52,7 +52,7 @@ export class LegacyCalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
-     * @param {Buffer} preimage - The preimage to use
+     * @param {Buffer} challenge - The challenge to use
      * @param {bigint} maxPriority - The maximum priority
      * @param {number[]} [features=[]] - The features to use (optional)
      * @returns {Buffer} - The compiled script
@@ -61,7 +61,7 @@ export class LegacyCalldataGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
-        preimage: Buffer,
+        challenge: Buffer,
         maxPriority: bigint,
         features: Feature<Features>[] = [],
     ): Buffer {
@@ -83,7 +83,7 @@ export class LegacyCalldataGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            preimage,
+            challenge,
             opcodes.OP_TOALTSTACK,
 
             this.senderPubKey,
