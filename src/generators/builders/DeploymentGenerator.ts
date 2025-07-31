@@ -1,7 +1,7 @@
 import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
-import { Preimage } from '../../epoch/IPreimage.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 export const OPNET_DEPLOYMENT_VERSION = 0x00;
 export const versionBuffer = Buffer.from([OPNET_DEPLOYMENT_VERSION]);
@@ -19,7 +19,7 @@ export class DeploymentGenerator extends Generator {
      * Compile a bitcoin script representing a contract deployment
      * @param {Buffer} contractBytecode - The contract bytecode
      * @param {Buffer} contractSalt - The contract salt
-     * @param {Preimage} preimage - The preimage for reward
+     * @param {ChallengeSolution} preimage - The preimage for reward
      * @param {bigint} maxPriority - The maximum priority for the contract
      * @param {Buffer} [calldata] - The calldata to be passed to the contract
      * @returns {Buffer} - The compiled script
@@ -27,7 +27,7 @@ export class DeploymentGenerator extends Generator {
     public compile(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: Preimage,
+        preimage: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
     ): Buffer {
@@ -48,7 +48,7 @@ export class DeploymentGenerator extends Generator {
     private getAsm(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        preimage: Preimage,
+        preimage: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         features?: Feature<Features>[],
@@ -71,7 +71,7 @@ export class DeploymentGenerator extends Generator {
                 featureData.push(...data);
             }
         }
-        
+
         const compiledData = [
             this.getHeader(maxPriority, featuresList),
             opcodes.OP_TOALTSTACK,

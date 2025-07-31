@@ -27,15 +27,15 @@ import { SharedInteractionTransaction } from './SharedInteractionTransaction.js'
 import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { Preimage } from '../../epoch/IPreimage.js';
 import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly preimage: Preimage;
+    protected readonly preimage: ChallengeSolution;
     protected readonly epochChallenge: ITimeLockOutput;
 
     /**
@@ -124,10 +124,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.verifyCalldata();
         }
 
-        if (!parameters.preimage) throw new Error('Preimage is required');
+        if (!parameters.challenge) throw new Error('Challenge solution is required');
 
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
-        this.preimage = parameters.preimage;
+        this.preimage = parameters.challenge;
 
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
             this.preimage.publicKey.originalPublicKeyBuffer(),
@@ -192,7 +192,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract bytecode
      * @returns {Buffer} The contract bytecode
      */
-    public getPreimage(): Preimage {
+    public getPreimage(): ChallengeSolution {
         return this.preimage;
     }
 
@@ -276,7 +276,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 address: this.epochChallenge.address,
             });
         }
-        
+
         await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }
 

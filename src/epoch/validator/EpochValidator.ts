@@ -1,5 +1,5 @@
-import { IPreimage, RawPreimage } from '../interfaces/IPreimage.js';
-import { Preimage } from '../IPreimage.js';
+import { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
+import { ChallengeSolution } from '../ChallengeSolution.js';
 
 export class EpochValidator {
     private static readonly BLOCKS_PER_EPOCH: bigint = 5n;
@@ -79,7 +79,7 @@ export class EpochValidator {
      * Verify an epoch solution using IPreimage
      */
     public static async verifySolution(
-        preimage: IPreimage,
+        preimage: IChallengeSolution,
         log: boolean = false,
     ): Promise<boolean> {
         try {
@@ -134,15 +134,15 @@ export class EpochValidator {
     /**
      * Validate epoch winner from raw data
      */
-    public static async validateEpochWinner(epochData: RawPreimage): Promise<boolean> {
-        const preimage = new Preimage(epochData);
+    public static async validateEpochWinner(epochData: RawChallenge): Promise<boolean> {
+        const preimage = new ChallengeSolution(epochData);
         return await this.verifySolution(preimage);
     }
 
     /**
      * Validate epoch winner from Preimage instance
      */
-    public static async validatePreimage(preimage: IPreimage): Promise<boolean> {
+    public static async validatePreimage(preimage: IChallengeSolution): Promise<boolean> {
         return await this.verifySolution(preimage);
     }
 

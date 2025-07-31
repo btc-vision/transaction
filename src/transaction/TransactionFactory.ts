@@ -11,27 +11,25 @@ import { InteractionTransaction } from './builders/InteractionTransaction.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
 import { TransactionType } from './enums/TransactionType.js';
 import {
-    IChallengeSolutionTransactionParameters,
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
     ITransactionParameters,
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
-import { ChallengeSolutionTransaction } from './builders/ChallengeSolutionTransaction.js';
 import {
     IDeploymentParametersWithoutSigner,
     InteractionParametersWithoutSigner,
 } from './browser/Web3Provider.js';
 import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
-import { RawPreimage } from '../epoch/interfaces/IPreimage.js';
+import { RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
 
     readonly contractAddress: string;
     readonly contractPubKey: string;
-    readonly preimage: RawPreimage;
+    readonly preimage: RawChallenge;
 
     readonly utxos: UTXO[];
 }
@@ -39,13 +37,6 @@ export interface DeploymentResult {
 export interface FundingTransactionResponse {
     readonly tx: Transaction;
     readonly original: FundingTransaction;
-    readonly estimatedFees: bigint;
-    readonly nextUTXOs: UTXO[];
-}
-
-export interface ChallengeSolutionResponse {
-    readonly tx: Transaction;
-    readonly original: ChallengeSolutionTransaction;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
 }
@@ -61,11 +52,7 @@ export interface InteractionResponse {
     readonly interactionTransaction: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
-    readonly preimage: RawPreimage;
-}
-
-export interface ChallengeSolution extends BitcoinTransferBase {
-    readonly original: ChallengeSolutionTransaction;
+    readonly preimage: RawChallenge;
 }
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
@@ -247,7 +234,7 @@ export class TransactionFactory {
                 ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
             ], // always 0
             randomBytes: preTransaction.getRndBytes(),
-            preimage: preTransaction.getPreimage(),
+            challenge: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
             optionalInputs: inputs,
@@ -344,7 +331,7 @@ export class TransactionFactory {
             ...deploymentParameters,
             utxos: [newUtxo], // always 0
             randomBytes: preTransaction.getRndBytes(),
-            preimage: preTransaction.getPreimage(),
+            challenge: preTransaction.getPreimage(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
             optionalInputs: inputs,
@@ -388,27 +375,6 @@ export class TransactionFactory {
         }
 
         const resp = await this.createFundTransaction(parameters);
-        return {
-            estimatedFees: resp.estimatedFees,
-            original: resp.original,
-            tx: resp.tx.toHex(),
-            nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
-        };
-    }
-
-    /**
-     * @description Creates a challenge solution transaction.
-     * @param {IChallengeSolutionTransactionParameters} parameters - The challenge solution transaction parameters
-     * @returns {Promise<ChallengeSolution>} - The signed transaction
-     */
-    public async createChallengeSolution(
-        parameters: IChallengeSolutionTransactionParameters,
-    ): Promise<ChallengeSolution> {
-        if (!parameters.from) {
-            throw new Error('Field "from" not provided.');
-        }
-
-        const resp = await this._createChallengeSolution(parameters);
         return {
             estimatedFees: resp.estimatedFees,
             original: resp.original,
@@ -519,28 +485,6 @@ export class TransactionFactory {
         }
 
         return deployment;
-    }
-
-    private async _createChallengeSolution(
-        parameters: IChallengeSolutionTransactionParameters,
-    ): Promise<ChallengeSolutionResponse> {
-        if (!parameters.to) throw new Error('Field "to" not provided.');
-
-        const challengeTransaction: ChallengeSolutionTransaction = new ChallengeSolutionTransaction(
-            parameters,
-        );
-
-        const signedTransaction: Transaction = await challengeTransaction.signTransaction();
-        if (!signedTransaction) {
-            throw new Error('Could not sign funding transaction.');
-        }
-
-        return {
-            tx: signedTransaction,
-            original: challengeTransaction,
-            estimatedFees: challengeTransaction.estimatedFees,
-            nextUTXOs: this.getUTXOAsTransaction(signedTransaction, parameters.to, 0),
-        };
     }
 
     private async createFundTransaction(

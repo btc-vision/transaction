@@ -4,7 +4,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { Preimage } from '../../epoch/IPreimage.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
@@ -57,7 +57,7 @@ export class CalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
-     * @param {Preimage} preimage
+     * @param {ChallengeSolution} preimage
      * @param maxPriority - Amount of satoshis to spend max on priority fee
      * @param {Feature<Features>[]} features - The features to use
      * @returns {Buffer} - The compiled script
@@ -66,7 +66,7 @@ export class CalldataGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
-        preimage: Preimage,
+        preimage: ChallengeSolution,
         maxPriority: bigint,
         features: Feature<Features>[] = [],
     ): Buffer {

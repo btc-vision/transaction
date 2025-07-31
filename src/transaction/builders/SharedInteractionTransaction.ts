@@ -8,8 +8,8 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { Preimage } from '../../epoch/IPreimage.js';
 import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
+import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 /**
  * Shared interaction transaction
@@ -32,7 +32,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly preimage: Preimage;
+    protected readonly preimage: ChallengeSolution;
     protected readonly epochChallenge: ITimeLockOutput;
 
     protected calldataGenerator: CalldataGenerator;
@@ -68,11 +68,11 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Calldata is required');
         }
 
-        if (!parameters.preimage) {
-            throw new Error('Preimage is required');
+        if (!parameters.challenge) {
+            throw new Error('Challenge solution is required');
         }
 
-        this.preimage = parameters.preimage;
+        this.preimage = parameters.challenge;
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
@@ -111,7 +111,7 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the preimage
      */
-    public getPreimage(): Preimage {
+    public getPreimage(): ChallengeSolution {
         return this.preimage;
     }
 

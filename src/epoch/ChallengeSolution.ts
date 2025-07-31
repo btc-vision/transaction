@@ -1,14 +1,18 @@
 import { stringToBuffer } from '../utils/StringToBuffer.js';
 import {
-    IPreimage,
-    IPreimageVerification,
-    RawPreimage,
-    RawPreimageVerification,
-} from './interfaces/IPreimage.js';
+    IChallengeSolution,
+    IChallengeSubmission,
+    IChallengeVerification,
+    RawChallenge,
+    RawChallengeSubmission,
+    RawChallengeVerification,
+} from './interfaces/IChallengeSolution.js';
 import { Address } from '../keypair/Address.js';
 import { EpochValidator } from './validator/EpochValidator.js';
+import { BinaryWriter } from '../buffer/BinaryWriter.js';
+import { MessageSigner } from '../keypair/MessageSigner.js';
 
-export class PreimageVerification implements IPreimageVerification {
+export class ChallengeVerification implements IChallengeVerification {
     public readonly epochHash: Buffer;
     public readonly epochRoot: Buffer;
     public readonly targetHash: Buffer;
@@ -17,7 +21,7 @@ export class PreimageVerification implements IPreimageVerification {
     public readonly endBlock: bigint;
     public readonly proofs: readonly Buffer[];
 
-    constructor(data: RawPreimageVerification) {
+    constructor(data: RawChallengeVerification) {
         this.epochHash = stringToBuffer(data.epochHash);
         this.epochRoot = stringToBuffer(data.epochRoot);
         this.targetHash = stringToBuffer(data.targetHash);
@@ -28,30 +32,86 @@ export class PreimageVerification implements IPreimageVerification {
     }
 }
 
-export class Preimage implements IPreimage {
+export class ChallengeSubmission implements IChallengeSubmission {
+    public readonly publicKey: Address;
+    public readonly solution: Buffer;
+    public readonly graffiti: Buffer | undefined;
+    public readonly signature: Buffer;
+
+    constructor(
+        data: RawChallengeSubmission,
+        public readonly epochNumber: bigint,
+    ) {
+        this.publicKey = Address.fromString(data.publicKey);
+        this.solution = stringToBuffer(data.solution);
+        this.graffiti = data.graffiti ? stringToBuffer(data.graffiti) : undefined;
+        this.signature = stringToBuffer(data.signature);
+    }
+
+    public verifySignature(): boolean {
+        const signatureDataWriter = new BinaryWriter();
+        signatureDataWriter.writeAddress(this.publicKey);
+        signatureDataWriter.writeU64(this.epochNumber);
+        signatureDataWriter.writeBytes(this.solution);
+
+        if (this.graffiti) {
+            signatureDataWriter.writeBytes(this.graffiti);
+        }
+
+        const buffer = signatureDataWriter.getBuffer();
+        return MessageSigner.verifySignature(this.publicKey, buffer, this.signature);
+    }
+}
+
+export class ChallengeSolution implements IChallengeSolution {
     public readonly epochNumber: bigint;
     public readonly publicKey: Address;
     public readonly solution: Buffer;
     public readonly salt: Buffer;
     public readonly graffiti: Buffer;
     public readonly difficulty: number;
-    public readonly verification: PreimageVerification;
+    public readonly verification: ChallengeVerification;
 
-    constructor(data: RawPreimage) {
+    private readonly submission?: ChallengeSubmission;
+
+    constructor(data: RawChallenge) {
         this.epochNumber = BigInt(data.epochNumber);
         this.publicKey = Address.fromString(data.publicKey);
         this.solution = stringToBuffer(data.solution);
         this.salt = stringToBuffer(data.salt);
         this.graffiti = stringToBuffer(data.graffiti);
         this.difficulty = data.difficulty;
-        this.verification = new PreimageVerification(data.verification);
+        this.verification = new ChallengeVerification(data.verification);
+        this.submission = data.submission
+            ? new ChallengeSubmission(data.submission, this.epochNumber + 2n)
+            : data.submission;
     }
-    
+
     /**
      * Static method to validate from raw data directly
      */
-    public static async validateRaw(data: RawPreimage): Promise<boolean> {
+    public static async validateRaw(data: RawChallenge): Promise<boolean> {
         return EpochValidator.validateEpochWinner(data);
+    }
+
+    public verifySubmissionSignature(): boolean {
+        if (!this.submission) {
+            throw new Error('No submission provided in request.');
+        }
+
+        return this.submission.verifySignature();
+    }
+
+    public getSubmission(): ChallengeSubmission | undefined {
+        if (!this.submission) {
+            throw new Error('No submission provided in request.');
+        }
+
+        if (!this.verifySubmissionSignature()) {
+            throw new Error('Invalid submission signature.');
+        }
+
+        return this.submission;
     }
 
     /**
@@ -81,7 +141,7 @@ export class Preimage implements IPreimage {
     /**
      * Convert to raw format for serialization
      */
-    public toRaw(): RawPreimage {
+    public toRaw(): RawChallenge {
         return {
             epochNumber: this.epochNumber.toString(),
             publicKey: this.publicKey.toHex(),

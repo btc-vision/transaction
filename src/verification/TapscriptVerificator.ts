@@ -9,14 +9,14 @@ import {
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
 import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
-import { Preimage } from '../epoch/IPreimage.js';
+import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: Buffer;
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
-    readonly preimage: Preimage;
+    readonly challenge: ChallengeSolution;
     readonly priorityFee: bigint;
     readonly calldata?: Buffer;
     readonly network?: Network;
@@ -38,7 +38,7 @@ export class TapscriptVerificator {
         const compiledTargetScript: Buffer = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
-            params.preimage,
+            params.challenge,
             params.priorityFee,
             params.calldata,
         );
@@ -71,7 +71,7 @@ export class TapscriptVerificator {
         const compiledTargetScript: Buffer = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
-            params.preimage,
+            params.challenge,
             params.priorityFee,
             params.calldata,
         );

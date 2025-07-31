@@ -51,9 +51,9 @@ export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
 
 /** Epoch */
-export * from './epoch/interfaces/IPreimage.js';
+export * from './epoch/interfaces/IChallengeSolution.js';
 export * from './epoch/validator/EpochValidator.js';
-export * from './epoch/IPreimage.js';
+export * from './epoch/ChallengeSolution.js';
 
 /** Utils */
 export * from './utils/BitcoinUtils.js';

@@ -1,6 +1,6 @@
 import { Address } from '../../keypair/Address.js';
 
-export interface IPreimageVerification {
+export interface IChallengeVerification {
     readonly epochHash: Buffer;
     readonly epochRoot: Buffer;
     readonly targetHash: Buffer;
@@ -10,17 +10,17 @@ export interface IPreimageVerification {
     readonly proofs: readonly Buffer[];
 }
 
-export interface IPreimage {
+export interface IChallengeSolution {
     readonly epochNumber: bigint;
     readonly publicKey: Address;
     readonly solution: Buffer;
     readonly salt: Buffer;
     readonly graffiti: Buffer;
     readonly difficulty: number;
-    readonly verification: IPreimageVerification;
+    readonly verification: IChallengeVerification;
 }
 
-export interface RawPreimageVerification {
+export interface RawChallengeVerification {
     readonly epochHash: string;
     readonly epochRoot: string;
     readonly targetHash: string;
@@ -30,12 +30,27 @@ export interface RawPreimageVerification {
     readonly proofs: readonly string[];
 }
 
-export interface RawPreimage {
+export interface RawChallengeSubmission {
+    readonly publicKey: string;
+    readonly solution: string;
+    readonly graffiti?: string;
+    readonly signature: string;
+}
+
+export interface IChallengeSubmission {
+    readonly publicKey: Address;
+    readonly solution: Buffer;
+    readonly graffiti?: Buffer;
+    readonly signature: Buffer;
+}
+
+export interface RawChallenge {
     readonly epochNumber: string;
     readonly publicKey: string;
     readonly solution: string;
     readonly salt: string;
     readonly graffiti: string;
     readonly difficulty: number;
-    readonly verification: RawPreimageVerification;
+    readonly verification: RawChallengeVerification;
+    readonly submission?: RawChallengeSubmission;
 }
