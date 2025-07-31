@@ -41,7 +41,6 @@ export * from './transaction/interfaces/Tap.js';
 export * from './transaction/TransactionFactory.js';
 
 /** Builders */
-export * from './transaction/builders/ChallengeSolutionTransaction.js';
 export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
