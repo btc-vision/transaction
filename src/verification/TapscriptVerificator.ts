@@ -77,6 +77,7 @@ export class TapscriptVerificator {
             params.challenge,
             params.priorityFee,
             params.calldata,
+            params.features,
         );
 
         const scriptTree: Taptree = [
@@ -95,7 +96,6 @@ export class TapscriptVerificator {
             network: network,
             scriptTree: scriptTree,
             redeem: {
-                //pubkeys: [params.deployerPubKey, params.contractSaltPubKey],
                 output: compiledTargetScript,
                 redeemVersion: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
