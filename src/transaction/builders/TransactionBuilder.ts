@@ -310,10 +310,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         await this.buildTransaction();
 
-        if (this.note) {
-            this.addOPReturn(this.note);
-        }
-
         const builtTx = await this.internalBuildTransaction(this.transaction);
         if (builtTx) {
             if (this.regenerated) {
@@ -517,6 +513,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Promise<void>}
      */
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
+        if (this.note) {
+            this.addOPReturn(this.note);
+        }
+
         /** Add the refund output */
         const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
