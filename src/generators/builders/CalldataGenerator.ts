@@ -57,7 +57,7 @@ export class CalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
-     * @param {ChallengeSolution} preimage
+     * @param {ChallengeSolution} challenge
      * @param maxPriority - Amount of satoshis to spend max on priority fee
      * @param {Feature<Features>[]} features - The features to use
      * @returns {Buffer} - The compiled script
@@ -66,7 +66,7 @@ export class CalldataGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
-        preimage: ChallengeSolution,
+        challenge: ChallengeSolution,
         maxPriority: bigint,
         features: Feature<Features>[] = [],
     ): Buffer {
@@ -90,10 +90,10 @@ export class CalldataGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            preimage.publicKey.originalPublicKeyBuffer(),
+            challenge.publicKey.originalPublicKeyBuffer(),
             opcodes.OP_TOALTSTACK,
 
-            preimage.solution,
+            challenge.solution,
             opcodes.OP_TOALTSTACK,
 
             this.xSenderPubKey,

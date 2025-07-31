@@ -32,7 +32,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly preimage: ChallengeSolution;
+    protected readonly challenge: ChallengeSolution;
     protected readonly epochChallenge: ITimeLockOutput;
 
     protected calldataGenerator: CalldataGenerator;
@@ -72,11 +72,11 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Challenge solution is required');
         }
 
-        this.preimage = parameters.challenge;
+        this.challenge = parameters.challenge;
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
-            this.preimage.publicKey.originalPublicKeyBuffer(),
+            this.challenge.publicKey.originalPublicKeyBuffer(),
             this.network,
         );
 
@@ -112,7 +112,7 @@ export abstract class SharedInteractionTransaction<
      * Get the preimage
      */
     public getPreimage(): ChallengeSolution {
-        return this.preimage;
+        return this.challenge;
     }
 
     /**

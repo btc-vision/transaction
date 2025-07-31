@@ -148,6 +148,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected isPubKeyDestination: boolean;
 
+    protected note?: Buffer;
+
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
 
@@ -163,6 +165,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.optionalInputs = parameters.optionalInputs || [];
         this.to = parameters.to || undefined;
+
+        if (parameters.note) {
+            if (typeof parameters.note === 'string') {
+                this.note = Buffer.from(parameters.note, 'utf8');
+            } else {
+                this.note = parameters.note;
+            }
+        }
 
         this.isPubKeyDestination = this.to
             ? AddressVerificator.isValidPublicKey(this.to, this.network)
@@ -181,15 +191,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         this.transaction = new Psbt({
             network: this.network,
-        });
-    }
-
-    public addOPReturn(buffer: Buffer): void {
-        const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
-
-        this.addOutput({
-            value: 0,
-            script: compileScript,
         });
     }
 
@@ -235,6 +236,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         writeVector(witness);
 
         return buffer;
+    }
+
+    public addOPReturn(buffer: Buffer): void {
+        const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
+
+        this.addOutput({
+            value: 0,
+            script: compileScript,
+        });
     }
 
     public async getFundingTransactionParameters(): Promise<IFundingTransactionParameters> {
@@ -299,6 +309,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.signed = true;
 
         await this.buildTransaction();
+
+        if (this.note) {
+            this.addOPReturn(this.note);
+        }
 
         const builtTx = await this.internalBuildTransaction(this.transaction);
         if (builtTx) {

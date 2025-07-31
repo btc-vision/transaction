@@ -23,6 +23,8 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     chainId?: ChainId;
     noSignatures?: boolean;
 
+    readonly note?: string | Buffer;
+
     readonly feeRate: number;
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
@@ -32,12 +34,6 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
     amount: bigint;
 
     splitInputsInto?: number;
-}
-
-export interface IChallengeSolutionTransactionParameters extends ITransactionParameters {
-    amount: bigint;
-
-    readonly challengeSolution: Buffer;
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {

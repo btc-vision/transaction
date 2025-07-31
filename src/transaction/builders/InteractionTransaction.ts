@@ -31,7 +31,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
         }
 
         this.contractSecret = Buffer.from(parameters.contract.replace('0x', ''), 'hex');
-        
+
         if (this.contractSecret.length !== 32) {
             throw new Error('Invalid contract secret length. Expected 32 bytes.');
         }
@@ -39,7 +39,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
         this.compiledTargetScript = this.calldataGenerator.compile(
             this.calldata,
             this.contractSecret,
-            this.preimage,
+            this.challenge,
             this.priorityFee,
             this.generateFeatures(parameters),
         );
