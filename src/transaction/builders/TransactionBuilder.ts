@@ -191,6 +191,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         this.transaction = new Psbt({
             network: this.network,
+            version: this.txVersion,
         });
     }
 
@@ -462,7 +463,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     public async rebuildFromBase64(base64: string): Promise<Psbt> {
-        this.transaction = Psbt.fromBase64(base64, { network: this.network });
+        this.transaction = Psbt.fromBase64(base64, {
+            network: this.network,
+            version: this.txVersion,
+        });
+
         this.signed = false;
 
         this.sighashTypes = [Transaction.SIGHASH_ANYONECANPAY, Transaction.SIGHASH_ALL];

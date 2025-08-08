@@ -14,7 +14,6 @@ import {
     Network,
     opcodes,
     P2TRPayment,
-    Payment,
     payments,
     PaymentType,
     Psbt,
@@ -33,11 +32,9 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ChainId } from '../../network/ChainId.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import {
-    canSignNonTaprootInput,
-    isTaprootInput,
-    pubkeyInScript,
-} from '../../signer/SignerUtils.js';
+import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
+
+export type SupportedTransactionVersion = 1 | 2 | 3;
 
 export interface ITweakedTransactionData {
     readonly signer: Signer | ECPairInterface | UnisatSigner;
@@ -46,6 +43,7 @@ export interface ITweakedTransactionData {
     readonly nonWitnessUtxo?: Buffer;
     readonly noSignatures?: boolean;
     readonly unlockScript?: Buffer[];
+    readonly txVersion?: SupportedTransactionVersion;
 }
 
 /**
@@ -88,33 +86,40 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      */
     protected abstract readonly transaction: Psbt;
+
     /**
      * @description The sighash types of the transaction
      * @protected
      */
     protected sighashTypes: number[] | undefined;
+
     /**
      * @description The script data of the transaction
      */
     protected scriptData: P2TRPayment | null = null;
+
     /**
      * @description The tap data of the transaction
      */
     protected tapData: P2TRPayment | null = null;
+
     /**
      * @description The inputs of the transaction
      */
     protected readonly inputs: PsbtInputExtended[] = [];
+
     /**
      * @description The sequence of the transaction
      * @protected
      */
     protected sequence: number = TransactionSequence.REPLACE_BY_FEE;
+
     /**
      * The tap leaf script
      * @protected
      */
     protected tapLeafScript: TapLeafScript | null = null;
+
     /**
      * Add a non-witness utxo to the transaction
      * @protected
@@ -132,6 +137,8 @@ export abstract class TweakedTransaction extends Logger {
     protected noSignatures: boolean = false;
     protected unlockScript: Buffer[] | undefined;
 
+    protected txVersion: SupportedTransactionVersion = 2;
+
     protected constructor(data: ITweakedTransactionData) {
         super();
 
@@ -143,6 +150,10 @@ export abstract class TweakedTransaction extends Logger {
         this.unlockScript = data.unlockScript;
 
         this.isBrowser = typeof window !== 'undefined';
+
+        if (data.txVersion) {
+            this.txVersion = data.txVersion;
+        }
     }
 
     /**
