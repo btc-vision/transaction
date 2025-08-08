@@ -32,7 +32,11 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ChainId } from '../../network/ChainId.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
+import {
+    canSignNonTaprootInput,
+    isTaprootInput,
+    pubkeyInScript,
+} from '../../signer/SignerUtils.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
@@ -53,6 +57,8 @@ export enum TransactionSequence {
     REPLACE_BY_FEE = 0xfffffffd,
     FINAL = 0xffffffff,
 }
+
+const CSV_ENABLED_BLOCKS_MASK = 0x3fffffff;
 
 /**
  * @description PSBT Transaction processor.
@@ -683,7 +689,7 @@ export abstract class TweakedTransaction extends Logger {
         i: number,
         _extra: boolean = false,
     ): PsbtInputExtended {
-        const script = Buffer.from(utxo.scriptPubKey.hex, 'hex');
+        const scriptPub = Buffer.from(utxo.scriptPubKey.hex, 'hex');
 
         const input: PsbtInputExtended = {
             hash: utxo.transactionId,
@@ -691,12 +697,12 @@ export abstract class TweakedTransaction extends Logger {
             sequence: this.sequence,
             witnessUtxo: {
                 value: Number(utxo.value),
-                script,
+                script: scriptPub,
             },
         };
 
         // Handle P2PKH (Legacy)
-        if (isP2PKH(script)) {
+        if (isP2PKH(scriptPub)) {
             // Legacy input requires nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
                 //delete input.witnessUtxo;
@@ -709,13 +715,13 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         // Handle P2WPKH (SegWit)
-        else if (isP2WPKH(script) || isUnknownSegwitVersion(script)) {
+        else if (isP2WPKH(scriptPub) || isUnknownSegwitVersion(scriptPub)) {
             // No redeemScript required for pure P2WPKH
             // witnessUtxo is enough, no nonWitnessUtxo needed.
         }
 
         // Handle P2WSH (SegWit)
-        else if (isP2WSHScript(script)) {
+        else if (isP2WSHScript(scriptPub)) {
             // P2WSH requires a witnessScript
             if (!utxo.witnessScript) {
                 // Can't just invent a witnessScript out of thin air. If not provided, it's an error.
@@ -727,10 +733,22 @@ export abstract class TweakedTransaction extends Logger {
                 : Buffer.from(utxo.witnessScript, 'hex');
 
             // No nonWitnessUtxo needed for segwit
+
+            const decompiled = script.decompile(input.witnessScript);
+            if (decompiled && this.isCSVScript(decompiled)) {
+                const decompiled = script.decompile(input.witnessScript);
+                if (decompiled && this.isCSVScript(decompiled)) {
+                    // Extract CSV value from witness script
+                    const csvBlocks = this.extractCSVBlocks(decompiled);
+
+                    // Use the setCSVSequence method to properly set the sequence
+                    input.sequence = this.setCSVSequence(csvBlocks, this.sequence);
+                }
+            }
         }
 
         // Handle P2SH (Can be legacy or wrapping segwit)
-        else if (isP2SHScript(script)) {
+        else if (isP2SHScript(scriptPub)) {
             // Redeem script is required for P2SH
             let redeemScriptBuf: Buffer | undefined;
 
@@ -793,7 +811,7 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         // Handle P2TR (Taproot)
-        else if (isP2TR(script)) {
+        else if (isP2TR(scriptPub)) {
             // Taproot inputs do not require nonWitnessUtxo, witnessUtxo is sufficient.
 
             // If there's a configured sighash type
@@ -808,7 +826,7 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         // Handle P2PK (legacy) or P2MS (bare multisig)
-        else if (isP2PK(script) || isP2MS(script)) {
+        else if (isP2PK(scriptPub) || isP2MS(scriptPub)) {
             // These are legacy scripts, need nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
                 input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
@@ -893,6 +911,42 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         this.finalized = true;
+    }
+
+    protected isCSVScript(decompiled: (number | Buffer)[]): boolean {
+        return decompiled.some((op) => op === opcodes.OP_CHECKSEQUENCEVERIFY);
+    }
+
+    protected setCSVSequence(csvBlocks: number, currentSequence: number): number {
+        if (csvBlocks > 0xffff) {
+            throw new Error(`CSV blocks ${csvBlocks} exceeds maximum of 65,535`);
+        }
+
+        let sequence = csvBlocks & 0x0000ffff;
+        if (
+            currentSequence === (TransactionSequence.REPLACE_BY_FEE as number) ||
+            this.txVersion === 3
+        ) {
+            // For RBF + CSV, use the higher of CSV blocks or a reasonable RBF value
+            // that still has bits 31 and 30 cleared
+            sequence = Math.max(csvBlocks, 0xfffffffd & CSV_ENABLED_BLOCKS_MASK);
+        }
+
+        return sequence;
+    }
+
+    private extractCSVBlocks(decompiled: (number | Buffer)[]): number {
+        for (let i = 0; i < decompiled.length; i++) {
+            if (decompiled[i] === opcodes.OP_CHECKSEQUENCEVERIFY && i > 0) {
+                const csvValue = decompiled[i - 1];
+                if (typeof csvValue === 'number') {
+                    return csvValue;
+                } else if (Buffer.isBuffer(csvValue)) {
+                    return script.number.decode(csvValue);
+                }
+            }
+        }
+        return 0;
     }
 
     private async attemptSignTaproot(

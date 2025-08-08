@@ -12,6 +12,7 @@ export enum AddressTypes {
     P2PK = 'P2PK',
     P2TR = 'P2TR',
     P2WPKH = 'P2WPKH',
+    P2WSH = 'P2WSH',
 }
 
 export class AddressVerificator {
@@ -193,9 +194,14 @@ export class AddressVerificator {
             }
 
             if (decodedBech32.prefix === network.bech32) {
-                // P2WPKH: SegWit address (starting with 'bc1q' for mainnet, 'tb1q' for testnet)
+                // P2WPKH: SegWit address (20 bytes)
                 if (decodedBech32.version === 0 && decodedBech32.data.length === 20) {
                     return AddressTypes.P2WPKH;
+                }
+
+                // P2WSH: SegWit script hash (32 bytes)
+                if (decodedBech32.version === 0 && decodedBech32.data.length === 32) {
+                    return AddressTypes.P2WSH;
                 }
 
                 // P2TR: Taproot address (starting with 'bc1p' for mainnet, 'tb1p' for testnet)
