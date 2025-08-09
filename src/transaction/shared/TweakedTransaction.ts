@@ -33,11 +33,7 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ChainId } from '../../network/ChainId.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import {
-    canSignNonTaprootInput,
-    isTaprootInput,
-    pubkeyInScript,
-} from '../../signer/SignerUtils.js';
+import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
@@ -943,7 +939,6 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         if (this.anchorInputIndices.has(inputIndex)) {
-            console.log('Finalizing anchor input at index', inputIndex);
             return {
                 finalScriptSig: undefined,
                 finalScriptWitness: Buffer.from([0]),
