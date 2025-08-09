@@ -1,9 +1,9 @@
 import { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
 import { ChallengeSolution } from '../ChallengeSolution.js';
+import { crypto } from '@btc-vision/bitcoin';
 
 export class EpochValidator {
     private static readonly BLOCKS_PER_EPOCH: bigint = 5n;
-    private static readonly GRAFFITI_LENGTH: number = 16;
 
     /**
      * Convert Buffer to Uint8Array
@@ -22,9 +22,8 @@ export class EpochValidator {
     /**
      * Calculate SHA-1 hash
      */
-    public static async sha1(data: Uint8Array): Promise<Uint8Array> {
-        const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-        return new Uint8Array(hashBuffer);
+    public static sha1(data: Uint8Array | Buffer): Buffer {
+        return crypto.sha1(Buffer.isBuffer(data) ? data : Buffer.from(data));
     }
 
     /**
@@ -78,10 +77,7 @@ export class EpochValidator {
     /**
      * Verify an epoch solution using IPreimage
      */
-    public static async verifySolution(
-        challenge: IChallengeSolution,
-        log: boolean = false,
-    ): Promise<boolean> {
+    public static verifySolution(challenge: IChallengeSolution, log: boolean = false): boolean {
         try {
             const verification = challenge.verification;
             const calculatedPreimage = this.calculatePreimage(
@@ -90,7 +86,7 @@ export class EpochValidator {
                 challenge.salt,
             );
 
-            const computedSolution = await this.sha1(this.bufferToUint8Array(calculatedPreimage));
+            const computedSolution = this.sha1(calculatedPreimage);
             const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
 
             if (!computedSolutionBuffer.equals(challenge.solution)) {
@@ -134,16 +130,16 @@ export class EpochValidator {
     /**
      * Validate epoch winner from raw data
      */
-    public static async validateEpochWinner(epochData: RawChallenge): Promise<boolean> {
+    public static validateEpochWinner(epochData: RawChallenge): boolean {
         const preimage = new ChallengeSolution(epochData);
-        return await this.verifySolution(preimage);
+        return this.verifySolution(preimage);
     }
 
     /**
      * Validate epoch winner from Preimage instance
      */
-    public static async validateChallengeSolution(challenge: IChallengeSolution): Promise<boolean> {
-        return await this.verifySolution(challenge);
+    public static validateChallengeSolution(challenge: IChallengeSolution): boolean {
+        return this.verifySolution(challenge);
     }
 
     /**
@@ -153,13 +149,13 @@ export class EpochValidator {
      * @param salt The salt buffer (32 bytes)
      * @returns The SHA-1 hash of the preimage
      */
-    public static async calculateSolution(
+    public static calculateSolution(
         targetChecksum: Buffer,
         publicKey: Buffer,
         salt: Buffer,
-    ): Promise<Buffer> {
+    ): Buffer {
         const preimage = this.calculatePreimage(targetChecksum, publicKey, salt);
-        const hash = await this.sha1(this.bufferToUint8Array(preimage));
+        const hash = this.sha1(this.bufferToUint8Array(preimage));
         return this.uint8ArrayToBuffer(hash);
     }
 

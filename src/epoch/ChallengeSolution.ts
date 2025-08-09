@@ -90,7 +90,7 @@ export class ChallengeSolution implements IChallengeSolution {
     /**
      * Static method to validate from raw data directly
      */
-    public static async validateRaw(data: RawChallenge): Promise<boolean> {
+    public static validateRaw(data: RawChallenge): boolean {
         return EpochValidator.validateEpochWinner(data);
     }
 
@@ -116,9 +116,9 @@ export class ChallengeSolution implements IChallengeSolution {
 
     /**
      * Verify this challenge
-     * @returns {Promise<boolean>} True if the challenge is valid
+     * @returns {boolean} True if the challenge is valid
      */
-    public async verify(): Promise<boolean> {
+    public verify(): boolean {
         return EpochValidator.validateChallengeSolution(this);
     }
 
@@ -165,7 +165,7 @@ export class ChallengeSolution implements IChallengeSolution {
      * Calculate the expected solution hash for this challenge
      * @returns {Promise<Buffer>} The calculated solution hash
      */
-    public async calculateSolution(): Promise<Buffer> {
+    public calculateSolution(): Buffer {
         return EpochValidator.calculateSolution(
             this.verification.targetChecksum,
             this.publicKey.toBuffer(),
