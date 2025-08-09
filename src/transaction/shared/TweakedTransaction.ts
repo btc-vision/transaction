@@ -32,11 +32,8 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ChainId } from '../../network/ChainId.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import {
-    canSignNonTaprootInput,
-    isTaprootInput,
-    pubkeyInScript,
-} from '../../signer/SignerUtils.js';
+import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
+import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
@@ -56,6 +53,11 @@ export interface ITweakedTransactionData {
 export enum TransactionSequence {
     REPLACE_BY_FEE = 0xfffffffd,
     FINAL = 0xffffffff,
+}
+
+export enum CSVModes {
+    BLOCKS = 0,
+    TIMESTAMPS = 1,
 }
 
 const CSV_ENABLED_BLOCKS_MASK = 0x3fffffff;
@@ -137,6 +139,12 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      */
     protected readonly isBrowser: boolean = false;
+
+    /**
+     * Track which inputs contain CSV scripts
+     * @protected
+     */
+    protected csvInputIndices: Set<number> = new Set();
 
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
@@ -320,6 +328,11 @@ export abstract class TweakedTransaction extends Logger {
         this.sequence = TransactionSequence.FINAL;
 
         for (const input of this.inputs) {
+            // This would disable CSV! You need to check if the input has CSV
+            if (this.csvInputIndices.has(this.inputs.indexOf(input))) {
+                continue;
+            }
+
             input.sequence = TransactionSequence.FINAL;
         }
     }
@@ -722,29 +735,7 @@ export abstract class TweakedTransaction extends Logger {
 
         // Handle P2WSH (SegWit)
         else if (isP2WSHScript(scriptPub)) {
-            // P2WSH requires a witnessScript
-            if (!utxo.witnessScript) {
-                // Can't just invent a witnessScript out of thin air. If not provided, it's an error.
-                throw new Error('Missing witnessScript for P2WSH UTXO');
-            }
-
-            input.witnessScript = Buffer.isBuffer(utxo.witnessScript)
-                ? utxo.witnessScript
-                : Buffer.from(utxo.witnessScript, 'hex');
-
-            // No nonWitnessUtxo needed for segwit
-
-            const decompiled = script.decompile(input.witnessScript);
-            if (decompiled && this.isCSVScript(decompiled)) {
-                const decompiled = script.decompile(input.witnessScript);
-                if (decompiled && this.isCSVScript(decompiled)) {
-                    // Extract CSV value from witness script
-                    const csvBlocks = this.extractCSVBlocks(decompiled);
-
-                    // Use the setCSVSequence method to properly set the sequence
-                    input.sequence = this.setCSVSequence(csvBlocks, this.sequence);
-                }
-            }
+            this.processP2WSHInput(utxo, input, i);
         }
 
         // Handle P2SH (Can be legacy or wrapping segwit)
@@ -800,9 +791,8 @@ export abstract class TweakedTransaction extends Logger {
                 // P2SH-P2WSH
                 // Use witnessUtxo + redeemScript + witnessScript
                 delete input.nonWitnessUtxo; // ensure we do NOT have nonWitnessUtxo
-                if (!input.witnessScript) {
-                    throw new Error('Missing witnessScript for P2SH-P2WSH UTXO');
-                }
+
+                this.processP2WSHInput(utxo, input, i);
             } else {
                 // Legacy P2SH
                 // Use nonWitnessUtxo
@@ -865,6 +855,56 @@ export abstract class TweakedTransaction extends Logger {
         return input;
     }
 
+    protected processP2WSHInput(utxo: UTXO, input: PsbtInputExtended, i: number): void {
+        // P2WSH requires a witnessScript
+        if (!utxo.witnessScript) {
+            // Can't just invent a witnessScript out of thin air. If not provided, it's an error.
+            throw new Error('Missing witnessScript for P2WSH UTXO');
+        }
+
+        input.witnessScript = Buffer.isBuffer(utxo.witnessScript)
+            ? utxo.witnessScript
+            : Buffer.from(utxo.witnessScript, 'hex');
+
+        // No nonWitnessUtxo needed for segwit
+
+        const decompiled = script.decompile(input.witnessScript);
+        if (decompiled && this.isCSVScript(decompiled)) {
+            const decompiled = script.decompile(input.witnessScript);
+            if (decompiled && this.isCSVScript(decompiled)) {
+                this.csvInputIndices.add(i);
+
+                // Extract CSV value from witness script
+                const csvBlocks = this.extractCSVBlocks(decompiled);
+
+                console.log('csvBlocks', csvBlocks);
+
+                // Use the setCSVSequence method to properly set the sequence
+                input.sequence = this.setCSVSequence(csvBlocks, this.sequence);
+            }
+        }
+    }
+
+    protected secondsToCSVTimeUnits(seconds: number): number {
+        return Math.floor(seconds / 512);
+    }
+
+    protected createTimeBasedCSV(seconds: number): number {
+        const timeUnits = this.secondsToCSVTimeUnits(seconds);
+        if (timeUnits > 0xffff) {
+            throw new Error(`Time units ${timeUnits} exceeds maximum of 65,535`);
+        }
+        return timeUnits | (1 << 22);
+    }
+
+    protected isCSVEnabled(sequence: number): boolean {
+        return (sequence & (1 << 31)) === 0;
+    }
+
+    protected extractCSVValue(sequence: number): number {
+        return sequence & 0x0000ffff;
+    }
+
     protected customFinalizerP2SH = (
         inputIndex: number,
         input: PsbtInput,
@@ -885,6 +925,26 @@ export abstract class TweakedTransaction extends Logger {
                 finalScriptSig: scriptSig,
                 finalScriptWitness: undefined,
             };
+        }
+
+        if (isP2WSH && isSegwit && input.witnessScript) {
+            if (!input.partialSig || input.partialSig.length === 0) {
+                throw new Error(`No signatures for P2WSH input #${inputIndex}`);
+            }
+
+            // Check if this is a CSV input
+            const isCSVInput = this.csvInputIndices.has(inputIndex);
+            if (isCSVInput) {
+                // For CSV P2WSH, the witness stack should be: [signature, witnessScript]
+                const witnessStack = [input.partialSig[0].signature, input.witnessScript];
+                return {
+                    finalScriptSig: undefined,
+                    finalScriptWitness:
+                        TransactionBuilder.witnessStackToScriptWitness(witnessStack),
+                };
+            }
+
+            // For non-CSV P2WSH, use default finalization
         }
 
         return getFinalScripts(
@@ -918,31 +978,71 @@ export abstract class TweakedTransaction extends Logger {
     }
 
     protected setCSVSequence(csvBlocks: number, currentSequence: number): number {
+        if (this.txVersion < 2) {
+            throw new Error('CSV requires transaction version 2 or higher');
+        }
+
         if (csvBlocks > 0xffff) {
             throw new Error(`CSV blocks ${csvBlocks} exceeds maximum of 65,535`);
         }
 
+        // Layout of nSequence field (32 bits) when CSV is active (bit 31 = 0):
+        // Bit 31: Must be 0 (CSV enable flag)
+        // Bits 23-30: Unused by BIP68 (available for custom use)
+        // Bit 22: Time flag (0 = blocks, 1 = time)
+        // Bits 16-21: Unused by BIP68 (available for custom use)
+        // Bits 0-15: CSV lock-time value
+
+        // Extract the time flag if it's set in csvBlocks
+        const isTimeBased = (csvBlocks & (1 << 22)) !== 0;
+
+        // Start with the CSV value
         let sequence = csvBlocks & 0x0000ffff;
-        if (
-            currentSequence === (TransactionSequence.REPLACE_BY_FEE as number) ||
-            this.txVersion === 3
-        ) {
-            // For RBF + CSV, use the higher of CSV blocks or a reasonable RBF value
-            // that still has bits 31 and 30 cleared
-            sequence = Math.max(csvBlocks, 0xfffffffd & CSV_ENABLED_BLOCKS_MASK);
+
+        // Preserve the time flag if set
+        if (isTimeBased) {
+            sequence |= 1 << 22;
         }
 
+        if (currentSequence === (TransactionSequence.REPLACE_BY_FEE as number)) {
+            // Set bit 25 as our explicit RBF flag
+            // This is in the unused range (bits 23-30) when CSV is active
+            sequence |= 1 << 25;
+
+            // We could use other unused bits for version/features
+            // sequence |= (1 << 26); // Could indicate tx flags if we wanted
+        }
+
+        // Final safety check: ensure bit 31 is 0 (CSV enabled)
+        sequence = sequence & 0x7fffffff;
+
         return sequence;
+    }
+
+    protected getCSVType(csvValue: number): CSVModes {
+        // Bit 22 determines if it's time-based (1) or block-based (0)
+        return csvValue & (1 << 22) ? CSVModes.TIMESTAMPS : CSVModes.BLOCKS;
     }
 
     private extractCSVBlocks(decompiled: (number | Buffer)[]): number {
         for (let i = 0; i < decompiled.length; i++) {
             if (decompiled[i] === opcodes.OP_CHECKSEQUENCEVERIFY && i > 0) {
                 const csvValue = decompiled[i - 1];
-                if (typeof csvValue === 'number') {
-                    return csvValue;
-                } else if (Buffer.isBuffer(csvValue)) {
+                if (Buffer.isBuffer(csvValue)) {
                     return script.number.decode(csvValue);
+                } else if (typeof csvValue === 'number') {
+                    // Handle OP_N directly
+                    if (csvValue === opcodes.OP_0 || csvValue === opcodes.OP_FALSE) {
+                        return 0;
+                    } else if (csvValue === opcodes.OP_1NEGATE) {
+                        return -1;
+                    } else if (csvValue >= opcodes.OP_1 && csvValue <= opcodes.OP_16) {
+                        return csvValue - opcodes.OP_1 + 1;
+                    } else {
+                        // For other numbers, they should have been Buffers
+                        // This shouldn't happen in properly decompiled scripts
+                        throw new Error(`Unexpected raw number in script: ${csvValue}`);
+                    }
                 }
             }
         }
