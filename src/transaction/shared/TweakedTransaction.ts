@@ -3,6 +3,7 @@ import {
     address as bitAddress,
     crypto as bitCrypto,
     getFinalScripts,
+    isP2A,
     isP2MS,
     isP2PK,
     isP2PKH,
@@ -149,6 +150,7 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      */
     protected csvInputIndices: Set<number> = new Set();
+    protected anchorInputIndices: Set<number> = new Set();
 
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
@@ -436,6 +438,8 @@ export abstract class TweakedTransaction extends Logger {
         reverse: boolean = false,
         errored: boolean = false,
     ): Promise<void> {
+        if (this.anchorInputIndices.has(i)) return;
+
         const publicKey = signer.publicKey;
 
         let isTaproot = isTaprootInput(input);
@@ -819,6 +823,13 @@ export abstract class TweakedTransaction extends Logger {
             input.tapInternalKey = this.internalPubKeyToXOnly();
         }
 
+        // Handle P2A (Any SegWit version, future versions)
+        else if (isP2A(scriptPub)) {
+            this.anchorInputIndices.add(i);
+
+            input.isPayToAnchor = true;
+        }
+
         // Handle P2PK (legacy) or P2MS (bare multisig)
         else if (isP2PK(scriptPub) || isP2MS(scriptPub)) {
             // These are legacy scripts, need nonWitnessUtxo
@@ -928,6 +939,14 @@ export abstract class TweakedTransaction extends Logger {
             return {
                 finalScriptSig: scriptSig,
                 finalScriptWitness: undefined,
+            };
+        }
+
+        if (this.anchorInputIndices.has(inputIndex)) {
+            console.log('Finalizing anchor input at index', inputIndex);
+            return {
+                finalScriptSig: undefined,
+                finalScriptWitness: Buffer.from([0]),
             };
         }
 

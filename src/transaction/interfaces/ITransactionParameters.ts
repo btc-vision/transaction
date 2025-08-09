@@ -24,6 +24,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     noSignatures?: boolean;
 
     readonly note?: string | Buffer;
+    readonly anchor?: boolean;
 
     readonly feeRate: number;
     readonly priorityFee: bigint;

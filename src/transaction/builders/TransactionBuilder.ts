@@ -28,6 +28,7 @@ initEccLib(ecc);
 
 export const MINIMUM_AMOUNT_REWARD: bigint = 540n;
 export const MINIMUM_AMOUNT_CA: bigint = 297n;
+export const ANCHOR_SCRIPT = Buffer.from('51024e73', 'hex');
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -148,6 +149,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected isPubKeyDestination: boolean;
 
+    /**
+     * @description If the transaction need an anchor output
+     * @protected
+     */
+    protected anchor: boolean;
+
     protected note?: Buffer;
 
     protected constructor(parameters: ITransactionParameters) {
@@ -173,6 +180,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 this.note = parameters.note;
             }
         }
+
+        this.anchor = parameters.anchor ?? false;
 
         this.isPubKeyDestination = this.to
             ? AddressVerificator.isValidPublicKey(this.to, this.network)
@@ -245,6 +254,13 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.addOutput({
             value: 0,
             script: compileScript,
+        });
+    }
+
+    public addAnchor(): void {
+        this.addOutput({
+            value: 0,
+            script: ANCHOR_SCRIPT,
         });
     }
 
@@ -401,8 +417,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 throw new Error('Output script is too short');
             }
 
-            if (script.script[0] !== opcodes.OP_RETURN) {
-                throw new Error('Output script must start with OP_RETURN when value is 0');
+            if (script.script[0] !== opcodes.OP_RETURN && !script.script.equals(ANCHOR_SCRIPT)) {
+                throw new Error(
+                    'Output script must start with OP_RETURN or be an ANCHOR when value is 0',
+                );
             }
         } else if (output.value < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
@@ -520,6 +538,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         if (this.note) {
             this.addOPReturn(this.note);
+        }
+
+        if (this.anchor) {
+            this.addAnchor();
         }
 
         /** Add the refund output */
