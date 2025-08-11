@@ -1,7 +1,8 @@
-import { address, initEccLib, Network } from '@btc-vision/bitcoin';
+import { address, initEccLib, Network, payments } from '@btc-vision/bitcoin';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { EcKeyPair } from './EcKeyPair.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
+import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 
 initEccLib(ecc);
 
@@ -13,6 +14,15 @@ export enum AddressTypes {
     P2TR = 'P2TR',
     P2WPKH = 'P2WPKH',
     P2WSH = 'P2WSH',
+    P2WDA = 'P2WDA',
+}
+
+export interface ValidatedP2WDAAddress {
+    readonly isValid: boolean;
+    readonly isPotentiallyP2WDA: boolean;
+    readonly isDefinitelyP2WDA: boolean;
+    readonly publicKey?: Buffer;
+    readonly error?: string;
 }
 
 export class AddressVerificator {
@@ -61,6 +71,22 @@ export class AddressVerificator {
         } catch {}
 
         return isValidSegWitAddress;
+    }
+
+    /**
+     * Check if a given witness script is a P2WDA witness script
+     *
+     * P2WDA witness scripts have a specific pattern:
+     * (OP_2DROP * 5) <pubkey> OP_CHECKSIG
+     *
+     * This pattern allows for 10 witness data fields (5 * 2 = 10),
+     * which can be used to embed authenticated operation data.
+     *
+     * @param witnessScript The witness script to check
+     * @returns true if this is a valid P2WDA witness script
+     */
+    public static isP2WDAWitnessScript(witnessScript: Buffer): boolean {
+        return P2WDADetector.isP2WDAWitnessScript(witnessScript);
     }
 
     /**
@@ -212,5 +238,118 @@ export class AddressVerificator {
         } catch {}
 
         return null; // Not a valid or recognized Bitcoin address type
+    }
+
+    /**
+     * Enhanced detectAddressType that provides hints about P2WDA
+     *
+     * Note: P2WDA addresses cannot be distinguished from regular P2WSH
+     * addresses without the witness script. When a P2WSH address is detected,
+     * it could potentially be P2WDA if it has the correct witness script.
+     *
+     * @param addy The address to analyze
+     * @param network The Bitcoin network
+     * @param witnessScript Optional witness script for P2WSH addresses
+     * @returns The address type, with P2WDA detection if witness script provided
+     */
+    public static detectAddressTypeWithWitnessScript(
+        addy: string,
+        network: Network,
+        witnessScript?: Buffer,
+    ): AddressTypes | null {
+        const baseType = AddressVerificator.detectAddressType(addy, network);
+
+        if (baseType === AddressTypes.P2WSH && witnessScript) {
+            if (AddressVerificator.isP2WDAWitnessScript(witnessScript)) {
+                return AddressTypes.P2WDA;
+            }
+        }
+
+        return baseType;
+    }
+
+    /**
+     * Validate a P2WDA address and extract information
+     *
+     * This method validates that an address is a properly formatted P2WSH
+     * address and, if a witness script is provided, verifies it matches
+     * the P2WDA pattern and corresponds to the address.
+     *
+     * @param address The address to validate
+     * @param network The Bitcoin network
+     * @param witnessScript Optional witness script to verify
+     * @returns Validation result with extracted information
+     */
+    public static validateP2WDAAddress(
+        address: string,
+        network: Network,
+        witnessScript?: Buffer,
+    ): ValidatedP2WDAAddress {
+        try {
+            const addressType = AddressVerificator.detectAddressType(address, network);
+            if (addressType !== AddressTypes.P2WSH) {
+                return {
+                    isValid: false,
+                    isPotentiallyP2WDA: false,
+                    isDefinitelyP2WDA: false,
+                    error: 'Not a P2WSH address',
+                };
+            }
+
+            if (!witnessScript) {
+                return {
+                    isValid: true,
+                    isPotentiallyP2WDA: true,
+                    isDefinitelyP2WDA: false,
+                };
+            }
+
+            if (!AddressVerificator.isP2WDAWitnessScript(witnessScript)) {
+                return {
+                    isValid: true,
+                    isPotentiallyP2WDA: true,
+                    isDefinitelyP2WDA: false,
+                    error: 'Witness script does not match P2WDA pattern',
+                };
+            }
+
+            const p2wsh = payments.p2wsh({
+                redeem: { output: witnessScript },
+                network,
+            });
+
+            if (p2wsh.address !== address) {
+                return {
+                    isValid: false,
+                    isPotentiallyP2WDA: false,
+                    isDefinitelyP2WDA: false,
+                    error: 'Witness script does not match address',
+                };
+            }
+
+            const publicKey = P2WDADetector.extractPublicKeyFromP2WDA(witnessScript);
+            if (!publicKey) {
+                return {
+                    isValid: false,
+                    isPotentiallyP2WDA: false,
+                    isDefinitelyP2WDA: false,
+                    error: 'Failed to extract public key from witness script',
+                };
+            }
+
+            return {
+                isValid: true,
+                isPotentiallyP2WDA: true,
+                isDefinitelyP2WDA: true,
+                publicKey,
+            };
+        } catch (error) {
+            return {
+                isValid: false,
+                isPotentiallyP2WDA: false,
+                isDefinitelyP2WDA: false,
+                error: (error as Error).message,
+            };
+        }
     }
 }

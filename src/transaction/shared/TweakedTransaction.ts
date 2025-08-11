@@ -39,6 +39,8 @@ import {
     pubkeyInScript,
 } from '../../signer/SignerUtils.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
+import { Buffer } from 'buffer';
+import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
@@ -954,6 +956,11 @@ export abstract class TweakedTransaction extends Logger {
                 throw new Error(`No signatures for P2WSH input #${inputIndex}`);
             }
 
+            const isP2WDA = P2WDADetector.isP2WDAWitnessScript(input.witnessScript);
+            if (isP2WDA) {
+                return this.finalizeSecondaryP2WDA(inputIndex, input);
+            }
+
             // Check if this is a CSV input
             const isCSVInput = this.csvInputIndices.has(inputIndex);
             if (isCSVInput) {
@@ -980,6 +987,35 @@ export abstract class TweakedTransaction extends Logger {
             this.unlockScript,
         );
     };
+
+    /**
+     * Finalize secondary P2WDA inputs with empty data
+     */
+    protected finalizeSecondaryP2WDA(
+        inputIndex: number,
+        input: PsbtInput,
+    ): {
+        finalScriptWitness: Buffer | undefined;
+        finalScriptSig: Buffer | undefined;
+    } {
+        if (!input.partialSig || input.partialSig.length === 0) {
+            throw new Error(`No signature for P2WDA input #${inputIndex}`);
+        }
+
+        if (!input.witnessScript) {
+            throw new Error(`No witness script for P2WDA input #${inputIndex}`);
+        }
+
+        const witnessStack = P2WDADetector.createSimpleP2WDAWitness(
+            input.partialSig[0].signature,
+            input.witnessScript,
+        );
+
+        return {
+            finalScriptSig: undefined,
+            finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witnessStack),
+        };
+    }
 
     protected async signInputsWalletBased(transaction: Psbt): Promise<void> {
         const signer: UnisatSigner = this.signer as UnisatSigner;
