@@ -2,7 +2,7 @@ import { Buffer } from 'buffer';
 import { Psbt, PsbtInput, toXOnly } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
-import { TransactionBuilder } from './TransactionBuilder.js';
+import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder, } from './TransactionBuilder.js';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { P2WDAGenerator } from '../../generators/builders/P2WDAGenerator.js';
@@ -12,6 +12,8 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 import { ECPairInterface } from 'ecpair';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
+import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 
 /**
  * P2WDA Interaction Transaction
@@ -23,17 +25,22 @@ import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionType.INTERACTION> {
     private static readonly MAX_WITNESS_FIELDS = 10;
     private static readonly MAX_BYTES_PER_WITNESS = 80;
+
     public readonly type: TransactionType.INTERACTION = TransactionType.INTERACTION;
+    protected readonly epochChallenge: IP2WSHAddress;
+    /**
+     * Disable auto refund
+     * @protected
+     */
+    protected readonly disableAutoRefund: boolean;
     private readonly contractAddress: string;
     private readonly contractSecret: Buffer;
     private readonly calldata: Buffer;
     private readonly challenge: ChallengeSolution;
     private readonly randomBytes: Buffer;
-
     private p2wdaGenerator: P2WDAGenerator;
     private scriptSigner: ECPairInterface;
     private p2wdaInputIndices: Set<number> = new Set();
-
     /**
      * The compiled operation data from CalldataGenerator
      * This is exactly what would go in a taproot script, but we put it in witness instead
@@ -59,6 +66,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
             throw new Error('Challenge solution is required');
         }
 
+        this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.contractAddress = parameters.to;
         this.contractSecret = Buffer.from(parameters.contract.replace('0x', ''), 'hex');
         this.calldata = Compressor.compress(parameters.calldata);
@@ -80,6 +88,11 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         if (this.contractSecret.length !== 32) {
             throw new Error('Invalid contract secret length. Expected 32 bytes.');
         }
+
+        this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
+            this.challenge.publicKey.originalPublicKeyBuffer(),
+            this.network,
+        );
 
         // Validate P2WDA inputs
         this.validateP2WDAInputs();
@@ -123,19 +136,47 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
      * Build the transaction
      */
     protected async buildTransaction(): Promise<void> {
-        this.addInputsFromUTXO();
-
-        // Add output to contract
-        this.addOutput({
-            value: Number(this.getTransactionOPNetFee()),
-            address: this.contractAddress,
-        });
-
-        // Add optional outputs
-        const optionalAmount = this.addOptionalOutputsAndGetAmount();
+        if (!this.regenerated) {
+            this.addInputsFromUTXO();
+        }
 
         // Add refund
-        await this.addRefundOutput(this.getTransactionOPNetFee() + optionalAmount);
+        await this.createMineableRewardOutputs();
+    }
+
+    protected async createMineableRewardOutputs(): Promise<void> {
+        if (!this.to) throw new Error('To address is required');
+
+        const amountSpent: bigint = this.getTransactionOPNetFee();
+
+        let amountToCA: bigint;
+        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
+            amountToCA = MINIMUM_AMOUNT_CA;
+        } else {
+            amountToCA = amountSpent;
+        }
+
+        // ALWAYS THE FIRST INPUT.
+        this.addOutput({
+            value: Number(amountToCA),
+            address: this.to,
+        });
+
+        // ALWAYS SECOND.
+        if (
+            amountToCA === MINIMUM_AMOUNT_CA &&
+            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
+        ) {
+            this.addOutput({
+                value: Number(amountSpent - amountToCA),
+                address: this.epochChallenge.address,
+            });
+        }
+
+        const amount = this.addOptionalOutputsAndGetAmount();
+        if (!this.disableAutoRefund) {
+            await this.addRefundOutput(amountSpent + amount);
+        }
     }
 
     /**

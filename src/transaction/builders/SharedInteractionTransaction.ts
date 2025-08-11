@@ -341,7 +341,7 @@ export abstract class SharedInteractionTransaction<
         }
     }
 
-    private async createMineableRewardOutputs(): Promise<void> {
+    protected async createMineableRewardOutputs(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
