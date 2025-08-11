@@ -275,10 +275,11 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
             throw new Error('Operation data not compiled');
         }
 
-        // Create Schnorr signature of the compiled operation data
+        const txSignature = input.partialSig[0].signature;
+        const messageToSign = Buffer.concat([txSignature, this.compiledOperationData]);
         const signedMessage = MessageSigner.signMessage(
             this.signer as ECPairInterface,
-            this.compiledOperationData,
+            messageToSign,
         );
 
         const schnorrSignature = Buffer.from(signedMessage.signature);
@@ -297,9 +298,10 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         }
 
         // Build witness stack
-        const witnessStack: Buffer[] = [input.partialSig[0].signature];
+        const witnessStack: Buffer[] = [txSignature];
 
         // Add exactly 10 data fields
+        // Bitcoin stack is reversed!
         for (let i = 0; i < InteractionTransactionP2WDA.MAX_WITNESS_FIELDS; i++) {
             witnessStack.push(i < chunks.length ? chunks[i] : Buffer.alloc(0));
         }

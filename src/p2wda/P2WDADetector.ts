@@ -160,6 +160,7 @@ export class P2WDADetector {
         const witnessStack: Buffer[] = [transactionSignature];
 
         // Add 10 empty buffers for the 5x OP_2DROP operations
+        // Bitcoin stack is reversed!
         for (let i = 0; i < 10; i++) {
             witnessStack.push(Buffer.alloc(0));
         }
