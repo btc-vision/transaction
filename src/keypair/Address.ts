@@ -21,7 +21,7 @@ export class Address extends Uint8Array {
     #keyPair: ECPairInterface | undefined;
     #uncompressed: UncompressedPublicKey | undefined;
     #tweakedUncompressed: Buffer | undefined;
-    #p2wda: string | undefined;
+    #p2wda: IP2WSHAddress | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -333,7 +333,7 @@ export class Address extends Uint8Array {
      * can hold up to 80 bytes of data due to relay rules.
      *
      * @param {Network} network - The Bitcoin network to use
-     * @returns {string} The P2WDA address
+     * @returns {IP2WSHAddress} The P2WDA address
      * @throws {Error} If the public key is not set or address generation fails
      *
      * @example
@@ -343,8 +343,7 @@ export class Address extends Uint8Array {
      * console.log(p2wdaAddress); // bc1q...
      * ```
      */
-    public p2wda(network: Network): string {
-        // Check if we've already generated this address for this network
+    public p2wda(network: Network): IP2WSHAddress {
         if (this.#p2wda && this.#network === network) {
             return this.#p2wda;
         }
@@ -363,9 +362,12 @@ export class Address extends Uint8Array {
             const p2wdaInfo = P2WDADetector.generateP2WDAAddress(publicKeyBuffer, network);
 
             this.#network = network;
-            this.#p2wda = p2wdaInfo.address;
+            this.#p2wda = p2wdaInfo;
 
-            return p2wdaInfo.address;
+            return {
+                address: p2wdaInfo.address,
+                witnessScript: p2wdaInfo.witnessScript,
+            };
         } catch (error) {
             throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`);
         }
