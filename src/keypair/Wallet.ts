@@ -3,6 +3,7 @@ import { EcKeyPair } from './EcKeyPair.js';
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
+import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 
 /**
  * Wallet class
@@ -25,6 +26,12 @@ export class Wallet {
      * @private
      */
     private readonly _p2tr: string;
+
+    /**
+     * P2WDA Pay-to-Witness-Data-Authentication
+     * @private
+     */
+    private readonly _p2wda: IP2WSHAddress;
 
     /**
      * Legacy address for the wallet
@@ -80,6 +87,7 @@ export class Wallet {
         this._p2wpkh = this._address.p2wpkh(this.network);
         this._legacy = this._address.p2pkh(this.network);
         this._segwitLegacy = this._address.p2wpkh(this.network);
+        this._p2wda = this._address.p2wda(this.network);
 
         this._tweakedKey = this._address.toBuffer();
     }
@@ -124,6 +132,14 @@ export class Wallet {
      */
     public get p2tr(): string {
         return this._p2tr;
+    }
+
+    /**
+     * Get the P2WDA address for the wallet
+     * @returns {string}
+     */
+    public get p2wda(): IP2WSHAddress {
+        return this._p2wda;
     }
 
     /**
