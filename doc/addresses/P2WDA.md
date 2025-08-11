@@ -18,8 +18,14 @@ discount.
 ### 1.1 The Traditional Dilemma
 
 OP_RETURN is simple but tiny: **80 bytes max** per output under standard policy. Anything larger forces many outputs and
-multiple transactions, compounding base (non-witness) bytes that weigh 4* witness bytes. For realistic payloads (
+multiple transactions, compounding base (non-witness) bytes that weigh 4× witness bytes. For realistic payloads (
 airdrops, rich metadata), this is cost-prohibitive.
+
+Importantly, even if OP_RETURN size limits were completely removed, it would not solve the fundamental economic problem.
+OP_RETURN data is stored in the transaction's output section, which means every byte counts as non-witness data and
+incurs the full 4× weight penalty. A hypothetical uncapped OP_RETURN storing 800 bytes would cost 3,200 weight units,
+while P2WDA achieves the same data storage for only 800 weight units in the witness section. The economic disadvantage
+of OP_RETURN is architectural, not merely a policy limitation.
 
 Commit-reveal styles fix integrity but double touches the chain (commit tx, reveal tx) and fragment UX.
 
@@ -199,6 +205,34 @@ This prevents signatures from being reused across different protocols or transac
 
 Use a standard compression algorithm like DEFLATE to maximize data packing efficiency. Ensure your application layer
 can handle decompression and verify the integrity of the decompressed data.
+
+### 6.4 Why SegWit Instead of Taproot?
+
+A common question is why P2WDA uses SegWit's P2WSH instead of the newer Taproot technology. This decision is deliberate
+and based on fundamental economics of block space usage. Understanding this choice illuminates the elegant design of
+P2WDA.
+
+#### The Block Space Reality
+
+When people first hear about P2WDA, they might assume it should use Taproot since it's Bitcoin's newest upgrade.
+However, Taproot would actually consume more block space for our use case, making it less efficient. This
+counterintuitive reality stems from how these technologies were designed for different purposes.
+
+Taproot offers two spending paths. The key path is remarkably efficient, requiring only a 64-byte Schnorr signature, but
+it cannot carry arbitrary data. To include data, you must use the script path, which requires a control block containing
+the internal public key, parity information, and Merkle proof of your script's inclusion in the taproot tree. Even with
+the simplest possible tree structure, this control block adds approximately 65 bytes of pure overhead.
+
+Let's examine the concrete numbers for storing 500 bytes of authenticated data:
+
+With P2WSH (what P2WDA uses), the witness contains the transaction signature (~72 bytes), your data (500 bytes), and the
+witness script (~40 bytes), totaling approximately 612 bytes, which equals 612 weight units.
+
+With Taproot's script path, you would need a Schnorr signature (64 bytes), your data (500 bytes), the tapscript (~40
+bytes), and the control block (~65 bytes), totaling approximately 669 bytes, which equals 669 weight units.
+
+This represents about 10% more block space consumption for identical functionality. When your goal is cost-efficient
+data storage, every byte matters, and this overhead directly translates to higher fees for users.
 
 ### 6.4 Future Extensions
 
