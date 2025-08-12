@@ -613,9 +613,9 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     }
 
     private getTotalOutputAmount(utxos: UTXO[]): bigint {
-        let total = BigInt(0);
+        let total: bigint = 0n;
         for (const utxo of utxos) {
-            total += BigInt(utxo.value);
+            total += utxo.value;
         }
 
         return total;
