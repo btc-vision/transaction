@@ -2,7 +2,11 @@ import { Buffer } from 'buffer';
 import { Psbt, PsbtInput, toXOnly } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
-import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder, } from './TransactionBuilder.js';
+import {
+    MINIMUM_AMOUNT_CA,
+    MINIMUM_AMOUNT_REWARD,
+    TransactionBuilder,
+} from './TransactionBuilder.js';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { P2WDAGenerator } from '../../generators/builders/P2WDAGenerator.js';
