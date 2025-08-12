@@ -11,10 +11,13 @@ export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
 export * from './generators/builders/LegacyCalldataGenerator.js';
 export * from './generators/builders/MultiSignGenerator.js';
+export * from './generators/builders/P2WDAGenerator.js';
 export * from './generators/Features.js';
 export * from './generators/Generator.js';
 
 export * from './transaction/mineable/TimelockGenerator.js';
+export * from './transaction/mineable/IP2WSHAddress.js';
+export * from './p2wda/P2WDADetector.js';
 
 /** Address */
 export * from './generators/AddressGenerator.js';
@@ -45,6 +48,7 @@ export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
 export * from './transaction/builders/InteractionTransaction.js';
+export * from './transaction/builders/InteractionTransactionP2WDA.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';

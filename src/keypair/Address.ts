@@ -5,7 +5,9 @@ import { AddressVerificator } from './AddressVerificator.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { ContractAddress } from '../transaction/ContractAddress.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
-import { ITimeLockOutput, TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
+import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
+import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
+import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 
 /**
  * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
@@ -19,6 +21,7 @@ export class Address extends Uint8Array {
     #keyPair: ECPairInterface | undefined;
     #uncompressed: UncompressedPublicKey | undefined;
     #tweakedUncompressed: Buffer | undefined;
+    #p2wda: IP2WSHAddress | undefined;
 
     public constructor(bytes?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -319,16 +322,68 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Generate a P2WDA (Pay-to-Witness-Data-Authentication) address
+     *
+     * P2WDA addresses are a special type of P2WSH address that allows embedding
+     * authenticated data directly in the witness field, achieving 75% cost reduction
+     * through Bitcoin's witness discount.
+     *
+     * The witness script pattern is: (OP_2DROP * 5) <pubkey> OP_CHECKSIG
+     * This allows up to 10 witness data fields (5 * 2 = 10), where each field
+     * can hold up to 80 bytes of data due to relay rules.
+     *
+     * @param {Network} network - The Bitcoin network to use
+     * @returns {IP2WSHAddress} The P2WDA address
+     * @throws {Error} If the public key is not set or address generation fails
+     *
+     * @example
+     * ```typescript
+     * const address = Address.fromString('0x02...');
+     * const p2wdaAddress = address.p2wda(networks.bitcoin);
+     * console.log(p2wdaAddress); // bc1q...
+     * ```
+     */
+    public p2wda(network: Network): IP2WSHAddress {
+        if (this.#p2wda && this.#network === network) {
+            return this.#p2wda;
+        }
+
+        if (!this.#originalPublicKey) {
+            throw new Error('Cannot create P2WDA address: public key not set');
+        }
+
+        const publicKeyBuffer = Buffer.from(this.#originalPublicKey);
+
+        if (publicKeyBuffer.length !== 33) {
+            throw new Error('P2WDA requires a compressed public key (33 bytes)');
+        }
+
+        try {
+            const p2wdaInfo = P2WDADetector.generateP2WDAAddress(publicKeyBuffer, network);
+
+            this.#network = network;
+            this.#p2wda = p2wdaInfo;
+
+            return {
+                address: p2wdaInfo.address,
+                witnessScript: p2wdaInfo.witnessScript,
+            };
+        } catch (error) {
+            throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`);
+        }
+    }
+
+    /**
      * Generate a P2WSH address with CSV (CheckSequenceVerify) timelock
      * The resulting address can only be spent after the specified number of blocks
      * have passed since the UTXO was created.
      *
      * @param {bigint | number | string} duration - The number of blocks that must pass before spending (1-65535)
      * @param {Network} network - The Bitcoin network to use
-     * @returns {ITimeLockOutput} The timelocked address and its witness script
+     * @returns {IP2WSHAddress} The timelocked address and its witness script
      * @throws {Error} If the block number is out of range or public key is not available
      */
-    public toCSV(duration: bigint | number | string, network: Network): ITimeLockOutput {
+    public toCSV(duration: bigint | number | string, network: Network): IP2WSHAddress {
         const n = Number(duration);
 
         // First, let's validate the block number to ensure it's within the valid range

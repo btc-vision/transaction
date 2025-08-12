@@ -1,6 +1,6 @@
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly } from '@btc-vision/bitcoin';
+import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
-import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
+import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder, } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -8,8 +8,9 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { ITimeLockOutput, TimeLockGenerator } from '../mineable/TimelockGenerator.js';
+import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 /**
  * Shared interaction transaction
@@ -33,7 +34,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly scriptTree: Taptree;
 
     protected readonly challenge: ChallengeSolution;
-    protected readonly epochChallenge: ITimeLockOutput;
+    protected readonly epochChallenge: IP2WSHAddress;
 
     protected calldataGenerator: CalldataGenerator;
 
@@ -111,7 +112,7 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the preimage
      */
-    public getPreimage(): ChallengeSolution {
+    public getChallenge(): ChallengeSolution {
         return this.challenge;
     }
 
@@ -340,7 +341,7 @@ export abstract class SharedInteractionTransaction<
         }
     }
 
-    private async createMineableRewardOutputs(): Promise<void> {
+    protected async createMineableRewardOutputs(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
         const amountSpent: bigint = this.getTransactionOPNetFee();

@@ -23,6 +23,8 @@ import {
 } from './browser/Web3Provider.js';
 import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
 import { RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
+import { P2WDADetector } from '../p2wda/P2WDADetector.js';
+import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2WDA.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -48,7 +50,7 @@ export interface BitcoinTransferBase {
 }
 
 export interface InteractionResponse {
-    readonly fundingTransaction: string;
+    readonly fundingTransaction: string | null;
     readonly interactionTransaction: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
@@ -181,6 +183,11 @@ export class TransactionFactory {
             throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
+        const useP2WDA = this.hasP2WDAInputs(interactionParameters.utxos);
+        if (useP2WDA) {
+            return this.signP2WDAInteraction(interactionParameters);
+        }
+
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
         const preTransaction: InteractionTransaction = new InteractionTransaction({
             ...interactionParameters,
@@ -234,7 +241,7 @@ export class TransactionFactory {
                 ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
             ], // always 0
             randomBytes: preTransaction.getRndBytes(),
-            challenge: preTransaction.getPreimage(),
+            challenge: preTransaction.getChallenge(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
             optionalInputs: inputs,
@@ -253,7 +260,7 @@ export class TransactionFactory {
                 interactionParameters.from,
                 1,
             ), // always 1
-            challenge: preTransaction.getPreimage().toRaw(),
+            challenge: preTransaction.getChallenge().toRaw(),
         };
     }
 
@@ -331,7 +338,7 @@ export class TransactionFactory {
             ...deploymentParameters,
             utxos: [newUtxo], // always 0
             randomBytes: preTransaction.getRndBytes(),
-            challenge: preTransaction.getPreimage(),
+            challenge: preTransaction.getChallenge(),
             nonWitnessUtxo: signedTransaction.toBuffer(),
             estimatedFees: preTransaction.estimatedFees,
             optionalInputs: inputs,
@@ -358,7 +365,7 @@ export class TransactionFactory {
             contractAddress: finalTransaction.getContractAddress(), //finalTransaction.contractAddress.p2tr(deploymentParameters.network),
             contractPubKey: finalTransaction.contractPubKey,
             utxos: [refundUTXO],
-            challenge: preTransaction.getPreimage().toRaw(),
+            challenge: preTransaction.getChallenge().toRaw(),
         };
     }
 
@@ -506,6 +513,20 @@ export class TransactionFactory {
         };
     }
 
+    /**
+     * Check if the UTXOs contain any P2WDA inputs
+     *
+     * This method examines both main UTXOs and optional inputs to determine
+     * if any of them are P2WDA addresses. P2WDA detection is based on the
+     * witness script pattern: (OP_2DROP * 5) <pubkey> OP_CHECKSIG
+     *
+     * @param utxos The main UTXOs to check
+     * @returns true if any UTXO is P2WDA, false otherwise
+     */
+    private hasP2WDAInputs(utxos: UTXO[]): boolean {
+        return utxos.some((utxo) => P2WDADetector.isP2WDAUTXO(utxo));
+    }
+
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
         const buf = Buffer.from(psbt, 'base64');
 
@@ -514,6 +535,59 @@ export class TransactionFactory {
         header.writeUInt8(currentConsensus, 1);
 
         return Buffer.concat([header, buf]).toString('hex');
+    }
+
+    /**
+     * Sign a P2WDA interaction transaction
+     *
+     * P2WDA interactions are fundamentally different from standard OP_NET interactions.
+     * Instead of using a two-transaction model (funding + interaction), P2WDA embeds
+     * the operation data directly in the witness field of a single transaction.
+     * This achieves significant cost savings through the witness discount.
+     *
+     * Key differences:
+     * - Single transaction instead of two
+     * - Operation data in witness field instead of taproot script
+     * - 75% cost reduction for data storage
+     * - No separate funding transaction needed
+     *
+     * @param interactionParameters The interaction parameters
+     * @returns The signed P2WDA interaction response
+     */
+    private async signP2WDAInteraction(
+        interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
+    ): Promise<InteractionResponse> {
+        if (!interactionParameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+
+        // Ensure we have a signer for P2WDA
+        if (!('signer' in interactionParameters)) {
+            throw new Error(
+                'P2WDA interactions require a signer. OP_WALLET is not supported for P2WDA.',
+            );
+        }
+
+        const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
+        const p2wdaTransaction = new InteractionTransactionP2WDA({
+            ...interactionParameters,
+            optionalInputs: inputs,
+        });
+
+        const signedTx = await p2wdaTransaction.signTransaction();
+        const txHex = signedTx.toHex();
+
+        return {
+            fundingTransaction: null,
+            interactionTransaction: txHex,
+            estimatedFees: p2wdaTransaction.estimatedFees,
+            nextUTXOs: this.getUTXOAsTransaction(
+                signedTx,
+                interactionParameters.from,
+                signedTx.outs.length - 1, // Last output is typically the change
+            ),
+            challenge: interactionParameters.challenge.toRaw(),
+        };
     }
 
     private getPriorityFee(params: ITransactionParameters): bigint {

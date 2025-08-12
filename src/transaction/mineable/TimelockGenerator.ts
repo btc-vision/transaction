@@ -1,9 +1,5 @@
 import bitcoin, { Network, networks, opcodes, script } from '@btc-vision/bitcoin';
-
-export interface ITimeLockOutput {
-    address: string;
-    witnessScript: Buffer;
-}
+import { IP2WSHAddress } from './IP2WSHAddress.js';
 
 export class TimeLockGenerator {
     private static readonly CSV_BLOCKS = 75;
@@ -16,7 +12,7 @@ export class TimeLockGenerator {
         publicKey: Buffer,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
-    ): ITimeLockOutput {
+    ): IP2WSHAddress {
         const witnessScript = script.compile([
             script.number.encode(csvBlocks),
             opcodes.OP_CHECKSEQUENCEVERIFY,
