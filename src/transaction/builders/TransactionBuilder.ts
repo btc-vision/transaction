@@ -1,4 +1,5 @@
-import {
+import bitcoin, {
+    getFinalScripts,
     initEccLib,
     Network,
     opcodes,
@@ -13,20 +14,19 @@ import {
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import {
-    IFundingTransactionParameters,
-    ITransactionParameters,
-} from '../interfaces/ITransactionParameters.js';
+import { IFundingTransactionParameters, ITransactionParameters, } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 
 initEccLib(ecc);
 
-export const MINIMUM_AMOUNT_REWARD: bigint = 540n;
+export const MINIMUM_AMOUNT_REWARD: bigint = 330n; //540n;
 export const MINIMUM_AMOUNT_CA: bigint = 297n;
 export const ANCHOR_SCRIPT = Buffer.from('51024e73', 'hex');
 
@@ -43,10 +43,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         opcodes.OP_VERIFY,
     ]);
 
-    public static readonly MINIMUM_DUST: bigint = 50n;
+    public static readonly MINIMUM_DUST: bigint = 330n;
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';
+    public debugFees: boolean = false;
 
     /**
      * @description The overflow fees of the transaction
@@ -157,6 +158,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     protected note?: Buffer;
 
+    private optionalOutputsAdded: boolean = false;
+
     protected constructor(parameters: ITransactionParameters) {
         super(parameters);
 
@@ -172,6 +175,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.utxos = parameters.utxos;
         this.optionalInputs = parameters.optionalInputs || [];
         this.to = parameters.to || undefined;
+        this.debugFees = parameters.debugFees || false;
 
         if (parameters.note) {
             if (typeof parameters.note === 'string') {
@@ -400,10 +404,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Add an output to the transaction.
      * @param {PsbtOutputExtended} output - The output to add
+     * @param bypassMinCheck
      * @public
      * @returns {void}
      */
-    public addOutput(output: PsbtOutputExtended): void {
+    public addOutput(output: PsbtOutputExtended, bypassMinCheck: boolean = false): void {
         if (output.value === 0) {
             const script = output as {
                 script: Buffer;
@@ -422,13 +427,22 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                     'Output script must start with OP_RETURN or be an ANCHOR when value is 0',
                 );
             }
-        } else if (output.value < TransactionBuilder.MINIMUM_DUST) {
+        } else if (!bypassMinCheck && output.value < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,
             );
         }
 
         this.outputs.push(output);
+    }
+
+    /**
+     * Returns the total value of all outputs added so far (excluding the fee/change output).
+     * @public
+     * @returns {bigint}
+     */
+    public getTotalOutputValue(): bigint {
+        return this.outputs.reduce((total, output) => total + BigInt(output.value), 0n);
     }
 
     /**
@@ -449,35 +463,215 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     /**
-     * Estimates the transaction fees.
+     * Estimates the transaction fees with accurate size calculation.
      * @public
-     * @returns {Promise<bigint>} - The estimated transaction fees
+     * @returns {Promise<bigint>}
      */
     public async estimateTransactionFees(): Promise<bigint> {
-        if (!this.utxos.length) {
-            throw new Error('No UTXOs specified');
+        await Promise.resolve();
+
+        const fakeTx = new Psbt({ network: this.network });
+        const inputs = this.getInputs();
+        const outputs = this.getOutputs();
+        fakeTx.addInputs(inputs);
+        fakeTx.addOutputs(outputs);
+
+        const dummySchnorrSig = Buffer.alloc(64, 0);
+        const dummyEcdsaSig = Buffer.alloc(72, 0);
+        const dummyCompressedPubkey = Buffer.alloc(33, 2);
+
+        const finalizer = (inputIndex: number, input: PsbtInputExtended) => {
+            if (input.isPayToAnchor || this.anchorInputIndices.has(inputIndex)) {
+                return {
+                    finalScriptSig: undefined,
+                    finalScriptWitness: Buffer.from([0]),
+                };
+            }
+
+            if (input.witnessScript && P2WDADetector.isP2WDAWitnessScript(input.witnessScript)) {
+                // Create dummy witness stack for P2WDA
+                const dummyDataSlots: Buffer[] = [];
+                for (let i = 0; i < 10; i++) {
+                    dummyDataSlots.push(Buffer.alloc(0));
+                }
+
+                const dummyEcdsaSig = Buffer.alloc(72, 0);
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        ...dummyDataSlots,
+                        dummyEcdsaSig,
+                        input.witnessScript,
+                    ]),
+                };
+            }
+
+            if (inputIndex === 0 && this.tapLeafScript) {
+                const dummySecret = Buffer.alloc(32, 0);
+                const dummyScript = this.tapLeafScript.script;
+
+                // A control block for a 2-leaf tree contains one 32-byte hash.
+                const dummyControlBlock = Buffer.alloc(1 + 32 + 32, 0);
+
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        dummySecret,
+                        dummySchnorrSig, // It's a tapScriptSig, which is Schnorr
+                        dummySchnorrSig, // Second Schnorr signature
+                        dummyScript,
+                        dummyControlBlock,
+                    ]),
+                };
+            }
+
+            if (!input.witnessUtxo && input.nonWitnessUtxo) {
+                return {
+                    finalScriptSig: bitcoin.script.compile([dummyEcdsaSig, dummyCompressedPubkey]),
+                    finalScriptWitness: undefined,
+                };
+            }
+
+            if (input.witnessScript) {
+                if (this.csvInputIndices.has(inputIndex)) {
+                    // CSV P2WSH needs: [signature, witnessScript]
+                    return {
+                        finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                            dummyEcdsaSig,
+                            input.witnessScript,
+                        ]),
+                    };
+                }
+
+                if (input.redeemScript) {
+                    // P2SH-P2WSH needs redeemScript in scriptSig and witness data
+                    const dummyWitness = [dummyEcdsaSig, input.witnessScript];
+                    return {
+                        finalScriptSig: input.redeemScript,
+                        finalScriptWitness:
+                            TransactionBuilder.witnessStackToScriptWitness(dummyWitness),
+                    };
+                }
+
+                const decompiled = bitcoin.script.decompile(input.witnessScript);
+                if (decompiled && decompiled.length >= 4) {
+                    const firstOp = decompiled[0];
+                    const lastOp = decompiled[decompiled.length - 1];
+                    // Check if it's M-of-N multisig
+                    if (
+                        typeof firstOp === 'number' &&
+                        firstOp >= opcodes.OP_1 &&
+                        lastOp === opcodes.OP_CHECKMULTISIG
+                    ) {
+                        const m = firstOp - opcodes.OP_1 + 1;
+                        const signatures: Buffer[] = [];
+                        for (let i = 0; i < m; i++) {
+                            signatures.push(dummyEcdsaSig);
+                        }
+
+                        return {
+                            finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                                Buffer.alloc(0), // OP_0 due to multisig bug
+                                ...signatures,
+                                input.witnessScript,
+                            ]),
+                        };
+                    }
+                }
+
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        dummyEcdsaSig,
+                        input.witnessScript,
+                    ]),
+                };
+            } else if (input.redeemScript) {
+                const decompiled = bitcoin.script.decompile(input.redeemScript);
+                if (
+                    decompiled &&
+                    decompiled.length === 2 &&
+                    decompiled[0] === opcodes.OP_0 &&
+                    Buffer.isBuffer(decompiled[1]) &&
+                    decompiled[1].length === 20
+                ) {
+                    // P2SH-P2WPKH
+                    return {
+                        finalScriptSig: input.redeemScript,
+                        finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                            dummyEcdsaSig,
+                            dummyCompressedPubkey,
+                        ]),
+                    };
+                }
+            }
+
+            if (input.redeemScript && !input.witnessScript && !input.witnessUtxo) {
+                // Pure P2SH needs signatures + redeemScript in scriptSig
+                return {
+                    finalScriptSig: bitcoin.script.compile([dummyEcdsaSig, input.redeemScript]),
+                    finalScriptWitness: undefined,
+                };
+            }
+
+            const script = input.witnessUtxo?.script;
+            if (!script) return { finalScriptSig: undefined, finalScriptWitness: undefined };
+
+            if (input.tapInternalKey) {
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        dummySchnorrSig,
+                    ]),
+                };
+            }
+
+            if (script.length === 22 && script[0] === opcodes.OP_0) {
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        dummyEcdsaSig,
+                        dummyCompressedPubkey,
+                    ]),
+                };
+            }
+
+            if (input.redeemScript?.length === 22 && input.redeemScript[0] === opcodes.OP_0) {
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
+                        dummyEcdsaSig,
+                        dummyCompressedPubkey,
+                    ]),
+                };
+            }
+
+            return getFinalScripts(
+                inputIndex,
+                input,
+                script,
+                true,
+                !!input.redeemScript,
+                !!input.witnessScript,
+            );
+        };
+
+        try {
+            for (let i = 0; i < fakeTx.data.inputs.length; i++) {
+                const fullInput = inputs[i];
+                if (fullInput) {
+                    fakeTx.finalizeInput(i, (idx: number) => finalizer(idx, fullInput));
+                }
+            }
+        } catch (e) {
+            this.warn(`Could not finalize dummy tx: ${(e as Error).message}`);
         }
 
-        if (this.estimatedFees) return this.estimatedFees;
+        const tx = fakeTx.extractTransaction(true, true);
+        const size = tx.virtualSize();
+        const fee = this.feeRate * size;
+        const finalFee = BigInt(Math.ceil(fee));
 
-        const fakeTx = new Psbt({
-            network: this.network,
-        });
-
-        const builtTx = await this.internalBuildTransaction(fakeTx);
-        if (builtTx) {
-            const tx = fakeTx.extractTransaction(true, true);
-            const size = tx.virtualSize();
-            const fee: number = this.feeRate * size;
-
-            this.estimatedFees = BigInt(Math.ceil(fee) + 1);
-
-            return this.estimatedFees;
-        } else {
-            throw new Error(
-                `Could not build transaction to estimate fee. Something went wrong while building the transaction.`,
+        if (this.debugFees) {
+            this.log(
+                `Estimating fees: feeRate=${this.feeRate}, accurate_vSize=${size}, fee=${finalFee}n`,
             );
         }
+        return finalFee;
     }
 
     public async rebuildFromBase64(base64: string): Promise<Psbt> {
@@ -529,12 +723,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return total;
     }
 
-    /**
-     * @description Adds the refund output to the transaction
-     * @param {bigint} amountSpent - The amount spent
-     * @protected
-     * @returns {Promise<void>}
-     */
     protected async addRefundOutput(amountSpent: bigint): Promise<void> {
         if (this.note) {
             this.addOPReturn(this.note);
@@ -544,38 +732,92 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             this.addAnchor();
         }
 
-        /** Add the refund output */
-        const sendBackAmount: bigint = this.totalInputAmount - amountSpent;
-        if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
-            if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
-                await this.setFeeOutput({
-                    value: Number(sendBackAmount),
-                    address: this.from,
-                    tapInternalKey: this.internalPubKeyToXOnly(),
-                });
-            } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
-                const pubKeyScript = script.compile([
-                    Buffer.from(this.from.replace('0x', ''), 'hex'),
-                    opcodes.OP_CHECKSIG,
-                ]);
+        // Initialize variables for iteration
+        let previousFee = -1n;
+        let estimatedFee = 0n;
+        let iterations = 0;
+        const maxIterations = 5; // Prevent infinite loops
 
-                await this.setFeeOutput({
-                    value: Number(sendBackAmount),
-                    script: pubKeyScript,
-                });
-            } else {
-                await this.setFeeOutput({
-                    value: Number(sendBackAmount),
-                    address: this.from,
-                });
+        // Iterate until fee stabilizes
+        while (iterations < maxIterations && estimatedFee !== previousFee) {
+            previousFee = estimatedFee;
+
+            // Calculate the fee with current outputs
+            estimatedFee = await this.estimateTransactionFees();
+
+            // Total amount that needs to be spent (outputs + fee)
+            const totalSpent = amountSpent + estimatedFee;
+
+            // Calculate refund
+            const sendBackAmount = this.totalInputAmount - totalSpent;
+
+            if (this.debugFees) {
+                this.log(
+                    `Iteration ${iterations + 1}: inputAmount=${this.totalInputAmount}, totalSpent=${totalSpent}, sendBackAmount=${sendBackAmount}`,
+                );
             }
 
-            return;
+            // Determine if we should add a change output
+            if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
+                // Create the appropriate change output
+                if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
+                    this.feeOutput = {
+                        value: Number(sendBackAmount),
+                        address: this.from,
+                        tapInternalKey: this.internalPubKeyToXOnly(),
+                    };
+                } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
+                    const pubKeyScript = script.compile([
+                        Buffer.from(this.from.replace('0x', ''), 'hex'),
+                        opcodes.OP_CHECKSIG,
+                    ]);
+
+                    this.feeOutput = {
+                        value: Number(sendBackAmount),
+                        script: pubKeyScript,
+                    };
+                } else {
+                    this.feeOutput = {
+                        value: Number(sendBackAmount),
+                        address: this.from,
+                    };
+                }
+
+                // Set overflowFees when we have a change output
+                this.overflowFees = sendBackAmount;
+            } else {
+                // No change output if below dust
+                this.feeOutput = null;
+                this.overflowFees = 0n;
+
+                if (sendBackAmount < 0n) {
+                    throw new Error(
+                        `Insufficient funds: need ${totalSpent} sats but only have ${this.totalInputAmount} sats`,
+                    );
+                }
+
+                if (this.debugFees) {
+                    this.warn(
+                        `Amount to send back (${sendBackAmount} sat) is less than minimum dust...`,
+                    );
+                }
+            }
+
+            iterations++;
         }
 
-        this.warn(
-            `Amount to send back (${sendBackAmount} sat) is less than the minimum dust (${TransactionBuilder.MINIMUM_DUST} sat), it will be consumed in fees instead.`,
-        );
+        if (iterations >= maxIterations) {
+            this.warn(`Fee calculation did not stabilize after ${maxIterations} iterations`);
+        }
+
+        // Store the final fee
+        this.transactionFee = estimatedFee;
+
+        if (this.debugFees) {
+            this.log(
+                `Final fee: ${estimatedFee} sats, Change output: ${this.feeOutput ? `${this.feeOutput.value} sats` : 'none'}`,
+            );
+        }
     }
 
     /**
@@ -657,14 +899,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {bigint}
      */
     protected addOptionalOutputsAndGetAmount(): bigint {
-        if (!this.optionalOutputs) return 0n;
+        if (!this.optionalOutputs || this.optionalOutputsAdded) return 0n;
 
-        let refundedFromOptionalOutputs = 0n;
+        let refundedFromOptionalOutputs: bigint = 0n;
 
         for (let i = 0; i < this.optionalOutputs.length; i++) {
             this.addOutput(this.optionalOutputs[i]);
             refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i].value);
         }
+
+        this.optionalOutputsAdded = true;
+
         return refundedFromOptionalOutputs;
     }
 
@@ -733,6 +978,66 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     }
 
     /**
+     * Adds the fee to the output.
+     * @param amountSpent
+     * @param contractAddress
+     * @param epochChallenge
+     * @param addContractOutput
+     * @protected
+     */
+    protected addFeeToOutput(
+        amountSpent: bigint,
+        contractAddress: string,
+        epochChallenge: IP2WSHAddress,
+        addContractOutput: boolean,
+    ): void {
+        if (addContractOutput) {
+            let amountToCA: bigint;
+            if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
+                amountToCA = MINIMUM_AMOUNT_CA;
+            } else {
+                amountToCA = amountSpent;
+            }
+
+            // ALWAYS THE FIRST INPUT.
+            this.addOutput(
+                {
+                    value: Number(amountToCA),
+                    address: contractAddress,
+                },
+                true,
+            );
+
+            // ALWAYS SECOND.
+            if (
+                amountToCA === MINIMUM_AMOUNT_CA &&
+                amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
+            ) {
+                this.addOutput(
+                    {
+                        value: Number(amountSpent - amountToCA),
+                        address: epochChallenge.address,
+                    },
+                    true,
+                );
+            }
+        } else {
+            // When SEND_AMOUNT_TO_CA is false, always send to epochChallenge
+            // Use the maximum of amountSpent or MINIMUM_AMOUNT_REWARD
+            const amountToEpoch =
+                amountSpent < MINIMUM_AMOUNT_REWARD ? MINIMUM_AMOUNT_REWARD : amountSpent;
+
+            this.addOutput(
+                {
+                    value: Number(amountToEpoch),
+                    address: epochChallenge.address,
+                },
+                true,
+            );
+        }
+    }
+
+    /**
      * Returns the witness of the tap transaction.
      * @protected
      * @returns {Buffer}
@@ -788,6 +1093,69 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
         const initialValue = output.value;
+        this.feeOutput = null; // Start with no fee output
+
+        let estimatedFee = 0n;
+        let lastFee = -1n;
+
+        this.log(
+            `setFeeOutput: Starting fee calculation for change. Initial available value: ${initialValue} sats.`,
+        );
+
+        for (let i = 0; i < 3 && estimatedFee !== lastFee; i++) {
+            lastFee = estimatedFee;
+            estimatedFee = await this.estimateTransactionFees();
+            const valueLeft = BigInt(initialValue) - estimatedFee;
+
+            if (this.debugFees) {
+                this.log(
+                    ` -> Iteration ${i + 1}: Estimated fee is ${estimatedFee} sats. Value left for change: ${valueLeft} sats.`,
+                );
+            }
+
+            if (valueLeft >= TransactionBuilder.MINIMUM_DUST) {
+                this.feeOutput = { ...output, value: Number(valueLeft) };
+                this.overflowFees = valueLeft;
+            } else {
+                this.feeOutput = null;
+                this.overflowFees = 0n;
+                // Re-estimate fee one last time without the change output
+                estimatedFee = await this.estimateTransactionFees();
+
+                if (this.debugFees) {
+                    this.log(
+                        ` -> Change is less than dust. Final fee without change output: ${estimatedFee} sats.`,
+                    );
+                }
+            }
+        }
+
+        const finalValueLeft = BigInt(initialValue) - estimatedFee;
+
+        if (finalValueLeft < 0) {
+            throw new Error(
+                `setFeeOutput: Insufficient funds to pay the fees. Required fee: ${estimatedFee}, Available: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
+            );
+        }
+
+        if (finalValueLeft >= TransactionBuilder.MINIMUM_DUST) {
+            this.feeOutput = { ...output, value: Number(finalValueLeft) };
+            this.overflowFees = finalValueLeft;
+            if (this.debugFees) {
+                this.log(
+                    `setFeeOutput: Final change output set to ${finalValueLeft} sats. Final fee: ${estimatedFee} sats.`,
+                );
+            }
+        } else {
+            this.warn(
+                `Amount to send back (${finalValueLeft} sat) is less than the minimum dust (${TransactionBuilder.MINIMUM_DUST} sat), it will be consumed in fees instead.`,
+            );
+            this.feeOutput = null;
+            this.overflowFees = 0n;
+        }
+    }
+    /*protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
+        const initialValue = output.value;
 
         const fee = await this.estimateTransactionFees();
         output.value = initialValue - Number(fee);
@@ -819,7 +1187,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             this.overflowFees = BigInt(valueLeft);
         }
-    }
+    }*/
 
     /**
      * Builds the transaction.

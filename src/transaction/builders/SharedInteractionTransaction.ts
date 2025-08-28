@@ -1,6 +1,6 @@
 import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
-import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder, } from './TransactionBuilder.js';
+import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -344,35 +344,19 @@ export abstract class SharedInteractionTransaction<
     protected async createMineableRewardOutputs(): Promise<void> {
         if (!this.to) throw new Error('To address is required');
 
-        const amountSpent: bigint = this.getTransactionOPNetFee();
+        const opnetFee = this.getTransactionOPNetFee();
 
-        let amountToCA: bigint;
-        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
-            amountToCA = MINIMUM_AMOUNT_CA;
-        } else {
-            amountToCA = amountSpent;
-        }
+        // Add the output to challenge address
+        this.addFeeToOutput(opnetFee, this.to, this.epochChallenge, false);
 
-        // ALWAYS THE FIRST INPUT.
-        this.addOutput({
-            value: Number(amountToCA),
-            address: this.to,
-        });
+        // Get the actual amount added to outputs (might be MINIMUM_AMOUNT_REWARD if opnetFee is too small)
+        const actualOutputAmount = opnetFee < MINIMUM_AMOUNT_REWARD ? MINIMUM_AMOUNT_REWARD : opnetFee;
 
-        // ALWAYS SECOND.
-        if (
-            amountToCA === MINIMUM_AMOUNT_CA &&
-            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
-        ) {
-            this.addOutput({
-                value: Number(amountSpent - amountToCA),
-                address: this.epochChallenge.address,
-            });
-        }
+        const optionalAmount = this.addOptionalOutputsAndGetAmount();
 
-        const amount = this.addOptionalOutputsAndGetAmount();
         if (!this.disableAutoRefund) {
-            await this.addRefundOutput(amountSpent + amount);
+            // Pass the TOTAL amount spent: actual output amount + optional outputs
+            await this.addRefundOutput(actualOutputAmount + optionalAmount);
         }
     }
 

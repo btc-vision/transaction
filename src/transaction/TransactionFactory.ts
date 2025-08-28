@@ -25,6 +25,9 @@ import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
 import { RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2WDA.js';
+import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
+import { Address } from '../keypair/Address.js';
+import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -62,6 +65,16 @@ export interface BitcoinTransferResponse extends BitcoinTransferBase {
 }
 
 export class TransactionFactory {
+    public debug: boolean = false;
+
+    private readonly DUMMY_PUBKEY = Buffer.alloc(32, 1);
+    private readonly P2TR_SCRIPT = Buffer.concat([
+        Buffer.from([0x51, 0x20]), // OP_1 + 32 bytes
+        this.DUMMY_PUBKEY,
+    ]);
+    private readonly INITIAL_FUNDING_ESTIMATE = 2000n;
+    private readonly MAX_ITERATIONS = 10;
+
     /**
      * @description Generate a transaction with a custom script.
      * @returns {Promise<[string, string]>} - The signed transaction
@@ -72,49 +85,49 @@ export class TransactionFactory {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
-
         if (!interactionParameters.from) {
             throw new Error('Field "from" not provided.');
         }
-
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
-
         if (!('signer' in interactionParameters)) {
             throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
-        const preTransaction: CustomScriptTransaction = new CustomScriptTransaction({
-            ...interactionParameters,
-            utxos: [interactionParameters.utxos[0]], // we simulate one input here.
-            optionalInputs: inputs,
-        });
 
-        // we don't sign that transaction, we just need the parameters.
-        await preTransaction.generateTransactionMinimalSignatures();
+        // Use common iteration logic
+        const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
+            { ...interactionParameters, optionalInputs: inputs },
+            CustomScriptTransaction,
+            async (tx) => {
+                const fee = await tx.estimateTransactionFees();
+                const priorityFee = this.getPriorityFee(interactionParameters);
+                const optionalValue = tx.getOptionalOutputValue();
+                return fee + priorityFee + optionalValue;
+            },
+            'CustomScript',
+        );
 
         const parameters: IFundingTransactionParameters =
-            await preTransaction.getFundingTransactionParameters();
+            await finalTransaction.getFundingTransactionParameters();
 
         parameters.utxos = interactionParameters.utxos;
-        parameters.amount =
-            (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(interactionParameters) +
-            preTransaction.getOptionalOutputValue();
+        parameters.amount = estimatedAmount;
 
-        const feeEstimationFundingTransaction = await this.createFundTransaction({
+        // Create funding transaction
+        const feeEstimationFunding = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
             optionalInputs: [],
         });
 
-        if (!feeEstimationFundingTransaction) {
+        if (!feeEstimationFunding) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
+        parameters.estimatedFees = feeEstimationFunding.estimatedFees;
 
         const signedTransaction = await this.createFundTransaction({
             ...parameters,
@@ -126,34 +139,29 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
-        interactionParameters.utxos = this.getUTXOAsTransaction(
-            signedTransaction.tx,
-            interactionParameters.to,
-            0,
-        );
-
         const newParams: ICustomTransactionParameters = {
             ...interactionParameters,
-            utxos: [
-                ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
-            ], // always 0
-            randomBytes: preTransaction.getRndBytes(),
+            utxos: this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
+            randomBytes: finalTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
-            estimatedFees: preTransaction.estimatedFees,
+            estimatedFees: finalTransaction.estimatedFees,
             optionalInputs: inputs,
         };
 
-        const finalTransaction: CustomScriptTransaction = new CustomScriptTransaction(newParams);
+        const customTransaction = new CustomScriptTransaction(newParams);
+        const outTx = await customTransaction.signTransaction();
 
-        // We have to regenerate using the new utxo
-        const outTx: Transaction = await finalTransaction.signTransaction();
         return [
             signedTransaction.tx.toHex(),
             outTx.toHex(),
-            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1), // always 1
+            this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1),
         ];
     }
 
+    /**
+     * @description Generates the required transactions.
+     * @returns {Promise<InteractionResponse>} - The signed transaction
+     */
     /**
      * @description Generates the required transactions.
      * @returns {Promise<InteractionResponse>} - The signed transaction
@@ -164,16 +172,13 @@ export class TransactionFactory {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
-
         if (!interactionParameters.from) {
             throw new Error('Field "from" not provided.');
         }
-
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
 
-        // If OP_WALLET is used...
         const opWalletInteraction = await this.detectInteractionOPWallet(interactionParameters);
         if (opWalletInteraction) {
             return opWalletInteraction;
@@ -189,35 +194,40 @@ export class TransactionFactory {
         }
 
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
-        const preTransaction: InteractionTransaction = new InteractionTransaction({
-            ...interactionParameters,
-            utxos: [interactionParameters.utxos[0]], // we simulate one input here.
-            optionalInputs: inputs,
-        });
 
-        // we don't sign that transaction, we just need the parameters.
-        await preTransaction.generateTransactionMinimalSignatures();
+        // Use common iteration logic
+        const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
+            { ...interactionParameters, optionalInputs: inputs },
+            InteractionTransaction,
+            async (tx) => {
+                const fee = await tx.estimateTransactionFees();
+                const outputsValue = tx.getTotalOutputValue();
+                return fee + outputsValue;
+            },
+            'Interaction',
+        );
+
+        if (!challenge) {
+            throw new Error('Failed to get challenge from interaction transaction');
+        }
 
         const parameters: IFundingTransactionParameters =
-            await preTransaction.getFundingTransactionParameters();
+            await finalTransaction.getFundingTransactionParameters();
 
         parameters.utxos = interactionParameters.utxos;
-        parameters.amount =
-            (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(interactionParameters) +
-            preTransaction.getOptionalOutputValue();
+        parameters.amount = estimatedAmount;
 
-        const feeEstimationFundingTransaction = await this.createFundTransaction({
+        const feeEstimationFunding = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
             optionalInputs: [],
         });
 
-        if (!feeEstimationFundingTransaction) {
+        if (!feeEstimationFunding) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
+        parameters.estimatedFees = feeEstimationFunding.estimatedFees;
 
         const signedTransaction = await this.createFundTransaction({
             ...parameters,
@@ -229,38 +239,33 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
-        interactionParameters.utxos = this.getUTXOAsTransaction(
-            signedTransaction.tx,
-            interactionParameters.to,
-            0,
-        );
-
         const newParams: IInteractionParameters = {
             ...interactionParameters,
-            utxos: [
-                ...this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.to, 0),
-            ], // always 0
-            randomBytes: preTransaction.getRndBytes(),
-            challenge: preTransaction.getChallenge(),
+            utxos: this.getUTXOAsTransaction(
+                signedTransaction.tx,
+                finalTransaction.getScriptAddress(),
+                0,
+            ),
+            randomBytes: finalTransaction.getRndBytes(),
+            challenge: challenge,
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
-            estimatedFees: preTransaction.estimatedFees,
+            estimatedFees: finalTransaction.estimatedFees,
             optionalInputs: inputs,
         };
 
-        const finalTransaction: InteractionTransaction = new InteractionTransaction(newParams);
+        const interactionTx = new InteractionTransaction(newParams);
+        const outTx = await interactionTx.signTransaction();
 
-        // We have to regenerate using the new utxo
-        const outTx: Transaction = await finalTransaction.signTransaction();
         return {
             fundingTransaction: signedTransaction.tx.toHex(),
             interactionTransaction: outTx.toHex(),
-            estimatedFees: preTransaction.estimatedFees,
+            estimatedFees: interactionTx.transactionFee,
             nextUTXOs: this.getUTXOAsTransaction(
                 signedTransaction.tx,
                 interactionParameters.from,
                 1,
-            ), // always 1
-            challenge: preTransaction.getChallenge().toRaw(),
+            ),
+            challenge: challenge.toRaw(),
         };
     }
 
@@ -282,77 +287,81 @@ export class TransactionFactory {
         }
 
         const inputs = this.parseOptionalInputs(deploymentParameters.optionalInputs);
-        const preTransaction: DeploymentTransaction = new DeploymentTransaction({
-            ...deploymentParameters,
-            utxos: [deploymentParameters.utxos[0]], // we simulate one input here.
-            optionalInputs: inputs,
-        });
 
-        // we don't sign that transaction, we just need the parameters.
-        await preTransaction.generateTransactionMinimalSignatures();
+        // Use common iteration logic
+        const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
+            { ...deploymentParameters, optionalInputs: inputs },
+            DeploymentTransaction,
+            async (tx) => {
+                const fee = await tx.estimateTransactionFees();
+                const priorityFee = this.getPriorityFee(deploymentParameters);
+                const optionalValue = tx.getOptionalOutputValue();
+                return fee + priorityFee + optionalValue;
+            },
+            'Deployment',
+        );
+
+        if (!challenge) {
+            throw new Error('Failed to get challenge from deployment transaction');
+        }
 
         const parameters: IFundingTransactionParameters =
-            await preTransaction.getFundingTransactionParameters();
+            await finalTransaction.getFundingTransactionParameters();
 
         parameters.utxos = deploymentParameters.utxos;
-        parameters.amount =
-            (await preTransaction.estimateTransactionFees()) +
-            this.getPriorityFee(deploymentParameters) +
-            preTransaction.getOptionalOutputValue();
+        parameters.amount = estimatedAmount;
 
-        const feeEstimationFundingTransaction = await this.createFundTransaction({
+        const feeEstimationFunding = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
             optionalInputs: [],
         });
 
-        if (!feeEstimationFundingTransaction) {
+        if (!feeEstimationFunding) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        parameters.estimatedFees = feeEstimationFundingTransaction.estimatedFees;
+        parameters.estimatedFees = feeEstimationFunding.estimatedFees;
 
-        const fundingTransaction: FundingTransaction = new FundingTransaction({
+        const fundingTransaction = new FundingTransaction({
             ...parameters,
             optionalInputs: [],
             optionalOutputs: [],
         });
 
-        const signedTransaction: Transaction = await fundingTransaction.signTransaction();
+        const signedTransaction = await fundingTransaction.signTransaction();
         if (!signedTransaction) {
             throw new Error('Could not sign funding transaction.');
         }
 
-        const out: TxOutput = signedTransaction.outs[0];
+        const out = signedTransaction.outs[0];
         const newUtxo: UTXO = {
             transactionId: signedTransaction.getId(),
-            outputIndex: 0, // always 0
+            outputIndex: 0,
             scriptPubKey: {
                 hex: out.script.toString('hex'),
-                address: preTransaction.getScriptAddress(),
+                address: finalTransaction.getScriptAddress(),
             },
             value: BigInt(out.value),
         };
 
         const newParams: IDeploymentParameters = {
             ...deploymentParameters,
-            utxos: [newUtxo], // always 0
-            randomBytes: preTransaction.getRndBytes(),
-            challenge: preTransaction.getChallenge(),
+            utxos: [newUtxo],
+            randomBytes: finalTransaction.getRndBytes(),
+            challenge: challenge,
             nonWitnessUtxo: signedTransaction.toBuffer(),
-            estimatedFees: preTransaction.estimatedFees,
+            estimatedFees: finalTransaction.estimatedFees,
             optionalInputs: inputs,
         };
 
-        const finalTransaction: DeploymentTransaction = new DeploymentTransaction(newParams);
+        const deploymentTx = new DeploymentTransaction(newParams);
+        const outTx = await deploymentTx.signTransaction();
 
-        // We have to regenerate using the new utxo
-        const outTx: Transaction = await finalTransaction.signTransaction();
-
-        const out2: TxOutput = signedTransaction.outs[1];
+        const out2 = signedTransaction.outs[1];
         const refundUTXO: UTXO = {
             transactionId: signedTransaction.getId(),
-            outputIndex: 1, // always 1
+            outputIndex: 1,
             scriptPubKey: {
                 hex: out2.script.toString('hex'),
                 address: deploymentParameters.from,
@@ -362,10 +371,10 @@ export class TransactionFactory {
 
         return {
             transaction: [signedTransaction.toHex(), outTx.toHex()],
-            contractAddress: finalTransaction.getContractAddress(), //finalTransaction.contractAddress.p2tr(deploymentParameters.network),
-            contractPubKey: finalTransaction.contractPubKey,
+            contractAddress: deploymentTx.getContractAddress(),
+            contractPubKey: deploymentTx.contractPubKey,
             utxos: [refundUTXO],
-            challenge: preTransaction.getChallenge().toRaw(),
+            challenge: challenge.toRaw(),
         };
     }
 
@@ -597,6 +606,127 @@ export class TransactionFactory {
         }
 
         return totalFee;
+    }
+
+    /**
+     * Common iteration logic for finding the correct funding amount
+     */
+    private async iterateFundingAmount<
+        T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction,
+        P extends IInteractionParameters | IDeploymentParameters | ICustomTransactionParameters,
+    >(
+        params: P,
+        TransactionClass: new (params: P) => T,
+        calculateAmount: (tx: T) => Promise<bigint>,
+        debugPrefix: string,
+    ): Promise<{
+        finalTransaction: T;
+        estimatedAmount: bigint;
+        challenge: ChallengeSolution | null;
+    }> {
+        const randomBytes =
+            'randomBytes' in params
+                ? (params.randomBytes ?? BitcoinUtils.rndBytes())
+                : BitcoinUtils.rndBytes();
+
+        const dummyAddress = Address.dead().p2tr(params.network);
+
+        let estimatedFundingAmount = this.INITIAL_FUNDING_ESTIMATE;
+        let previousAmount = 0n;
+        let iterations = 0;
+        let finalPreTransaction: T | null = null;
+        let challenge: ChallengeSolution | null = null;
+
+        while (iterations < this.MAX_ITERATIONS && estimatedFundingAmount !== previousAmount) {
+            previousAmount = estimatedFundingAmount;
+
+            const dummyTx = new Transaction();
+            dummyTx.addOutput(this.P2TR_SCRIPT, Number(estimatedFundingAmount));
+
+            const simulatedFundedUtxo: UTXO = {
+                transactionId: Buffer.alloc(32, 0).toString('hex'),
+                outputIndex: 0,
+                scriptPubKey: {
+                    hex: this.P2TR_SCRIPT.toString('hex'),
+                    address: dummyAddress,
+                },
+                value: estimatedFundingAmount,
+                nonWitnessUtxo: dummyTx.toBuffer(),
+            };
+
+            // Build transaction params - TypeScript needs explicit typing here
+            let txParams: P;
+            if ('challenge' in params && params.challenge) {
+                const withChallenge = {
+                    ...params,
+                    utxos: [simulatedFundedUtxo],
+                    randomBytes: randomBytes,
+                    challenge: challenge ?? params.challenge, // Use existing or original
+                };
+                txParams = withChallenge as P;
+            } else {
+                const withoutChallenge = {
+                    ...params,
+                    utxos: [simulatedFundedUtxo],
+                    randomBytes: randomBytes,
+                };
+                txParams = withoutChallenge as P;
+            }
+
+            const preTransaction: T = new TransactionClass(txParams);
+
+            try {
+                await preTransaction.generateTransactionMinimalSignatures();
+                estimatedFundingAmount = await calculateAmount(preTransaction);
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    const match = error.message.match(/need (\d+) sats but only have (\d+) sats/);
+                    if (match) {
+                        estimatedFundingAmount = BigInt(match[1]);
+                        if (this.debug) {
+                            console.log(
+                                `${debugPrefix}: Caught insufficient funds, updating to ${estimatedFundingAmount}`,
+                            );
+                        }
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw new Error('Unknown error during fee estimation');
+                }
+            }
+
+            finalPreTransaction = preTransaction;
+
+            // Extract challenge with explicit typing
+            if (
+                'getChallenge' in preTransaction &&
+                typeof preTransaction.getChallenge === 'function'
+            ) {
+                const result = preTransaction.getChallenge();
+                if (result instanceof ChallengeSolution) {
+                    challenge = result;
+                }
+            }
+
+            iterations++;
+
+            if (this.debug) {
+                console.log(
+                    `${debugPrefix} Iteration ${iterations}: Previous=${previousAmount}, New=${estimatedFundingAmount}`,
+                );
+            }
+        }
+
+        if (!finalPreTransaction) {
+            throw new Error(`Failed to converge on ${debugPrefix} funding amount`);
+        }
+
+        return {
+            finalTransaction: finalPreTransaction,
+            estimatedAmount: estimatedFundingAmount,
+            challenge,
+        };
     }
 
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {

@@ -10,11 +10,7 @@ import {
     Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
-import {
-    MINIMUM_AMOUNT_CA,
-    MINIMUM_AMOUNT_REWARD,
-    TransactionBuilder,
-} from './TransactionBuilder.js';
+import { TransactionBuilder } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import {
     DeploymentGenerator,
@@ -255,30 +251,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.addInputsFromUTXO();
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
-
-        let amountToCA: bigint;
-        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
-            amountToCA = MINIMUM_AMOUNT_CA;
-        } else {
-            amountToCA = amountSpent;
-        }
-
-        // ALWAYS THE FIRST INPUT.
-        this.addOutput({
-            value: Number(amountToCA),
-            address: this.getContractAddress(),
-        });
-
-        // ALWAYS SECOND.
-        if (
-            amountToCA === MINIMUM_AMOUNT_CA &&
-            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
-        ) {
-            this.addOutput({
-                value: Number(amountSpent - amountToCA),
-                address: this.epochChallenge.address,
-            });
-        }
+        this.addFeeToOutput(amountSpent, this.getContractAddress(), this.epochChallenge, true);
 
         await this.addRefundOutput(amountSpent + this.addOptionalOutputsAndGetAmount());
     }
