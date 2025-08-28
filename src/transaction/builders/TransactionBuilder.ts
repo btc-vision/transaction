@@ -23,6 +23,7 @@ import { ECPairInterface } from 'ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 initEccLib(ecc);
 
@@ -730,6 +731,57 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected updateInput(input: UpdateInput): void {
         this.updateInputs.push(input);
+    }
+
+    /**
+     * Adds the fee to the output.
+     * @param amountSpent
+     * @param contractAddress
+     * @param epochChallenge
+     * @param addContractOutput
+     * @protected
+     */
+    protected addFeeToOutput(
+        amountSpent: bigint,
+        contractAddress: string,
+        epochChallenge: IP2WSHAddress,
+        addContractOutput: boolean,
+    ): void {
+        if (addContractOutput) {
+            let amountToCA: bigint;
+            if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
+                amountToCA = MINIMUM_AMOUNT_CA;
+            } else {
+                amountToCA = amountSpent;
+            }
+
+            // ALWAYS THE FIRST INPUT.
+            this.addOutput({
+                value: Number(amountToCA),
+                address: contractAddress,
+            });
+
+            // ALWAYS SECOND.
+            if (
+                amountToCA === MINIMUM_AMOUNT_CA &&
+                amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
+            ) {
+                this.addOutput({
+                    value: Number(amountSpent - amountToCA),
+                    address: epochChallenge.address,
+                });
+            }
+        } else {
+            // When SEND_AMOUNT_TO_CA is false, always send to epochChallenge
+            // Use the maximum of amountSpent or MINIMUM_AMOUNT_REWARD
+            const amountToEpoch =
+                amountSpent < MINIMUM_AMOUNT_REWARD ? MINIMUM_AMOUNT_REWARD : amountSpent;
+
+            this.addOutput({
+                value: Number(amountToEpoch),
+                address: epochChallenge.address,
+            });
+        }
     }
 
     /**

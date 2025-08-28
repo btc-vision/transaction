@@ -1,6 +1,6 @@
 import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
-import { MINIMUM_AMOUNT_CA, MINIMUM_AMOUNT_REWARD, TransactionBuilder, } from './TransactionBuilder.js';
+import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -346,29 +346,7 @@ export abstract class SharedInteractionTransaction<
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
 
-        let amountToCA: bigint;
-        if (amountSpent > MINIMUM_AMOUNT_REWARD + MINIMUM_AMOUNT_CA) {
-            amountToCA = MINIMUM_AMOUNT_CA;
-        } else {
-            amountToCA = amountSpent;
-        }
-
-        // ALWAYS THE FIRST INPUT.
-        this.addOutput({
-            value: Number(amountToCA),
-            address: this.to,
-        });
-
-        // ALWAYS SECOND.
-        if (
-            amountToCA === MINIMUM_AMOUNT_CA &&
-            amountSpent - MINIMUM_AMOUNT_CA > MINIMUM_AMOUNT_REWARD
-        ) {
-            this.addOutput({
-                value: Number(amountSpent - amountToCA),
-                address: this.epochChallenge.address,
-            });
-        }
+        this.addFeeToOutput(amountSpent, this.to, this.epochChallenge, false);
 
         const amount = this.addOptionalOutputsAndGetAmount();
         if (!this.disableAutoRefund) {
