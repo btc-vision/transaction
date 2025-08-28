@@ -703,10 +703,7 @@ export class TransactionFactory {
                 'getChallenge' in preTransaction &&
                 typeof preTransaction.getChallenge === 'function'
             ) {
-                const result = preTransaction.getChallenge();
-                if (result instanceof ChallengeSolution) {
-                    challenge = result;
-                }
+                challenge = preTransaction.getChallenge();
             }
 
             iterations++;
