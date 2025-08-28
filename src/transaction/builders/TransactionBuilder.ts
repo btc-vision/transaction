@@ -523,11 +523,25 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 };
             }
 
-            if (!input.witnessUtxo && input.nonWitnessUtxo) {
-                return {
-                    finalScriptSig: bitcoin.script.compile([dummyEcdsaSig, dummyCompressedPubkey]),
-                    finalScriptWitness: undefined,
-                };
+            if (input.witnessUtxo) {
+                const script = input.witnessUtxo.script;
+                const decompiled = bitcoin.script.decompile(script);
+                if (
+                    decompiled &&
+                    decompiled.length === 5 &&
+                    decompiled[0] === opcodes.OP_DUP &&
+                    decompiled[1] === opcodes.OP_HASH160 &&
+                    decompiled[3] === opcodes.OP_EQUALVERIFY &&
+                    decompiled[4] === opcodes.OP_CHECKSIG
+                ) {
+                    return {
+                        finalScriptSig: bitcoin.script.compile([
+                            dummyEcdsaSig,
+                            dummyCompressedPubkey,
+                        ]),
+                        finalScriptWitness: undefined,
+                    };
+                }
             }
 
             if (input.witnessScript) {
