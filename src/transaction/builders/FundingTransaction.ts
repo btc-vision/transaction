@@ -26,6 +26,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.addInputsFromUTXO();
 
+        // Add the primary output(s) first
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
@@ -45,7 +46,11 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
             });
         }
 
-        await this.addRefundOutput(this.amount + this.addOptionalOutputsAndGetAmount());
+        // Calculate total amount needed for all outputs (including optional)
+        const totalOutputAmount = this.amount + this.addOptionalOutputsAndGetAmount();
+
+        // Add refund output - this will handle fee calculation properly
+        await this.addRefundOutput(totalOutputAmount);
     }
 
     protected splitInputs(amountSpent: bigint): void {

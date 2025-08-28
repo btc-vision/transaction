@@ -11,6 +11,7 @@ export interface LoadedStorage {
 export interface ITransactionParameters extends ITweakedTransactionData {
     readonly from?: string;
     readonly to?: string;
+    readonly debugFees?: boolean;
 
     utxos: UTXO[];
 
