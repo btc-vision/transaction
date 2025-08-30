@@ -27,6 +27,7 @@ export enum ABIDataTypes {
     ARRAY_OF_UINT8 = 'ARRAY_OF_UINT8',
     ARRAY_OF_STRING = 'ARRAY_OF_STRING',
     ARRAY_OF_BYTES = 'ARRAY_OF_BYTES',
+    ARRAY_OF_BUFFERS = 'ARRAY_OF_BUFFERS',
 }
 
 export class ABICoder {
@@ -105,6 +106,10 @@ export class ABICoder {
                     break;
                 case ABIDataTypes.ARRAY_OF_BYTES:
                     result.push(byteReader.readBytesArray());
+                    break;
+                case ABIDataTypes.ARRAY_OF_BUFFERS:
+                    result.push(byteReader.readArrayOfBuffer());
+                    break;
             }
         }
 

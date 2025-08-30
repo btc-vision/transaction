@@ -22,6 +22,17 @@ export class BinaryWriter {
         this.buffer = this.getDefaultBuffer(length);
     }
 
+    public static estimateArrayOfBufferLength(values: Uint8Array[]): u32 {
+        if (values.length > 65535) throw new Error('Array size is too large');
+        let totalLength: u32 = U16_BYTE_LENGTH;
+
+        for (let i = 0; i < values.length; i++) {
+            totalLength += U32_BYTE_LENGTH + values[i].length; // each entry has a u32 length prefix
+        }
+
+        return totalLength;
+    }
+
     public writeU8(value: u8): void {
         if (value > 255) throw new Error('u8 value is too large.');
 
@@ -227,6 +238,18 @@ export class BinaryWriter {
     public writeBytesWithLength(value: Uint8Array): void {
         this.writeU32(value.length);
         this.writeBytes(value);
+    }
+
+    public writeArrayOfBuffer(values: Uint8Array[], be: boolean = true): void {
+        const totalLength = BinaryWriter.estimateArrayOfBufferLength(values);
+
+        this.allocSafe(totalLength);
+        this.writeU16(values.length, be);
+
+        for (let i = 0; i < values.length; i++) {
+            this.writeU32(values[i].length, be);
+            this.writeBytes(values[i]);
+        }
     }
 
     public writeAddressArray(value: Address[]): void {

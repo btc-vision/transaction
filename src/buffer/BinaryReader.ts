@@ -220,6 +220,15 @@ export class BinaryReader {
 
     // ------------------ Array readers ------------------ //
 
+    public readArrayOfBuffer(be: boolean = true): Uint8Array[] {
+        const length = this.readU16(be);
+        const result: Uint8Array[] = new Array<Uint8Array>(length);
+        for (let i: number = 0; i < length; i++) {
+            result[i] = this.readBytesWithLength();
+        }
+        return result;
+    }
+
     public readAddressArray(be: boolean = true): Address[] {
         const length = this.readU16(be);
         const result: Address[] = new Array<Address>(length);
