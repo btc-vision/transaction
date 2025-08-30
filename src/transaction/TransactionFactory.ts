@@ -36,7 +36,6 @@ export interface DeploymentResult {
     readonly contractPubKey: string;
     readonly challenge: RawChallenge;
 
-    readonly rawTransaction: Transaction;
     readonly utxos: UTXO[];
 }
 
@@ -59,7 +58,6 @@ export interface InteractionResponse {
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
     readonly challenge: RawChallenge;
-    readonly rawTransaction: Transaction;
 }
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
@@ -255,7 +253,6 @@ export class TransactionFactory {
         const outTx = await interactionTx.signTransaction();
 
         return {
-            rawTransaction: signedTransaction.tx,
             fundingTransaction: signedTransaction.tx.toHex(),
             interactionTransaction: outTx.toHex(),
             estimatedFees: interactionTx.transactionFee,
@@ -369,7 +366,6 @@ export class TransactionFactory {
         };
 
         return {
-            rawTransaction: outTx,
             transaction: [signedTransaction.toHex(), outTx.toHex()],
             contractAddress: deploymentTx.getContractAddress(),
             contractPubKey: deploymentTx.contractPubKey,
@@ -587,7 +583,6 @@ export class TransactionFactory {
         const txHex = signedTx.toHex();
 
         return {
-            rawTransaction: signedTx,
             fundingTransaction: null,
             interactionTransaction: txHex,
             estimatedFees: p2wdaTransaction.estimatedFees,
