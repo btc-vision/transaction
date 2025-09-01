@@ -3,8 +3,9 @@ import {
     IInteractionParameters,
 } from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { DeploymentResult, InteractionResponse } from '../TransactionFactory';
+import { CancelledTransaction, DeploymentResult, InteractionResponse } from '../TransactionFactory';
 import { ICustomTransactionParameters } from '../builders/CustomScriptTransaction.js';
+import { ICancelTransactionParameters } from '../builders/CancelTransaction.js';
 
 export type InteractionParametersWithoutSigner = Omit<
     IInteractionParameters,
@@ -16,9 +17,14 @@ export type IDeploymentParametersWithoutSigner = Omit<
     'signer' | 'network' | 'challenge'
 >;
 
-export type CustomTransactionWithoutSigner = Omit<
+export type ICustomTransactionWithoutSigner = Omit<
     ICustomTransactionParameters,
     'signer' | 'challenge'
+>;
+
+export type ICancelTransactionParametersWithoutSigner = Omit<
+    ICancelTransactionParameters,
+    'signer' | 'challenge' | 'network'
 >;
 
 export interface BroadcastTransactionOptions {
@@ -54,6 +60,12 @@ export interface Web3Provider {
     signAndBroadcastInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
     ): Promise<[BroadcastedTransaction, BroadcastedTransaction, UTXO[], string]>;
+
+    cancelTransaction(
+        params: ICancelTransactionParametersWithoutSigner,
+    ): Promise<CancelledTransaction>;
+
+    customTransaction(params: ICustomTransactionWithoutSigner): Promise<BroadcastedTransaction>;
 
     deployContract(params: IDeploymentParametersWithoutSigner): Promise<DeploymentResult>;
 

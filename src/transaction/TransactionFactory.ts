@@ -18,6 +18,8 @@ import {
 } from './interfaces/ITransactionParameters.js';
 import { PSBTTypes } from './psbt/PSBTTypes.js';
 import {
+    ICancelTransactionParametersWithoutSigner,
+    ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
     InteractionParametersWithoutSigner,
 } from './browser/Web3Provider.js';
@@ -28,6 +30,7 @@ import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2
 import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
 import { Address } from '../keypair/Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
+import { CancelTransaction, ICancelTransactionParameters } from './builders/CancelTransaction.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -67,6 +70,11 @@ export interface BitcoinTransferResponse extends BitcoinTransferBase {
     readonly original: FundingTransaction;
 }
 
+export interface CancelledTransaction {
+    readonly transaction: string;
+    readonly nextUTXOs: UTXO[];
+}
+
 export class TransactionFactory {
     public debug: boolean = false;
 
@@ -78,12 +86,44 @@ export class TransactionFactory {
     private readonly INITIAL_FUNDING_ESTIMATE = 2000n;
     private readonly MAX_ITERATIONS = 10;
 
+    public async createCancellableTransaction(
+        params: ICancelTransactionParameters | ICancelTransactionParametersWithoutSigner,
+    ): Promise<CancelledTransaction> {
+        if (!params.to) {
+            throw new Error('Field "to" not provided.');
+        }
+        if (!params.from) {
+            throw new Error('Field "from" not provided.');
+        }
+        if (!params.utxos[0]) {
+            throw new Error('Missing at least one UTXO.');
+        }
+
+        const opWalletCancel = await this.detectCancelOPWallet(params);
+        if (opWalletCancel) {
+            throw new Error('Cancelling via OP_WALLET is not supported yet.');
+        }
+
+        if (!('signer' in params)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
+        }
+
+        const cancel = new CancelTransaction(params);
+        const signed = await cancel.signTransaction();
+        const rawTx = signed.toHex();
+
+        return {
+            transaction: rawTx,
+            nextUTXOs: this.getUTXOAsTransaction(signed, params.from, 0),
+        };
+    }
+
     /**
      * @description Generate a transaction with a custom script.
      * @returns {Promise<[string, string]>} - The signed transaction
      */
     public async createCustomScriptTransaction(
-        interactionParameters: ICustomTransactionParameters,
+        interactionParameters: ICustomTransactionParameters | ICustomTransactionWithoutSigner,
     ): Promise<[string, string, UTXO[]]> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
@@ -450,6 +490,35 @@ export class TransactionFactory {
                 nonWitnessUtxo: nonWitness,
             };
         });
+    }
+
+    private async detectCancelOPWallet(
+        interactionParameters:
+            | ICancelTransactionParameters
+            | ICancelTransactionParametersWithoutSigner,
+    ): Promise<CancelledTransaction | null> {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = _window.opnet.web3;
+        const interaction = await opnet.cancelTransaction({
+            ...interactionParameters,
+
+            // @ts-expect-error no, this is ok
+            signer: undefined,
+        });
+
+        if (!interaction) {
+            throw new Error('Could not sign interaction transaction.');
+        }
+
+        return interaction;
     }
 
     private async detectInteractionOPWallet(
