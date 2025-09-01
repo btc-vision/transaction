@@ -127,6 +127,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
         this.challenge = parameters.challenge;
 
+        this.LOCK_LEAF_SCRIPT = this.defineLockScript();
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
             this.challenge.publicKey.originalPublicKeyBuffer(),
             this.network,
@@ -471,7 +472,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @private
      */
     private getLeafScript(): Buffer {
-        return TransactionBuilder.LOCK_LEAF_SCRIPT;
+        return this.LOCK_LEAF_SCRIPT;
     }
 
     /**

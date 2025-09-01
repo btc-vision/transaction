@@ -75,6 +75,8 @@ export abstract class SharedInteractionTransaction<
 
         this.challenge = parameters.challenge;
 
+        this.LOCK_LEAF_SCRIPT = this.defineLockScript();
+
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.epochChallenge = TimeLockGenerator.generateTimeLockAddress(
             this.challenge.publicKey.originalPublicKeyBuffer(),
@@ -91,6 +93,10 @@ export abstract class SharedInteractionTransaction<
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
+    }
+
+    public exportCompiledTargetScript(): Buffer {
+        return this.compiledTargetScript;
     }
 
     /**
@@ -215,6 +221,8 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Script tree is required');
         }
 
+        console.log('internalPubkey', this.internalPubKeyToXOnly().toString('hex'));
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -262,7 +270,7 @@ export abstract class SharedInteractionTransaction<
                 version: 192,
             },
             {
-                output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
+                output: this.LOCK_LEAF_SCRIPT,
                 version: 192,
             },
         ];
@@ -350,7 +358,8 @@ export abstract class SharedInteractionTransaction<
         this.addFeeToOutput(opnetFee, this.to, this.epochChallenge, false);
 
         // Get the actual amount added to outputs (might be MINIMUM_AMOUNT_REWARD if opnetFee is too small)
-        const actualOutputAmount = opnetFee < MINIMUM_AMOUNT_REWARD ? MINIMUM_AMOUNT_REWARD : opnetFee;
+        const actualOutputAmount =
+            opnetFee < MINIMUM_AMOUNT_REWARD ? MINIMUM_AMOUNT_REWARD : opnetFee;
 
         const optionalAmount = this.addOptionalOutputsAndGetAmount();
 
@@ -395,7 +404,7 @@ export abstract class SharedInteractionTransaction<
 
         this.leftOverFundsScriptRedeem = {
             name: PaymentType.P2TR,
-            output: SharedInteractionTransaction.LOCK_LEAF_SCRIPT,
+            output: this.LOCK_LEAF_SCRIPT,
             redeemVersion: 192,
         };
     }

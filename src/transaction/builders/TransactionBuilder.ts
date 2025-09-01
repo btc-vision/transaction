@@ -8,13 +8,17 @@ import bitcoin, {
     PsbtOutputExtended,
     script,
     Signer,
+    toXOnly,
     Transaction,
     varuint,
 } from '@btc-vision/bitcoin';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { IFundingTransactionParameters, ITransactionParameters, } from '../interfaces/ITransactionParameters.js';
+import {
+    IFundingTransactionParameters,
+    ITransactionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ECPairInterface } from 'ecpair';
@@ -37,17 +41,14 @@ export const ANCHOR_SCRIPT = Buffer.from('51024e73', 'hex');
  * @class TransactionBuilder
  */
 export abstract class TransactionBuilder<T extends TransactionType> extends TweakedTransaction {
-    // Cancel script
-    public static readonly LOCK_LEAF_SCRIPT: Buffer = script.compile([
-        opcodes.OP_FALSE,
-        opcodes.OP_VERIFY,
-    ]);
-
     public static readonly MINIMUM_DUST: bigint = 330n;
 
     public abstract readonly type: T;
     public readonly logColor: string = '#785def';
     public debugFees: boolean = false;
+
+    // Cancel script
+    public LOCK_LEAF_SCRIPT: Buffer;
 
     /**
      * @description The overflow fees of the transaction
@@ -176,6 +177,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         this.optionalInputs = parameters.optionalInputs || [];
         this.to = parameters.to || undefined;
         this.debugFees = parameters.debugFees || false;
+
+        this.LOCK_LEAF_SCRIPT = this.defineLockScript();
 
         if (parameters.note) {
             if (typeof parameters.note === 'string') {
@@ -737,7 +740,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         return total;
     }
 
-    protected async addRefundOutput(amountSpent: bigint): Promise<void> {
+    protected async addRefundOutput(
+        amountSpent: bigint,
+        expectRefund: boolean = false,
+    ): Promise<void> {
         if (this.note) {
             this.addOPReturn(this.note);
         }
@@ -752,6 +758,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         let iterations = 0;
         const maxIterations = 5; // Prevent infinite loops
 
+        let sendBackAmount = 0n;
         // Iterate until fee stabilizes
         while (iterations < maxIterations && estimatedFee !== previousFee) {
             previousFee = estimatedFee;
@@ -763,7 +770,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             const totalSpent = amountSpent + estimatedFee;
 
             // Calculate refund
-            const sendBackAmount = this.totalInputAmount - totalSpent;
+            sendBackAmount = this.totalInputAmount - totalSpent;
 
             if (this.debugFees) {
                 this.log(
@@ -804,7 +811,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 this.feeOutput = null;
                 this.overflowFees = 0n;
 
-                if (sendBackAmount < 0n) {
+                if (sendBackAmount < 0n && iterations === maxIterations) {
                     throw new Error(
                         `Insufficient funds: need ${totalSpent} sats but only have ${this.totalInputAmount} sats`,
                     );
@@ -820,6 +827,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             iterations++;
         }
 
+        if (expectRefund && sendBackAmount < 0n) {
+            throw new Error(
+                `Insufficient funds: need at least ${-sendBackAmount} more sats to cover fees.`,
+            );
+        }
+
         if (iterations >= maxIterations) {
             this.warn(`Fee calculation did not stabilize after ${maxIterations} iterations`);
         }
@@ -832,6 +845,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 `Final fee: ${estimatedFee} sats, Change output: ${this.feeOutput ? `${this.feeOutput.value} sats` : 'none'}`,
             );
         }
+    }
+
+    protected defineLockScript(): Buffer {
+        return script.compile([toXOnly(Buffer.from(this.signer.publicKey)), opcodes.OP_CHECKSIG]);
     }
 
     /**

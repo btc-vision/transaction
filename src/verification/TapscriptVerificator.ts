@@ -2,13 +2,14 @@ import {
     crypto as bitCrypto,
     Network,
     networks,
+    opcodes,
     Payment,
     payments,
+    script,
     Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
-import { TransactionBuilder } from '../transaction/builders/TransactionBuilder.js';
 import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
 import { Feature, Features } from '../generators/Features.js';
 
@@ -46,13 +47,18 @@ export class TapscriptVerificator {
             params.features,
         );
 
+        const lockLeafScript = script.compile([
+            toXOnly(params.deployerPubKey),
+            opcodes.OP_CHECKSIG,
+        ]);
+
         const scriptTree: Taptree = [
             {
                 output: compiledTargetScript,
                 version: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
             {
-                output: TransactionBuilder.LOCK_LEAF_SCRIPT,
+                output: lockLeafScript,
                 version: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
         ];
@@ -80,13 +86,18 @@ export class TapscriptVerificator {
             params.features,
         );
 
+        const lockLeafScript = script.compile([
+            toXOnly(params.deployerPubKey),
+            opcodes.OP_CHECKSIG,
+        ]);
+
         const scriptTree: Taptree = [
             {
                 output: compiledTargetScript,
                 version: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
             {
-                output: TransactionBuilder.LOCK_LEAF_SCRIPT,
+                output: lockLeafScript,
                 version: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
         ];

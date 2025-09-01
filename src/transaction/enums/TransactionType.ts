@@ -5,5 +5,5 @@ export enum TransactionType {
     INTERACTION = 3,
     MULTI_SIG = 4,
     CUSTOM_CODE = 5,
-    CHALLENGE_SOLUTION = 6,
+    CANCEL = 6,
 }

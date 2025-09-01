@@ -57,7 +57,10 @@ export interface InteractionResponse {
     readonly interactionTransaction: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
+    readonly fundingUTXOs: UTXO[];
     readonly challenge: RawChallenge;
+    readonly interactionAddress: string | null;
+    readonly compiledTargetScript: string | null;
 }
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
@@ -235,13 +238,14 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
+        const fundingUTXO = this.getUTXOAsTransaction(
+            signedTransaction.tx,
+            finalTransaction.getScriptAddress(),
+            0,
+        );
         const newParams: IInteractionParameters = {
             ...interactionParameters,
-            utxos: this.getUTXOAsTransaction(
-                signedTransaction.tx,
-                finalTransaction.getScriptAddress(),
-                0,
-            ),
+            utxos: fundingUTXO,
             randomBytes: finalTransaction.getRndBytes(),
             challenge: challenge,
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
@@ -253,6 +257,7 @@ export class TransactionFactory {
         const outTx = await interactionTx.signTransaction();
 
         return {
+            interactionAddress: finalTransaction.getScriptAddress(),
             fundingTransaction: signedTransaction.tx.toHex(),
             interactionTransaction: outTx.toHex(),
             estimatedFees: interactionTx.transactionFee,
@@ -262,6 +267,8 @@ export class TransactionFactory {
                 1,
             ),
             challenge: challenge.toRaw(),
+            fundingUTXOs: fundingUTXO,
+            compiledTargetScript: interactionTx.exportCompiledTargetScript().toString('hex'),
         };
     }
 
@@ -583,6 +590,7 @@ export class TransactionFactory {
         const txHex = signedTx.toHex();
 
         return {
+            interactionAddress: null,
             fundingTransaction: null,
             interactionTransaction: txHex,
             estimatedFees: p2wdaTransaction.estimatedFees,
@@ -591,7 +599,9 @@ export class TransactionFactory {
                 interactionParameters.from,
                 signedTx.outs.length - 1, // Last output is typically the change
             ),
+            fundingUTXOs: [...interactionParameters.utxos, ...inputs],
             challenge: interactionParameters.challenge.toRaw(),
+            compiledTargetScript: null,
         };
     }
 

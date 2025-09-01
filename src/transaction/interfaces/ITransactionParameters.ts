@@ -46,6 +46,7 @@ export interface SharedInteractionParameters extends ITransactionParameters {
     readonly randomBytes?: Buffer;
 
     readonly loadedStorage?: LoadedStorage;
+    readonly isCancellation?: boolean;
 }
 
 export interface IInteractionParameters extends SharedInteractionParameters {

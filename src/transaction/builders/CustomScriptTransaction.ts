@@ -107,6 +107,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
 
         this.witnesses = parameters.witnesses;
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
+        this.LOCK_LEAF_SCRIPT = this.defineLockScript();
 
         this.scriptSeed = this.getContractSeed();
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.scriptSeed, this.network);
@@ -353,7 +354,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @private
      */
     private getLeafScript(): Buffer {
-        return TransactionBuilder.LOCK_LEAF_SCRIPT;
+        return this.LOCK_LEAF_SCRIPT;
     }
 
     /**

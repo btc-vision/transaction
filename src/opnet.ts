@@ -52,6 +52,7 @@ export * from './transaction/builders/InteractionTransactionP2WDA.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
+export * from './transaction/builders/CancelTransaction.js';
 
 /** Epoch */
 export * from './epoch/interfaces/IChallengeSolution.js';
