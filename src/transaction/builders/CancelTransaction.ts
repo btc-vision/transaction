@@ -2,7 +2,10 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { P2TRPayment, PaymentType, Psbt, PsbtInput, Taptree } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { ITransactionParameters, SharedInteractionParameters, } from '../interfaces/ITransactionParameters.js';
+import {
+    ITransactionParameters,
+    SharedInteractionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
 export interface ICancelTransactionParameters
