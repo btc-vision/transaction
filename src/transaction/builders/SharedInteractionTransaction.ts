@@ -221,8 +221,6 @@ export abstract class SharedInteractionTransaction<
             throw new Error('Script tree is required');
         }
 
-        console.log('internalPubkey', this.internalPubKeyToXOnly().toString('hex'));
-
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
