@@ -894,8 +894,6 @@ export abstract class TweakedTransaction extends Logger {
                 // Extract CSV value from witness script
                 const csvBlocks = this.extractCSVBlocks(decompiled);
 
-                console.log('csvBlocks', csvBlocks);
-
                 // Use the setCSVSequence method to properly set the sequence
                 input.sequence = this.setCSVSequence(csvBlocks, this.sequence);
             }
