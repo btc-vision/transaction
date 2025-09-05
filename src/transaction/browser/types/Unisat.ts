@@ -26,6 +26,10 @@ export interface Balance {
     readonly confirmed: number;
     readonly unconfirmed: number;
     readonly total: number;
+
+    readonly csv1_unlocked?: number;
+    readonly csv1_locked?: number;
+    readonly p2wda_total_amount?: number;
 }
 
 export enum MessageType {
