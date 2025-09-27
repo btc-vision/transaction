@@ -15,9 +15,9 @@ import bitcoin, {
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
-import { bytesToNumberBE, concatBytes, utf8ToBytes } from '@noble/curves/abstract/utils';
 import { mod } from '@noble/curves/abstract/modular';
 import { sha256 } from '@noble/hashes/sha2';
+import { bytesToNumberBE, concatBytes, utf8ToBytes } from '@noble/curves/utils.js';
 
 initEccLib(ecc);
 
