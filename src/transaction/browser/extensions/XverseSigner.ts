@@ -114,9 +114,9 @@ export class XverseSigner extends CustomKeypair {
 
         this._publicKey = Buffer.from(payementAddress.publicKey, 'hex');
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 

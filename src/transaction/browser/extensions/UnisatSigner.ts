@@ -125,9 +125,9 @@ export class UnisatSigner extends CustomKeypair {
 
         this._publicKey = Buffer.from(publicKey, 'hex');
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 
@@ -255,13 +255,6 @@ export class UnisatSigner extends CustomKeypair {
 
         const signed = await this.unisat.signPsbt(toSignPsbts[0], options[0]);
         const signedPsbts = Psbt.fromHex(signed); //signed.map((hex) => Psbt.fromHex(hex));
-
-        /*for (let i = 0; i < signedPsbts.length; i++) {
-            const psbtOriginal = transactions[i];
-            const psbtSigned = signedPsbts[i];
-
-            psbtOriginal.combine(psbtSigned);
-        }*/
 
         transactions[0].combine(signedPsbts);
     }
