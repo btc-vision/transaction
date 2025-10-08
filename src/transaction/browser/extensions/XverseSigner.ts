@@ -94,17 +94,17 @@ export class XverseSigner extends CustomKeypair {
 
         if ('error' in connectResult) throw new Error(connectResult.error.message);
 
-        const payementAddress = connectResult.result.addresses.find(
+        const paymentAddress = connectResult.result.addresses.find(
             (address) => address.purpose === 'payment',
         );
 
-        if (!payementAddress) {
+        if (!paymentAddress) {
             throw new Error('Payment address not found');
         }
 
-        const network = payementAddress.address.startsWith('tb')
+        const network = paymentAddress.address.startsWith('tb')
             ? networks.testnet
-            : payementAddress.address.startsWith('bc')
+            : paymentAddress.address.startsWith('bc')
               ? networks.bitcoin
               : null;
 
@@ -112,7 +112,7 @@ export class XverseSigner extends CustomKeypair {
 
         this._network = network;
 
-        this._publicKey = Buffer.from(payementAddress.publicKey, 'hex');
+        this._publicKey = Buffer.from(paymentAddress.publicKey, 'hex');
 
         this._p2wpkh = EcKeyPair.getP2WPKHAddress(this, this.network);
 
@@ -129,7 +129,7 @@ export class XverseSigner extends CustomKeypair {
         protocol: SigningProtocol,
     ): Promise<Buffer> {
         if (!this.isInitialized) {
-            throw new Error('UnisatSigner not initialized');
+            throw new Error('XverseSigner not initialized');
         }
 
         const callSign = await this.BitcoinProvider.request('signMessage', {
@@ -155,7 +155,7 @@ export class XverseSigner extends CustomKeypair {
 
     public getPublicKey(): Buffer {
         if (!this.isInitialized) {
-            throw new Error('UnisatSigner not initialized');
+            throw new Error('XverseSigner not initialized');
         }
 
         return this.publicKey;
