@@ -501,6 +501,13 @@ export class TransactionFactory {
             return null;
         }
 
+        if (
+            'signer' in interactionParameters &&
+            typeof interactionParameters['signer'] !== 'undefined'
+        ) {
+            return null;
+        }
+
         const _window = window as WindowWithWallets;
         if (!_window || !_window.opnet || !_window.opnet.web3) {
             return null;
@@ -528,6 +535,13 @@ export class TransactionFactory {
             return null;
         }
 
+        if (
+            'signer' in interactionParameters &&
+            typeof interactionParameters['signer'] !== 'undefined'
+        ) {
+            return null;
+        }
+
         const _window = window as WindowWithWallets;
         if (!_window || !_window.opnet || !_window.opnet.web3) {
             return null;
@@ -552,6 +566,13 @@ export class TransactionFactory {
         deploymentParameters: IDeploymentParameters | IDeploymentParametersWithoutSigner,
     ): Promise<DeploymentResult | null> {
         if (typeof window === 'undefined') {
+            return null;
+        }
+
+        if (
+            'signer' in deploymentParameters &&
+            typeof deploymentParameters['signer'] !== 'undefined'
+        ) {
             return null;
         }
 
