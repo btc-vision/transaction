@@ -2,7 +2,7 @@ import { Web3Provider } from '../Web3Provider.js';
 
 export enum UnisatNetwork {
     testnet = 'testnet',
-    mainnet = 'livenet',
+    mainnet = 'mainnet',
     regtest = 'regtest',
 }
 
