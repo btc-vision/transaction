@@ -170,7 +170,7 @@ export class BinaryReader {
         for (let i: u32 = 0; i < length; i++) {
             const b = this.buffer.getUint8(this.currentOffset++);
             if (zeroStop && b === 0) {
-                bytes = bytes.subarray(0, i);
+                bytes = Buffer.from(bytes.subarray(0, i));
                 break;
             }
             bytes[i] = b;

@@ -182,17 +182,17 @@ export abstract class TweakedTransaction extends Logger {
      * Read witnesses
      * @protected
      */
-    public static readScriptWitnessToWitnessStack(Buffer: Buffer): Buffer[] {
+    public static readScriptWitnessToWitnessStack(buffer: Buffer): Buffer[] {
         let offset = 0;
 
         function readSlice(n: number): Buffer {
-            const slice = Buffer.subarray(offset, offset + n);
+            const slice = Buffer.from(buffer.subarray(offset, offset + n));
             offset += n;
             return slice;
         }
 
         function readVarInt(): number {
-            const varint = varuint.decode(Buffer, offset);
+            const varint = varuint.decode(buffer, offset);
             offset += varint.bytes;
             return varint.numberValue || 0;
         }

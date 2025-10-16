@@ -277,7 +277,7 @@ export class EcKeyPair {
         const P = Point.fromHex(pub);
         const Peven = (P.y & 1n) === 0n ? P : P.negate();
 
-        const xBytes = Peven.toBytes(true).subarray(1);
+        const xBytes = Buffer.from(Peven.toBytes(true).subarray(1));
         const tBytes = tapTweakHash(xBytes);
         const t = mod(bytesToNumberBE(tBytes), CURVE_N);
 

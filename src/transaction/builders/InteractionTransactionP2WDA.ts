@@ -345,7 +345,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
                 InteractionTransactionP2WDA.MAX_BYTES_PER_WITNESS,
                 data.length - offset,
             );
-            chunks.push(data.subarray(offset, offset + size));
+            chunks.push(Buffer.from(data.subarray(offset, offset + size)));
             offset += size;
         }
 

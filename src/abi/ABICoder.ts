@@ -119,7 +119,7 @@ export class ABICoder {
     public encodeSelector(selectorIdentifier: string): string {
         // first 4 bytes of sha256 hash of the function signature
         const hash = this.sha256(selectorIdentifier);
-        const selector = hash.subarray(0, 4); // 4 bytes
+        const selector = Buffer.from(hash.subarray(0, 4)); // 4 bytes
 
         return selector.toString('hex');
     }
