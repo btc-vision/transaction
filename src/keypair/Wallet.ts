@@ -1,9 +1,17 @@
 import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
-import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
+import { initEccLib, Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
+import * as bip39 from 'bip39';
+import { BIP32Factory, BIP32Interface } from '@btc-vision/bip32';
+import * as ecc from '@bitcoinerlab/secp256k1';
+import { DerivationPath } from '../derivation/DerivationPath.js';
+
+initEccLib(ecc);
+
+const bip32 = BIP32Factory(ecc);
 
 /**
  * Wallet class
@@ -204,5 +212,126 @@ export class Wallet {
      */
     public static new(network: Network = networks.bitcoin): Wallet {
         return new Wallet(EcKeyPair.generateWallet(network).privateKey, network);
+    }
+
+    /**
+     * Create a wallet from mnemonic seed phrase
+     * @param {string} mnemonic The BIP39 mnemonic seed phrase
+     * @param {Network} network The network (default: bitcoin mainnet)
+     * @param {DerivationPath | string} derivationPath The derivation path (default: BIP84 for native segwit)
+     * @param {string} passphrase Optional BIP39 passphrase for additional security
+     * @returns {Wallet} The wallet instance
+     */
+    public static fromMnemonic(
+        mnemonic: string,
+        network: Network = networks.bitcoin,
+        derivationPath: DerivationPath | string = DerivationPath.BIP84,
+        passphrase: string = '',
+    ): Wallet {
+        if (!bip39.validateMnemonic(mnemonic)) {
+            throw new Error('Invalid mnemonic seed phrase');
+        }
+
+        const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+        const root = bip32.fromSeed(seed, network);
+
+        // Ensure path is a string
+        const path: string = derivationPath satisfies string;
+
+        const adjustedPath: string =
+            network.bech32 === networks.testnet.bech32 || network.bech32 === networks.regtest.bech32
+                ? path.replace("'/0'", "'/1'")
+                : path;
+
+        const child = root.derivePath(adjustedPath);
+
+        if (!child.privateKey) {
+            throw new Error('Failed to derive private key from mnemonic');
+        }
+
+        return new Wallet(child.privateKey.toString('hex'), network);
+    }
+
+    /**
+     * Create multiple wallets from mnemonic with sequential account indices
+     * @param {string} mnemonic The BIP39 mnemonic seed phrase
+     * @param {number} count Number of wallets to generate
+     * @param {Network} network The network (default: bitcoin mainnet)
+     * @param {DerivationPath | string} basePath The base derivation path (default: BIP84)
+     * @param {string} passphrase Optional BIP39 passphrase
+     * @returns {Wallet[]} Array of wallet instances
+     */
+    public static fromMnemonicMultiple(
+        mnemonic: string,
+        count: number,
+        network: Network = networks.bitcoin,
+        basePath: DerivationPath | string = DerivationPath.BIP84,
+        passphrase: string = '',
+    ): Wallet[] {
+        if (!bip39.validateMnemonic(mnemonic)) {
+            throw new Error('Invalid mnemonic seed phrase');
+        }
+
+        const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+        const root = bip32.fromSeed(seed, network);
+        const wallets: Wallet[] = [];
+
+        for (let i = 0; i < count; i++) {
+            // Ensure path is a string
+            const path: string = basePath satisfies string;
+            const adjustedPath: string =
+                network.bech32 === networks.testnet.bech32 ||
+                network.bech32 === networks.regtest.bech32
+                    ? path.replace("'/0'", "'/1'").replace(/\/0\/\d+$/, `/0/${i}`)
+                    : path.replace(/\/0\/\d+$/, `/0/${i}`);
+
+            const child = root.derivePath(adjustedPath);
+
+            if (!child.privateKey) {
+                throw new Error(`Failed to derive private key for index ${i}`);
+            }
+
+            wallets.push(new Wallet(child.privateKey.toString('hex'), network));
+        }
+
+        return wallets;
+    }
+
+    /**
+     * Generate a new mnemonic seed phrase
+     * @param {128 | 160 | 192 | 224 | 256} strength Entropy strength in bits (default: 256 for 24 words)
+     * @returns {string} The generated mnemonic seed phrase
+     */
+    public static generateMnemonic(strength: 128 | 160 | 192 | 224 | 256 = 256): string {
+        return bip39.generateMnemonic(strength);
+    }
+
+    /**
+     * Validate a mnemonic seed phrase
+     * @param {string} mnemonic The mnemonic to validate
+     * @returns {boolean} True if valid, false otherwise
+     */
+    public static validateMnemonic(mnemonic: string): boolean {
+        return bip39.validateMnemonic(mnemonic);
+    }
+
+    /**
+     * Create HD wallet instance for deriving multiple addresses
+     * @param {string} mnemonic The BIP39 mnemonic seed phrase
+     * @param {Network} network The network
+     * @param {string} passphrase Optional BIP39 passphrase
+     * @returns {BIP32Interface} HD wallet root for further derivation
+     */
+    public static getHDRoot(
+        mnemonic: string,
+        network: Network = networks.bitcoin,
+        passphrase: string = '',
+    ): BIP32Interface {
+        if (!bip39.validateMnemonic(mnemonic)) {
+            throw new Error('Invalid mnemonic seed phrase');
+        }
+
+        const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+        return bip32.fromSeed(seed, network);
     }
 }

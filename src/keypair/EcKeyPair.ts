@@ -1,5 +1,5 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
-import bip32, { BIP32API, BIP32Factory, BIP32Interface } from 'bip32';
+import bip32, { BIP32API, BIP32Factory, BIP32Interface } from '@btc-vision/bip32';
 import bitcoin, {
     address,
     fromOutputScript,
