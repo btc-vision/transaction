@@ -119,8 +119,176 @@ describe('MessageSigner ML-DSA', () => {
         });
     });
 
-    describe('verifyMLDSASignature', () => {
-        it('should verify a valid ML-DSA signature', () => {
+    describe('signMLDSAMessage - Buffer input formats', () => {
+        it('should sign a Buffer from UTF-8 string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from('Hello, Buffer!', 'utf-8');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+            expect(signed.message.length).toBe(32);
+        });
+
+        it('should sign a Buffer from hex string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from('deadbeef', 'hex');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign a Buffer with binary data', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from([0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign an empty Buffer', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.alloc(0);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+            expect(signed.message.length).toBe(32);
+        });
+
+        it('should sign a Buffer with null bytes', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from([0x00, 0x01, 0x00, 0x02, 0x00]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('signMLDSAMessage - Uint8Array input formats', () => {
+        it('should sign a basic Uint8Array', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = new Uint8Array([1, 2, 3, 4, 5]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+            expect(signed.message.length).toBe(32);
+        });
+
+        it('should sign a Uint8Array with all byte values', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = new Uint8Array(256);
+            for (let i = 0; i < 256; i++) {
+                message[i] = i;
+            }
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign an empty Uint8Array', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = new Uint8Array(0);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+            expect(signed.message.length).toBe(32);
+        });
+
+        it('should sign a Uint8Array from text encoder', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const encoder = new TextEncoder();
+            const message = encoder.encode('Hello, TextEncoder!');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('signMLDSAMessage - string input formats', () => {
+        it('should sign an empty string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign a very long string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = 'A'.repeat(100000);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign a string with special characters', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '!@#$%^&*()_+-=[]{}|;:",.<>?/~`\n\t\r';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign a string with emojis', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '🚀🌙⭐🪐💫';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+
+        it('should sign a Unicode string with multiple languages', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '你好世界 🌍 مرحبا العالم Привет мир';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            expect(signed.signature).toBeInstanceOf(Uint8Array);
+            expect(signed.signature.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('verifyMLDSASignature - string input', () => {
+        it('should verify a valid ML-DSA signature with string message', () => {
             const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
 
@@ -136,7 +304,57 @@ describe('MessageSigner ML-DSA', () => {
             expect(isValid).toBe(true);
         });
 
-        it('should verify signature with Buffer message', () => {
+        it('should verify signature with empty string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with Unicode string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '你好世界 🌍';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with emoji string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = '🚀🌙⭐';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+    });
+
+    describe('verifyMLDSASignature - Buffer input', () => {
+        it('should verify signature with Buffer message from UTF-8', () => {
             const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
 
@@ -152,6 +370,72 @@ describe('MessageSigner ML-DSA', () => {
             expect(isValid).toBe(true);
         });
 
+        it('should verify signature with Buffer from hex', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from('deadbeef', 'hex');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with binary Buffer', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from([0x00, 0x01, 0x02, 0xFF]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with empty Buffer', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.alloc(0);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with Buffer containing null bytes', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = Buffer.from([0x00, 0x01, 0x00, 0x02, 0x00]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+    });
+
+    describe('verifyMLDSASignature - Uint8Array input', () => {
         it('should verify signature with Uint8Array message', () => {
             const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
@@ -167,6 +451,114 @@ describe('MessageSigner ML-DSA', () => {
 
             expect(isValid).toBe(true);
         });
+
+        it('should verify signature with Uint8Array from TextEncoder', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const encoder = new TextEncoder();
+            const message = encoder.encode('Hello, TextEncoder!');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with empty Uint8Array', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = new Uint8Array(0);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature with Uint8Array containing all byte values', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const message = new Uint8Array(256);
+            for (let i = 0; i < 256; i++) {
+                message[i] = i;
+            }
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
+
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                message,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+    });
+
+    describe('verifyMLDSASignature - cross-format verification', () => {
+        it('should verify signature signed with string using Buffer', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const messageString = 'Hello, World!';
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageString);
+
+            const messageBuffer = Buffer.from(messageString, 'utf-8');
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                messageBuffer,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature signed with Buffer using string', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const messageBuffer = Buffer.from('Hello, World!', 'utf-8');
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageBuffer);
+
+            const messageString = 'Hello, World!';
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                messageString,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+
+        it('should verify signature signed with Uint8Array using Buffer', () => {
+            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const wallet = mnemonic.derive(0);
+
+            const messageUint8 = new Uint8Array([1, 2, 3, 4, 5]);
+            const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageUint8);
+
+            const messageBuffer = Buffer.from(messageUint8);
+            const isValid = MessageSigner.verifyMLDSASignature(
+                wallet.mldsaKeypair,
+                messageBuffer,
+                signed.signature
+            );
+
+            expect(isValid).toBe(true);
+        });
+    });
+
+    describe('verifyMLDSASignature - failure cases', () => {
 
         it('should fail verification with wrong message', () => {
             const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
