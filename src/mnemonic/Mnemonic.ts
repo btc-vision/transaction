@@ -217,16 +217,9 @@ export class Mnemonic {
         }
 
         // Create a wallet with both keys
-        // For ML-DSA, we need to pass both private and public keys as a combined hex string
-        // Format: privateKey || publicKey
-        const mldsaCombinedKey = Buffer.concat([
-            Buffer.from(quantumChild.privateKey),
-            Buffer.from(quantumChild.publicKey),
-        ]).toString('hex');
-
         return new Wallet(
             Buffer.from(classicalChild.privateKey).toString('hex'),
-            mldsaCombinedKey,
+            Buffer.from(quantumChild.privateKey).toString('hex'),
             this._network,
             this._securityLevel,
         );
@@ -275,16 +268,10 @@ export class Mnemonic {
             throw new Error(`Failed to derive quantum private key at path ${quantumPath}`);
         }
 
-        // For ML-DSA, we need to pass both private and public keys as a combined hex string
-        // Format: privateKey || publicKey
-        const mldsaCombinedKey = Buffer.concat([
-            Buffer.from(quantumChild.privateKey),
-            Buffer.from(quantumChild.publicKey),
-        ]).toString('hex');
-
+        // Create wallet with both classical and ML-DSA private keys
         return new Wallet(
             Buffer.from(classicalChild.privateKey).toString('hex'),
-            mldsaCombinedKey,
+            Buffer.from(quantumChild.privateKey).toString('hex'),
             this._network,
             this._securityLevel,
         );

@@ -326,7 +326,9 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.tweakedPublicKeyToBuffer()).toThrow('Classical public key not set');
+            expect(() => address.tweakedPublicKeyToBuffer()).toThrow(
+                'Classical public key not set',
+            );
         });
 
         it('should get toTweakedHybridPublicKeyHex', () => {
@@ -340,7 +342,9 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toTweakedHybridPublicKeyHex()).toThrow('Public key not set');
+            expect(() => address.toTweakedHybridPublicKeyHex()).toThrow(
+                'Classical public key not set',
+            );
         });
 
         it('should get toTweakedHybridPublicKeyBuffer', () => {
@@ -354,7 +358,9 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toTweakedHybridPublicKeyBuffer()).toThrow('Public key not set');
+            expect(() => address.toTweakedHybridPublicKeyBuffer()).toThrow(
+                'Classical public key not set',
+            );
         });
     });
 
@@ -370,7 +376,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toUncompressedHex()).toThrow('Public key not set');
+            expect(() => address.toUncompressedHex()).toThrow('Classical public key not set');
         });
 
         it('should get uncompressed buffer', () => {
@@ -385,7 +391,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toUncompressedBuffer()).toThrow('Public key not set');
+            expect(() => address.toUncompressedBuffer()).toThrow('Classical public key not set');
         });
 
         it('should get hybrid public key hex', () => {
@@ -399,7 +405,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toHybridPublicKeyHex()).toThrow('Public key not set');
+            expect(() => address.toHybridPublicKeyHex()).toThrow('Classical public key not set');
         });
 
         it('should get hybrid public key buffer', () => {
@@ -413,7 +419,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.toHybridPublicKeyBuffer()).toThrow('Public key not set');
+            expect(() => address.toHybridPublicKeyBuffer()).toThrow('Classical public key not set');
         });
 
         it('should get original public key buffer', () => {
@@ -428,7 +434,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.originalPublicKeyBuffer()).toThrow('Public key not set');
+            expect(() => address.originalPublicKeyBuffer()).toThrow('Classical public key not set');
         });
     });
 
@@ -640,7 +646,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.p2wpkh(networks.bitcoin)).toThrow('Public key not set');
+            expect(() => address.p2wpkh(networks.bitcoin)).toThrow('Classical public key not set');
         });
     });
 
@@ -669,7 +675,9 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.p2pkh(networks.bitcoin)).toThrow('Public key not set');
+            expect(() => address.p2pkh(networks.bitcoin)).toThrow(
+                'Classical public key not set for address',
+            );
         });
     });
 
@@ -698,7 +706,9 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.p2shp2wpkh(networks.bitcoin)).toThrow('Public key not set');
+            expect(() => address.p2shp2wpkh(networks.bitcoin)).toThrow(
+                'Classical public key not set for address',
+            );
         });
     });
 
@@ -749,7 +759,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.p2tr(networks.bitcoin)).toThrow('Public key not set');
+            expect(() => address.p2tr(networks.bitcoin)).toThrow('Classical public key not set');
         });
     });
 

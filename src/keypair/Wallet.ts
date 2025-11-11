@@ -160,9 +160,7 @@ export class Wallet {
                 mldsaPrivateKeyBuffer = mldsaBuffer.subarray(0, privateKeySize);
             } else {
                 throw new Error(
-                    `Invalid ML-DSA key length for security level ${securityLevel}. ` +
-                        `Expected ${privateKeySize} bytes (private key only) or ${combinedSize} bytes (private+public), ` +
-                        `got ${mldsaBuffer.length} bytes.`,
+                    `Invalid ML-DSA key length for security level ${securityLevel}. Expected ${privateKeySize} bytes (private only) or ${combinedSize} bytes (private+public), got ${mldsaBuffer.length} bytes.`,
                 );
             }
 

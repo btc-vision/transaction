@@ -1,4 +1,4 @@
-import { Unisat, UnisatChainInfo } from './Unisat.js';
+import { Unisat } from './Unisat.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 /**
@@ -25,7 +25,6 @@ export interface MLDSASignature {
      */
     readonly messageHash: string;
 }
-
 
 /**
  * OPWallet interface extending Unisat with ML-DSA (FIPS 204) support

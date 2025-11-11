@@ -66,7 +66,7 @@ export class Address extends Uint8Array {
      */
     private get keyPair(): ECPairInterface {
         if (!this.#keyPair) {
-            throw new Error('Public key not set for address');
+            throw new Error('Classical public key not set for address');
         }
 
         return this.#keyPair;
@@ -182,7 +182,7 @@ export class Address extends Uint8Array {
 
     public toUncompressedHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#uncompressed.uncompressed.toString('hex');
@@ -190,7 +190,7 @@ export class Address extends Uint8Array {
 
     public toUncompressedBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#uncompressed.uncompressed;
@@ -198,7 +198,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#uncompressed.hybrid.toString('hex');
@@ -206,7 +206,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#uncompressed.hybrid;
@@ -214,7 +214,7 @@ export class Address extends Uint8Array {
 
     public originalPublicKeyBuffer(): Buffer {
         if (!this.#originalPublicKey) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return Buffer.from(this.#originalPublicKey);
@@ -317,7 +317,7 @@ export class Address extends Uint8Array {
             if (!validMLDSALengths.includes(mldsaPublicKey.length)) {
                 throw new Error(
                     `Invalid ML-DSA public key length: ${mldsaPublicKey.length}. ` +
-                        `Expected 1312 (ML-DSA-44), 1952 (ML-DSA-65), or 2592 (ML-DSA-87) bytes.`,
+                        `Expected 1312 (ML-DSA-44/LEVEL2), 1952 (ML-DSA-65/LEVEL3), or 2592 (ML-DSA-87/LEVEL5) bytes.`,
                 );
             }
 
@@ -394,7 +394,7 @@ export class Address extends Uint8Array {
      */
     public p2tr(network: Network): string {
         if (!this.classicPublicKey) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         if (this.#p2tr && this.#network === network) {
@@ -413,7 +413,7 @@ export class Address extends Uint8Array {
             return p2trAddy;
         }
 
-        throw new Error('Public key not set');
+        throw new Error('Classical public key not set');
     }
 
     /**
@@ -524,12 +524,12 @@ export class Address extends Uint8Array {
             return p2opAddy;
         }
 
-        throw new Error('Public key not set');
+        throw new Error('ML-DSA public key not set');
     }
 
     public toTweakedHybridPublicKeyHex(): string {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#tweakedUncompressed.toString('hex');
@@ -537,7 +537,7 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyBuffer(): Buffer {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#tweakedUncompressed;

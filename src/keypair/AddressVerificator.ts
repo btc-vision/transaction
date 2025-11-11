@@ -166,7 +166,9 @@ export class AddressVerificator {
      * @param input - The input string (hex format) or Buffer to check.
      * @returns - The security level if valid, null otherwise.
      */
-    public static isValidMLDSAPublicKey(input: string | Buffer | Uint8Array): MLDSASecurityLevel | null {
+    public static isValidMLDSAPublicKey(
+        input: string | Buffer | Uint8Array,
+    ): MLDSASecurityLevel | null {
         try {
             let byteLength: number;
 
