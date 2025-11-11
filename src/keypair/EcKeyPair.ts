@@ -1,5 +1,12 @@
 import * as ecc from '@bitcoinerlab/secp256k1';
-import bip32, { BIP32API, BIP32Factory, BIP32Interface } from '@btc-vision/bip32';
+import bip32, {
+    BIP32API,
+    BIP32Factory,
+    BIP32Interface,
+    MLDSAKeyPair,
+    MLDSASecurityLevel,
+    QuantumBIP32Factory,
+} from '@btc-vision/bip32';
 import bitcoin, {
     address,
     fromOutputScript,
@@ -17,7 +24,7 @@ import { IWallet } from './interfaces/IWallet.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { mod } from '@noble/curves/abstract/modular';
 import { sha256 } from '@noble/hashes/sha2';
-import { bytesToNumberBE, concatBytes, utf8ToBytes } from '@noble/curves/utils.js';
+import { bytesToNumberBE, concatBytes, randomBytes, utf8ToBytes } from '@noble/curves/utils.js';
 
 initEccLib(ecc);
 
@@ -306,11 +313,17 @@ export class EcKeyPair {
     }
 
     /**
-     * Generate a random wallet
-     * @param {Network} network - The network to use
-     * @returns {IWallet} - The generated wallet
+     * Generate a random wallet with both classical and quantum keys
+     *
+     * @param network - The network to use
+     * @param securityLevel - The ML-DSA security level for quantum keys (default: LEVEL2/44)
+     * @returns An object containing both classical and quantum key information
      */
-    public static generateWallet(network: Network = networks.bitcoin): IWallet {
+    public static generateWallet(
+        network: Network = networks.bitcoin,
+        securityLevel: MLDSASecurityLevel = MLDSASecurityLevel.LEVEL2,
+    ): IWallet {
+        // Generate classical keypair
         const keyPair = this.ECPair.makeRandom({
             network: network,
         });
@@ -321,10 +334,49 @@ export class EcKeyPair {
             throw new Error('Failed to generate wallet');
         }
 
+        // Generate random quantum keypair with network
+        const quantumKeyPair = this.generateQuantumKeyPair(securityLevel, network);
+
         return {
             address: wallet,
             privateKey: keyPair.toWIF(),
             publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
+            quantumPrivateKey: Buffer.from(quantumKeyPair.privateKey).toString('hex'),
+            quantumPublicKey: Buffer.from(quantumKeyPair.publicKey).toString('hex'),
+        };
+    }
+
+    /**
+     * Generate a random quantum ML-DSA keypair
+     *
+     * This creates a standalone quantum-resistant keypair without using BIP32 derivation.
+     * The keys are generated using cryptographically secure random bytes.
+     *
+     * @param securityLevel - The ML-DSA security level (default: LEVEL2/44)
+     * @param network - The Bitcoin network (default: bitcoin mainnet)
+     * @returns A random ML-DSA keypair
+     */
+    public static generateQuantumKeyPair(
+        securityLevel: MLDSASecurityLevel = MLDSASecurityLevel.LEVEL2,
+        network: Network = networks.bitcoin,
+    ): MLDSAKeyPair {
+        // Generate random seed for quantum key generation
+        const randomSeed = randomBytes(64);
+
+        // Create a quantum root from the random seed with network parameter
+        const quantumRoot = QuantumBIP32Factory.fromSeed(
+            Buffer.from(randomSeed),
+            network,
+            securityLevel,
+        );
+
+        if (!quantumRoot.privateKey || !quantumRoot.publicKey) {
+            throw new Error('Failed to generate quantum keypair');
+        }
+
+        return {
+            privateKey: Buffer.from(quantumRoot.privateKey),
+            publicKey: Buffer.from(quantumRoot.publicKey),
         };
     }
 

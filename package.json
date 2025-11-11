@@ -1,7 +1,7 @@
 {
     "name": "@btc-vision/transaction",
     "type": "module",
-    "version": "1.6.19",
+    "version": "1.7.0",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -61,7 +61,11 @@
         "build": "gulp build",
         "setup": "npm i && npm run build",
         "browserBuild": "webpack --mode production",
-        "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src"
+        "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
+        "test": "npm run build && vitest run",
+        "test:watch": "npm run build && vitest",
+        "test:ui": "npm run build && vitest --ui",
+        "test:coverage": "npm run build && vitest run --coverage"
     },
     "devDependencies": {
         "@babel/core": "^7.28.5",
@@ -73,6 +77,7 @@
         "@babel/preset-typescript": "^7.28.5",
         "@types/node": "^24.10.0",
         "@types/sha.js": "^2.4.4",
+        "@vitest/ui": "^4.0.8",
         "eslint": "^9.39.1",
         "gulp": "^5.0.1",
         "gulp-cached": "^1.1.1",
@@ -84,12 +89,13 @@
         "stream-http": "^3.2.0",
         "typedoc": "^0.28.14",
         "typescript-eslint": "^8.46.3",
+        "vitest": "^4.0.8",
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.2.0",
-        "@btc-vision/bip32": "^6.0.0",
+        "@btc-vision/bip32": "^6.0.2",
         "@btc-vision/bitcoin": "^6.4.11",
         "@btc-vision/bitcoin-rpc": "^1.0.5",
         "@btc-vision/logger": "^1.0.7",

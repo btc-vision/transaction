@@ -30,6 +30,21 @@ export * from './keypair/interfaces/IWallet.js';
 export * from './keypair/MessageSigner.js';
 export * from './keypair/Wallet.js';
 
+/** Mnemonic */
+export * from './mnemonic/Mnemonic.js';
+export * from './mnemonic/MnemonicStrength.js';
+
+/** Quantum (ML-DSA) */
+export {
+    MLDSASecurityLevel,
+    MLDSAKeyPair,
+    QuantumBIP32Interface,
+    QuantumBIP32API,
+    QuantumSigner,
+    QuantumBIP32Factory,
+    QuantumDerivationPath,
+} from '@btc-vision/bip32';
+
 /** Metadata */
 export * from './metadata/ContractBaseMetadata.js';
 export * from './network/ChainId.js';
@@ -109,8 +124,6 @@ export * from './keypair/Secp256k1PointDeriver.js';
 export * from './transaction/ContractAddress.js';
 
 /** Quantum */
-
-export * from './derivation/DerivationPath.js';
 
 declare global {
     interface Window {
