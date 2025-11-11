@@ -3,10 +3,18 @@ import * as ecc from '@bitcoinerlab/secp256k1';
 import { crypto, Network, toXOnly } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
+import { MLDSASecurityLevel, QuantumBIP32Interface } from '@btc-vision/bip32';
 
 export interface SignedMessage {
     readonly signature: Uint8Array;
     readonly message: Uint8Array;
+}
+
+export interface MLDSASignedMessage {
+    readonly signature: Uint8Array;
+    readonly message: Uint8Array;
+    readonly publicKey: Uint8Array;
+    readonly securityLevel: MLDSASecurityLevel;
 }
 
 class MessageSignerBase {
@@ -100,6 +108,56 @@ class MessageSignerBase {
         const tweakedPublicKey = EcKeyPair.tweakPublicKey(Buffer.from(publicKey));
 
         return this.verifySignature(tweakedPublicKey, message, signature);
+    }
+
+    /**
+     * Signs a message using ML-DSA signature scheme.
+     * @param {QuantumBIP32Interface} mldsaKeypair - The ML-DSA keypair to sign with. Must contain a private key.
+     * @param {Uint8Array | Buffer | string} message - The message to sign.
+     * @returns The ML-DSA signature with metadata.
+     * @throws Error if the private key is missing.
+     */
+    public signMLDSAMessage(
+        mldsaKeypair: QuantumBIP32Interface,
+        message: Uint8Array | Buffer | string,
+    ): MLDSASignedMessage {
+        if (typeof message === 'string') {
+            message = Buffer.from(message, 'utf-8');
+        }
+
+        if (!mldsaKeypair.privateKey) {
+            throw new Error('ML-DSA private key not found in keypair.');
+        }
+
+        const hashedMessage = this.sha256(message);
+        const signature = mldsaKeypair.sign(hashedMessage);
+
+        return {
+            signature: Buffer.from(signature),
+            message: hashedMessage,
+            publicKey: Buffer.from(mldsaKeypair.publicKey),
+            securityLevel: mldsaKeypair.securityLevel,
+        };
+    }
+
+    /**
+     * Verifies an ML-DSA signature using the provided keypair.
+     * @param {QuantumBIP32Interface} mldsaKeypair - The ML-DSA keypair with the public key.
+     * @param {Uint8Array | Buffer | string} message - The message to verify.
+     * @param {Uint8Array | Buffer} signature - The ML-DSA signature to verify.
+     * @returns True if the signature is valid, false otherwise.
+     */
+    public verifyMLDSASignature(
+        mldsaKeypair: QuantumBIP32Interface,
+        message: Uint8Array | Buffer | string,
+        signature: Uint8Array | Buffer,
+    ): boolean {
+        if (typeof message === 'string') {
+            message = Buffer.from(message, 'utf-8');
+        }
+
+        const hashedMessage = this.sha256(message);
+        return mldsaKeypair.verify(hashedMessage, signature);
     }
 }
 
