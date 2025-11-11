@@ -1,4 +1,4 @@
-import { Unisat, UnisatChainInfo } from './Unisat.js';
+import { Unisat } from './Unisat.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 /**
@@ -26,7 +26,6 @@ export interface MLDSASignature {
     readonly messageHash: string;
 }
 
-
 /**
  * OPWallet interface extending Unisat with ML-DSA (FIPS 204) support
  *
@@ -45,7 +44,7 @@ export interface OPWallet extends Unisat {
     /**
      * Sign a message using ML-DSA signature
      *
-     * @param message - The message to sign
+     * @param message - The message to sign (utf8 or 0x hex string)
      * @returns The ML-DSA signature
      * @throws {Error} If signing fails or wallet is not connected
      */
@@ -54,7 +53,7 @@ export interface OPWallet extends Unisat {
     /**
      * Verify an ML-DSA signature
      *
-     * @param message - The original message
+     * @param message - The original message (utf8 or 0x hex string)
      * @param signature - The ML-DSA signature to verify
      * @returns True if the signature is valid
      */
