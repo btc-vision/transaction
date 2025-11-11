@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
+import { AddressTypes, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('Wallet.derivePath', () => {
@@ -229,6 +229,285 @@ describe('Wallet.derivePath', () => {
 
             expect(deepChild.p2tr).toBeDefined();
             expect(deepChild.p2tr).not.toBe(wallet.p2tr);
+        });
+    });
+});
+
+describe('Mnemonic.deriveUnisat', () => {
+    const testMnemonic =
+        'episode frost someone page color giraffe match vanish sheriff veteran hub year pull save dizzy limb already turn reopen truth cradle rural wisdom change';
+    const unisatExpectedAddress = 'bcrt1phn6ej9ct038j722wdzkvsk7c6pmugtd5d3qnpwxc8g40zerf2ujs55tkz3';
+
+    describe('P2TR (Taproot) derivation', () => {
+        it('should match Unisat P2TR address for regtest', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, false);
+
+            expect(wallet.p2tr).toBe(unisatExpectedAddress);
+        });
+
+        it('should derive P2TR with correct network prefix for mainnet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+
+            expect(wallet.p2tr).toMatch(/^bc1p/);
+        });
+
+        it('should derive P2TR with correct network prefix for testnet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+
+            expect(wallet.p2tr).toMatch(/^tb1p/);
+        });
+    });
+
+    describe('P2WPKH (SegWit) derivation', () => {
+        it('should derive P2WPKH addresses', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2WPKH, 0);
+
+            expect(wallet.p2wpkh).toBeDefined();
+            expect(wallet.p2wpkh).toMatch(/^bc1q/);
+        });
+
+        it('should use BIP84 path (m/84\'/0\'/0\'/0/0)', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2WPKH, 0);
+            expect(wallet.p2wpkh).toBeDefined();
+        });
+    });
+
+    describe('P2PKH (Legacy) derivation', () => {
+        it('should derive legacy addresses', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2PKH, 0);
+
+            expect(wallet.legacy).toBeDefined();
+            expect(wallet.legacy).toMatch(/^1/);
+        });
+    });
+
+    describe('Multiple address derivation', () => {
+        it('should derive unique addresses for different indices', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 1);
+            const wallet2 = mnemonic.deriveUnisat(AddressTypes.P2TR, 2);
+
+            expect(wallet0.p2tr).not.toBe(wallet1.p2tr);
+            expect(wallet1.p2tr).not.toBe(wallet2.p2tr);
+            expect(wallet0.p2tr).not.toBe(wallet2.p2tr);
+        });
+
+        it('should derive deterministic addresses', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
+            const wallet2 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
+
+            expect(wallet1.p2tr).toBe(wallet2.p2tr);
+            expect(wallet1.toPublicKeyHex()).toBe(wallet2.toPublicKeyHex());
+        });
+    });
+
+    describe('Account and change address support', () => {
+        it('should derive different addresses for different accounts', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const account0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0);
+            const account1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 1);
+
+            expect(account0.p2tr).not.toBe(account1.p2tr);
+        });
+
+        it('should derive different addresses for change vs receiving', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const receiving = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, false);
+            const change = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, true);
+
+            expect(receiving.p2tr).not.toBe(change.p2tr);
+        });
+    });
+
+    describe('Quantum key derivation', () => {
+        it('should include quantum keys', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+
+            expect(wallet.quantumPublicKey).toBeDefined();
+            expect(wallet.quantumPublicKey.length).toBe(1312); // LEVEL2 size
+            expect(wallet.address.toHex()).toBeDefined();
+        });
+
+        it('should derive unique quantum keys for different indices', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 1);
+
+            expect(wallet0.address.toHex()).not.toBe(wallet1.address.toHex());
+        });
+    });
+
+    describe('deriveMultipleUnisat', () => {
+        it('should derive multiple wallets', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 5);
+
+            expect(wallets.length).toBe(5);
+            expect(wallets[0].p2tr).toBeDefined();
+            expect(wallets[4].p2tr).toBeDefined();
+        });
+
+        it('should derive unique addresses for each wallet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 3);
+
+            const addresses = wallets.map((w) => w.p2tr);
+            const uniqueAddresses = new Set(addresses);
+
+            expect(uniqueAddresses.size).toBe(3);
+        });
+
+        it('should support custom start index', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 2, 5);
+            const wallet5 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
+
+            expect(wallets[0].p2tr).toBe(wallet5.p2tr);
+        });
+    });
+
+    describe('Error handling', () => {
+        it('should throw error for unsupported address type', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            expect(() => {
+                mnemonic.deriveUnisat('INVALID_TYPE' as AddressTypes, 0);
+            }).toThrow('Unsupported address type');
+        });
+    });
+
+    describe('Network consistency', () => {
+        it('should preserve network in derived wallet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+
+            expect(wallet.network.bech32).toBe('tb');
+        });
+    });
+
+    describe('Security level preservation', () => {
+        it('should maintain security level in derived wallet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL3,
+            );
+
+            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+
+            expect(wallet.securityLevel).toBe(MLDSASecurityLevel.LEVEL3);
+            expect(wallet.quantumPublicKey.length).toBe(1952); // LEVEL3 size
         });
     });
 });
