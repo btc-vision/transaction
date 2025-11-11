@@ -167,6 +167,9 @@ export class Wallet {
             }
 
             // Use provided chain code or generate a random one
+            if (chainCode && chainCode.length !== 32) {
+                throw new Error('Chain code must be 32 bytes');
+            }
             this._chainCode = chainCode || randomBytes(32);
 
             // Create QuantumBIP32Interface from private key and chain code

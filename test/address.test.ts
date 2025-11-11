@@ -311,7 +311,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.tweakedToHex()).toThrow('Post quantum key not set');
+            expect(() => address.tweakedToHex()).toThrow('Classical public key not set');
         });
 
         it('should convert tweaked public key to buffer', () => {
@@ -326,7 +326,7 @@ describe('Address - Comprehensive Tests', () => {
             const mldsaHash = Buffer.alloc(32, 0x01);
             const address = new Address(mldsaHash);
 
-            expect(() => address.tweakedPublicKeyToBuffer()).toThrow('Post quantum key not set');
+            expect(() => address.tweakedPublicKeyToBuffer()).toThrow('Classical public key not set');
         });
 
         it('should get toTweakedHybridPublicKeyHex', () => {

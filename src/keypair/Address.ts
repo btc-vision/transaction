@@ -143,12 +143,12 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Converts the address to a hex string
+     * Converts the classical public key to a hex string
      * @returns {string} The hex string
      */
     public tweakedToHex(): string {
         if (!this.classicPublicKey) {
-            throw new Error('Post quantum key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + Buffer.from(this.classicPublicKey).toString('hex');
@@ -163,12 +163,12 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Converts the address to a buffer
+     * Converts the classical public key to a buffer
      * @returns {Buffer} The buffer
      */
     public tweakedPublicKeyToBuffer(): Buffer {
         if (!this.classicPublicKey) {
-            throw new Error('Post quantum key not set');
+            throw new Error('Classical public key not set');
         }
 
         return Buffer.from(this.classicPublicKey);
