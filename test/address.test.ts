@@ -253,10 +253,11 @@ describe('Address - Comprehensive Tests', () => {
             expect(address.mldsaPublicKey).toBeDefined();
             expect(address.mldsaPublicKey?.length).toBe(1312);
 
-            const key = address.mldsaPublicKey;
-            if (!key) throw new Error('mldsaPublicKey is undefined');
+            if (!address.mldsaPublicKey) {
+                throw new Error('mldsaPublicKey is undefined');
+            }
 
-            expect(Buffer.from(key).toString('hex')).toContain('abab');
+            expect(Buffer.from(address.mldsaPublicKey).toString('hex')).toContain('abab');
         });
 
         it('should return undefined mldsaPublicKey when only hash is provided', () => {

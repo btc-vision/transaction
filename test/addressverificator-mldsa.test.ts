@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { AddressVerificator, AddressTypes, Mnemonic, MLDSASecurityLevel } from '../build/opnet.js';
+import { describe, expect, it } from 'vitest';
+import { AddressTypes, AddressVerificator, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('AddressVerificator ML-DSA Support', () => {
@@ -8,7 +8,12 @@ describe('AddressVerificator ML-DSA Support', () => {
 
     describe('isValidMLDSAPublicKey', () => {
         it('should validate ML-DSA-44 (Level 2) public key from hex string', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyHex = wallet.quantumPublicKeyHex;
 
@@ -18,7 +23,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-44 (Level 2) public key from hex string with 0x prefix', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyHex = '0x' + wallet.quantumPublicKeyHex;
 
@@ -28,7 +38,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-44 (Level 2) public key from Buffer', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyBuffer = wallet.quantumPublicKey;
 
@@ -38,7 +53,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-44 (Level 2) public key from Uint8Array', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyArray = new Uint8Array(wallet.quantumPublicKey);
 
@@ -48,7 +68,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-65 (Level 3) public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL3);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL3,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyHex = wallet.quantumPublicKeyHex;
 
@@ -58,7 +83,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-65 (Level 3) public key from Buffer', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL3);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL3,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyBuffer = wallet.quantumPublicKey;
 
@@ -68,7 +98,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-87 (Level 5) public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL5);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL5,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyHex = wallet.quantumPublicKeyHex;
 
@@ -78,7 +113,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate ML-DSA-87 (Level 5) public key from Buffer', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL5);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL5,
+            );
             const wallet = mnemonic.derive(0);
             const publicKeyBuffer = wallet.quantumPublicKey;
 
@@ -114,7 +154,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should reject classical public key (33 bytes)', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const classicalPublicKey = wallet.publicKey; // 33 bytes
 
@@ -136,10 +181,10 @@ describe('AddressVerificator ML-DSA Support', () => {
                 const wallet = mnemonic.derive(0);
 
                 const securityLevelHex = AddressVerificator.isValidMLDSAPublicKey(
-                    wallet.quantumPublicKeyHex
+                    wallet.quantumPublicKeyHex,
                 );
                 const securityLevelBuffer = AddressVerificator.isValidMLDSAPublicKey(
-                    wallet.quantumPublicKey
+                    wallet.quantumPublicKey,
                 );
 
                 expect(securityLevelHex).toBe(level);
@@ -150,7 +195,12 @@ describe('AddressVerificator ML-DSA Support', () => {
 
     describe('isValidP2OPAddress', () => {
         it('should validate mainnet P2OP address', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
@@ -160,7 +210,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate testnet P2OP address', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.testnet, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.testnet);
 
@@ -170,7 +225,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate regtest P2OP address', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.regtest, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.regtest);
 
@@ -180,7 +240,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should reject P2TR address as P2OP', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2trAddress = wallet.p2tr;
 
@@ -190,7 +255,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should reject P2WPKH address as P2OP', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2wpkhAddress = wallet.p2wpkh;
 
@@ -213,7 +283,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should reject address on wrong network', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
@@ -226,7 +301,12 @@ describe('AddressVerificator ML-DSA Support', () => {
 
     describe('detectAddressType - P2OP support', () => {
         it('should detect mainnet P2OP address type', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
@@ -236,7 +316,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should detect testnet P2OP address type', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.testnet, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.testnet);
 
@@ -246,7 +331,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should detect regtest P2OP address type', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.regtest, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.regtest);
 
@@ -256,7 +346,12 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should not confuse P2OP with P2TR', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
@@ -271,14 +366,22 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should not confuse P2OP with P2WPKH', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
             const p2wpkhAddress = wallet.p2wpkh;
 
             const p2opType = AddressVerificator.detectAddressType(p2opAddress, networks.bitcoin);
-            const p2wpkhType = AddressVerificator.detectAddressType(p2wpkhAddress, networks.bitcoin);
+            const p2wpkhType = AddressVerificator.detectAddressType(
+                p2wpkhAddress,
+                networks.bitcoin,
+            );
 
             expect(p2opType).toBe(AddressTypes.P2OP);
             expect(p2wpkhType).toBe(AddressTypes.P2WPKH);
@@ -297,14 +400,22 @@ describe('AddressVerificator ML-DSA Support', () => {
                 const wallet = mnemonic.derive(0);
                 const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
-                const addressType = AddressVerificator.detectAddressType(p2opAddress, networks.bitcoin);
+                const addressType = AddressVerificator.detectAddressType(
+                    p2opAddress,
+                    networks.bitcoin,
+                );
 
                 expect(addressType).toBe(AddressTypes.P2OP);
             }
         });
 
         it('should return null for invalid P2OP address on wrong network', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
@@ -317,12 +428,23 @@ describe('AddressVerificator ML-DSA Support', () => {
 
     describe('ML-DSA integration with other address types', () => {
         it('should correctly identify different address types from same wallet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const p2trType = AddressVerificator.detectAddressType(wallet.p2tr, networks.bitcoin);
-            const p2wpkhType = AddressVerificator.detectAddressType(wallet.p2wpkh, networks.bitcoin);
-            const p2opType = AddressVerificator.detectAddressType(wallet.address.p2op(networks.bitcoin), networks.bitcoin);
+            const p2wpkhType = AddressVerificator.detectAddressType(
+                wallet.p2wpkh,
+                networks.bitcoin,
+            );
+            const p2opType = AddressVerificator.detectAddressType(
+                wallet.address.p2op(networks.bitcoin),
+                networks.bitcoin,
+            );
 
             expect(p2trType).toBe(AddressTypes.P2TR);
             expect(p2wpkhType).toBe(AddressTypes.P2WPKH);
@@ -330,12 +452,17 @@ describe('AddressVerificator ML-DSA Support', () => {
         });
 
         it('should validate classical and ML-DSA public keys separately', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const classicalValid = AddressVerificator.isValidPublicKey(
                 wallet.toPublicKeyHex(),
-                networks.bitcoin
+                networks.bitcoin,
             );
             const mldsaLevel = AddressVerificator.isValidMLDSAPublicKey(wallet.quantumPublicKeyHex);
 

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { Mnemonic, MLDSASecurityLevel, MessageSigner } from '../build/opnet.js';
+import { describe, expect, it } from 'vitest';
+import { MessageSigner, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('MessageSigner Schnorr', () => {
@@ -59,7 +59,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('signMessage - string input', () => {
         it('should sign a UTF-8 string message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Hello, OPNet!';
@@ -72,7 +77,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign an empty string', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = '';
@@ -83,7 +93,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a very long string', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'A'.repeat(10000);
@@ -94,7 +109,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a string with special characters', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = '!@#$%^&*()_+-=[]{}|;:",.<>?/~`\n\t\r';
@@ -105,7 +125,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a Unicode string', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = '你好世界 🌍 مرحبا العالم';
@@ -118,7 +143,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('signMessage - Buffer input', () => {
         it('should sign a Buffer message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from('Hello, Buffer!', 'utf-8');
@@ -131,10 +161,15 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a Buffer with binary data', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
-            const message = Buffer.from([0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD]);
+            const message = Buffer.from([0x00, 0x01, 0x02, 0xff, 0xfe, 0xfd]);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             expect(signed.signature.length).toBe(64);
@@ -142,7 +177,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a Buffer created from hex', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from('deadbeef', 'hex');
@@ -153,7 +193,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign an empty Buffer', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.alloc(0);
@@ -166,7 +211,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('signMessage - Uint8Array input', () => {
         it('should sign a Uint8Array message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array([1, 2, 3, 4, 5]);
@@ -179,7 +229,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign a Uint8Array with all byte values', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array(256);
@@ -193,7 +248,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign an empty Uint8Array', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array(0);
@@ -206,7 +266,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('signMessage - signature uniqueness', () => {
         it('should produce different signatures for different messages', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message1 = 'First message';
@@ -216,12 +281,17 @@ describe('MessageSigner Schnorr', () => {
             const signed2 = MessageSigner.signMessage(wallet.keypair, message2);
 
             expect(Buffer.from(signed1.signature).toString('hex')).not.toBe(
-                Buffer.from(signed2.signature).toString('hex')
+                Buffer.from(signed2.signature).toString('hex'),
             );
         });
 
         it('should produce different signatures for different keypairs', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet1 = mnemonic.derive(0);
             const wallet2 = mnemonic.derive(1);
 
@@ -231,12 +301,17 @@ describe('MessageSigner Schnorr', () => {
             const signed2 = MessageSigner.signMessage(wallet2.keypair, message);
 
             expect(Buffer.from(signed1.signature).toString('hex')).not.toBe(
-                Buffer.from(signed2.signature).toString('hex')
+                Buffer.from(signed2.signature).toString('hex'),
             );
         });
 
         it('should hash the message before signing', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
@@ -249,7 +324,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('verifySignature - string input', () => {
         it('should verify a valid signature with string message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Hello, OPNet!';
@@ -258,14 +338,19 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should verify signature with Unicode string', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = '你好世界 🌍';
@@ -274,14 +359,19 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should fail verification with wrong message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Hello, OPNet!';
@@ -291,7 +381,7 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 wrongMessage,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(false);
@@ -300,7 +390,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('verifySignature - Buffer input', () => {
         it('should verify a valid signature with Buffer message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from('Hello, Buffer!', 'utf-8');
@@ -309,23 +404,28 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should verify signature with binary Buffer', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
-            const message = Buffer.from([0x00, 0x01, 0x02, 0xFF]);
+            const message = Buffer.from([0x00, 0x01, 0x02, 0xff]);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
@@ -334,7 +434,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('verifySignature - Uint8Array input', () => {
         it('should verify a valid signature with Uint8Array message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array([1, 2, 3, 4, 5]);
@@ -343,21 +448,30 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should verify signature with Uint8Array public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const publicKeyUint8 = new Uint8Array(wallet.keypair.publicKey);
-            const isValid = MessageSigner.verifySignature(publicKeyUint8, message, signed.signature);
+            const isValid = MessageSigner.verifySignature(
+                publicKeyUint8,
+                message,
+                signed.signature,
+            );
 
             expect(isValid).toBe(true);
         });
@@ -365,7 +479,12 @@ describe('MessageSigner Schnorr', () => {
 
     describe('verifySignature - error cases', () => {
         it('should throw error for invalid signature length', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
@@ -377,7 +496,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should fail verification with wrong public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet1 = mnemonic.derive(0);
             const wallet2 = mnemonic.derive(1);
 
@@ -387,26 +511,31 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet2.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(false);
         });
 
         it('should fail verification with corrupted signature', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const corruptedSignature = Buffer.from(signed.signature);
-            corruptedSignature[0] ^= 0xFF;
+            corruptedSignature[0] ^= 0xff;
 
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                corruptedSignature
+                corruptedSignature,
             );
 
             expect(isValid).toBe(false);
@@ -415,14 +544,19 @@ describe('MessageSigner Schnorr', () => {
 
     describe('tweakAndSignMessage', () => {
         it('should sign a message with tweaked keypair', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Hello, Tweaked OPNet!';
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             expect(signed.signature).toBeInstanceOf(Uint8Array);
@@ -432,14 +566,19 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign with tweaked key - string message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test tweaked';
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             expect(signed.signature.length).toBe(64);
@@ -447,14 +586,19 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign with tweaked key - Buffer message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from('Test tweaked buffer', 'utf-8');
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             expect(signed.signature.length).toBe(64);
@@ -462,14 +606,19 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should sign with tweaked key - Uint8Array message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array([1, 2, 3, 4, 5]);
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             expect(signed.signature.length).toBe(64);
@@ -477,7 +626,12 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should produce different signature than non-tweaked', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Compare tweaked vs non-tweaked';
@@ -485,11 +639,11 @@ describe('MessageSigner Schnorr', () => {
             const tweakedSigned = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             expect(Buffer.from(signed.signature).toString('hex')).not.toBe(
-                Buffer.from(tweakedSigned.signature).toString('hex')
+                Buffer.from(tweakedSigned.signature).toString('hex'),
             );
         });
 
@@ -511,67 +665,87 @@ describe('MessageSigner Schnorr', () => {
 
     describe('tweakAndVerifySignature', () => {
         it('should verify a tweaked signature', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test tweaked verification';
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should verify tweaked signature with Buffer message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from('Test tweaked buffer', 'utf-8');
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should verify tweaked signature with Uint8Array message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = new Uint8Array([5, 4, 3, 2, 1]);
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should fail verification with wrong message', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Correct message';
@@ -579,20 +753,25 @@ describe('MessageSigner Schnorr', () => {
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 wrongMessage,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(false);
         });
 
         it('should fail verification with wrong public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet1 = mnemonic.derive(0);
             const wallet2 = mnemonic.derive(1);
 
@@ -600,20 +779,25 @@ describe('MessageSigner Schnorr', () => {
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet1.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet2.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(false);
         });
 
         it('should not verify non-tweaked signature with tweakAndVerifySignature', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
@@ -622,28 +806,33 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(false);
         });
 
         it('should verify with Uint8Array public key', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
             const signed = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const publicKeyUint8 = new Uint8Array(wallet.keypair.publicKey);
             const isValid = MessageSigner.tweakAndVerifySignature(
                 publicKeyUint8,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
@@ -652,27 +841,37 @@ describe('MessageSigner Schnorr', () => {
 
     describe('cross-validation between tweaked and non-tweaked', () => {
         it('should not cross-verify tweaked signature with regular verify', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
             const tweakedSigned = MessageSigner.tweakAndSignMessage(
                 wallet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
 
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                tweakedSigned.signature
+                tweakedSigned.signature,
             );
 
             expect(isValid).toBe(false);
         });
 
         it('should verify regular signature with regular verify, not with tweaked verify', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'Test message';
@@ -681,12 +880,12 @@ describe('MessageSigner Schnorr', () => {
             const isValidRegular = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
             const isValidTweaked = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValidRegular).toBe(true);
@@ -702,13 +901,13 @@ describe('MessageSigner Schnorr', () => {
                 testMnemonic,
                 '',
                 networks.bitcoin,
-                MLDSASecurityLevel.LEVEL2
+                MLDSASecurityLevel.LEVEL2,
             );
             const mnemonicTestnet = new Mnemonic(
                 testMnemonic,
                 '',
                 networks.testnet,
-                MLDSASecurityLevel.LEVEL2
+                MLDSASecurityLevel.LEVEL2,
             );
 
             const walletMainnet = mnemonicMainnet.derive(0);
@@ -717,17 +916,17 @@ describe('MessageSigner Schnorr', () => {
             const signedMainnet = MessageSigner.tweakAndSignMessage(
                 walletMainnet.keypair,
                 message,
-                networks.bitcoin
+                networks.bitcoin,
             );
             const signedTestnet = MessageSigner.tweakAndSignMessage(
                 walletTestnet.keypair,
                 message,
-                networks.testnet
+                networks.testnet,
             );
 
             // Signatures should be different
             expect(Buffer.from(signedMainnet.signature).toString('hex')).not.toBe(
-                Buffer.from(signedTestnet.signature).toString('hex')
+                Buffer.from(signedTestnet.signature).toString('hex'),
             );
 
             // Each should verify with its own network's tweaked key
@@ -735,22 +934,27 @@ describe('MessageSigner Schnorr', () => {
                 MessageSigner.tweakAndVerifySignature(
                     walletMainnet.keypair.publicKey,
                     message,
-                    signedMainnet.signature
-                )
+                    signedMainnet.signature,
+                ),
             ).toBe(true);
             expect(
                 MessageSigner.tweakAndVerifySignature(
                     walletTestnet.keypair.publicKey,
                     message,
-                    signedTestnet.signature
-                )
+                    signedTestnet.signature,
+                ),
             ).toBe(true);
         });
     });
 
     describe('message format edge cases', () => {
         it('should handle messages with null bytes', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = Buffer.from([0x00, 0x01, 0x00, 0x02, 0x00]);
@@ -758,14 +962,19 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should handle very long messages', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = 'X'.repeat(100000);
@@ -773,14 +982,19 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);
         });
 
         it('should handle messages with emoji', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const message = '🚀🌙⭐🪐💫';
@@ -788,7 +1002,7 @@ describe('MessageSigner Schnorr', () => {
             const isValid = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
-                signed.signature
+                signed.signature,
             );
 
             expect(isValid).toBe(true);

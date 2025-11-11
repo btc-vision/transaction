@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { Mnemonic, MLDSASecurityLevel } from '../build/opnet.js';
+import { describe, expect, it } from 'vitest';
+import { MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('Network Awareness', () => {
@@ -50,7 +50,12 @@ describe('Network Awareness', () => {
         });
 
         it('should generate correct address prefixes for mainnet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             expect(wallet.p2tr).toMatch(/^bc1/);
@@ -58,7 +63,12 @@ describe('Network Awareness', () => {
         });
 
         it('should generate correct address prefixes for testnet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.testnet, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             expect(wallet.p2tr).toMatch(/^tb1/);
@@ -66,7 +76,12 @@ describe('Network Awareness', () => {
         });
 
         it('should generate correct address prefixes for regtest', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.regtest, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             expect(wallet.p2tr).toMatch(/^bcrt1/);
@@ -104,7 +119,12 @@ describe('Network Awareness', () => {
 
     describe('Network preservation through derivation', () => {
         it('should preserve mainnet through derivePath', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const parent = mnemonic.derive(0);
             const child = parent.derivePath('m/0');
 
@@ -113,7 +133,12 @@ describe('Network Awareness', () => {
         });
 
         it('should preserve testnet through derivePath', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.testnet, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const parent = mnemonic.derive(0);
             const child = parent.derivePath('m/0');
 
@@ -122,7 +147,12 @@ describe('Network Awareness', () => {
         });
 
         it('should preserve regtest through derivePath', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.regtest, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const parent = mnemonic.derive(0);
             const child = parent.derivePath('m/0');
 

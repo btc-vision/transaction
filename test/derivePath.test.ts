@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { Mnemonic, MLDSASecurityLevel } from '../build/opnet.js';
+import { describe, expect, it } from 'vitest';
+import { MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('Wallet.derivePath', () => {
@@ -8,7 +8,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Basic derivation', () => {
         it('should derive child wallet with unique addresses', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const child = wallet.derivePath('m/0');
 
@@ -22,7 +27,12 @@ describe('Wallet.derivePath', () => {
         });
 
         it('should derive wallet with correct address prefixes', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const child = wallet.derivePath('m/0');
 
@@ -33,7 +43,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Multiple child derivations', () => {
         it('should derive multiple children with unique addresses', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const child0 = wallet.derivePath('m/0');
@@ -67,7 +82,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Network preservation', () => {
         it('should maintain mainnet network in derived wallet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const child = wallet.derivePath('m/0');
 
@@ -76,7 +96,12 @@ describe('Wallet.derivePath', () => {
         });
 
         it('should maintain testnet network in derived wallet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.testnet, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const child = wallet.derivePath('m/0');
 
@@ -85,7 +110,12 @@ describe('Wallet.derivePath', () => {
         });
 
         it('should maintain regtest network in derived wallet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.regtest, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.regtest,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
             const child = wallet.derivePath('m/0');
 
@@ -146,7 +176,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Hardened paths', () => {
         it('should support hardened derivation paths', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const hardened1 = wallet.derivePath("m/0'");
@@ -160,7 +195,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Deterministic derivation', () => {
         it('should produce same results when using same mnemonic-derived wallet', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             // Derive the same path twice from the same wallet instance
@@ -177,7 +217,12 @@ describe('Wallet.derivePath', () => {
 
     describe('Deep path derivation', () => {
         it('should support deep BIP44-style paths', () => {
-            const mnemonic = new Mnemonic(testMnemonic, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.bitcoin,
+                MLDSASecurityLevel.LEVEL2,
+            );
             const wallet = mnemonic.derive(0);
 
             const deepChild = wallet.derivePath("m/44'/0'/0'/0/5");
