@@ -33,6 +33,7 @@ export * from './keypair/Wallet.js';
 /** Mnemonic */
 export * from './mnemonic/Mnemonic.js';
 export * from './mnemonic/MnemonicStrength.js';
+export * from './mnemonic/BIPStandard.js';
 
 /** Quantum (ML-DSA) */
 export {

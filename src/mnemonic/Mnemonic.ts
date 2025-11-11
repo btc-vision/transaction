@@ -10,10 +10,14 @@ import * as ecc from '@bitcoinerlab/secp256k1';
 import { initEccLib, Network, networks } from '@btc-vision/bitcoin';
 import { Wallet } from '../keypair/Wallet.js';
 import { MnemonicStrength } from './MnemonicStrength.js';
+import { BIPStandard, buildBIPPath } from './BIPStandard.js';
+import { AddressTypes } from '../keypair/AddressVerificator.js';
 
 initEccLib(ecc);
 
 const bip32 = BIP32Factory(ecc);
+
+export { BIPStandard, getBIPDescription } from './BIPStandard.js';
 
 /**
  * Mnemonic class for managing BIP39 mnemonic phrases with BIP360 quantum support
@@ -189,7 +193,7 @@ export class Mnemonic {
     }
 
     /**
-     * Derive a wallet at a specific index using BIP360 (quantum) and BIP84 (classical) paths
+     * Derive a wallet at a specific index using BIP360 (quantum) and configurable BIP standard (classical) paths
      *
      * This method derives both classical ECDSA/Schnorr keys and quantum-resistant ML-DSA keys
      * for the wallet, providing hybrid post-quantum security.
@@ -197,11 +201,29 @@ export class Mnemonic {
      * @param index - The address index to derive (default: 0)
      * @param account - The account index (default: 0)
      * @param isChange - Whether this is a change address (default: false)
+     * @param bipStandard - The BIP standard to use for classical derivation (default: BIP84)
      * @returns A Wallet instance with both classical and quantum keys
+     *
+     * @example
+     * ```typescript
+     * // Default: BIP84 (Native SegWit)
+     * const wallet1 = mnemonic.derive(0);
+     *
+     * // BIP44 (Compatible with Unisat)
+     * const wallet2 = mnemonic.derive(0, 0, false, BIPStandard.BIP44);
+     *
+     * // BIP86 (Taproot)
+     * const wallet3 = mnemonic.derive(0, 0, false, BIPStandard.BIP86);
+     * ```
      */
-    public derive(index: number = 0, account: number = 0, isChange: boolean = false): Wallet {
-        // Derive classical key using BIP84 (Native SegWit)
-        const classicalPath = this.buildClassicalPath(account, index, isChange);
+    public derive(
+        index: number = 0,
+        account: number = 0,
+        isChange: boolean = false,
+        bipStandard: BIPStandard = BIPStandard.BIP84,
+    ): Wallet {
+        // Derive classical key using specified BIP standard
+        const classicalPath = this.buildClassicalPath(account, index, isChange, bipStandard);
         const classicalChild = this._classicalRoot.derivePath(classicalPath);
 
         if (!classicalChild.privateKey) {
@@ -226,16 +248,87 @@ export class Mnemonic {
     }
 
     /**
-     * Derive multiple wallets with sequential indices
+     * Derive a Unisat-compatible wallet
      *
-     * @param count - The number of wallets to derive
-     * @param startIndex - The starting address index (default: 0)
+     * Unisat uses different derivation paths based on address type:
+     * - Legacy (P2PKH): m/44'/coinType'/account'/change/index
+     * - Nested SegWit (P2SH-P2WPKH): m/49'/coinType'/account'/change/index
+     * - Native SegWit (P2WPKH): m/84'/coinType'/account'/change/index
+     * - Taproot (P2TR): m/86'/coinType'/account'/change/index
+     *
+     * @param addressType - The address type to generate
+     * @param index - The address index (default: 0)
+     * @param account - The account index (default: 0)
+     * @param isChange - Whether this is a change address (default: false)
+     * @returns A Wallet instance with both classical and quantum keys
+     */
+    public deriveUnisat(
+        addressType: AddressTypes = AddressTypes.P2TR,
+        index: number = 0,
+        account: number = 0,
+        isChange: boolean = false,
+    ): Wallet {
+        // Determine BIP purpose based on address type
+        let purpose: number;
+        switch (addressType) {
+            case AddressTypes.P2PKH:
+                purpose = 44;
+                break;
+            case AddressTypes.P2SH_OR_P2SH_P2WPKH:
+                purpose = 49;
+                break;
+            case AddressTypes.P2WPKH:
+                purpose = 84;
+                break;
+            case AddressTypes.P2TR:
+                purpose = 86;
+                break;
+            default:
+                throw new Error(`Unsupported address type: ${addressType}`);
+        }
+
+        // Build classical derivation path for Unisat
+        const coinType = this.getCoinType();
+        const change = isChange ? 1 : 0;
+        const classicalPath = `m/${purpose}'/0'/${account}'/${change}/${index}`;
+
+        // Derive classical key
+        const classicalChild = this._classicalRoot.derivePath(classicalPath);
+
+        if (!classicalChild.privateKey) {
+            throw new Error(`Failed to derive classical private key at path ${classicalPath}`);
+        }
+
+        // Derive quantum key using BIP360
+        const quantumPath = `m/360'/${coinType}'/${account}'/${change}/${index}`;
+        const quantumChild = this._quantumRoot.derivePath(quantumPath);
+
+        if (!quantumChild.privateKey) {
+            throw new Error(`Failed to derive quantum private key at path ${quantumPath}`);
+        }
+
+        // Create wallet with both classical and quantum keys
+        return new Wallet(
+            Buffer.from(classicalChild.privateKey).toString('hex'),
+            Buffer.from(quantumChild.privateKey).toString('hex'),
+            this._network,
+            this._securityLevel,
+        );
+    }
+
+    /**
+     * Derive multiple Unisat-compatible wallets
+     *
+     * @param addressType - The address type to generate
+     * @param count - Number of wallets to derive
+     * @param startIndex - Starting index (default: 0)
      * @param account - The account index (default: 0)
      * @param isChange - Whether these are change addresses (default: false)
-     * @returns An array of Wallet instances
+     * @returns Array of Wallet instances
      */
-    public deriveMultiple(
-        count: number,
+    public deriveMultipleUnisat(
+        addressType: AddressTypes = AddressTypes.P2TR,
+        count: number = 5,
         startIndex: number = 0,
         account: number = 0,
         isChange: boolean = false,
@@ -243,7 +336,33 @@ export class Mnemonic {
         const wallets: Wallet[] = [];
 
         for (let i = 0; i < count; i++) {
-            wallets.push(this.derive(startIndex + i, account, isChange));
+            wallets.push(this.deriveUnisat(addressType, startIndex + i, account, isChange));
+        }
+
+        return wallets;
+    }
+
+    /**
+     * Derive multiple wallets with sequential indices
+     *
+     * @param count - The number of wallets to derive
+     * @param startIndex - The starting address index (default: 0)
+     * @param account - The account index (default: 0)
+     * @param isChange - Whether these are change addresses (default: false)
+     * @param bipStandard - The BIP standard to use for classical derivation (default: BIP84)
+     * @returns An array of Wallet instances
+     */
+    public deriveMultiple(
+        count: number,
+        startIndex: number = 0,
+        account: number = 0,
+        isChange: boolean = false,
+        bipStandard: BIPStandard = BIPStandard.BIP84,
+    ): Wallet[] {
+        const wallets: Wallet[] = [];
+
+        for (let i = 0; i < count; i++) {
+            wallets.push(this.derive(startIndex + i, account, isChange, bipStandard));
         }
 
         return wallets;
@@ -296,17 +415,23 @@ export class Mnemonic {
     }
 
     /**
-     * Build a classical derivation path (BIP84 for Native SegWit)
+     * Build a classical derivation path using specified BIP standard
      *
      * @param account - The account index
      * @param index - The address index
      * @param isChange - Whether this is a change address
+     * @param bipStandard - The BIP standard to use (default: BIP84)
      * @returns The derivation path string
      */
-    private buildClassicalPath(account: number, index: number, isChange: boolean): string {
+    private buildClassicalPath(
+        account: number,
+        index: number,
+        isChange: boolean,
+        bipStandard: BIPStandard = BIPStandard.BIP84,
+    ): string {
         const coinType = this.getCoinType();
         const change = isChange ? 1 : 0;
-        return `m/84'/${coinType}'/${account}'/${change}/${index}`;
+        return buildBIPPath(bipStandard, coinType, account, change, index);
     }
 
     /**
