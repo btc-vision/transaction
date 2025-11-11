@@ -12,13 +12,13 @@ ML-DSA is a **post-quantum cryptographic algorithm** standardized by NIST as FIP
 
 ML-DSA offers three security levels with different key sizes and security guarantees:
 
-| Level | Name | Public Key Size | Signature Size | Security Equivalent |
-|-------|------|----------------|----------------|-------------------|
-| **LEVEL2** | ML-DSA-44 | 1,312 bytes | 2,420 bytes | AES-128 |
-| **LEVEL3** | ML-DSA-65 | 1,952 bytes | 3,309 bytes | AES-192 |
-| **LEVEL5** | ML-DSA-87 | 2,592 bytes | 4,627 bytes | AES-256 |
+| Level | Name | Public Key Size | Signature Size | Security Equivalent | Status |
+|-------|------|----------------|----------------|-------------------|--------|
+| **LEVEL2** | ML-DSA-44 | 1,312 bytes | 2,420 bytes | AES-128 | ✅ **RECOMMENDED DEFAULT (BIP360)** |
+| **LEVEL3** | ML-DSA-65 | 1,952 bytes | 3,309 bytes | AES-192 | Optional |
+| **LEVEL5** | ML-DSA-87 | 2,592 bytes | 4,627 bytes | AES-256 | Optional (maximum security) |
 
-**Recommendation**: Use **LEVEL2** (ML-DSA-44) for most applications as it provides strong quantum resistance with reasonable key sizes. Use LEVEL5 for maximum security in high-value applications.
+**Recommendation**: Use **LEVEL2** (ML-DSA-44) - this is the **BIP360 default** and provides strong quantum resistance with reasonable key sizes. Use LEVEL3 or LEVEL5 only if you need higher security for specific high-value applications.
 
 ## Hybrid Architecture
 

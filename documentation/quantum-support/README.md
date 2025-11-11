@@ -9,7 +9,7 @@ Learn about ML-DSA (Module-Lattice-Based Digital Signature Algorithm), the hybri
 
 **Topics covered:**
 - What is ML-DSA and post-quantum cryptography
-- Three security levels (LEVEL2, LEVEL3, LEVEL5)
+- Three security levels: **LEVEL2 (BIP360 RECOMMENDED DEFAULT)**, LEVEL3, LEVEL5
 - Hybrid classical + quantum architecture
 - Quick start guide
 - When to use ML-DSA vs classical crypto

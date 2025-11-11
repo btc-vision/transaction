@@ -17,26 +17,37 @@ Generate a new 12-word mnemonic with quantum support:
 import { Mnemonic, MnemonicStrength, MLDSASecurityLevel } from '@btc-vision/transaction';
 import { networks } from '@btc-vision/bitcoin';
 
-// Generate with default 12 words and LEVEL2 security
+// Generate with default 12 words and LEVEL2 security (BIP360 RECOMMENDED DEFAULT)
 const mnemonic = Mnemonic.generate();
 
 console.log('Mnemonic phrase:', mnemonic.phrase);
+console.log('Security Level:', mnemonic.securityLevel); // LEVEL2 (default)
 // Output: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 ```
 
 ### Custom Strength and Security Level
 
 ```typescript
-// Generate 24-word mnemonic with LEVEL5 (maximum) security
-const strongMnemonic = Mnemonic.generate(
+// RECOMMENDED: Use LEVEL2 (BIP360 default) for most applications
+const recommendedMnemonic = Mnemonic.generate(
     MnemonicStrength.MAXIMUM,            // 24 words
     '',                                   // No passphrase
     networks.bitcoin,                     // Mainnet
-    MLDSASecurityLevel.LEVEL5            // Maximum quantum security
+    MLDSASecurityLevel.LEVEL2            // RECOMMENDED DEFAULT (BIP360)
 );
 
-console.log('Words:', strongMnemonic.phrase.split(' ').length); // 24
-console.log('Security Level:', strongMnemonic.securityLevel);   // LEVEL5
+console.log('Words:', recommendedMnemonic.phrase.split(' ').length); // 24
+console.log('Security Level:', recommendedMnemonic.securityLevel);   // LEVEL2
+
+// OPTIONAL: Use LEVEL5 only for maximum security in high-value applications
+const maxSecurityMnemonic = Mnemonic.generate(
+    MnemonicStrength.MAXIMUM,            // 24 words
+    '',                                   // No passphrase
+    networks.bitcoin,                     // Mainnet
+    MLDSASecurityLevel.LEVEL5            // Maximum quantum security (optional)
+);
+
+console.log('Security Level:', maxSecurityMnemonic.securityLevel);   // LEVEL5
 ```
 
 ### Available Mnemonic Strengths
@@ -59,7 +70,7 @@ const testnetMnemonic = Mnemonic.generate(
     MnemonicStrength.MINIMUM,             // 12 words
     'my-secret-passphrase',              // BIP39 passphrase (optional)
     networks.testnet,                     // Testnet network
-    MLDSASecurityLevel.LEVEL2            // Security level
+    MLDSASecurityLevel.LEVEL2            // RECOMMENDED DEFAULT (BIP360)
 );
 ```
 
@@ -74,11 +85,11 @@ const mnemonic = new Mnemonic(
     phrase,
     '',                                   // Passphrase (use same as generation)
     networks.bitcoin,                     // Network
-    MLDSASecurityLevel.LEVEL2            // Must match original
+    MLDSASecurityLevel.LEVEL2            // RECOMMENDED DEFAULT (BIP360) - must match original
 );
 
 console.log('Network:', mnemonic.network.bech32);     // 'bc'
-console.log('Security:', mnemonic.securityLevel);     // LEVEL2
+console.log('Security:', mnemonic.securityLevel);     // LEVEL2 (BIP360 default)
 ```
 
 ### Validating Mnemonic
