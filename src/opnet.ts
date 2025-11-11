@@ -30,6 +30,21 @@ export * from './keypair/interfaces/IWallet.js';
 export * from './keypair/MessageSigner.js';
 export * from './keypair/Wallet.js';
 
+/** Mnemonic */
+export * from './mnemonic/Mnemonic.js';
+export * from './mnemonic/MnemonicStrength.js';
+
+/** Quantum (ML-DSA) */
+export {
+    MLDSASecurityLevel,
+    MLDSAKeyPair,
+    QuantumBIP32Interface,
+    QuantumBIP32API,
+    QuantumSigner,
+    QuantumBIP32Factory,
+    QuantumDerivationPath,
+} from '@btc-vision/bip32';
+
 /** Metadata */
 export * from './metadata/ContractBaseMetadata.js';
 export * from './network/ChainId.js';
@@ -101,6 +116,7 @@ export * from './transaction/browser/extensions/UnisatSigner.js';
 export * from './transaction/browser/extensions/XverseSigner.js';
 export * from './transaction/browser/types/Unisat.js';
 export * from './transaction/browser/types/Xverse.js';
+export * from './transaction/browser/types/OPWallet.js';
 
 export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';

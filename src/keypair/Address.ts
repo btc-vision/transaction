@@ -8,9 +8,16 @@ import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
+import { sha256 } from '@noble/hashes/sha2';
 
 /**
- * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
+ * Objects of type "Address" represent hashed ML-DSA (quantum) public keys (using SHA256 of quantum keys) and maintain classical public keys separately.
+ * This class supports a hybrid quantum-classical architecture, allowing conversion to different address formats and management of both key types.
+ *
+ * The Address internally stores the SHA256 hash of the ML-DSA public key as its primary content, while maintaining
+ * the classical public key in a separate field. This enables quantum-resistant addressing while preserving
+ * compatibility with traditional Bitcoin cryptography.
+ *
  * @category KeyPair
  */
 export class Address extends Uint8Array {
@@ -22,15 +29,23 @@ export class Address extends Uint8Array {
     #uncompressed: UncompressedPublicKey | undefined;
     #tweakedUncompressed: Buffer | undefined;
     #p2wda: IP2WSHAddress | undefined;
+    #mldsaPublicKey: Uint8Array | undefined;
 
-    public constructor(bytes?: ArrayLike<number>) {
+    private classicPublicKey: Uint8Array | undefined;
+
+    public constructor(mldsaPublicKey?: ArrayLike<number>, publicKeyOrTweak?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
 
-        if (!bytes) {
+        if (!mldsaPublicKey) {
             return;
         }
 
-        this.set(bytes);
+        if (publicKeyOrTweak) {
+            this.classicPublicKey = new Uint8Array(publicKeyOrTweak.length);
+            this.classicPublicKey.set(publicKeyOrTweak);
+        }
+
+        this.set(mldsaPublicKey);
     }
 
     /**
@@ -41,13 +56,17 @@ export class Address extends Uint8Array {
         return this.#originalPublicKey;
     }
 
+    public get mldsaPublicKey(): Uint8Array | undefined {
+        return this.#mldsaPublicKey;
+    }
+
     /**
      * Get the key pair for the address
      * @description This is only for internal use. Please use address.tweakedBytes instead.
      */
     private get keyPair(): ECPairInterface {
         if (!this.#keyPair) {
-            throw new Error('Public key not set for address');
+            throw new Error('Classical public key not set for address');
         }
 
         return this.#keyPair;
@@ -55,35 +74,48 @@ export class Address extends Uint8Array {
 
     public static dead(): Address {
         return Address.fromString(
+            '0x0000000000000000000000000000000000000000000000000000000000000000', // DEAD ADDRESS
             '0x04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f',
         );
     }
 
-    public static zero(): Address {
-        return new Address();
-    }
-
     /**
      * Create an address from a hex string
-     * @param {string} pubKey The public key
+     * @param {string} mldsaPublicKey The ml-dsa public key in hex format
+     * @param {string} classicPublicKey The classical public key in hex format
      * @returns {Address} The address
      */
-    public static fromString(pubKey: string): Address {
-        if (!pubKey) {
+    public static fromString(mldsaPublicKey: string, classicPublicKey?: string): Address {
+        if (!mldsaPublicKey) {
             throw new Error('Invalid public key');
         }
 
-        if (pubKey.startsWith('0x')) {
-            pubKey = pubKey.slice(2);
+        if (mldsaPublicKey.startsWith('0x')) {
+            mldsaPublicKey = mldsaPublicKey.slice(2);
         }
 
-        if (!BitcoinUtils.isValidHex(pubKey)) {
+        if (!BitcoinUtils.isValidHex(mldsaPublicKey)) {
             throw new Error(
                 'You must only pass public keys in hexadecimal format. If you have an address such as bc1q... you must convert it to a public key first. Please refer to await provider.getPublicKeyInfo("bc1q..."). If the public key associated with the address is not found, you must force the user to enter the destination public key. It looks like: 0x020373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c.',
             );
         }
 
-        return new Address(Buffer.from(pubKey, 'hex'));
+        let classicBuffer: Buffer | undefined;
+        if (classicPublicKey) {
+            if (classicPublicKey.startsWith('0x')) {
+                classicPublicKey = classicPublicKey.slice(2);
+            }
+
+            if (!BitcoinUtils.isValidHex(classicPublicKey)) {
+                throw new Error(
+                    'You must only pass classical public keys in hexadecimal format. If you have an address such as bc1q... you must convert it to a public key first. Please refer to await provider.getPublicKeyInfo("bc1q..."). If the public key associated with the address is not found, you must force the user to enter the destination public key. It looks like: 0x020373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c.',
+                );
+            }
+
+            classicBuffer = Buffer.from(classicPublicKey, 'hex');
+        }
+
+        return new Address(Buffer.from(mldsaPublicKey, 'hex'), classicBuffer);
     }
 
     /**
@@ -117,16 +149,40 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Converts the address to a buffer
-     * @returns {Buffer} The buffer
+     * Converts the classical public key to a hex string
+     * @returns {string} The hex string
+     */
+    public tweakedToHex(): string {
+        if (!this.classicPublicKey) {
+            throw new Error('Classical public key not set');
+        }
+
+        return '0x' + Buffer.from(this.classicPublicKey).toString('hex');
+    }
+
+    /**
+     * Converts the address content (SHA256 hash of ML-DSA public key) to a buffer
+     * @returns {Buffer} The buffer containing the hashed ML-DSA public key
      */
     public toBuffer(): Buffer {
         return Buffer.from(this);
     }
 
+    /**
+     * Converts the classical public key to a buffer
+     * @returns {Buffer} The buffer
+     */
+    public tweakedPublicKeyToBuffer(): Buffer {
+        if (!this.classicPublicKey) {
+            throw new Error('Classical public key not set');
+        }
+
+        return Buffer.from(this.classicPublicKey);
+    }
+
     public toUncompressedHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#uncompressed.uncompressed.toString('hex');
@@ -134,7 +190,7 @@ export class Address extends Uint8Array {
 
     public toUncompressedBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#uncompressed.uncompressed;
@@ -142,7 +198,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#uncompressed.hybrid.toString('hex');
@@ -150,7 +206,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#uncompressed.hybrid;
@@ -158,7 +214,7 @@ export class Address extends Uint8Array {
 
     public originalPublicKeyBuffer(): Buffer {
         if (!this.#originalPublicKey) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return Buffer.from(this.#originalPublicKey);
@@ -225,24 +281,56 @@ export class Address extends Uint8Array {
 
     /**
      * Set the public key
-     * @param {ArrayLike<number>} publicKey The public key
+     * @param {ArrayLike<number>} mldsaPublicKey ML-DSA public key
      * @returns {void}
      */
-    public override set(publicKey: ArrayLike<number>): void {
-        const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
-        if (!validLengths.includes(publicKey.length)) {
-            throw new Error(`Invalid public key length ${publicKey.length}`);
+    public override set(mldsaPublicKey: ArrayLike<number>): void {
+        if (this.classicPublicKey) {
+            const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
+            if (!validLengths.includes(this.classicPublicKey.length)) {
+                throw new Error(`Invalid public key length ${this.classicPublicKey.length}`);
+            }
+
+            if (this.classicPublicKey.length === ADDRESS_BYTE_LENGTH) {
+                const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
+                buf.set(this.classicPublicKey);
+
+                this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
+            } else {
+                this.autoFormat(this.classicPublicKey);
+            }
         }
 
-        if (publicKey.length === ADDRESS_BYTE_LENGTH) {
-            const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
-            buf.set(publicKey);
+        // THIS is the SHA256(ORIGINAL_ML_DSA_PUBLIC_KEY)
+        if (mldsaPublicKey.length === ADDRESS_BYTE_LENGTH) {
+            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
+            buf.set(mldsaPublicKey);
 
-            this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
-
-            super.set(publicKey);
+            super.set(buf);
         } else {
-            this.autoFormat(publicKey);
+            // Validate ML-DSA public key lengths according to BIP360 and FIPS 204
+            // ML-DSA-44 (Level 2): 1312 bytes public key
+            // ML-DSA-65 (Level 3): 1952 bytes public key
+            // ML-DSA-87 (Level 5): 2592 bytes public key
+            const validMLDSALengths = [1312, 1952, 2592];
+
+            if (!validMLDSALengths.includes(mldsaPublicKey.length)) {
+                throw new Error(
+                    `Invalid ML-DSA public key length: ${mldsaPublicKey.length}. ` +
+                        `Expected 1312 (ML-DSA-44/LEVEL2), 1952 (ML-DSA-65/LEVEL3), or 2592 (ML-DSA-87/LEVEL5) bytes.`,
+                );
+            }
+
+            // Store the original ML-DSA public key
+            this.#mldsaPublicKey = new Uint8Array(mldsaPublicKey.length);
+            this.#mldsaPublicKey.set(mldsaPublicKey);
+
+            // Hash the ML-DSA public key to get the 32-byte address
+            const hashedPublicKey = sha256(new Uint8Array(mldsaPublicKey));
+            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
+            buf.set(hashedPublicKey);
+
+            super.set(buf);
         }
     }
 
@@ -305,11 +393,18 @@ export class Address extends Uint8Array {
      * @param {Network} network The network
      */
     public p2tr(network: Network): string {
+        if (!this.classicPublicKey) {
+            throw new Error('Classical public key not set');
+        }
+
         if (this.#p2tr && this.#network === network) {
             return this.#p2tr;
         }
 
-        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(this, network);
+        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(
+            this.classicPublicKey,
+            network,
+        );
 
         if (p2trAddy) {
             this.#network = network;
@@ -318,7 +413,7 @@ export class Address extends Uint8Array {
             return p2trAddy;
         }
 
-        throw new Error('Public key not set');
+        throw new Error('Classical public key not set');
     }
 
     /**
@@ -407,8 +502,14 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Get an opnet address encoded in bech32m format.
-     * @param network
+     * Returns the OPNet address encoded in bech32m format, derived from the SHA256 hash of the ML-DSA public key
+     * (which is what the Address internally stores).
+     *
+     * This method generates a P2OP (Pay-to-OPNet) address using witness version 16, suitable for
+     * quantum-resistant transactions on the OPNet protocol.
+     *
+     * @param network - The Bitcoin network to use (mainnet, testnet, regtest)
+     * @returns The P2OP address in bech32m format
      */
     public p2op(network: Network): string {
         if (this.#p2op && this.#network === network) {
@@ -423,12 +524,12 @@ export class Address extends Uint8Array {
             return p2opAddy;
         }
 
-        throw new Error('Public key not set');
+        throw new Error('ML-DSA public key not set');
     }
 
     public toTweakedHybridPublicKeyHex(): string {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return '0x' + this.#tweakedUncompressed.toString('hex');
@@ -436,7 +537,7 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyBuffer(): Buffer {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Public key not set');
+            throw new Error('Classical public key not set');
         }
 
         return this.#tweakedUncompressed;
@@ -462,6 +563,7 @@ export class Address extends Uint8Array {
 
         this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(tweakedBytes);
 
-        super.set(tweakedBytes);
+        this.classicPublicKey = new Uint8Array(ADDRESS_BYTE_LENGTH);
+        this.classicPublicKey.set(tweakedBytes);
     }
 }

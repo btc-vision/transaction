@@ -3,17 +3,27 @@
  */
 export interface IWallet {
     /**
-     * The address of the wallet
+     * The classical Bitcoin address of the wallet (P2WPKH)
      */
     readonly address: string;
 
     /**
-     * The private key of the wallet
+     * The classical private key of the wallet (WIF format or hex)
      */
     readonly privateKey: string;
 
     /**
-     * The public key of the wallet
+     * The classical public key of the wallet (hex)
      */
     readonly publicKey: string;
+
+    /**
+     * The quantum ML-DSA private key (hex)
+     */
+    readonly quantumPrivateKey: string;
+
+    /**
+     * The quantum ML-DSA public key (hex)
+     */
+    readonly quantumPublicKey: string;
 }

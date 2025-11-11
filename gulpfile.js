@@ -13,8 +13,8 @@ process.on('uncaughtException', function (err) {
 const tsProject = ts.createProject('tsconfig.json');
 
 function buildESM() {
-    return tsProject
-        .src()
+    return gulp
+        .src(['src/**/*.ts', 'src/**/*.js', '!test/**/*'])
         .pipe(gulpcache('ts-esm'))
         .pipe(
             logger({

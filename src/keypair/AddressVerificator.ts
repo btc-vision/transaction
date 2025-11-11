@@ -3,6 +3,7 @@ import * as ecc from '@bitcoinerlab/secp256k1';
 import { EcKeyPair } from './EcKeyPair.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
+import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 initEccLib(ecc);
 
@@ -156,6 +157,85 @@ export class AddressVerificator {
     }
 
     /**
+     * Checks if the input is a valid ML-DSA public key.
+     * ML-DSA public keys have specific lengths depending on the security level:
+     * - ML-DSA-44 (Level 2): 1312 bytes (2624 hex characters)
+     * - ML-DSA-65 (Level 3): 1952 bytes (3904 hex characters)
+     * - ML-DSA-87 (Level 5): 2592 bytes (5184 hex characters)
+     *
+     * @param input - The input string (hex format) or Buffer to check.
+     * @returns - The security level if valid, null otherwise.
+     */
+    public static isValidMLDSAPublicKey(
+        input: string | Buffer | Uint8Array,
+    ): MLDSASecurityLevel | null {
+        try {
+            let byteLength: number;
+
+            if (Buffer.isBuffer(input) || input instanceof Uint8Array) {
+                byteLength = input.length;
+            } else {
+                // Handle string input
+                if (input.startsWith('0x')) {
+                    input = input.slice(2);
+                }
+
+                if (!BitcoinUtils.isValidHex(input)) {
+                    return null;
+                }
+
+                byteLength = input.length / 2;
+            }
+
+            // Check against valid ML-DSA public key lengths
+            switch (byteLength) {
+                case 1312:
+                    return MLDSASecurityLevel.LEVEL2; // ML-DSA-44
+                case 1952:
+                    return MLDSASecurityLevel.LEVEL3; // ML-DSA-65
+                case 2592:
+                    return MLDSASecurityLevel.LEVEL5; // ML-DSA-87
+                default:
+                    return null;
+            }
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * Checks if the given address is a valid P2OP (OPNet) address.
+     * P2OP addresses use witness version 16 and are encoded in Bech32m format.
+     *
+     * @param inAddress - The address to check.
+     * @param network - The network to validate against.
+     * @returns - True if the address is a valid P2OP address, false otherwise.
+     */
+    public static isValidP2OPAddress(inAddress: string, network: Network): boolean {
+        if (!inAddress || inAddress.length < 20) return false;
+
+        try {
+            // Decode the Bech32/Bech32m address
+            const decodedAddress = address.fromBech32(inAddress);
+
+            // Check if it matches the network's bech32 or bech32Opnet prefix
+            const validPrefix =
+                decodedAddress.prefix === network.bech32 ||
+                decodedAddress.prefix === network.bech32Opnet;
+
+            if (!validPrefix) {
+                return false;
+            }
+
+            // P2OP uses witness version 16 (OP_16)
+            // The data length should be 21 bytes (1 byte deployment version + 20 byte hash160)
+            return decodedAddress.version === 16 && decodedAddress.data.length === 21;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Checks if the address requires a redeem script to spend funds.
      * @param {string} addy - The address to check.
      * @param {Network} network - The network to validate against.
@@ -183,7 +263,9 @@ export class AddressVerificator {
      * - P2SH-P2WPKH (Wrapped SegWit)
      * - P2PK (Pay to PubKey, technically treated similarly to P2PKH)
      * - P2WPKH (SegWit address starting with 'bc1q' for mainnet or 'tb1q' for testnet)
+     * - P2WSH (SegWit script hash address)
      * - P2TR (Taproot address starting with 'bc1p' for mainnet or 'tb1p' for testnet)
+     * - P2OP (OPNet contract address with witness version 16)
      *
      * @param addy - The Bitcoin address to validate.
      * @param network - The Bitcoin network to validate against (mainnet, testnet, etc.).
@@ -209,12 +291,15 @@ export class AddressVerificator {
         } catch {}
 
         try {
-            // Try to decode as a Bech32 or Bech32m address (P2WPKH or P2TR)
+            // Try to decode as a Bech32 or Bech32m address (P2WPKH, P2WSH, P2TR, or P2OP)
             const decodedBech32 = address.fromBech32(addy);
+
+            // P2OP: OPNet contract addresses (version 16, 21 bytes data)
             if (
                 (decodedBech32.prefix === network.bech32Opnet ||
                     decodedBech32.prefix === network.bech32) &&
-                decodedBech32.version === 16
+                decodedBech32.version === 16 &&
+                decodedBech32.data.length === 21
             ) {
                 return AddressTypes.P2OP;
             }
