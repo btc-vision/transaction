@@ -113,6 +113,11 @@ export class Mnemonic {
 
     /**
      * Get the mnemonic phrase
+     *
+     * @warning This phrase is highly sensitive and can be used to derive all keys in the wallet.
+     * Handle with extreme care, never log or transmit insecurely, and store only in secure environments.
+     *
+     * @returns The BIP39 mnemonic phrase
      */
     public get phrase(): string {
         return this._phrase;
@@ -133,7 +138,12 @@ export class Mnemonic {
     }
 
     /**
-     * Get the seed
+     * Get the seed derived from the mnemonic phrase
+     *
+     * @warning This seed is highly sensitive and can be used to derive all keys in the wallet.
+     * Handle with extreme care, never log or transmit insecurely, and store only in secure environments.
+     *
+     * @returns A copy of the seed buffer to prevent external modification
      */
     public get seed(): Buffer {
         return Buffer.from(this._seed);

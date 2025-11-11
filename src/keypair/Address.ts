@@ -11,7 +11,13 @@ import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { sha256 } from '@noble/hashes/sha2';
 
 /**
- * Objects of type "Address" are the representation of tweaked public keys. They can be converted to different address formats.
+ * Objects of type "Address" represent hashed ML-DSA (quantum) public keys (using SHA256 of quantum keys) and maintain classical public keys separately.
+ * This class supports a hybrid quantum-classical architecture, allowing conversion to different address formats and management of both key types.
+ *
+ * The Address internally stores the SHA256 hash of the ML-DSA public key as its primary content, while maintaining
+ * the classical public key in a separate field. This enables quantum-resistant addressing while preserving
+ * compatibility with traditional Bitcoin cryptography.
+ *
  * @category KeyPair
  */
 export class Address extends Uint8Array {
@@ -155,8 +161,8 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Converts the address to a buffer
-     * @returns {Buffer} The buffer
+     * Converts the address content (SHA256 hash of ML-DSA public key) to a buffer
+     * @returns {Buffer} The buffer containing the hashed ML-DSA public key
      */
     public toBuffer(): Buffer {
         return Buffer.from(this);
@@ -496,9 +502,14 @@ export class Address extends Uint8Array {
     }
 
     /**
-     * Get an opnet address encoded in bech32m format.
-     * Based on the hash of the ml-dsa public key.
-     * @param network
+     * Returns the OPNet address encoded in bech32m format, derived from the SHA256 hash of the ML-DSA public key
+     * (which is what the Address internally stores).
+     *
+     * This method generates a P2OP (Pay-to-OPNet) address using witness version 16, suitable for
+     * quantum-resistant transactions on the OPNet protocol.
+     *
+     * @param network - The Bitcoin network to use (mainnet, testnet, regtest)
+     * @returns The P2OP address in bech32m format
      */
     public p2op(network: Network): string {
         if (this.#p2op && this.#network === network) {
