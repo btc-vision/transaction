@@ -2,8 +2,32 @@ export class Map<K, V> {
     protected _keys: K[] = [];
     protected _values: Record<string, V> = {};
 
+    constructor(iterable?: ReadonlyArray<readonly [K, V]> | null | Map<K, V>) {
+        if (iterable instanceof Map) {
+            this.setAll(iterable);
+        } else {
+            if (iterable) {
+                for (const [key, value] of iterable) {
+                    this.set(key, value);
+                }
+            }
+        }
+    }
+
     public get size(): number {
         return this._keys.length;
+    }
+
+    public setAll(map: Map<K, V>): void {
+        for (const [key, value] of map) {
+            this.set(key, value);
+        }
+    }
+
+    public addAll(map: Map<K, V>): void {
+        for (const [key, value] of map.entries()) {
+            this.set(key, value);
+        }
     }
 
     public *keys(): IterableIterator<K> {
