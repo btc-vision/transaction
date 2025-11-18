@@ -1,10 +1,8 @@
-import { i32 } from '../utils/types.js';
-
 export class Map<K, V> {
     protected _keys: K[] = [];
     protected _values: V[] = [];
 
-    public get size(): i32 {
+    public get size(): number {
         return this._keys.length;
     }
 
@@ -17,13 +15,13 @@ export class Map<K, V> {
     }
 
     public *entries(): IterableIterator<[K, V]> {
-        for (let i: i32 = 0; i < this._keys.length; i++) {
+        for (let i: number = 0; i < this._keys.length; i++) {
             yield [this._keys[i], this._values[i]];
         }
     }
 
     public set(key: K, value: V): void {
-        const index: i32 = this.indexOf(key);
+        const index: number = this.indexOf(key);
         if (index == -1) {
             this._keys.push(key);
             this._values.push(value);
@@ -32,8 +30,8 @@ export class Map<K, V> {
         }
     }
 
-    public indexOf(key: K): i32 {
-        for (let i: i32 = 0; i < this._keys.length; i++) {
+    public indexOf(key: K): number {
+        for (let i: number = 0; i < this._keys.length; i++) {
             if (this._keys[i] == key) {
                 return i;
             }
@@ -43,7 +41,7 @@ export class Map<K, V> {
     }
 
     public get(key: K): V | undefined {
-        const index: i32 = this.indexOf(key);
+        const index: number = this.indexOf(key);
         if (index == -1) {
             return undefined;
         }
@@ -55,7 +53,7 @@ export class Map<K, V> {
     }
 
     public delete(key: K): boolean {
-        const index: i32 = this.indexOf(key);
+        const index: number = this.indexOf(key);
         if (index == -1) {
             return false;
         }
@@ -71,7 +69,7 @@ export class Map<K, V> {
     }
 
     *[Symbol.iterator](): IterableIterator<[K, V]> {
-        for (let i: i32 = 0; i < this._keys.length; i++) {
+        for (let i: number = 0; i < this._keys.length; i++) {
             yield [this._keys[i], this._values[i]];
         }
     }

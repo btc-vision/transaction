@@ -26,8 +26,18 @@ export class DeterministicMap<K, V> {
 
     public set(key: K, value: V): void {
         if (!this.map.has(key)) {
-            this.#keys.push(key);
-            this.#keys.sort(this.compareFn);
+            // Binary search for insertion position
+            let left = 0,
+                right = this.#keys.length;
+            while (left < right) {
+                const mid = Math.floor((left + right) / 2);
+                if (this.compareFn(this.#keys[mid], key) < 0) {
+                    left = mid + 1;
+                } else {
+                    right = mid;
+                }
+            }
+            this.#keys.splice(left, 0, key);
         }
         this.map.set(key, value);
     }
@@ -64,8 +74,24 @@ export class DeterministicMap<K, V> {
     public delete(key: K): boolean {
         if (this.map.has(key)) {
             this.map.delete(key);
-            this.#keys = this.#keys.filter((k) => k !== key);
-            return true;
+
+            // Binary search to find the key's index
+            let left = 0,
+                right = this.#keys.length - 1;
+            while (left <= right) {
+                const mid = Math.floor((left + right) / 2);
+                const cmp = this.compareFn(this.#keys[mid], key);
+
+                if (cmp === 0) {
+                    // Found it, remove at this index
+                    this.#keys.splice(mid, 1);
+                    return true;
+                } else if (cmp < 0) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+            }
         }
         return false;
     }

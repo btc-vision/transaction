@@ -5,25 +5,39 @@ export class DeterministicSet<T> {
         this.elements = [];
     }
 
+    public get size(): number {
+        return this.elements.length;
+    }
+
+    public static fromSet<T>(set: Set<T>, compareFn: (a: T, b: T) => number): DeterministicSet<T> {
+        const deterministicSet = new DeterministicSet<T>(compareFn);
+        for (const value of set) {
+            deterministicSet.add(value);
+        }
+        return deterministicSet;
+    }
+
     public add(value: T): void {
-        if (!this.elements.includes(value)) {
-            this.elements.push(value);
-            this.elements.sort(this.compareFn);
+        const { found, index } = this.binarySearch(value);
+
+        if (!found) {
+            this.elements.splice(index, 0, value);
         }
     }
 
     public delete(value: T): boolean {
-        const index = this.elements.indexOf(value);
-        if (index === -1) {
-            return false;
+        const { found, index } = this.binarySearch(value);
+
+        if (found) {
+            this.elements.splice(index, 1);
+            return true;
         }
 
-        this.elements.splice(index, 1);
-        return true;
+        return false;
     }
 
     public has(value: T): boolean {
-        return this.elements.includes(value);
+        return this.binarySearch(value).found;
     }
 
     public clear(): void {
@@ -36,21 +50,30 @@ export class DeterministicSet<T> {
         }
     }
 
-    public static fromSet<T>(set: Set<T>, compareFn: (a: T, b: T) => number): DeterministicSet<T> {
-        const deterministicSet = new DeterministicSet<T>(compareFn);
-        for (const value of set) {
-            deterministicSet.add(value);
-        }
-        return deterministicSet;
-    }
-
-    public get size(): number {
-        return this.elements.length;
+    *values(): IterableIterator<T> {
+        yield* this.elements;
     }
 
     *[Symbol.iterator](): IterableIterator<T> {
-        for (const value of this.elements) {
-            yield value;
+        yield* this.elements;
+    }
+
+    private binarySearch(value: T): { found: boolean; index: number } {
+        let left = 0, right = this.elements.length;
+
+        while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            const cmp = this.compareFn(this.elements[mid], value);
+
+            if (cmp === 0) {
+                return { found: true, index: mid };
+            } else if (cmp < 0) {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
         }
+
+        return { found: false, index: left };
     }
 }
