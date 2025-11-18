@@ -26,6 +26,7 @@ export class AddressMap<V> {
         if (!this.items.has(keyBigInt)) {
             this.keyOrder.push(key);
         }
+
         this.items.set(keyBigInt, value);
     }
 
