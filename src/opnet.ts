@@ -126,6 +126,7 @@ export * from './keypair/Secp256k1PointDeriver.js';
 export * from './transaction/ContractAddress.js';
 
 export * from './deterministic/Map.js';
+export * from './deterministic/CustomMap.js';
 
 declare global {
     interface Window {

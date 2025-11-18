@@ -1,14 +1,11 @@
 import { Address } from '../keypair/Address.js';
-
 import { Map } from './Map.js';
 
 export class AddressMap<V> {
     private items: Map<bigint, V>;
-    private keyOrder: Address[];
 
     constructor(iterable?: ReadonlyArray<readonly [Address, V]> | null) {
         this.items = new Map();
-        this.keyOrder = [];
 
         if (iterable) {
             for (const [key, value] of iterable) {
@@ -18,16 +15,14 @@ export class AddressMap<V> {
     }
 
     public get size(): number {
-        return this.keyOrder.length;
+        return this.items.size;
     }
 
-    public set(key: Address, value: V): void {
+    public set(key: Address, value: V): this {
         const keyBigInt = key.toBigInt();
-        if (!this.items.has(keyBigInt)) {
-            this.keyOrder.push(key);
-        }
-
         this.items.set(keyBigInt, value);
+
+        return this;
     }
 
     public get(key: Address): V | undefined {
@@ -40,41 +35,35 @@ export class AddressMap<V> {
 
     public delete(key: Address): boolean {
         const keyBigInt = key.toBigInt();
-        if (this.items.delete(keyBigInt)) {
-            this.keyOrder = this.keyOrder.filter((k) => k.toBigInt() !== keyBigInt);
-            return true;
-        }
-        return false;
+        return this.items.delete(keyBigInt);
     }
 
     public clear(): void {
         this.items.clear();
-        this.keyOrder = [];
     }
 
     public indexOf(address: Address): number {
-        const addressBigInt = address.toBigInt();
-        for (let i: number = 0; i < this.keyOrder.length; i++) {
-            if (this.keyOrder[i].toBigInt() === addressBigInt) {
-                return i;
-            }
-        }
-        return -1;
+        return this.items.indexOf(address.toBigInt());
     }
 
+    /**
+     * WARNING, THIS RETURN NEW COPY OF THE KEYS
+     */
     *entries(): IterableIterator<[Address, V]> {
-        for (const key of this.keyOrder) {
-            yield [key, this.items.get(key.toBigInt()) as V];
+        for (const [keyBigInt, value] of this.items.entries()) {
+            yield [Address.fromBigInt(keyBigInt), value];
         }
     }
 
     *keys(): IterableIterator<Address> {
-        yield* this.keyOrder;
+        for (const keyBigInt of this.items.keys()) {
+            yield Address.fromBigInt(keyBigInt);
+        }
     }
 
     *values(): IterableIterator<V> {
-        for (const key of this.keyOrder) {
-            yield this.items.get(key.toBigInt()) as V;
+        for (const value of this.items.values()) {
+            yield value;
         }
     }
 
@@ -82,15 +71,13 @@ export class AddressMap<V> {
         callback: (value: V, key: Address, map: AddressMap<V>) => void,
         thisArg?: unknown,
     ): void {
-        for (const key of this.keyOrder) {
-            callback.call(thisArg, this.items.get(key.toBigInt()) as V, key, this);
+        for (const [keyBigInt, value] of this.items.entries()) {
+            const key = Address.fromBigInt(keyBigInt);
+            callback.call(thisArg, value, key, this);
         }
     }
 
     *[Symbol.iterator](): IterableIterator<[Address, V]> {
-        for (let i = 0; i < this.keyOrder.length; i++) {
-            const key = this.keyOrder[i];
-            yield [key, this.items.get(key.toBigInt()) as V];
-        }
+        yield* this.entries();
     }
 }
