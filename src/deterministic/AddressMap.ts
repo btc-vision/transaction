@@ -1,4 +1,5 @@
 import { Address } from '../keypair/Address.js';
+import { Map } from './Map.js';
 
 export class AddressMap<V> {
     private items: Map<bigint, V>;
@@ -15,7 +16,7 @@ export class AddressMap<V> {
         }
     }
 
-    get size(): number {
+    public get size(): number {
         return this.keyOrder.length;
     }
 
@@ -84,7 +85,10 @@ export class AddressMap<V> {
         }
     }
 
-    [Symbol.iterator](): IterableIterator<[Address, V]> {
-        return this.entries();
+    *[Symbol.iterator](): IterableIterator<[Address, V]> {
+        for (let i = 0; i < this.keyOrder.length; i++) {
+            const key = this.keyOrder[i];
+            yield [key, this.items.get(key.toBigInt()) as V];
+        }
     }
 }
