@@ -11,7 +11,7 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { i32, Selector, u16, u32, u64, u8 } from '../utils/types.js';
+import { Selector, u16, u32, u64, u8 } from '../utils/types.js';
 import { BinaryReader } from './BinaryReader.js';
 
 export class BinaryWriter {
@@ -351,7 +351,7 @@ export class BinaryWriter {
 
     private resize(size: u32): void {
         const buf: Uint8Array = new Uint8Array(this.buffer.byteLength + size);
-        for (let i: i32 = 0; i < this.buffer.byteLength; i++) {
+        for (let i: number = 0; i < this.buffer.byteLength; i++) {
             buf[i] = this.buffer.getUint8(i);
         }
 

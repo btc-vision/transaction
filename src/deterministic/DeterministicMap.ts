@@ -1,10 +1,13 @@
 export class DeterministicMap<K, V> {
     private map: Map<K, V>;
-    #keys: K[];
+    private readonly compareFn: (a: K, b: K) => number;
 
-    constructor(private compareFn: (a: K, b: K) => number) {
+    #keyOrder: K[];
+
+    constructor(compareFn: (a: K, b: K) => number) {
         this.map = new Map<K, V>();
-        this.#keys = [];
+        this.#keyOrder = [];
+        this.compareFn = compareFn;
     }
 
     public get size(): number {
@@ -24,8 +27,8 @@ export class DeterministicMap<K, V> {
 
     public set(key: K, value: V): void {
         if (!this.map.has(key)) {
-            this.#keys.push(key);
-            this.#keys.sort(this.compareFn);
+            this.#keyOrder.push(key);
+            this.#keyOrder.sort(this.compareFn);
         }
         this.map.set(key, value);
     }
@@ -35,17 +38,17 @@ export class DeterministicMap<K, V> {
     }
 
     public keys(): IterableIterator<K> {
-        return this.#keys.values();
+        return this.#keyOrder.values();
     }
 
     public values(): IterableIterator<V> {
         const values: V[] = [];
 
-        for (let i = 0; i < this.#keys.length; i++) {
-            const key = this.#keys[i];
+        for (let i = 0; i < this.#keyOrder.length; i++) {
+            const key = this.#keyOrder[i];
             const value = this.map.get(key);
 
-            if (value) {
+            if (value !== undefined) {
                 values.push(value);
             } else {
                 throw new Error('Value not found');
@@ -62,7 +65,7 @@ export class DeterministicMap<K, V> {
     public delete(key: K): boolean {
         if (this.map.has(key)) {
             this.map.delete(key);
-            this.#keys = this.#keys.filter((k) => k !== key);
+            this.#keyOrder = this.#keyOrder.filter((k) => k !== key);
             return true;
         }
         return false;
@@ -70,18 +73,18 @@ export class DeterministicMap<K, V> {
 
     public clear(): void {
         this.map.clear();
-        this.#keys = [];
+        this.#keyOrder = [];
     }
 
     public forEach(callback: (value: V, key: K, map: DeterministicMap<K, V>) => void): void {
-        for (const key of this.#keys) {
+        for (const key of this.#keyOrder) {
             const value = this.map.get(key) as V;
             callback(value, key, this);
         }
     }
 
     *[Symbol.iterator](): IterableIterator<[K, V]> {
-        for (const key of this.#keys) {
+        for (const key of this.#keyOrder) {
             yield [key, this.map.get(key) as V];
         }
     }

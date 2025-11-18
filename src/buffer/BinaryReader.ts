@@ -10,11 +10,11 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { BufferLike, i32, Selector, u16, u32, u8 } from '../utils/types.js';
+import { BufferLike, Selector, u16, u32, u8 } from '../utils/types.js';
 
 export class BinaryReader {
     private buffer: DataView;
-    private currentOffset: i32 = 0;
+    private currentOffset: number = 0;
 
     constructor(bytes: BufferLike) {
         this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -342,7 +342,7 @@ export class BinaryReader {
     /**
      * Verifies we have enough bytes in the buffer to read up to `size`.
      */
-    public verifyEnd(size: i32): void {
+    public verifyEnd(size: number): void {
         if (size > this.buffer.byteLength) {
             throw new Error(
                 `Attempt to read beyond buffer length: requested up to byte offset ${size}, but buffer is only ${this.buffer.byteLength} bytes.`,

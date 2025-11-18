@@ -1,10 +1,16 @@
 import { Address } from '../keypair/Address.js';
 
 export class AddressSet {
+    private items: Set<bigint>;
     private keys: Address[];
 
     public constructor(keys: Address[] = []) {
-        this.keys = keys;
+        this.items = new Set();
+        this.keys = [];
+
+        for (const key of keys) {
+            this.add(key);
+        }
     }
 
     public get size(): number {
@@ -12,56 +18,44 @@ export class AddressSet {
     }
 
     public add(address: Address): void {
-        if (!this.has(address)) {
+        const addressBigInt = address.toBigInt();
+        if (!this.items.has(addressBigInt)) {
+            this.items.add(addressBigInt);
             this.keys.push(address);
         }
     }
 
     public has(address: Address): boolean {
-        for (let i = 0; i < this.keys.length; i++) {
-            if (this.keys[i].equals(address)) {
-                return true;
-            }
-        }
-
-        return false;
+        return this.items.has(address.toBigInt());
     }
 
     public remove(address: Address): void {
-        const index = this.keys.findIndex((key) => key.equals(address));
-
-        if (index !== -1) {
-            this.keys.splice(index, 1);
+        const addressBigInt = address.toBigInt();
+        if (this.items.delete(addressBigInt)) {
+            this.keys = this.keys.filter((k) => k.toBigInt() !== addressBigInt);
         }
     }
 
     public clone(): AddressSet {
-        const clone = new AddressSet();
-
-        for (let i = 0; i < this.keys.length; i++) {
-            clone.add(this.keys[i]);
-        }
-
-        return clone;
+        return new AddressSet(this.keys);
     }
 
     public clear(): void {
+        this.items.clear();
         this.keys = [];
     }
 
     public combine(set: AddressSet): AddressSet {
         const clone = this.clone();
 
-        for (let i = 0; i < set.keys.length; i++) {
-            clone.add(set.keys[i]);
+        for (const key of set.keys) {
+            clone.add(key);
         }
 
         return clone;
     }
 
-    *[Symbol.iterator]() {
-        for (let i = 0; i < this.keys.length; i++) {
-            yield this.keys[i];
-        }
+    *[Symbol.iterator](): IterableIterator<Address> {
+        yield* this.keys;
     }
 }
