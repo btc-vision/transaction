@@ -1,11 +1,11 @@
-import { Map } from './Map.js';
+import { FastMap, PropertyExtendedKey } from './FastMap.js';
 
-export class DeterministicMap<K, V> {
-    private map: Map<K, V>;
+export class DeterministicMap<K extends PropertyExtendedKey, V> {
+    private map: FastMap<K, V>;
     #keys: K[];
 
     constructor(private compareFn: (a: K, b: K) => number) {
-        this.map = new Map<K, V>();
+        this.map = new FastMap<K, V>();
         this.#keys = [];
     }
 
@@ -13,8 +13,8 @@ export class DeterministicMap<K, V> {
         return this.map.size;
     }
 
-    public static fromMap<K, V>(
-        map: Map<K, V>,
+    public static fromMap<K extends PropertyExtendedKey, V>(
+        map: FastMap<K, V>,
         compareFn: (a: K, b: K) => number,
     ): DeterministicMap<K, V> {
         const deterministicMap = new DeterministicMap<K, V>(compareFn);
@@ -29,6 +29,7 @@ export class DeterministicMap<K, V> {
             // Binary search for insertion position
             let left = 0,
                 right = this.#keys.length;
+
             while (left < right) {
                 const mid = Math.floor((left + right) / 2);
                 if (this.compareFn(this.#keys[mid], key) < 0) {
@@ -39,6 +40,7 @@ export class DeterministicMap<K, V> {
             }
             this.#keys.splice(left, 0, key);
         }
+
         this.map.set(key, value);
     }
 
@@ -78,6 +80,7 @@ export class DeterministicMap<K, V> {
             // Binary search to find the key's index
             let left = 0,
                 right = this.#keys.length - 1;
+
             while (left <= right) {
                 const mid = Math.floor((left + right) / 2);
                 const cmp = this.compareFn(this.#keys[mid], key);

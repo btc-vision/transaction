@@ -125,7 +125,7 @@ export * from './transaction/browser/Web3Provider.js';
 export * from './keypair/Secp256k1PointDeriver.js';
 export * from './transaction/ContractAddress.js';
 
-export * from './deterministic/Map.js';
+export * from './deterministic/FastMap.js';
 export * from './deterministic/CustomMap.js';
 
 declare global {
