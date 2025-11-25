@@ -1,11 +1,11 @@
 import { Address } from '../keypair/Address.js';
-import { Map } from './Map.js';
+import { FastMap } from './FastMap.js';
 
 export class AddressMap<V> {
-    private items: Map<bigint, V>;
+    private items: FastMap<bigint, V>;
 
     constructor(iterable?: ReadonlyArray<readonly [Address, V]> | null) {
-        this.items = new Map();
+        this.items = new FastMap();
 
         if (iterable) {
             for (const [key, value] of iterable) {
