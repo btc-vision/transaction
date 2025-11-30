@@ -46,6 +46,8 @@ export {
     QuantumDerivationPath,
 } from '@btc-vision/bip32';
 
+export * from './generators/MLDSAData.js';
+
 /** Metadata */
 export * from './metadata/ContractBaseMetadata.js';
 export * from './network/ChainId.js';

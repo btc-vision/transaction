@@ -31,8 +31,8 @@ export interface RawChallengeVerification {
 }
 
 export interface RawChallengeSubmission {
-    readonly classicPublicKey: string;
-    readonly publicKey: string;
+    readonly mldsaPublicKey: string;
+    readonly legacyPublicKey: string;
     readonly solution: string;
     readonly graffiti?: string;
     readonly signature: string;
@@ -47,8 +47,8 @@ export interface IChallengeSubmission {
 
 export interface RawChallenge {
     readonly epochNumber: string;
-    readonly classicPublicKey: string;
-    readonly publicKey: string;
+    readonly mldsaPublicKey: string;
+    readonly legacyPublicKey: string;
     readonly solution: string;
     readonly salt: string;
     readonly graffiti: string;

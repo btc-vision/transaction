@@ -41,10 +41,13 @@ import {
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 import { Buffer } from 'buffer';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
+import { QuantumBIP32Interface } from '@btc-vision/bip32';
+import { MessageSigner } from '../../keypair/MessageSigner.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
 export interface ITweakedTransactionData {
+    readonly mldsaSigner: QuantumBIP32Interface | null;
     readonly signer: Signer | ECPairInterface | UnisatSigner;
     readonly network: Network;
     readonly chainId?: ChainId;
@@ -161,6 +164,9 @@ export abstract class TweakedTransaction extends Logger {
 
     protected txVersion: SupportedTransactionVersion = 2;
 
+    protected readonly _mldsaSigner: QuantumBIP32Interface | null = null;
+    protected readonly _hashedPublicKey: Buffer | null = null;
+
     protected constructor(data: ITweakedTransactionData) {
         super();
 
@@ -176,6 +182,35 @@ export abstract class TweakedTransaction extends Logger {
         if (data.txVersion) {
             this.txVersion = data.txVersion;
         }
+
+        if (data.mldsaSigner) {
+            this._mldsaSigner = data.mldsaSigner;
+            this._hashedPublicKey = MessageSigner.sha256(this._mldsaSigner.publicKey);
+        }
+    }
+
+    /**
+     * Get the MLDSA signer
+     * @protected
+     */
+    protected get mldsaSigner(): QuantumBIP32Interface {
+        if (!this._mldsaSigner) {
+            throw new Error('MLDSA Signer is not set');
+        }
+
+        return this._mldsaSigner;
+    }
+
+    /**
+     * Get the hashed public key
+     * @protected
+     */
+    protected get hashedPublicKey(): Buffer {
+        if (!this._hashedPublicKey) {
+            throw new Error('Hashed public key is not set');
+        }
+
+        return this._hashedPublicKey;
     }
 
     /**

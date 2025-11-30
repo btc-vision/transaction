@@ -29,6 +29,7 @@ export class P2TR_MS {
             receiver: 'a',
             requestedAmount: 1n,
             refundVault: 'a',
+            mldsaSigner: null,
         };
 
         const address = new MultiSignTransaction(multiSignParams).getScriptAddress();

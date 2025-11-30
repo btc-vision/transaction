@@ -42,7 +42,7 @@ export class ChallengeSubmission implements IChallengeSubmission {
         data: RawChallengeSubmission,
         public readonly epochNumber: bigint,
     ) {
-        this.publicKey = Address.fromString(data.publicKey, data.classicPublicKey);
+        this.publicKey = Address.fromString(data.mldsaPublicKey, data.legacyPublicKey);
         this.solution = stringToBuffer(data.solution);
         this.graffiti = data.graffiti ? stringToBuffer(data.graffiti) : undefined;
         this.signature = stringToBuffer(data.signature);
@@ -76,7 +76,7 @@ export class ChallengeSolution implements IChallengeSolution {
 
     constructor(data: RawChallenge) {
         this.epochNumber = BigInt(data.epochNumber);
-        this.publicKey = Address.fromString(data.publicKey, data.classicPublicKey);
+        this.publicKey = Address.fromString(data.mldsaPublicKey, data.legacyPublicKey);
         this.solution = stringToBuffer(data.solution);
         this.salt = stringToBuffer(data.salt);
         this.graffiti = stringToBuffer(data.graffiti);
@@ -144,8 +144,8 @@ export class ChallengeSolution implements IChallengeSolution {
     public toRaw(): RawChallenge {
         return {
             epochNumber: this.epochNumber.toString(),
-            publicKey: this.publicKey.toHex(),
-            classicPublicKey: this.publicKey.tweakedToHex(),
+            mldsaPublicKey: this.publicKey.toHex(),
+            legacyPublicKey: this.publicKey.tweakedToHex(),
             solution: this.toHex(),
             salt: '0x' + this.salt.toString('hex'),
             graffiti: '0x' + this.graffiti.toString('hex'),
