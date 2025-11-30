@@ -1,7 +1,4 @@
-import {
-    IDeploymentParameters,
-    IInteractionParameters,
-} from '../interfaces/ITransactionParameters.js';
+import { IDeploymentParameters, IInteractionParameters, } from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { CancelledTransaction, DeploymentResult, InteractionResponse } from '../TransactionFactory';
 import { ICustomTransactionParameters } from '../builders/CustomScriptTransaction.js';
@@ -10,22 +7,22 @@ import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 export type InteractionParametersWithoutSigner = Omit<
     IInteractionParameters,
-    'signer' | 'challenge'
+    'signer' | 'challenge' | 'mldsaSigner'
 >;
 
 export type IDeploymentParametersWithoutSigner = Omit<
     IDeploymentParameters,
-    'signer' | 'network' | 'challenge'
+    'signer' | 'network' | 'challenge' | 'mldsaSigner'
 >;
 
 export type ICustomTransactionWithoutSigner = Omit<
     ICustomTransactionParameters,
-    'signer' | 'challenge'
+    'signer' | 'challenge' | 'mldsaSigner'
 >;
 
 export type ICancelTransactionParametersWithoutSigner = Omit<
     ICancelTransactionParameters,
-    'signer' | 'challenge' | 'network'
+    'signer' | 'challenge' | 'network' | 'mldsaSigner'
 >;
 
 export interface BroadcastTransactionOptions {
