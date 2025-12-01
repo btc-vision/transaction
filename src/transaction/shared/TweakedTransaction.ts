@@ -70,8 +70,6 @@ export enum CSVModes {
     TIMESTAMPS = 1,
 }
 
-const CSV_ENABLED_BLOCKS_MASK = 0x3fffffff;
-
 /**
  * @description PSBT Transaction processor.
  * */

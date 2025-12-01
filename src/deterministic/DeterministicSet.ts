@@ -59,7 +59,8 @@ export class DeterministicSet<T> {
     }
 
     private binarySearch(value: T): { found: boolean; index: number } {
-        let left = 0, right = this.elements.length;
+        let left = 0,
+            right = this.elements.length;
 
         while (left < right) {
             const mid = Math.floor((left + right) / 2);
