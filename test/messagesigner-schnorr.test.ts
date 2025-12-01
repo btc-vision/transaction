@@ -335,13 +335,13 @@ describe('MessageSigner Schnorr', () => {
             const message = 'Hello, OPNet!';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Unicode string', () => {
@@ -356,13 +356,13 @@ describe('MessageSigner Schnorr', () => {
             const message = '你好世界 🌍';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should fail verification with wrong message', () => {
@@ -378,13 +378,13 @@ describe('MessageSigner Schnorr', () => {
             const wrongMessage = 'Wrong message';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 wrongMessage,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
     });
 
@@ -401,13 +401,13 @@ describe('MessageSigner Schnorr', () => {
             const message = Buffer.from('Hello, Buffer!', 'utf-8');
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with binary Buffer', () => {
@@ -422,13 +422,13 @@ describe('MessageSigner Schnorr', () => {
             const message = Buffer.from([0x00, 0x01, 0x02, 0xff]);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -445,13 +445,13 @@ describe('MessageSigner Schnorr', () => {
             const message = new Uint8Array([1, 2, 3, 4, 5]);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Uint8Array public key', () => {
@@ -467,13 +467,13 @@ describe('MessageSigner Schnorr', () => {
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const publicKeyUint8 = new Uint8Array(wallet.keypair.publicKey);
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 publicKeyUint8,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -508,13 +508,13 @@ describe('MessageSigner Schnorr', () => {
             const message = 'Test message';
             const signed = MessageSigner.signMessage(wallet1.keypair, message);
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet2.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should fail verification with corrupted signature', () => {
@@ -532,13 +532,13 @@ describe('MessageSigner Schnorr', () => {
             const corruptedSignature = Buffer.from(signed.signature);
             corruptedSignature[0] ^= 0xff;
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 corruptedSignature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
     });
 
@@ -680,13 +680,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify tweaked signature with Buffer message', () => {
@@ -705,13 +705,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify tweaked signature with Uint8Array message', () => {
@@ -730,13 +730,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should fail verification with wrong message', () => {
@@ -756,13 +756,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 wrongMessage,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should fail verification with wrong public key', () => {
@@ -782,13 +782,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet2.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should not verify non-tweaked signature with tweakAndVerifySignature', () => {
@@ -803,13 +803,13 @@ describe('MessageSigner Schnorr', () => {
             const message = 'Test message';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should verify with Uint8Array public key', () => {
@@ -829,13 +829,13 @@ describe('MessageSigner Schnorr', () => {
             );
 
             const publicKeyUint8 = new Uint8Array(wallet.keypair.publicKey);
-            const isValid = MessageSigner.tweakAndVerifySignature(
+            const isValidLegacyPublicKey = MessageSigner.tweakAndVerifySignature(
                 publicKeyUint8,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -856,13 +856,13 @@ describe('MessageSigner Schnorr', () => {
                 networks.bitcoin,
             );
 
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 tweakedSigned.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should verify regular signature with regular verify, not with tweaked verify', () => {
@@ -959,13 +959,13 @@ describe('MessageSigner Schnorr', () => {
 
             const message = Buffer.from([0x00, 0x01, 0x00, 0x02, 0x00]);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should handle very long messages', () => {
@@ -979,13 +979,13 @@ describe('MessageSigner Schnorr', () => {
 
             const message = 'X'.repeat(100000);
             const signed = MessageSigner.signMessage(wallet.keypair, message);
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should handle messages with emoji', () => {
@@ -999,13 +999,13 @@ describe('MessageSigner Schnorr', () => {
 
             const message = '🚀🌙⭐🪐💫';
             const signed = MessageSigner.signMessage(wallet.keypair, message);
-            const isValid = MessageSigner.verifySignature(
+            const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 });

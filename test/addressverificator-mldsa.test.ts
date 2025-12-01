@@ -204,9 +204,12 @@ describe('AddressVerificator ML-DSA Support', () => {
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
-            const isValid = AddressVerificator.isValidP2OPAddress(p2opAddress, networks.bitcoin);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2opAddress,
+                networks.bitcoin,
+            );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should validate testnet P2OP address', () => {
@@ -219,9 +222,12 @@ describe('AddressVerificator ML-DSA Support', () => {
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.testnet);
 
-            const isValid = AddressVerificator.isValidP2OPAddress(p2opAddress, networks.testnet);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2opAddress,
+                networks.testnet,
+            );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should validate regtest P2OP address', () => {
@@ -234,9 +240,12 @@ describe('AddressVerificator ML-DSA Support', () => {
             const wallet = mnemonic.derive(0);
             const p2opAddress = wallet.address.p2op(networks.regtest);
 
-            const isValid = AddressVerificator.isValidP2OPAddress(p2opAddress, networks.regtest);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2opAddress,
+                networks.regtest,
+            );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should reject P2TR address as P2OP', () => {
@@ -249,9 +258,12 @@ describe('AddressVerificator ML-DSA Support', () => {
             const wallet = mnemonic.derive(0);
             const p2trAddress = wallet.p2tr;
 
-            const isValid = AddressVerificator.isValidP2OPAddress(p2trAddress, networks.bitcoin);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2trAddress,
+                networks.bitcoin,
+            );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should reject P2WPKH address as P2OP', () => {
@@ -264,22 +276,31 @@ describe('AddressVerificator ML-DSA Support', () => {
             const wallet = mnemonic.derive(0);
             const p2wpkhAddress = wallet.p2wpkh;
 
-            const isValid = AddressVerificator.isValidP2OPAddress(p2wpkhAddress, networks.bitcoin);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2wpkhAddress,
+                networks.bitcoin,
+            );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should reject invalid address string', () => {
             const invalidAddress = 'not a valid address';
-            const isValid = AddressVerificator.isValidP2OPAddress(invalidAddress, networks.bitcoin);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                invalidAddress,
+                networks.bitcoin,
+            );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should reject empty string', () => {
-            const isValid = AddressVerificator.isValidP2OPAddress('', networks.bitcoin);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                '',
+                networks.bitcoin,
+            );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should reject address on wrong network', () => {
@@ -293,9 +314,12 @@ describe('AddressVerificator ML-DSA Support', () => {
             const p2opAddress = wallet.address.p2op(networks.bitcoin);
 
             // Try to validate mainnet address on testnet
-            const isValid = AddressVerificator.isValidP2OPAddress(p2opAddress, networks.testnet);
+            const isValidLegacyPublicKey = AddressVerificator.isValidP2OPAddress(
+                p2opAddress,
+                networks.testnet,
+            );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
     });
 

@@ -919,12 +919,12 @@ describe('Address - Comprehensive Tests', () => {
         });
     });
 
-    describe('isValid Method', () => {
+    describe('isValidLegacyPublicKey Method', () => {
         it('should validate address on mainnet', () => {
             const addr = getValidAddress();
-            const isValid = addr.isValid(networks.bitcoin);
+            const isValidLegacyPublicKey = addr.isValidLegacyPublicKey(networks.bitcoin);
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should validate address on testnet', () => {
@@ -935,9 +935,9 @@ describe('Address - Comprehensive Tests', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
             const wallet = mnemonic.derive(0);
-            const isValid = wallet.address.isValid(networks.testnet);
+            const isValidLegacyPublicKey = wallet.address.isValidLegacyPublicKey(networks.testnet);
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 

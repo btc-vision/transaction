@@ -410,13 +410,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = 'Hello, OPNet!';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with empty string', () => {
@@ -431,13 +431,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Unicode string', () => {
@@ -452,13 +452,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '你好世界 🌍';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with emoji string', () => {
@@ -473,13 +473,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '🚀🌙⭐';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -496,13 +496,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = Buffer.from('Hello, Buffer!', 'utf-8');
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Buffer from hex', () => {
@@ -517,13 +517,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = Buffer.from('deadbeef', 'hex');
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with binary Buffer', () => {
@@ -538,13 +538,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = Buffer.from([0x00, 0x01, 0x02, 0xff]);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with empty Buffer', () => {
@@ -559,13 +559,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = Buffer.alloc(0);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Buffer containing null bytes', () => {
@@ -580,13 +580,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = Buffer.from([0x00, 0x01, 0x00, 0x02, 0x00]);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -603,13 +603,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = new Uint8Array([1, 2, 3, 4, 5]);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Uint8Array from TextEncoder', () => {
@@ -625,13 +625,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = encoder.encode('Hello, TextEncoder!');
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with empty Uint8Array', () => {
@@ -646,13 +646,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = new Uint8Array(0);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature with Uint8Array containing all byte values', () => {
@@ -670,13 +670,13 @@ describe('MessageSigner ML-DSA', () => {
             }
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -694,13 +694,13 @@ describe('MessageSigner ML-DSA', () => {
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageString);
 
             const messageBuffer = Buffer.from(messageString, 'utf-8');
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 messageBuffer,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature signed with Buffer using string', () => {
@@ -716,13 +716,13 @@ describe('MessageSigner ML-DSA', () => {
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageBuffer);
 
             const messageString = 'Hello, World!';
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 messageString,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should verify signature signed with Uint8Array using Buffer', () => {
@@ -738,13 +738,13 @@ describe('MessageSigner ML-DSA', () => {
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, messageUint8);
 
             const messageBuffer = Buffer.from(messageUint8);
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 messageBuffer,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -762,13 +762,13 @@ describe('MessageSigner ML-DSA', () => {
             const wrongMessage = 'Wrong message';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 wrongMessage,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should fail verification with wrong keypair', () => {
@@ -784,13 +784,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = 'Hello, OPNet!';
             const signed = MessageSigner.signMLDSAMessage(wallet1.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet2.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should fail verification with corrupted signature', () => {
@@ -809,13 +809,13 @@ describe('MessageSigner ML-DSA', () => {
             const corruptedSignature = Buffer.from(signed.signature);
             corruptedSignature[0] ^= 0xff;
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 corruptedSignature,
             );
 
-            expect(isValid).toBe(false);
+            expect(isValidLegacyPublicKey).toBe(false);
         });
 
         it('should verify signatures across different security levels', () => {
@@ -832,13 +832,13 @@ describe('MessageSigner ML-DSA', () => {
                 const message = `Test message for security level ${level}`;
                 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-                const isValid = MessageSigner.verifyMLDSASignature(
+                const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                     wallet.mldsaKeypair,
                     message,
                     signed.signature,
                 );
 
-                expect(isValid).toBe(true);
+                expect(isValidLegacyPublicKey).toBe(true);
             }
         });
     });
@@ -862,13 +862,13 @@ describe('MessageSigner ML-DSA', () => {
             );
 
             // Verify the signature
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 
@@ -985,13 +985,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should sign and verify very long message', () => {
@@ -1006,13 +1006,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = 'A'.repeat(10000);
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should sign and verify message with special characters', () => {
@@ -1027,13 +1027,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '!@#$%^&*()_+-=[]{}|;:",.<>?/~`\n\t\r';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
 
         it('should sign and verify Unicode message', () => {
@@ -1048,13 +1048,13 @@ describe('MessageSigner ML-DSA', () => {
             const message = '你好世界 🌍 مرحبا العالم';
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
-            const isValid = MessageSigner.verifyMLDSASignature(
+            const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,
                 message,
                 signed.signature,
             );
 
-            expect(isValid).toBe(true);
+            expect(isValidLegacyPublicKey).toBe(true);
         });
     });
 });

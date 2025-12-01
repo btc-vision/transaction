@@ -46,7 +46,7 @@ export default {
         rules: [
             {
                 test: /\.(js|jsx|tsx|ts)$/,
-                exclude: /node_modules/,
+                exclude: [/node_modules/, /test/, /__tests__/],
                 resolve: {
                     fullySpecified: false,
                 },
