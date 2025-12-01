@@ -97,13 +97,23 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         // Validate P2WDA inputs
         this.validateP2WDAInputs();
 
-        this.compiledOperationData = this.p2wdaGenerator.compile(
-            this.calldata,
-            this.contractSecret,
-            this.challenge,
-            this.priorityFee,
-            this.generateFeatures(parameters),
-        );
+        if (parameters.compiledTargetScript) {
+            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+                this.compiledOperationData = parameters.compiledTargetScript;
+            } else if (typeof parameters.compiledTargetScript === 'string') {
+                this.compiledOperationData = Buffer.from(parameters.compiledTargetScript, 'hex');
+            } else {
+                throw new Error('Invalid compiled target script format.');
+            }
+        } else {
+            this.compiledOperationData = this.p2wdaGenerator.compile(
+                this.calldata,
+                this.contractSecret,
+                this.challenge,
+                this.priorityFee,
+                this.generateFeatures(parameters),
+            );
+        }
 
         // Validate size early
         this.validateOperationDataSize();

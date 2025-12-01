@@ -41,7 +41,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
 
-    readonly compiledTargetScript?: Buffer;
+    readonly compiledTargetScript?: Buffer | string;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {

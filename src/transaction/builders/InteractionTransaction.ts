@@ -36,13 +36,23 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             throw new Error('Invalid contract secret length. Expected 32 bytes.');
         }
 
-        this.compiledTargetScript = this.calldataGenerator.compile(
-            this.calldata,
-            this.contractSecret,
-            this.challenge,
-            this.priorityFee,
-            this.generateFeatures(parameters),
-        );
+        if (parameters.compiledTargetScript) {
+            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+                this.compiledTargetScript = parameters.compiledTargetScript;
+            } else if (typeof parameters.compiledTargetScript === 'string') {
+                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+            } else {
+                throw new Error('Invalid compiled target script format.');
+            }
+        } else {
+            this.compiledTargetScript = this.calldataGenerator.compile(
+                this.calldata,
+                this.contractSecret,
+                this.challenge,
+                this.priorityFee,
+                this.generateFeatures(parameters),
+            );
+        }
 
         this.scriptTree = this.getScriptTree();
         this.internalInit();

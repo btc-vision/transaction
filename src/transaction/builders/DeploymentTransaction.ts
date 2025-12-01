@@ -146,9 +146,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.network,
         );
 
-        this.compiledTargetScript =
-            parameters.compiledTargetScript ||
-            this.deploymentGenerator.compile(
+        if (parameters.compiledTargetScript) {
+            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+                this.compiledTargetScript = parameters.compiledTargetScript;
+            } else if (typeof parameters.compiledTargetScript === 'string') {
+                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+            } else {
+                throw new Error('Invalid compiled target script format.');
+            }
+        } else {
+            this.compiledTargetScript = this.deploymentGenerator.compile(
                 this.bytecode,
                 this.randomBytes,
                 this.challenge,
@@ -156,6 +163,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 this.calldata,
                 this.generateFeatures(parameters),
             );
+        }
 
         this.scriptTree = this.getScriptTree();
 
