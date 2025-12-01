@@ -76,6 +76,16 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             });
         }
 
+        if (parameters.revealMLDSAPublicKey && !parameters.linkMLDSAPublicKeyToAddress) {
+            throw new Error(
+                'To reveal the MLDSA public key, you must set linkMLDSAPublicKeyToAddress to true.',
+            );
+        }
+
+        if (parameters.linkMLDSAPublicKeyToAddress) {
+            this.generateMLDSALinkRequest(parameters, features);
+        }
+
         return features;
     }
 }
