@@ -9,6 +9,7 @@ import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js'
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { sha256 } from '@noble/hashes/sha2';
+import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 /**
  * Objects of type "Address" represent hashed ML-DSA (quantum) public keys (using SHA256 of quantum keys) and maintain classical public keys separately.
@@ -32,6 +33,8 @@ export class Address extends Uint8Array {
     #mldsaPublicKey: Uint8Array | undefined;
     #cachedBigInt: bigint | undefined;
     #cachedUint64Array: [bigint, bigint, bigint, bigint] | undefined;
+    #originalMDLSAPublicKey: Uint8Array | undefined;
+    #mldsaLevel: MLDSASecurityLevel | undefined;
 
     private legacyPublicKey: Uint8Array | undefined;
 
@@ -48,6 +51,22 @@ export class Address extends Uint8Array {
         }
 
         this.set(mldsaPublicKey);
+    }
+
+    public get mldsaLevel(): MLDSASecurityLevel | undefined {
+        return this.#mldsaLevel;
+    }
+
+    public set mldsaLevel(level: MLDSASecurityLevel) {
+        this.#mldsaLevel = level;
+    }
+
+    public get originalMDLSAPublicKey(): Uint8Array | undefined {
+        return this.#originalMDLSAPublicKey;
+    }
+
+    public set originalMDLSAPublicKey(key: Buffer | Uint8Array) {
+        this.#originalMDLSAPublicKey = new Uint8Array(key);
     }
 
     /**

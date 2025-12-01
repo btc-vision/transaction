@@ -1,4 +1,7 @@
-import { IDeploymentParameters, IInteractionParameters, } from '../interfaces/ITransactionParameters.js';
+import {
+    IDeploymentParameters,
+    IInteractionParameters,
+} from '../interfaces/ITransactionParameters.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { CancelledTransaction, DeploymentResult, InteractionResponse } from '../TransactionFactory';
 import { ICustomTransactionParameters } from '../builders/CustomScriptTransaction.js';
