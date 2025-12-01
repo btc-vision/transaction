@@ -113,6 +113,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     public constructor(parameters: IDeploymentParameters) {
         super(parameters);
 
+        if (!this.hashedPublicKey) {
+            throw new Error('MLDSA signer must be defined to deploy a contract.');
+        }
+
         this.bytecode = Compressor.compress(Buffer.concat([versionBuffer, parameters.bytecode]));
 
         this.verifyBytecode();
@@ -142,14 +146,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             this.network,
         );
 
-        this.compiledTargetScript = this.deploymentGenerator.compile(
-            this.bytecode,
-            this.randomBytes,
-            this.challenge,
-            this.priorityFee,
-            this.calldata,
-            this.generateFeatures(parameters),
-        );
+        this.compiledTargetScript =
+            parameters.compiledTargetScript ||
+            this.deploymentGenerator.compile(
+                this.bytecode,
+                this.randomBytes,
+                this.challenge,
+                this.priorityFee,
+                this.calldata,
+                this.generateFeatures(parameters),
+            );
 
         this.scriptTree = this.getScriptTree();
 
@@ -178,6 +184,10 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      */
     public get p2trAddress(): string {
         return this.to || this.getScriptAddress();
+    }
+
+    public exportCompiledTargetScript(): Buffer {
+        return this.compiledTargetScript;
     }
 
     /**
@@ -364,6 +374,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
                 opcode: Features.EPOCH_SUBMISSION,
                 data: submission,
             });
+        }
+
+        if (parameters.revealMLDSAPublicKey && !parameters.linkMLDSAPublicKeyToAddress) {
+            throw new Error(
+                'To reveal the MLDSA public key, you must set linkMLDSAPublicKeyToAddress to true.',
+            );
+        }
+
+        if (parameters.linkMLDSAPublicKeyToAddress) {
+            this.generateMLDSALinkRequest(parameters, features);
         }
 
         return features;

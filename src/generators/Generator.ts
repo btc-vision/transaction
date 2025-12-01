@@ -1,6 +1,6 @@
 import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
-import { AccessListFeature, EpochSubmissionFeature, Feature, Features } from './Features.js';
+import { AccessListFeature, EpochSubmissionFeature, Feature, Features, MLDSALinkRequest, } from './Features.js';
 import { Address } from '../keypair/Address.js';
 import { Compressor } from '../bytecode/Compressor.js';
 
@@ -117,6 +117,11 @@ export abstract class Generator {
                     this.encodeChallengeSubmission(feature as EpochSubmissionFeature),
                 );
             }
+            case Features.MLDSA_LINK_PUBKEY: {
+                return this.splitBufferIntoChunks(
+                    this.encodeLinkRequest(feature as MLDSALinkRequest),
+                );
+            }
             default:
                 throw new Error(`Unknown feature type: ${feature.opcode}`);
         }
@@ -154,12 +159,40 @@ export abstract class Generator {
         }
 
         const writer = new BinaryWriter();
-        writer.writeBytes(feature.data.publicKey.originalPublicKeyBuffer());
+        writer.writeBytes(feature.data.publicKey.toBuffer());
         writer.writeBytes(feature.data.solution);
 
         if (feature.data.graffiti) {
             writer.writeBytesWithLength(feature.data.graffiti);
         }
+
+        return Buffer.from(writer.getBuffer());
+    }
+
+    private encodeLinkRequest(feature: MLDSALinkRequest): Buffer {
+        const data = feature.data;
+
+        const writer = new BinaryWriter();
+        writer.writeU8(data.level);
+        writer.writeBytes(data.hashedPublicKey);
+        writer.writeBoolean(data.verifyRequest);
+
+        if (data.verifyRequest) {
+            if (!data.publicKey || !data.mldsaSignature) {
+                throw new Error(
+                    'MLDSA public key and signature required when verifyRequest is true',
+                );
+            }
+
+            writer.writeBytes(data.publicKey);
+            writer.writeBytes(data.mldsaSignature);
+        }
+
+        if (!data.legacySignature || data.legacySignature.length !== 64) {
+            throw new Error('Legacy signature must be exactly 64 bytes');
+        }
+
+        writer.writeBytes(data.legacySignature);
 
         return Buffer.from(writer.getBuffer());
     }

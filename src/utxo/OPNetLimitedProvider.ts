@@ -12,6 +12,7 @@ export interface WalletUTXOs {
     readonly confirmed: RawUTXOResponse[];
     readonly pending: RawUTXOResponse[];
     readonly spentTransactions: RawUTXOResponse[];
+    readonly raw: string[];
 }
 
 /**
@@ -53,6 +54,8 @@ export class OPNetLimitedProvider {
         }
 
         const fetchedData: WalletUTXOs = (await resp.json()) as WalletUTXOs;
+        const rawTransactions = fetchedData.raw ?? [];
+
         const allUtxos = settings.usePendingUTXO
             ? [...fetchedData.confirmed, ...fetchedData.pending]
             : fetchedData.confirmed;
@@ -91,9 +94,22 @@ export class OPNetLimitedProvider {
         for (const utxo of meetCriteria) {
             const utxoValue: bigint = BigInt(utxo.value);
 
-            // check if value is greater than 0
             if (utxoValue <= 0n) {
                 continue;
+            }
+
+            const rawIndex = utxo.raw as unknown as number;
+            if (rawIndex === undefined || rawIndex === null) {
+                throw new Error(
+                    `Missing raw index for UTXO ${utxo.transactionId}:${utxo.outputIndex}`,
+                );
+            }
+
+            const rawHex = rawTransactions[rawIndex];
+            if (!rawHex) {
+                throw new Error(
+                    `Invalid raw index ${rawIndex} - not found in raw transactions array`,
+                );
             }
 
             currentAmount += utxoValue;
@@ -102,7 +118,7 @@ export class OPNetLimitedProvider {
                 outputIndex: utxo.outputIndex,
                 value: utxoValue,
                 scriptPubKey: utxo.scriptPubKey,
-                nonWitnessUtxo: Buffer.from(utxo.raw, 'base64'),
+                nonWitnessUtxo: Buffer.from(rawHex, 'base64'),
             });
 
             if (currentAmount > amountRequested) {
@@ -213,6 +229,7 @@ export class OPNetLimitedProvider {
             splitInputsInto,
             priorityFee: 0n,
             gasSatFee: 330n,
+            mldsaSigner: null,
         };
 
         const transactionFactory = new TransactionFactory();

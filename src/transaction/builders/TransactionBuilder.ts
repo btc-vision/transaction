@@ -27,6 +27,12 @@ import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
+import { Feature, Features, MLDSALinkRequest } from '../../generators/Features.js';
+import { BITCOIN_PROTOCOL_ID, getChainId } from '../../chain/ChainData.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
+import { MLDSASecurityLevel } from '@btc-vision/bip32';
+import { MessageSigner } from '../../keypair/MessageSigner.js';
+import { getLevelFromPublicKeyLength } from '../../generators/MLDSAData.js';
 
 initEccLib(ecc);
 
@@ -288,6 +294,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             amount: this.estimatedFees,
             optionalOutputs: this.optionalOutputs,
             optionalInputs: this.optionalInputs,
+            mldsaSigner: null,
         };
     }
 
@@ -872,6 +879,106 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         throw new Error('Output not found');
+    }
+
+    protected generateLegacySignature(): Buffer {
+        this.tweakSigner();
+
+        if (!this.tweakedSigner) {
+            throw new Error('Tweaked signer is not defined');
+        }
+
+        const tweakedKey = toXOnly(this.tweakedSigner.publicKey);
+        const chainId = getChainId(this.network);
+
+        const writer = new BinaryWriter();
+
+        // ONLY SUPPORT MLDSA-44 FOR NOW.
+        writer.writeU8(MLDSASecurityLevel.LEVEL2);
+        writer.writeBytes(this.hashedPublicKey);
+        writer.writeBytes(tweakedKey);
+        writer.writeBytes(BITCOIN_PROTOCOL_ID);
+        writer.writeBytes(chainId);
+
+        const message = writer.getBuffer();
+        const signature = MessageSigner.signMessage(this.tweakedSigner, message);
+        const isValid = MessageSigner.verifySignature(tweakedKey, message, signature.signature);
+
+        if (!isValid) {
+            throw new Error('Could not verify generated legacy signature for MLDSA link request');
+        }
+
+        return Buffer.from(signature.signature);
+    }
+
+    protected generateMLDSASignature(): Buffer {
+        if (!this.mldsaSigner) {
+            throw new Error('MLDSA signer is not defined');
+        }
+
+        this.tweakSigner();
+
+        if (!this.tweakedSigner) {
+            throw new Error('Tweaked signer is not defined');
+        }
+
+        const tweakedKey = toXOnly(this.tweakedSigner.publicKey);
+        const chainId = getChainId(this.network);
+        const level = getLevelFromPublicKeyLength(this.mldsaSigner.publicKey.length);
+
+        if (level !== MLDSASecurityLevel.LEVEL2) {
+            throw new Error('Only MLDSA level 2 is supported for link requests');
+        }
+
+        const writer = new BinaryWriter();
+        writer.writeU8(level);
+        writer.writeBytes(this.hashedPublicKey);
+        writer.writeBytes(this.mldsaSigner.publicKey);
+        writer.writeBytes(tweakedKey);
+        writer.writeBytes(BITCOIN_PROTOCOL_ID);
+        writer.writeBytes(chainId);
+
+        const message = writer.getBuffer();
+        const signature = MessageSigner.signMLDSAMessage(this.mldsaSigner, message);
+
+        const isValid = MessageSigner.verifyMLDSASignature(
+            this.mldsaSigner,
+            message,
+            signature.signature,
+        );
+
+        if (!isValid) {
+            throw new Error('Could not verify generated MLDSA signature for link request');
+        }
+
+        return Buffer.from(signature.signature);
+    }
+
+    protected generateMLDSALinkRequest(
+        parameters: ITransactionParameters,
+        features: Feature<Features>[],
+    ): void {
+        const mldsaSigner = this.mldsaSigner;
+        const legacySignature = this.generateLegacySignature();
+
+        let mldsaSignature: Buffer | null = null;
+        if (parameters.revealMLDSAPublicKey) {
+            mldsaSignature = this.generateMLDSASignature();
+        }
+
+        const mldsaRequest: MLDSALinkRequest = {
+            opcode: Features.MLDSA_LINK_PUBKEY,
+            data: {
+                verifyRequest: !!parameters.revealMLDSAPublicKey,
+                publicKey: mldsaSigner.publicKey,
+                hashedPublicKey: this.hashedPublicKey,
+                level: getLevelFromPublicKeyLength(mldsaSigner.publicKey.length),
+                legacySignature: legacySignature,
+                mldsaSignature: mldsaSignature,
+            },
+        };
+
+        features.push(mldsaRequest);
     }
 
     /**

@@ -9,6 +9,7 @@ import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js'
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { sha256 } from '@noble/hashes/sha2';
+import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 /**
  * Objects of type "Address" represent hashed ML-DSA (quantum) public keys (using SHA256 of quantum keys) and maintain classical public keys separately.
@@ -32,8 +33,10 @@ export class Address extends Uint8Array {
     #mldsaPublicKey: Uint8Array | undefined;
     #cachedBigInt: bigint | undefined;
     #cachedUint64Array: [bigint, bigint, bigint, bigint] | undefined;
+    #originalMDLSAPublicKey: Uint8Array | undefined;
+    #mldsaLevel: MLDSASecurityLevel | undefined;
 
-    private classicPublicKey: Uint8Array | undefined;
+    private legacyPublicKey: Uint8Array | undefined;
 
     public constructor(mldsaPublicKey?: ArrayLike<number>, publicKeyOrTweak?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -43,11 +46,27 @@ export class Address extends Uint8Array {
         }
 
         if (publicKeyOrTweak) {
-            this.classicPublicKey = new Uint8Array(publicKeyOrTweak.length);
-            this.classicPublicKey.set(publicKeyOrTweak);
+            this.legacyPublicKey = new Uint8Array(publicKeyOrTweak.length);
+            this.legacyPublicKey.set(publicKeyOrTweak);
         }
 
         this.set(mldsaPublicKey);
+    }
+
+    public get mldsaLevel(): MLDSASecurityLevel | undefined {
+        return this.#mldsaLevel;
+    }
+
+    public set mldsaLevel(level: MLDSASecurityLevel) {
+        this.#mldsaLevel = level;
+    }
+
+    public get originalMDLSAPublicKey(): Uint8Array | undefined {
+        return this.#originalMDLSAPublicKey;
+    }
+
+    public set originalMDLSAPublicKey(key: Buffer | Uint8Array) {
+        this.#originalMDLSAPublicKey = new Uint8Array(key);
     }
 
     /**
@@ -68,7 +87,7 @@ export class Address extends Uint8Array {
      */
     private get keyPair(): ECPairInterface {
         if (!this.#keyPair) {
-            throw new Error('Classical public key not set for address');
+            throw new Error('Legacy public key not set for address');
         }
 
         return this.#keyPair;
@@ -84,10 +103,10 @@ export class Address extends Uint8Array {
     /**
      * Create an address from a hex string
      * @param {string} mldsaPublicKey The ml-dsa public key in hex format
-     * @param {string} classicPublicKey The classical public key in hex format
+     * @param {string} legacyPublicKey The classical public key in hex format
      * @returns {Address} The address
      */
-    public static fromString(mldsaPublicKey: string, classicPublicKey?: string): Address {
+    public static fromString(mldsaPublicKey: string, legacyPublicKey?: string): Address {
         if (!mldsaPublicKey) {
             throw new Error('Invalid public key');
         }
@@ -103,18 +122,18 @@ export class Address extends Uint8Array {
         }
 
         let classicBuffer: Buffer | undefined;
-        if (classicPublicKey) {
-            if (classicPublicKey.startsWith('0x')) {
-                classicPublicKey = classicPublicKey.slice(2);
+        if (legacyPublicKey) {
+            if (legacyPublicKey.startsWith('0x')) {
+                legacyPublicKey = legacyPublicKey.slice(2);
             }
 
-            if (!BitcoinUtils.isValidHex(classicPublicKey)) {
+            if (!BitcoinUtils.isValidHex(legacyPublicKey)) {
                 throw new Error(
                     'You must only pass classical public keys in hexadecimal format. If you have an address such as bc1q... you must convert it to a public key first. Please refer to await provider.getPublicKeyInfo("bc1q..."). If the public key associated with the address is not found, you must force the user to enter the destination public key. It looks like: 0x020373626d317ae8788ce3280b491068610d840c23ecb64c14075bbb9f670af52c.',
                 );
             }
 
-            classicBuffer = Buffer.from(classicPublicKey, 'hex');
+            classicBuffer = Buffer.from(legacyPublicKey, 'hex');
         }
 
         return new Address(Buffer.from(mldsaPublicKey, 'hex'), classicBuffer);
@@ -246,6 +265,20 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Check if the address is the dead address
+     * @returns {boolean}
+     */
+    public isDead(): boolean {
+        for (let i = 0; i < ADDRESS_BYTE_LENGTH; i++) {
+            if (this[i] !== 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Converts the address to a hex string
      * @returns {string} The hex string
      */
@@ -258,11 +291,11 @@ export class Address extends Uint8Array {
      * @returns {string} The hex string
      */
     public tweakedToHex(): string {
-        if (!this.classicPublicKey) {
-            throw new Error('Classical public key not set');
+        if (!this.legacyPublicKey) {
+            throw new Error('Legacy public key not set');
         }
 
-        return '0x' + Buffer.from(this.classicPublicKey).toString('hex');
+        return '0x' + Buffer.from(this.legacyPublicKey).toString('hex');
     }
 
     /**
@@ -278,16 +311,16 @@ export class Address extends Uint8Array {
      * @returns {Buffer} The buffer
      */
     public tweakedPublicKeyToBuffer(): Buffer {
-        if (!this.classicPublicKey) {
-            throw new Error('Classical public key not set');
+        if (!this.legacyPublicKey) {
+            throw new Error('Legacy public key not set');
         }
 
-        return Buffer.from(this.classicPublicKey);
+        return Buffer.from(this.legacyPublicKey);
     }
 
     public toUncompressedHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return '0x' + this.#uncompressed.uncompressed.toString('hex');
@@ -295,7 +328,7 @@ export class Address extends Uint8Array {
 
     public toUncompressedBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return this.#uncompressed.uncompressed;
@@ -303,7 +336,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyHex(): string {
         if (!this.#uncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return '0x' + this.#uncompressed.hybrid.toString('hex');
@@ -311,7 +344,7 @@ export class Address extends Uint8Array {
 
     public toHybridPublicKeyBuffer(): Buffer {
         if (!this.#uncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return this.#uncompressed.hybrid;
@@ -319,7 +352,7 @@ export class Address extends Uint8Array {
 
     public originalPublicKeyBuffer(): Buffer {
         if (!this.#originalPublicKey) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return Buffer.from(this.#originalPublicKey);
@@ -421,19 +454,19 @@ export class Address extends Uint8Array {
      * @returns {void}
      */
     public override set(mldsaPublicKey: ArrayLike<number>): void {
-        if (this.classicPublicKey) {
+        if (this.legacyPublicKey) {
             const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
-            if (!validLengths.includes(this.classicPublicKey.length)) {
-                throw new Error(`Invalid public key length ${this.classicPublicKey.length}`);
+            if (!validLengths.includes(this.legacyPublicKey.length)) {
+                throw new Error(`Invalid public key length ${this.legacyPublicKey.length}`);
             }
 
-            if (this.classicPublicKey.length === ADDRESS_BYTE_LENGTH) {
+            if (this.legacyPublicKey.length === ADDRESS_BYTE_LENGTH) {
                 const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
-                buf.set(this.classicPublicKey);
+                buf.set(this.legacyPublicKey);
 
                 this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
             } else {
-                this.autoFormat(this.classicPublicKey);
+                this.autoFormat(this.legacyPublicKey);
             }
         }
 
@@ -475,8 +508,15 @@ export class Address extends Uint8Array {
      * @param {Network} network The network
      * @returns {boolean} If the public key is valid
      */
-    public isValid(network: Network): boolean {
-        return AddressVerificator.isValidPublicKey(Buffer.from(this).toString('hex'), network);
+    public isValidLegacyPublicKey(network: Network): boolean {
+        if (!this.legacyPublicKey) {
+            throw new Error(`Legacy key not set.`);
+        }
+
+        return AddressVerificator.isValidPublicKey(
+            Buffer.from(this.legacyPublicKey).toString('hex'),
+            network,
+        );
     }
 
     /**
@@ -529,8 +569,8 @@ export class Address extends Uint8Array {
      * @param {Network} network The network
      */
     public p2tr(network: Network): string {
-        if (!this.classicPublicKey) {
-            throw new Error('Classical public key not set');
+        if (!this.legacyPublicKey) {
+            throw new Error('Legacy public key not set');
         }
 
         if (this.#p2tr && this.#network === network) {
@@ -538,7 +578,7 @@ export class Address extends Uint8Array {
         }
 
         const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(
-            this.classicPublicKey,
+            this.legacyPublicKey,
             network,
         );
 
@@ -549,7 +589,7 @@ export class Address extends Uint8Array {
             return p2trAddy;
         }
 
-        throw new Error('Classical public key not set');
+        throw new Error('Legacy public key not set');
     }
 
     /**
@@ -665,7 +705,7 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyHex(): string {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return '0x' + this.#tweakedUncompressed.toString('hex');
@@ -673,7 +713,7 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyBuffer(): Buffer {
         if (!this.#tweakedUncompressed) {
-            throw new Error('Classical public key not set');
+            throw new Error('Legacy public key not set');
         }
 
         return this.#tweakedUncompressed;
@@ -699,7 +739,7 @@ export class Address extends Uint8Array {
 
         this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(tweakedBytes);
 
-        this.classicPublicKey = new Uint8Array(ADDRESS_BYTE_LENGTH);
-        this.classicPublicKey.set(tweakedBytes);
+        this.legacyPublicKey = new Uint8Array(ADDRESS_BYTE_LENGTH);
+        this.legacyPublicKey.set(tweakedBytes);
     }
 }

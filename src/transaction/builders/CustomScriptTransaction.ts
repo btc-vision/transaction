@@ -137,6 +137,10 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         return this.to || this.getScriptAddress();
     }
 
+    public exportCompiledTargetScript(): Buffer {
+        return this.compiledTargetScript;
+    }
+
     /**
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes

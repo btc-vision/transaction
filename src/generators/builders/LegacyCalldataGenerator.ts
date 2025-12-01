@@ -7,6 +7,7 @@ import { Feature, Features } from '../Features.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
+ * @deprecated
  */
 export class LegacyCalldataGenerator extends Generator {
     constructor(senderPubKey: Buffer, network: Network = networks.bitcoin) {

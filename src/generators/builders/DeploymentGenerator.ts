@@ -41,6 +41,7 @@ export class DeploymentGenerator extends Generator {
             calldata,
             features,
         );
+
         const compiled = script.compile(asm);
 
         /**
@@ -85,7 +86,7 @@ export class DeploymentGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            challenge.publicKey.originalPublicKeyBuffer(),
+            challenge.publicKey.toBuffer(),
             opcodes.OP_TOALTSTACK,
 
             challenge.solution,

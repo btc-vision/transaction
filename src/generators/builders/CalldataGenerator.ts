@@ -90,7 +90,7 @@ export class CalldataGenerator extends Generator {
             opcodes.OP_TOALTSTACK,
 
             // CHALLENGE PREIMAGE FOR REWARD,
-            challenge.publicKey.originalPublicKeyBuffer(),
+            challenge.publicKey.toBuffer(),
             opcodes.OP_TOALTSTACK,
 
             challenge.solution,

@@ -13,6 +13,16 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     readonly to?: string;
     readonly debugFees?: boolean;
 
+    /**
+     * Reveal this user's MLDSA public key in the transaction features.
+     */
+    readonly revealMLDSAPublicKey?: boolean;
+
+    /**
+     * Link the user MLDSA public key to their legacy public key.
+     */
+    readonly linkMLDSAPublicKeyToAddress?: boolean;
+
     utxos: UTXO[];
 
     nonWitnessUtxo?: Buffer;
@@ -30,6 +40,8 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     readonly feeRate: number;
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
+
+    readonly compiledTargetScript?: Buffer;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {

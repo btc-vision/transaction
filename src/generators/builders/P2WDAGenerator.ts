@@ -4,6 +4,10 @@ import { Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
+/**
+ * @category Generators
+ * @remarks Not fully implemented yet
+ */
 export class P2WDAGenerator extends Generator {
     private static readonly P2WDA_VERSION = 0x01;
 
@@ -90,7 +94,7 @@ export class P2WDAGenerator extends Generator {
         writer.writeBytes(contractSecret);
 
         // Challenge components for epoch rewards
-        writer.writeBytes(challenge.publicKey.originalPublicKeyBuffer());
+        writer.writeBytes(challenge.publicKey.toBuffer());
         writer.writeBytes(challenge.solution);
 
         // Calldata with length prefix

@@ -188,6 +188,7 @@ export class TransactionFactory {
             randomBytes: finalTransaction.getRndBytes(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: finalTransaction.estimatedFees,
+            compiledTargetScript: finalTransaction.exportCompiledTargetScript(),
             optionalInputs: inputs,
         };
 
@@ -288,6 +289,7 @@ export class TransactionFactory {
             utxos: fundingUTXO,
             randomBytes: finalTransaction.getRndBytes(),
             challenge: challenge,
+            compiledTargetScript: finalTransaction.exportCompiledTargetScript(),
             nonWitnessUtxo: signedTransaction.tx.toBuffer(),
             estimatedFees: finalTransaction.estimatedFees,
             optionalInputs: inputs,
@@ -392,6 +394,7 @@ export class TransactionFactory {
             ...deploymentParameters,
             utxos: [newUtxo],
             randomBytes: finalTransaction.getRndBytes(),
+            compiledTargetScript: finalTransaction.exportCompiledTargetScript(),
             challenge: challenge,
             nonWitnessUtxo: signedTransaction.toBuffer(),
             estimatedFees: finalTransaction.estimatedFees,
