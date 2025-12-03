@@ -82,6 +82,9 @@ export class DeploymentGenerator extends Generator {
 
                 const data = this.encodeFeature(feature);
                 featureData.push(...data);
+
+                // Separator between features so decoder knows where each ends
+                featureData.push(opcodes.OP_0);
             }
         }
 
