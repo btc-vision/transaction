@@ -105,29 +105,26 @@ export abstract class Generator {
         return chunks;
     }
 
-    protected encodeFeature(feature: Feature<Features>): Buffer[][] {
+    protected encodeFeature(feature: Feature<Features>, finalBuffer: BinaryWriter): void {
         switch (feature.opcode) {
             case Features.ACCESS_LIST: {
-                return this.splitBufferIntoChunks(
-                    this.encodeAccessListFeature(feature as AccessListFeature),
-                );
+                return this.encodeAccessListFeature(feature as AccessListFeature, finalBuffer);
             }
             case Features.EPOCH_SUBMISSION: {
-                return this.splitBufferIntoChunks(
-                    this.encodeChallengeSubmission(feature as EpochSubmissionFeature),
+                return this.encodeChallengeSubmission(
+                    feature as EpochSubmissionFeature,
+                    finalBuffer,
                 );
             }
             case Features.MLDSA_LINK_PUBKEY: {
-                return this.splitBufferIntoChunks(
-                    this.encodeLinkRequest(feature as MLDSALinkRequest),
-                );
+                return this.encodeLinkRequest(feature as MLDSALinkRequest, finalBuffer);
             }
             default:
                 throw new Error(`Unknown feature type: ${feature.opcode}`);
         }
     }
 
-    private encodeAccessListFeature(feature: AccessListFeature): Buffer {
+    private encodeAccessListFeature(feature: AccessListFeature, finalBuffer: BinaryWriter): void {
         const writer = new BinaryWriter();
 
         writer.writeU16(Object.keys(feature.data).length);
@@ -150,10 +147,13 @@ export abstract class Generator {
             }
         }
 
-        return Compressor.compress(Buffer.from(writer.getBuffer()));
+        finalBuffer.writeBytesWithLength(Compressor.compress(Buffer.from(writer.getBuffer())));
     }
 
-    private encodeChallengeSubmission(feature: EpochSubmissionFeature): Buffer {
+    private encodeChallengeSubmission(
+        feature: EpochSubmissionFeature,
+        finalBuffer: BinaryWriter,
+    ): void {
         if ('verifySignature' in feature.data && !feature.data.verifySignature()) {
             throw new Error('Invalid signature in challenge submission feature');
         }
@@ -166,10 +166,10 @@ export abstract class Generator {
             writer.writeBytesWithLength(feature.data.graffiti);
         }
 
-        return Buffer.from(writer.getBuffer());
+        finalBuffer.writeBytesWithLength(writer.getBuffer());
     }
 
-    private encodeLinkRequest(feature: MLDSALinkRequest): Buffer {
+    private encodeLinkRequest(feature: MLDSALinkRequest, finalBuffer: BinaryWriter): void {
         const data = feature.data;
 
         const writer = new BinaryWriter();
@@ -194,6 +194,6 @@ export abstract class Generator {
 
         writer.writeBytes(data.legacySignature);
 
-        return Buffer.from(writer.getBuffer());
+        finalBuffer.writeBytesWithLength(writer.getBuffer());
     }
 }

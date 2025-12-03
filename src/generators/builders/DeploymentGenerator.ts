@@ -2,6 +2,7 @@ import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin'
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 export const OPNET_DEPLOYMENT_VERSION = 0x00;
 export const versionBuffer = Buffer.from([OPNET_DEPLOYMENT_VERSION]);
@@ -71,21 +72,20 @@ export class DeploymentGenerator extends Generator {
         const featuresList: Features[] = [];
         const featureData: (number | Buffer | Buffer[])[] = [];
 
-        if (featuresRaw) {
+        if (featuresRaw && featuresRaw.length) {
             const features: Feature<Features>[] = featuresRaw.sort(
                 (a, b) => a.priority - b.priority,
             );
 
+            const finalBuffer = new BinaryWriter();
             for (let i = 0; i < features.length; i++) {
                 const feature = features[i];
                 featuresList.push(feature.opcode);
 
-                const data = this.encodeFeature(feature);
-                featureData.push(...data);
-
-                // Separator between features so decoder knows where each ends
-                featureData.push(opcodes.OP_0);
+                this.encodeFeature(feature, finalBuffer);
             }
+
+            featureData.push(...this.splitBufferIntoChunks(Buffer.from(finalBuffer.getBuffer())));
         }
 
         const compiledData = [

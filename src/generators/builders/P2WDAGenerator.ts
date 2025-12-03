@@ -32,9 +32,6 @@ export class P2WDAGenerator extends Generator {
         maxWitnessFields: number = 10,
         maxBytesPerWitness: number = 80,
     ): boolean {
-        // Account for Schnorr signature (64 bytes) and compression
-        // Assume 30% compression ratio (conservative estimate)
-
         const signatureSize = 64;
         const compressionRatio = 0.7;
 
@@ -79,12 +76,10 @@ export class P2WDAGenerator extends Generator {
 
         const writer = new BinaryWriter();
 
-        // Version byte
         writer.writeU8(P2WDAGenerator.P2WDA_VERSION);
 
         const features: Feature<Features>[] = featuresRaw.sort((a, b) => a.priority - b.priority);
 
-        // Header
         writer.writeBytes(
             this.getHeader(
                 maxPriority,
@@ -92,33 +87,19 @@ export class P2WDAGenerator extends Generator {
             ),
         );
 
-        // Contract secret
         writer.writeBytes(contractSecret);
 
-        // Challenge components for epoch rewards
         writer.writeBytes(challenge.publicKey.toBuffer());
         writer.writeBytes(challenge.solution);
 
-        // Calldata with length prefix
         writer.writeU32(calldata.length);
         writer.writeBytes(calldata);
 
-        // Features
         this.writeFeatures(writer, features);
 
         return Buffer.from(writer.getBuffer());
     }
 
-    /**
-     * Create a minimal header for P2WDA operations
-     *
-     * The header contains essential transaction metadata in a compact format:
-     * [sender_pubkey_prefix(1)] [feature_flags(3)] [max_priority(8)]
-     *
-     * @param maxPriority Maximum priority fee
-     * @param features Feature opcodes to set in flags
-     * @returns 12-byte header
-     */
     public override getHeader(maxPriority: bigint, features: Features[] = []): Buffer {
         return super.getHeader(maxPriority, features);
     }
@@ -133,48 +114,11 @@ export class P2WDAGenerator extends Generator {
      * @param features Array of features to encode
      */
     private writeFeatures(writer: BinaryWriter, features: Feature<Features>[]): void {
-        // Write feature count
         writer.writeU16(features.length);
 
         for (const feature of features) {
-            // Write feature opcode
             writer.writeU8(feature.opcode);
-
-            // Encode feature data
-            const encodedData = this.encodeFeatureData(feature);
-
-            // Write feature data with length prefix
-            writer.writeU32(encodedData.length);
-            writer.writeBytes(encodedData);
-        }
-    }
-
-    /**
-     * Encode a single feature's data
-     *
-     * Unlike the base Generator class, we don't split into chunks here
-     * since P2WDA handles chunking at the witness level
-     *
-     * @param feature The feature to encode
-     * @returns Encoded feature data
-     */
-    private encodeFeatureData(feature: Feature<Features>): Buffer {
-        switch (feature.opcode) {
-            case Features.ACCESS_LIST: {
-                // Access lists are already encoded efficiently by the parent class
-                const chunks = this.encodeFeature(feature);
-                // Flatten chunks since P2WDA doesn't need script-level chunking
-                return Buffer.concat(chunks.flat());
-            }
-
-            case Features.EPOCH_SUBMISSION: {
-                // Epoch submissions are also handled by parent
-                const chunks = this.encodeFeature(feature);
-                return Buffer.concat(chunks.flat());
-            }
-
-            default:
-                throw new Error(`Unknown feature type: ${feature.opcode}`);
+            this.encodeFeature(feature, writer);
         }
     }
 }
