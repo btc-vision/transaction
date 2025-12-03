@@ -889,6 +889,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         const tweakedKey = toXOnly(this.tweakedSigner.publicKey);
+        const originalKey = this.signer.publicKey;
+        if (originalKey.length !== 33) {
+            throw new Error('Original public key must be compressed (33 bytes)');
+        }
+
         const chainId = getChainId(this.network);
 
         const writer = new BinaryWriter();
@@ -897,6 +902,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         writer.writeU8(MLDSASecurityLevel.LEVEL2);
         writer.writeBytes(this.hashedPublicKey);
         writer.writeBytes(tweakedKey);
+        writer.writeBytes(originalKey);
         writer.writeBytes(BITCOIN_PROTOCOL_ID);
         writer.writeBytes(chainId);
 
@@ -923,6 +929,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         const tweakedKey = toXOnly(this.tweakedSigner.publicKey);
+        const originalKey = this.signer.publicKey;
+        if (originalKey.length !== 33) {
+            throw new Error('Original public key must be compressed (33 bytes)');
+        }
+
         const chainId = getChainId(this.network);
         const level = getLevelFromPublicKeyLength(this.mldsaSigner.publicKey.length);
 
@@ -935,6 +946,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         writer.writeBytes(this.hashedPublicKey);
         writer.writeBytes(this.mldsaSigner.publicKey);
         writer.writeBytes(tweakedKey);
+        writer.writeBytes(originalKey);
         writer.writeBytes(BITCOIN_PROTOCOL_ID);
         writer.writeBytes(chainId);
 
