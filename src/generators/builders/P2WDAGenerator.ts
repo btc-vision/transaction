@@ -59,7 +59,7 @@ export class P2WDAGenerator extends Generator {
      * @param contractSecret The 32-byte contract secret
      * @param challenge The challenge solution for epoch rewards
      * @param maxPriority Maximum priority fee in satoshis
-     * @param features Optional features like access lists
+     * @param featuresRaw Optional features like access lists
      * @returns Raw operation data ready for signing and compression
      */
     public compile(
@@ -67,7 +67,7 @@ export class P2WDAGenerator extends Generator {
         contractSecret: Buffer,
         challenge: ChallengeSolution,
         maxPriority: bigint,
-        features: Feature<Features>[] = [],
+        featuresRaw: Feature<Features>[] = [],
     ): Buffer {
         if (!this.contractSaltPubKey) {
             throw new Error('Contract salt public key not set');
@@ -81,6 +81,8 @@ export class P2WDAGenerator extends Generator {
 
         // Version byte
         writer.writeU8(P2WDAGenerator.P2WDA_VERSION);
+
+        const features: Feature<Features>[] = featuresRaw.sort((a, b) => a.priority - b.priority);
 
         // Header
         writer.writeBytes(

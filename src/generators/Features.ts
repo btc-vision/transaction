@@ -8,9 +8,16 @@ export enum Features {
     MLDSA_LINK_PUBKEY = 0b100,
 }
 
+export enum FeaturePriority {
+    ACCESS_LIST = 1,
+    EPOCH_SUBMISSION = 2,
+    MLDSA_LINK_PUBKEY = 3,
+}
+
 export interface Feature<T extends Features> {
     opcode: T;
     data: unknown;
+    priority: number;
 }
 
 export interface AccessListFeature extends Feature<Features.ACCESS_LIST> {

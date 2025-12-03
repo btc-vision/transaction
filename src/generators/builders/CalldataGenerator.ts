@@ -59,7 +59,7 @@ export class CalldataGenerator extends Generator {
      * @param {Buffer} contractSecret - The contract secret
      * @param {ChallengeSolution} challenge
      * @param maxPriority - Amount of satoshis to spend max on priority fee
-     * @param {Feature<Features>[]} features - The features to use
+     * @param {Feature<Features>[]} featuresRaw - The features to use
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
      */
@@ -68,7 +68,7 @@ export class CalldataGenerator extends Generator {
         contractSecret: Buffer,
         challenge: ChallengeSolution,
         maxPriority: bigint,
-        features: Feature<Features>[] = [],
+        featuresRaw: Feature<Features>[] = [],
     ): Buffer {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
@@ -77,12 +77,16 @@ export class CalldataGenerator extends Generator {
 
         const featuresList: Features[] = [];
         const featureData: (number | Buffer | Buffer[])[] = [];
-        for (let i = 0; i < features.length; i++) {
-            const feature = features[i];
-            featuresList.push(feature.opcode);
 
-            const data = this.encodeFeature(feature);
-            featureData.push(...data);
+        const features: Feature<Features>[] = featuresRaw.sort((a, b) => a.priority - b.priority);
+        if (features.length) {
+            for (let i = 0; i < features.length; i++) {
+                const feature = features[i];
+                featuresList.push(feature.opcode);
+
+                const data = this.encodeFeature(feature);
+                featureData.push(...data);
+            }
         }
 
         let compiledData: (number | Buffer | Buffer[])[] = [

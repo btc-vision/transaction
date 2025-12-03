@@ -61,7 +61,7 @@ export class DeploymentGenerator extends Generator {
         challenge: ChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
-        features?: Feature<Features>[],
+        featuresRaw?: Feature<Features>[],
     ): (number | Buffer)[] {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
@@ -71,7 +71,11 @@ export class DeploymentGenerator extends Generator {
         const featuresList: Features[] = [];
         const featureData: (number | Buffer | Buffer[])[] = [];
 
-        if (features) {
+        if (featuresRaw) {
+            const features: Feature<Features>[] = featuresRaw.sort(
+                (a, b) => a.priority - b.priority,
+            );
+
             for (let i = 0; i < features.length; i++) {
                 const feature = features[i];
                 featuresList.push(feature.opcode);

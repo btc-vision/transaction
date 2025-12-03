@@ -25,7 +25,7 @@ import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
-import { Feature, Features } from '../../generators/Features.js';
+import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
@@ -379,6 +379,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const submission = parameters.challenge.getSubmission();
         if (submission) {
             features.push({
+                priority: FeaturePriority.MLDSA_LINK_PUBKEY,
                 opcode: Features.EPOCH_SUBMISSION,
                 data: submission,
             });

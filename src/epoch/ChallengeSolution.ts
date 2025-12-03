@@ -59,7 +59,11 @@ export class ChallengeSubmission implements IChallengeSubmission {
         }
 
         const buffer = signatureDataWriter.getBuffer();
-        return MessageSigner.verifySignature(this.publicKey, buffer, this.signature);
+        return MessageSigner.verifySignature(
+            this.publicKey.tweakedPublicKeyToBuffer(),
+            buffer,
+            this.signature,
+        );
     }
 }
 

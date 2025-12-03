@@ -27,7 +27,7 @@ import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import { Feature, Features, MLDSALinkRequest } from '../../generators/Features.js';
+import { Feature, FeaturePriority, Features, MLDSALinkRequest } from '../../generators/Features.js';
 import { BITCOIN_PROTOCOL_ID, getChainId } from '../../chain/ChainData.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
@@ -979,6 +979,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         const mldsaRequest: MLDSALinkRequest = {
+            priority: FeaturePriority.MLDSA_LINK_PUBKEY,
             opcode: Features.MLDSA_LINK_PUBKEY,
             data: {
                 verifyRequest: !!parameters.revealMLDSAPublicKey,

@@ -55,7 +55,7 @@ export class LegacyCalldataGenerator extends Generator {
      * @param {Buffer} contractSecret - The contract secret
      * @param {Buffer} challenge - The challenge to use
      * @param {bigint} maxPriority - The maximum priority
-     * @param {number[]} [features=[]] - The features to use (optional)
+     * @param {number[]} [featuresRaw=[]] - The features to use (optional)
      * @returns {Buffer} - The compiled script
      * @throws {Error} - If something goes wrong
      */
@@ -64,19 +64,23 @@ export class LegacyCalldataGenerator extends Generator {
         contractSecret: Buffer,
         challenge: Buffer,
         maxPriority: bigint,
-        features: Feature<Features>[] = [],
+        featuresRaw: Feature<Features>[] = [],
     ): Buffer {
         const dataChunks: Buffer[][] = this.splitBufferIntoChunks(calldata);
         if (!dataChunks.length) throw new Error('No data chunks found');
 
         const featuresList: Features[] = [];
         const featureData: (number | Buffer | Buffer[])[] = [];
-        for (let i = 0; i < features.length; i++) {
-            const feature = features[i];
-            featuresList.push(feature.opcode);
+        const features: Feature<Features>[] = featuresRaw.sort((a, b) => a.priority - b.priority);
 
-            const data = this.encodeFeature(feature);
-            featureData.push(...data);
+        if (features.length) {
+            for (let i = 0; i < features.length; i++) {
+                const feature = features[i];
+                featuresList.push(feature.opcode);
+
+                const data = this.encodeFeature(feature);
+                featureData.push(...data);
+            }
         }
 
         let compiledData = [

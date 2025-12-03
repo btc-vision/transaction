@@ -3,7 +3,7 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { Feature, Features } from '../../generators/Features.js';
+import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
 
 /**
  * Class for interaction transactions
@@ -63,6 +63,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
 
         if (parameters.loadedStorage) {
             features.push({
+                priority: FeaturePriority.ACCESS_LIST,
                 opcode: Features.ACCESS_LIST,
                 data: parameters.loadedStorage,
             });
@@ -71,6 +72,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
         const submission = parameters.challenge.getSubmission();
         if (submission) {
             features.push({
+                priority: FeaturePriority.EPOCH_SUBMISSION,
                 opcode: Features.EPOCH_SUBMISSION,
                 data: submission,
             });

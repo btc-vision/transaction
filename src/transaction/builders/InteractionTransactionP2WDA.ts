@@ -6,7 +6,7 @@ import { TransactionBuilder } from './TransactionBuilder.js';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { P2WDAGenerator } from '../../generators/builders/P2WDAGenerator.js';
-import { Feature, Features } from '../../generators/Features.js';
+import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
@@ -200,6 +200,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
 
         if (parameters.loadedStorage) {
             features.push({
+                priority: FeaturePriority.ACCESS_LIST,
                 opcode: Features.ACCESS_LIST,
                 data: parameters.loadedStorage,
             });
@@ -208,6 +209,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         const submission = parameters.challenge.getSubmission();
         if (submission) {
             features.push({
+                priority: FeaturePriority.EPOCH_SUBMISSION,
                 opcode: Features.EPOCH_SUBMISSION,
                 data: submission,
             });
