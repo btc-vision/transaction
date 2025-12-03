@@ -244,6 +244,7 @@ export class Mnemonic {
             Buffer.from(quantumChild.privateKey).toString('hex'),
             this._network,
             this._securityLevel,
+            Buffer.from(this._quantumRoot.chainCode),
         );
     }
 
@@ -313,6 +314,7 @@ export class Mnemonic {
             Buffer.from(quantumChild.privateKey).toString('hex'),
             this._network,
             this._securityLevel,
+            Buffer.from(this._quantumRoot.chainCode),
         );
     }
 
@@ -393,6 +395,7 @@ export class Mnemonic {
             Buffer.from(quantumChild.privateKey).toString('hex'),
             this._network,
             this._securityLevel,
+            Buffer.from(this._quantumRoot.chainCode),
         );
     }
 

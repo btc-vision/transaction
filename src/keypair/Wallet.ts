@@ -11,7 +11,6 @@ import {
     QuantumBIP32Factory,
     QuantumBIP32Interface,
 } from '@btc-vision/bip32';
-import { randomBytes } from 'crypto';
 
 initEccLib(ecc);
 
@@ -168,7 +167,8 @@ export class Wallet {
             if (chainCode && chainCode.length !== 32) {
                 throw new Error('Chain code must be 32 bytes');
             }
-            this._chainCode = chainCode || randomBytes(32);
+
+            this._chainCode = chainCode || Buffer.alloc(32);
 
             // Create QuantumBIP32Interface from private key and chain code
             // Pass network to ensure network-specific derivation
