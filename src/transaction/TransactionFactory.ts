@@ -1,10 +1,7 @@
 import { Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
-import {
-    CustomScriptTransaction,
-    ICustomTransactionParameters,
-} from './builders/CustomScriptTransaction.js';
+import { CustomScriptTransaction, ICustomTransactionParameters, } from './builders/CustomScriptTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
@@ -34,12 +31,11 @@ import { CancelTransaction, ICancelTransactionParameters } from './builders/Canc
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
-
     readonly contractAddress: string;
     readonly contractPubKey: string;
     readonly challenge: RawChallenge;
-
     readonly utxos: UTXO[];
+    readonly inputUtxos: UTXO[];
 }
 
 export interface FundingTransactionResponse {
@@ -47,12 +43,14 @@ export interface FundingTransactionResponse {
     readonly original: FundingTransaction;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
+    readonly inputUtxos: UTXO[];
 }
 
 export interface BitcoinTransferBase {
     readonly tx: string;
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
+    readonly inputUtxos: UTXO[];
 }
 
 export interface InteractionResponse {
@@ -61,6 +59,7 @@ export interface InteractionResponse {
     readonly estimatedFees: bigint;
     readonly nextUTXOs: UTXO[];
     readonly fundingUTXOs: UTXO[];
+    readonly fundingInputUtxos: UTXO[];
     readonly challenge: RawChallenge;
     readonly interactionAddress: string | null;
     readonly compiledTargetScript: string | null;
@@ -73,19 +72,22 @@ export interface BitcoinTransferResponse extends BitcoinTransferBase {
 export interface CancelledTransaction {
     readonly transaction: string;
     readonly nextUTXOs: UTXO[];
+    readonly inputUtxos: UTXO[];
 }
 
 export class TransactionFactory {
     public debug: boolean = false;
 
     private readonly DUMMY_PUBKEY = Buffer.alloc(32, 1);
-    private readonly P2TR_SCRIPT = Buffer.concat([
-        Buffer.from([0x51, 0x20]), // OP_1 + 32 bytes
-        this.DUMMY_PUBKEY,
-    ]);
+    private readonly P2TR_SCRIPT = Buffer.concat([Buffer.from([0x51, 0x20]), this.DUMMY_PUBKEY]);
     private readonly INITIAL_FUNDING_ESTIMATE = 2000n;
     private readonly MAX_ITERATIONS = 10;
 
+    /**
+     * @description Creates a cancellable transaction.
+     * @param {ICancelTransactionParameters | ICancelTransactionParametersWithoutSigner} params - The cancel transaction parameters
+     * @returns {Promise<CancelledTransaction>} - The cancelled transaction result
+     */
     public async createCancellableTransaction(
         params: ICancelTransactionParameters | ICancelTransactionParametersWithoutSigner,
     ): Promise<CancelledTransaction> {
@@ -115,16 +117,18 @@ export class TransactionFactory {
         return {
             transaction: rawTx,
             nextUTXOs: this.getUTXOAsTransaction(signed, params.from, 0),
+            inputUtxos: params.utxos,
         };
     }
 
     /**
      * @description Generate a transaction with a custom script.
-     * @returns {Promise<[string, string]>} - The signed transaction
+     * @param {ICustomTransactionParameters | ICustomTransactionWithoutSigner} interactionParameters - The custom transaction parameters
+     * @returns {Promise<[string, string, UTXO[], UTXO[]]>} - The signed transaction tuple [fundingTx, customTx, nextUTXOs, inputUtxos]
      */
     public async createCustomScriptTransaction(
         interactionParameters: ICustomTransactionParameters | ICustomTransactionWithoutSigner,
-    ): Promise<[string, string, UTXO[]]> {
+    ): Promise<[string, string, UTXO[], UTXO[]]> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -140,7 +144,6 @@ export class TransactionFactory {
 
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
 
-        // Use common iteration logic
         const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
             { ...interactionParameters, optionalInputs: inputs },
             CustomScriptTransaction,
@@ -159,7 +162,6 @@ export class TransactionFactory {
         parameters.utxos = interactionParameters.utxos;
         parameters.amount = estimatedAmount;
 
-        // Create funding transaction
         const feeEstimationFunding = await this.createFundTransaction({
             ...parameters,
             optionalOutputs: [],
@@ -199,11 +201,13 @@ export class TransactionFactory {
             signedTransaction.tx.toHex(),
             outTx.toHex(),
             this.getUTXOAsTransaction(signedTransaction.tx, interactionParameters.from, 1),
+            interactionParameters.utxos,
         ];
     }
 
     /**
      * @description Generates the required transactions.
+     * @param {IInteractionParameters | InteractionParametersWithoutSigner} interactionParameters - The interaction parameters
      * @returns {Promise<InteractionResponse>} - The signed transaction
      */
     public async signInteraction(
@@ -235,7 +239,6 @@ export class TransactionFactory {
 
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
 
-        // Use common iteration logic
         const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
             { ...interactionParameters, optionalInputs: inputs },
             InteractionTransaction,
@@ -310,6 +313,7 @@ export class TransactionFactory {
             ),
             challenge: challenge.toRaw(),
             fundingUTXOs: fundingUTXO,
+            fundingInputUtxos: interactionParameters.utxos,
             compiledTargetScript: interactionTx.exportCompiledTargetScript().toString('hex'),
         };
     }
@@ -333,7 +337,6 @@ export class TransactionFactory {
 
         const inputs = this.parseOptionalInputs(deploymentParameters.optionalInputs);
 
-        // Use common iteration logic
         const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
             { ...deploymentParameters, optionalInputs: inputs },
             DeploymentTransaction,
@@ -421,13 +424,14 @@ export class TransactionFactory {
             contractPubKey: deploymentTx.contractPubKey,
             utxos: [refundUTXO],
             challenge: challenge.toRaw(),
+            inputUtxos: deploymentParameters.utxos,
         };
     }
 
     /**
      * @description Creates a funding transaction.
      * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
-     * @returns {Promise<{ estimatedFees: bigint; tx: string }>} - The signed transaction
+     * @returns {Promise<BitcoinTransferResponse>} - The signed transaction
      */
     public async createBTCTransfer(
         parameters: IFundingTransactionParameters,
@@ -442,6 +446,7 @@ export class TransactionFactory {
             original: resp.original,
             tx: resp.tx.toHex(),
             nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
+            inputUtxos: parameters.utxos,
         };
     }
 
@@ -450,6 +455,7 @@ export class TransactionFactory {
      * @param {TransactionBuilder<TransactionType>} original - The original transaction
      * @param {Transaction} tx - The transaction
      * @param {string} to - The address to filter
+     * @returns {UTXO[]} - The new UTXOs belonging to the specified address
      */
     public getAllNewUTXOs(
         original: TransactionBuilder<TransactionType>,
@@ -473,6 +479,11 @@ export class TransactionFactory {
         return utxos;
     }
 
+    /**
+     * Parse optional inputs and normalize nonWitnessUtxo format.
+     * @param {UTXO[]} optionalInputs - The optional inputs to parse
+     * @returns {UTXO[]} - The parsed inputs with normalized nonWitnessUtxo
+     */
     private parseOptionalInputs(optionalInputs?: UTXO[]): UTXO[] {
         return (optionalInputs || []).map((input) => {
             let nonWitness = input.nonWitnessUtxo;
@@ -495,6 +506,11 @@ export class TransactionFactory {
         });
     }
 
+    /**
+     * Detect and use OP_WALLET for cancel transactions if available.
+     * @param {ICancelTransactionParameters | ICancelTransactionParametersWithoutSigner} interactionParameters - The cancel parameters
+     * @returns {Promise<CancelledTransaction | null>} - The cancelled transaction or null if OP_WALLET not available
+     */
     private async detectCancelOPWallet(
         interactionParameters:
             | ICancelTransactionParameters
@@ -512,7 +528,6 @@ export class TransactionFactory {
         const opnet = _window.opnet.web3;
         const interaction = await opnet.cancelTransaction({
             ...interactionParameters,
-
             // @ts-expect-error no, this is ok
             signer: undefined,
         });
@@ -521,9 +536,17 @@ export class TransactionFactory {
             throw new Error('Could not sign interaction transaction.');
         }
 
-        return interaction;
+        return {
+            ...interaction,
+            inputUtxos: interaction.inputUtxos ?? interactionParameters.utxos,
+        };
     }
 
+    /**
+     * Detect and use OP_WALLET for interaction transactions if available.
+     * @param {IInteractionParameters | InteractionParametersWithoutSigner} interactionParameters - The interaction parameters
+     * @returns {Promise<InteractionResponse | null>} - The interaction response or null if OP_WALLET not available
+     */
     private async detectInteractionOPWallet(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
     ): Promise<InteractionResponse | null> {
@@ -539,7 +562,6 @@ export class TransactionFactory {
         const opnet = _window.opnet.web3;
         const interaction = await opnet.signInteraction({
             ...interactionParameters,
-
             // @ts-expect-error no, this is ok
             signer: undefined,
         });
@@ -548,9 +570,17 @@ export class TransactionFactory {
             throw new Error('Could not sign interaction transaction.');
         }
 
-        return interaction;
+        return {
+            ...interaction,
+            fundingInputUtxos: interaction.fundingInputUtxos ?? interactionParameters.utxos,
+        };
     }
 
+    /**
+     * Detect and use OP_WALLET for deployment transactions if available.
+     * @param {IDeploymentParameters | IDeploymentParametersWithoutSigner} deploymentParameters - The deployment parameters
+     * @returns {Promise<DeploymentResult | null>} - The deployment result or null if OP_WALLET not available
+     */
     private async detectDeploymentOPWallet(
         deploymentParameters: IDeploymentParameters | IDeploymentParametersWithoutSigner,
     ): Promise<DeploymentResult | null> {
@@ -566,7 +596,6 @@ export class TransactionFactory {
         const opnet = _window.opnet.web3;
         const deployment = await opnet.deployContract({
             ...deploymentParameters,
-
             // @ts-expect-error no, this is ok
             signer: undefined,
         });
@@ -575,9 +604,17 @@ export class TransactionFactory {
             throw new Error('Could not sign interaction transaction.');
         }
 
-        return deployment;
+        return {
+            ...deployment,
+            inputUtxos: deployment.inputUtxos ?? deploymentParameters.utxos,
+        };
     }
 
+    /**
+     * Create and sign a funding transaction.
+     * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
+     * @returns {Promise<FundingTransactionResponse>} - The funding transaction response
+     */
     private async createFundTransaction(
         parameters: IFundingTransactionParameters,
     ): Promise<FundingTransactionResponse> {
@@ -594,6 +631,7 @@ export class TransactionFactory {
             original: fundingTransaction,
             estimatedFees: fundingTransaction.estimatedFees,
             nextUTXOs: this.getUTXOAsTransaction(signedTransaction, parameters.to, 0),
+            inputUtxos: parameters.utxos,
         };
     }
 
@@ -604,13 +642,19 @@ export class TransactionFactory {
      * if any of them are P2WDA addresses. P2WDA detection is based on the
      * witness script pattern: (OP_2DROP * 5) <pubkey> OP_CHECKSIG
      *
-     * @param utxos The main UTXOs to check
-     * @returns true if any UTXO is P2WDA, false otherwise
+     * @param {UTXO[]} utxos - The main UTXOs to check
+     * @returns {boolean} - true if any UTXO is P2WDA, false otherwise
      */
     private hasP2WDAInputs(utxos: UTXO[]): boolean {
         return utxos.some((utxo) => P2WDADetector.isP2WDAUTXO(utxo));
     }
 
+    /**
+     * Write PSBT header with type and consensus version.
+     * @param {PSBTTypes} type - The PSBT type
+     * @param {string} psbt - The base64 encoded PSBT
+     * @returns {string} - The hex encoded PSBT with header
+     */
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
         const buf = Buffer.from(psbt, 'base64');
 
@@ -635,8 +679,8 @@ export class TransactionFactory {
      * - 75% cost reduction for data storage
      * - No separate funding transaction needed
      *
-     * @param interactionParameters The interaction parameters
-     * @returns The signed P2WDA interaction response
+     * @param {IInteractionParameters | InteractionParametersWithoutSigner} interactionParameters - The interaction parameters
+     * @returns {Promise<InteractionResponse>} - The signed P2WDA interaction response
      */
     private async signP2WDAInteraction(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
@@ -645,7 +689,6 @@ export class TransactionFactory {
             throw new Error('Field "from" not provided.');
         }
 
-        // Ensure we have a signer for P2WDA
         if (!('signer' in interactionParameters)) {
             throw new Error(
                 'P2WDA interactions require a signer. OP_WALLET is not supported for P2WDA.',
@@ -669,14 +712,20 @@ export class TransactionFactory {
             nextUTXOs: this.getUTXOAsTransaction(
                 signedTx,
                 interactionParameters.from,
-                signedTx.outs.length - 1, // Last output is typically the change
+                signedTx.outs.length - 1,
             ),
             fundingUTXOs: [...interactionParameters.utxos, ...inputs],
+            fundingInputUtxos: interactionParameters.utxos,
             challenge: interactionParameters.challenge.toRaw(),
             compiledTargetScript: null,
         };
     }
 
+    /**
+     * Get the priority fee from transaction parameters.
+     * @param {ITransactionParameters} params - The transaction parameters
+     * @returns {bigint} - The priority fee, minimum dust if below threshold
+     */
     private getPriorityFee(params: ITransactionParameters): bigint {
         const totalFee = params.priorityFee + params.gasSatFee;
         if (totalFee < TransactionBuilder.MINIMUM_DUST) {
@@ -687,7 +736,16 @@ export class TransactionFactory {
     }
 
     /**
-     * Common iteration logic for finding the correct funding amount
+     * Common iteration logic for finding the correct funding amount.
+     *
+     * This method iteratively estimates the required funding amount by simulating
+     * transactions until the amount converges or max iterations is reached.
+     *
+     * @param {P} params - The transaction parameters
+     * @param {new (params: P) => T} TransactionClass - The transaction class constructor
+     * @param {(tx: T) => Promise<bigint>} calculateAmount - Function to calculate required amount
+     * @param {string} debugPrefix - Prefix for debug logging
+     * @returns {Promise<{finalTransaction: T, estimatedAmount: bigint, challenge: ChallengeSolution | null}>} - The final transaction and estimated amount
      */
     private async iterateFundingAmount<
         T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction,
@@ -732,14 +790,13 @@ export class TransactionFactory {
                 nonWitnessUtxo: dummyTx.toBuffer(),
             };
 
-            // Build transaction params - TypeScript needs explicit typing here
             let txParams: P;
             if ('challenge' in params && params.challenge) {
                 const withChallenge = {
                     ...params,
                     utxos: [simulatedFundedUtxo],
                     randomBytes: randomBytes,
-                    challenge: challenge ?? params.challenge, // Use existing or original
+                    challenge: challenge ?? params.challenge,
                 };
                 txParams = withChallenge as P;
             } else {
@@ -776,7 +833,6 @@ export class TransactionFactory {
 
             finalPreTransaction = preTransaction;
 
-            // Extract challenge with explicit typing
             if (
                 'getChallenge' in preTransaction &&
                 typeof preTransaction.getChallenge === 'function'
@@ -804,6 +860,13 @@ export class TransactionFactory {
         };
     }
 
+    /**
+     * Convert a transaction output to a UTXO.
+     * @param {Transaction} tx - The transaction
+     * @param {string} to - The address
+     * @param {number} index - The output index
+     * @returns {UTXO[]} - The UTXO array (empty if output doesn't exist)
+     */
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {
         if (!tx.outs[index]) return [];
 
