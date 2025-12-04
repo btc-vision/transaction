@@ -1,7 +1,10 @@
 import { Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
-import { CustomScriptTransaction, ICustomTransactionParameters, } from './builders/CustomScriptTransaction.js';
+import {
+    CustomScriptTransaction,
+    ICustomTransactionParameters,
+} from './builders/CustomScriptTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
