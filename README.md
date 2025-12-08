@@ -57,5 +57,5 @@ feature requests, and pull requests. We appreciate your input and encourage you 
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE). If you have any suggestions or
+This project is open source and available under the [Apache-2.0 License](LICENSE). If you have any suggestions or
 contributions, please feel free to submit a pull request.
