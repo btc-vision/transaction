@@ -220,6 +220,27 @@ interface ReconstructionOptions {
 
 For wallets with multiple addresses (different signers per UTXO):
 
+```mermaid
+flowchart TB
+    subgraph UTXOs["Input UTXOs"]
+        U1["UTXO 1<br/>address1"]
+        U2["UTXO 2<br/>address2"]
+        U3["UTXO 3<br/>address1"]
+    end
+
+    subgraph SignerMap["Signer Map"]
+        S1["address1 → signer1"]
+        S2["address2 → signer2"]
+    end
+
+    U1 --> S1
+    U2 --> S2
+    U3 --> S1
+
+    S1 --> TX[Signed Transaction]
+    S2 --> TX
+```
+
 ```typescript
 import {
     OfflineTransactionManager,
@@ -271,32 +292,32 @@ const signedTx = await OfflineTransactionManager.importSignAndExport(
 
 The serialized state uses a compact binary format with the following structure:
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        HEADER (16 bytes)                     │
-├──────┬──────┬──────┬──────┬──────────────┬──────────────────┤
-│ 0x42 │ Fmt  │ Cons │ Type │   Chain ID   │    Timestamp     │
-│  1B  │  1B  │  1B  │  1B  │     4B       │       8B         │
-├──────┴──────┴──────┴──────┴──────────────┴──────────────────┤
-│                          BODY                                │
-├─────────────────────────────────────────────────────────────┤
-│  Base Params (from, to, feeRate, priorityFee, gasSatFee)    │
-├─────────────────────────────────────────────────────────────┤
-│  UTXOs Array                                                 │
-├─────────────────────────────────────────────────────────────┤
-│  Optional Inputs                                             │
-├─────────────────────────────────────────────────────────────┤
-│  Optional Outputs                                            │
-├─────────────────────────────────────────────────────────────┤
-│  Signer Mappings (address → input indices)                   │
-├─────────────────────────────────────────────────────────────┤
-│  Type-Specific Data                                          │
-├─────────────────────────────────────────────────────────────┤
-│  Precomputed Data                                            │
-├─────────────────────────────────────────────────────────────┤
-│                     CHECKSUM (32 bytes)                      │
-│                    Double SHA256 Hash                        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+    block:header["HEADER (16 bytes)"]
+        columns 6
+        a["0x42<br/>1B"]
+        b["Format<br/>1B"]
+        c["Consensus<br/>1B"]
+        d["Type<br/>1B"]
+        e["Chain ID<br/>4B"]
+        f["Timestamp<br/>8B"]
+    end
+    block:body["BODY (variable)"]
+        columns 1
+        g["Base Params (from, to, feeRate, priorityFee, gasSatFee)"]
+        h["UTXOs Array"]
+        i["Optional Inputs"]
+        j["Optional Outputs"]
+        k["Signer Mappings (address → input indices)"]
+        l["Type-Specific Data"]
+        m["Precomputed Data"]
+    end
+    block:checksum["CHECKSUM (32 bytes)"]
+        columns 1
+        n["Double SHA256 Hash"]
+    end
 ```
 
 ### Header Fields
