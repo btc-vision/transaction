@@ -3,6 +3,7 @@ import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from '@btc-vision/bitcoin';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { AddressRotationConfig } from '../../signer/AddressRotation.js';
 
 export interface LoadedStorage {
     [key: string]: string[];
@@ -42,6 +43,13 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     readonly gasSatFee: bigint;
 
     readonly compiledTargetScript?: Buffer | string;
+
+    /**
+     * Address rotation configuration.
+     * When enabled, allows different signers to sign different UTXOs based on their addresses.
+     * This supports proper Bitcoin privacy practices where each UTXO has its own key.
+     */
+    readonly addressRotation?: AddressRotationConfig;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {

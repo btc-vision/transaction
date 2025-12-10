@@ -1081,8 +1081,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             for (let i = 0; i < this.utxos.length; i++) {
                 const utxo = this.utxos[i];
-                const input = this.generatePsbtInputExtended(utxo, i);
 
+                // Register signer BEFORE generating input (needed for tapInternalKey)
+                this.registerInputSigner(i, utxo);
+
+                const input = this.generatePsbtInputExtended(utxo, i);
                 this.addInput(input);
             }
         }
@@ -1094,8 +1097,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 i++
             ) {
                 const utxo = this.optionalInputs[i - this.utxos.length];
-                const input = this.generatePsbtInputExtended(utxo, i, true);
 
+                // Register signer BEFORE generating input (needed for tapInternalKey)
+                this.registerInputSigner(i, utxo);
+
+                const input = this.generatePsbtInputExtended(utxo, i, true);
                 this.addInput(input);
             }
         }

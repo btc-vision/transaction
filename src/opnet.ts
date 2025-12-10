@@ -54,6 +54,7 @@ export * from './network/ChainId.js';
 
 /** Signer */
 export * from './signer/TweakedSigner.js';
+export * from './signer/AddressRotation.js';
 
 /** Transaction */
 export * from './transaction/enums/TransactionType.js';

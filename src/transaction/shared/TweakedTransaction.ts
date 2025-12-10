@@ -43,6 +43,11 @@ import { Buffer } from 'buffer';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
+import {
+    AddressRotationConfig,
+    RotationSigner,
+    SignerMap,
+} from '../../signer/AddressRotation.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
@@ -55,6 +60,12 @@ export interface ITweakedTransactionData {
     readonly noSignatures?: boolean;
     readonly unlockScript?: Buffer[];
     readonly txVersion?: SupportedTransactionVersion;
+
+    /**
+     * Address rotation configuration for per-UTXO signing.
+     * When enabled, each UTXO can be signed by a different signer.
+     */
+    readonly addressRotation?: AddressRotationConfig;
 }
 
 /**
@@ -165,6 +176,28 @@ export abstract class TweakedTransaction extends Logger {
     protected readonly _mldsaSigner: QuantumBIP32Interface | null = null;
     protected readonly _hashedPublicKey: Buffer | null = null;
 
+    /**
+     * Whether address rotation mode is enabled.
+     * When true, each UTXO can be signed by a different signer.
+     */
+    protected readonly addressRotationEnabled: boolean = false;
+
+    /**
+     * Map of addresses to their respective signers for address rotation mode.
+     */
+    protected readonly signerMap: SignerMap = new Map();
+
+    /**
+     * Map of input indices to their signers (resolved from UTXOs or signerMap).
+     * Populated during input addition.
+     */
+    protected readonly inputSignerMap: Map<number, RotationSigner> = new Map();
+
+    /**
+     * Cache of tweaked signers per input for address rotation mode.
+     */
+    protected readonly tweakedSignerCache: Map<number, ECPairInterface | undefined> = new Map();
+
     protected constructor(data: ITweakedTransactionData) {
         super();
 
@@ -185,6 +218,106 @@ export abstract class TweakedTransaction extends Logger {
             this._mldsaSigner = data.mldsaSigner;
             this._hashedPublicKey = MessageSigner.sha256(this._mldsaSigner.publicKey);
         }
+
+        // Initialize address rotation
+        if (data.addressRotation?.enabled) {
+            this.addressRotationEnabled = true;
+            this.signerMap = data.addressRotation.signerMap;
+        }
+    }
+
+    /**
+     * Check if address rotation mode is enabled.
+     */
+    public isAddressRotationEnabled(): boolean {
+        return this.addressRotationEnabled;
+    }
+
+    /**
+     * Get the signer for a specific input index.
+     * Returns the input-specific signer if in rotation mode, otherwise the default signer.
+     * @param inputIndex - The index of the input
+     */
+    protected getSignerForInput(inputIndex: number): RotationSigner {
+        if (this.addressRotationEnabled) {
+            const inputSigner = this.inputSignerMap.get(inputIndex);
+            if (inputSigner) {
+                return inputSigner;
+            }
+        }
+        return this.signer;
+    }
+
+    /**
+     * Register a signer for a specific input index.
+     * Called during UTXO processing to map each input to its signer.
+     * @param inputIndex - The index of the input
+     * @param utxo - The UTXO being added
+     */
+    protected registerInputSigner(inputIndex: number, utxo: UTXO): void {
+        if (!this.addressRotationEnabled) {
+            return;
+        }
+
+        // Priority 1: UTXO has an explicit signer attached
+        if (utxo.signer) {
+            this.inputSignerMap.set(inputIndex, utxo.signer);
+            return;
+        }
+
+        // Priority 2: Look up signer from signerMap by address
+        const address = utxo.scriptPubKey?.address;
+        if (address && this.signerMap.has(address)) {
+            const signer = this.signerMap.get(address);
+            if (signer) {
+                this.inputSignerMap.set(inputIndex, signer);
+                return;
+            }
+        }
+
+        // Fallback: Use default signer (no entry in inputSignerMap)
+    }
+
+    /**
+     * Get the x-only public key for a specific input's signer.
+     * Used for taproot inputs in address rotation mode.
+     * @param inputIndex - The index of the input
+     */
+    protected internalPubKeyToXOnlyForInput(inputIndex: number): Buffer {
+        const signer = this.getSignerForInput(inputIndex);
+        return toXOnly(Buffer.from(signer.publicKey));
+    }
+
+    /**
+     * Get the tweaked signer for a specific input.
+     * Caches the result for efficiency.
+     * @param inputIndex - The index of the input
+     * @param useTweakedHash - Whether to use the tweaked hash
+     */
+    protected getTweakedSignerForInput(
+        inputIndex: number,
+        useTweakedHash: boolean = false,
+    ): ECPairInterface | undefined {
+        if (!this.addressRotationEnabled) {
+            // Fall back to original behavior
+            if (useTweakedHash) {
+                this.tweakSigner();
+                return this.tweakedSigner;
+            }
+            return this.getTweakedSigner(useTweakedHash);
+        }
+
+        // Check cache
+        const cacheKey = inputIndex * 2 + (useTweakedHash ? 1 : 0);
+        if (this.tweakedSignerCache.has(cacheKey)) {
+            return this.tweakedSignerCache.get(cacheKey);
+        }
+
+        const signer = this.getSignerForInput(inputIndex);
+        const tweaked = this.getTweakedSigner(useTweakedHash, signer);
+        this.tweakedSignerCache.set(cacheKey, tweaked);
+
+        return tweaked;
     }
 
     /**
@@ -567,7 +700,9 @@ export abstract class TweakedTransaction extends Logger {
                     const input = batch[j];
 
                     try {
-                        promises.push(this.signInput(transaction, input, index, this.signer));
+                        // Use per-input signer in address rotation mode
+                        const inputSigner = this.getSignerForInput(index);
+                        promises.push(this.signInput(transaction, input, index, inputSigner));
                     } catch (e) {
                         this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
                     }
@@ -696,15 +831,24 @@ export abstract class TweakedTransaction extends Logger {
         return;
     }
 
-    protected generateP2SHP2PKHRedeemScript(inputAddr: string):
+    protected generateP2SHP2PKHRedeemScript(
+        inputAddr: string,
+        inputIndex?: number,
+    ):
         | {
               redeemScript: Buffer;
               outputScript: Buffer;
           }
         | undefined {
-        const pubkey = Buffer.isBuffer(this.signer.publicKey)
-            ? this.signer.publicKey
-            : Buffer.from(this.signer.publicKey, 'hex');
+        // Use per-input signer in address rotation mode
+        const signer =
+            this.addressRotationEnabled && inputIndex !== undefined
+                ? this.getSignerForInput(inputIndex)
+                : this.signer;
+
+        const pubkey = Buffer.isBuffer(signer.publicKey)
+            ? signer.publicKey
+            : Buffer.from(signer.publicKey, 'hex');
 
         const w = payments.p2wpkh({
             pubkey: pubkey,
@@ -798,7 +942,10 @@ export abstract class TweakedTransaction extends Logger {
                     );
                 }
 
-                const legacyScripts = this.generateP2SHP2PKHRedeemScript(utxo.scriptPubKey.address);
+                const legacyScripts = this.generateP2SHP2PKHRedeemScript(
+                    utxo.scriptPubKey.address,
+                    i,
+                );
                 if (!legacyScripts) {
                     throw new Error('Missing redeemScript for P2SH UTXO and unable to regenerate');
                 }
@@ -853,9 +1000,13 @@ export abstract class TweakedTransaction extends Logger {
                 if (inputSign) input.sighashType = inputSign;
             }
 
-            // Taproot internal key
-            this.tweakSigner();
-            input.tapInternalKey = this.internalPubKeyToXOnly();
+            // Taproot internal key - use per-input signer in address rotation mode
+            if (this.addressRotationEnabled) {
+                input.tapInternalKey = this.internalPubKeyToXOnlyForInput(i);
+            } else {
+                this.tweakSigner();
+                input.tapInternalKey = this.internalPubKeyToXOnly();
+            }
         }
 
         // Handle P2A (Any SegWit version, future versions)
