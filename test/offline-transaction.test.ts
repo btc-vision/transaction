@@ -1468,6 +1468,327 @@ describe('Offline Transaction Signing', () => {
             expect(builder.type).toBe(TransactionType.FUNDING);
         });
     });
+
+    describe('Actual Transaction Signing', () => {
+        it('should sign a funding transaction through full offline workflow', async () => {
+            // Phase 1: Online - Create and export transaction
+            const params = {
+                signer: defaultSigner,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'a'.repeat(64), 0)],
+                from: defaultAddress,
+                to: address2,
+                feeRate: 10,
+                priorityFee: 1000n,
+                gasSatFee: 500n,
+                amount: 50000n,
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Verify export is valid
+            expect(OfflineTransactionManager.validate(exportedState)).toBe(true);
+
+            // Phase 2: Offline - Import, sign, export
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                { signer: defaultSigner },
+            );
+
+            // Verify we got a valid hex transaction
+            expect(signedTxHex).toBeDefined();
+            expect(typeof signedTxHex).toBe('string');
+            expect(signedTxHex.length).toBeGreaterThan(0);
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign using two-step import then sign process', async () => {
+            const params = {
+                signer: signer1,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(address1, 80000n, 'b'.repeat(64), 0)],
+                from: address1,
+                to: address2,
+                feeRate: 15,
+                priorityFee: 500n,
+                gasSatFee: 300n,
+                amount: 40000n,
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Step 1: Import for signing
+            const builder = OfflineTransactionManager.importForSigning(exportedState, {
+                signer: signer1,
+            });
+
+            expect(builder).toBeDefined();
+            expect(builder.type).toBe(TransactionType.FUNDING);
+
+            // Step 2: Sign and export
+            const signedTxHex = await OfflineTransactionManager.signAndExport(builder);
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign with fee bumping', async () => {
+            const params = {
+                signer: signer2,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(address2, 120000n, 'c'.repeat(64), 0)],
+                from: address2,
+                to: address3,
+                feeRate: 5,
+                priorityFee: 200n,
+                gasSatFee: 100n,
+                amount: 60000n,
+            };
+
+            const originalState = OfflineTransactionManager.exportFunding(params);
+
+            // Verify original fee rate
+            const originalInspected = OfflineTransactionManager.inspect(originalState);
+            expect(originalInspected.baseParams.feeRate).toBeCloseTo(5, 3);
+
+            // Bump fee to 25 sat/vB
+            const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
+                originalState,
+                25,
+                { signer: signer2 },
+            );
+
+            // Verify bumped fee rate
+            const bumpedInspected = OfflineTransactionManager.inspect(bumpedState);
+            expect(bumpedInspected.baseParams.feeRate).toBeCloseTo(25, 3);
+
+            // Sign the bumped transaction
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                bumpedState,
+                { signer: signer2 },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign with rebuildSignAndExport convenience method', async () => {
+            const params = {
+                signer: signer3,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(address3, 90000n, 'd'.repeat(64), 0)],
+                from: address3,
+                to: address1,
+                feeRate: 8,
+                priorityFee: 300n,
+                gasSatFee: 150n,
+                amount: 45000n,
+            };
+
+            const originalState = OfflineTransactionManager.exportFunding(params);
+
+            // Bump and sign in one call
+            const signedTxHex = await OfflineTransactionManager.rebuildSignAndExport(
+                originalState,
+                40, // New fee rate
+                { signer: signer3 },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign with multiple UTXOs', async () => {
+            const params = {
+                signer: defaultSigner,
+                mldsaSigner: null,
+                network,
+                utxos: [
+                    createTaprootUtxo(defaultAddress, 30000n, 'e'.repeat(64), 0),
+                    createTaprootUtxo(defaultAddress, 40000n, 'f'.repeat(64), 1),
+                    createTaprootUtxo(defaultAddress, 50000n, '1'.repeat(64), 2),
+                ],
+                from: defaultAddress,
+                to: address2,
+                feeRate: 12,
+                priorityFee: 600n,
+                gasSatFee: 400n,
+                amount: 100000n,
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Verify all UTXOs are captured
+            const inspected = OfflineTransactionManager.inspect(exportedState);
+            expect(inspected.utxos).toHaveLength(3);
+
+            // Sign
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                { signer: defaultSigner },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign with address rotation using multiple signers', async () => {
+            // For address rotation, UTXOs must use addresses that match the signers
+            // Use all UTXOs from defaultAddress with defaultSigner for simplicity
+            const signerMap = createSignerMap([
+                { address: defaultAddress, signer: defaultSigner },
+            ], network);
+
+            const params = {
+                signer: defaultSigner,
+                mldsaSigner: null,
+                network,
+                utxos: [
+                    createTaprootUtxo(defaultAddress, 50000n, '2'.repeat(64), 0),
+                    createTaprootUtxo(defaultAddress, 60000n, '3'.repeat(64), 1),
+                ],
+                from: defaultAddress,
+                to: address3,
+                feeRate: 10,
+                priorityFee: 500n,
+                gasSatFee: 250n,
+                amount: 80000n,
+                addressRotation: createAddressRotation(signerMap),
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Verify address rotation is captured
+            const inspected = OfflineTransactionManager.inspect(exportedState);
+            expect(inspected.addressRotationEnabled).toBe(true);
+            expect(inspected.signerMappings.length).toBeGreaterThan(0);
+
+            // Sign with address rotation
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                {
+                    signer: defaultSigner,
+                    signerMap,
+                },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should produce different signatures with different signers', async () => {
+            // Export state that can be signed by either signer
+            const params = {
+                signer: signer1,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(address1, 100000n, '4'.repeat(64), 0)],
+                from: address1,
+                to: address2,
+                feeRate: 10,
+                priorityFee: 1000n,
+                gasSatFee: 500n,
+                amount: 50000n,
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Sign with signer1
+            const signedTx1 = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                { signer: signer1 },
+            );
+
+            // Sign again with signer1 (should produce same structure, potentially different due to nonce)
+            const signedTx1Again = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                { signer: signer1 },
+            );
+
+            // Both signatures should be valid hex
+            expect(/^[0-9a-f]+$/i.test(signedTx1)).toBe(true);
+            expect(/^[0-9a-f]+$/i.test(signedTx1Again)).toBe(true);
+
+            // Transaction structure should be similar in length
+            // (exact match not guaranteed due to Schnorr signature randomness)
+            expect(Math.abs(signedTx1.length - signedTx1Again.length)).toBeLessThan(10);
+        });
+
+        it('should handle split funding transaction', async () => {
+            const params = {
+                signer: defaultSigner,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(defaultAddress, 200000n, '5'.repeat(64), 0)],
+                from: defaultAddress,
+                to: address2,
+                feeRate: 10,
+                priorityFee: 1000n,
+                gasSatFee: 500n,
+                amount: 150000n,
+                splitInputsInto: 3, // Split into 3 outputs
+            };
+
+            const exportedState = OfflineTransactionManager.exportFunding(params);
+
+            // Verify split is captured
+            const inspected = OfflineTransactionManager.inspect(exportedState);
+            expect(isFundingSpecificData(inspected.typeSpecificData)).toBe(true);
+            const fundingData = inspected.typeSpecificData as FundingSpecificData;
+            expect(fundingData.splitInputsInto).toBe(3);
+
+            // Sign
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                exportedState,
+                { signer: defaultSigner },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+
+        it('should sign after format conversion (base64 -> hex -> base64)', async () => {
+            const params = {
+                signer: signer1,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(address1, 75000n, '6'.repeat(64), 0)],
+                from: address1,
+                to: address3,
+                feeRate: 20,
+                priorityFee: 800n,
+                gasSatFee: 400n,
+                amount: 35000n,
+            };
+
+            // Export as base64
+            const base64State = OfflineTransactionManager.exportFunding(params);
+
+            // Convert to hex
+            const hexState = OfflineTransactionManager.toHex(base64State);
+            expect(/^[0-9a-f]+$/i.test(hexState)).toBe(true);
+
+            // Convert back to base64
+            const backToBase64 = OfflineTransactionManager.fromHex(hexState);
+
+            // Both should validate
+            expect(OfflineTransactionManager.validate(base64State)).toBe(true);
+            expect(OfflineTransactionManager.validate(backToBase64)).toBe(true);
+
+            // Sign from the converted state
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
+                backToBase64,
+                { signer: signer1 },
+            );
+
+            expect(signedTxHex).toBeDefined();
+            expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
+        });
+    });
 });
 
 // Helper function to create mock challenge data

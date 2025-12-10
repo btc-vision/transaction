@@ -319,6 +319,24 @@ export class OfflineTransactionManager {
     }
 
     /**
+     * Parse base64-encoded state into state object
+     * @param base64State - Base64-encoded state
+     * @returns Parsed state object
+     */
+    public static fromBase64(base64State: string): ISerializableTransactionState {
+        return TransactionSerializer.fromBase64(base64State);
+    }
+
+    /**
+     * Serialize state object to base64
+     * @param state - State object to serialize
+     * @returns Base64-encoded state
+     */
+    public static toBase64(state: ISerializableTransactionState): string {
+        return TransactionSerializer.toBase64(state);
+    }
+
+    /**
      * Convert serialized state to hex format
      * @param serializedState - Base64-encoded state
      * @returns Hex-encoded state
