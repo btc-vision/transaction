@@ -19,6 +19,10 @@ Complete documentation for the OPNet Transaction Library - Bitcoin transaction b
 - **Universal Public Key** - `address.toHex()` returns the SHA256 hash of ML-DSA public key (32 bytes)
 - This is the user's universal identifier across the OPNet protocol
 
+### Transaction Building
+
+- **[Offline Transaction Signing](./offline-transaction-signing.md)** - Serialize transactions for offline/air-gapped signing, fee bumping (RBF), address rotation, and MultiSig support
+
 ### Quantum Support (ML-DSA)
 
 **[Complete Quantum Support Guide](./quantum-support/README.md)**

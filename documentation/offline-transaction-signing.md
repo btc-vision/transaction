@@ -291,32 +291,33 @@ const signedTx = await OfflineTransactionManager.importSignAndExport(
 
 The serialized state uses a compact binary format with the following structure:
 
-```mermaid
-block-beta
-    columns 1
-    block:header["HEADER (16 bytes)"]
-        columns 6
-        a["0x42<br/>1B"]
-        b["Format<br/>1B"]
-        c["Consensus<br/>1B"]
-        d["Type<br/>1B"]
-        e["Chain ID<br/>4B"]
-        f["Timestamp<br/>8B"]
-    end
-    block:body["BODY (variable)"]
-        columns 1
-        g["Base Params (from, to, feeRate, priorityFee, gasSatFee)"]
-        h["UTXOs Array"]
-        i["Optional Inputs"]
-        j["Optional Outputs"]
-        k["Signer Mappings (address → input indices)"]
-        l["Type-Specific Data"]
-        m["Precomputed Data"]
-    end
-    block:checksum["CHECKSUM (32 bytes)"]
-        columns 1
-        n["Double SHA256 Hash"]
-    end
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        HEADER (16 bytes)                        │
+├────────┬────────┬───────────┬────────┬───────────┬─────────────┤
+│ 0x42   │ Format │ Consensus │  Type  │ Chain ID  │  Timestamp  │
+│  1B    │   1B   │    1B     │   1B   │    4B     │     8B      │
+├────────┴────────┴───────────┴────────┴───────────┴─────────────┤
+│                        BODY (variable)                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Base Params (from, to, feeRate, priorityFee, gasSatFee)        │
+├─────────────────────────────────────────────────────────────────┤
+│  UTXOs Array                                                    │
+├─────────────────────────────────────────────────────────────────┤
+│  Optional Inputs                                                │
+├─────────────────────────────────────────────────────────────────┤
+│  Optional Outputs                                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Signer Mappings (address → input indices)                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Type-Specific Data                                             │
+├─────────────────────────────────────────────────────────────────┤
+│  Precomputed Data                                               │
+├─────────────────────────────────────────────────────────────────┤
+│                      CHECKSUM (32 bytes)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                      Double SHA256 Hash                         │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Header Fields
