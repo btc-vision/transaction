@@ -4,13 +4,13 @@ import { BinaryReader } from '../../buffer/BinaryReader.js';
 import {
     ISerializableTransactionState,
     PrecomputedData,
+    SERIALIZATION_FORMAT_VERSION,
+    SERIALIZATION_MAGIC_BYTE,
     SerializationHeader,
     SerializedBaseParams,
     SerializedOutput,
     SerializedSignerMapping,
     SerializedUTXO,
-    SERIALIZATION_FORMAT_VERSION,
-    SERIALIZATION_MAGIC_BYTE,
 } from './interfaces/ISerializableState.js';
 import {
     CancelSpecificData,
@@ -24,7 +24,7 @@ import {
     TypeSpecificData,
 } from './interfaces/ITypeSpecificData.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { RawChallenge, RawChallengeVerification } from '../../epoch/interfaces/IChallengeSolution.js';
+import { RawChallenge, RawChallengeVerification, } from '../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * Serializes and deserializes transaction state for offline signing.
@@ -223,7 +223,9 @@ export class TransactionSerializer {
         const networkName = this.u8ToNetworkName(reader.readU8());
         const txVersion = reader.readU8();
         const hasNote = reader.readBoolean();
-        const note = hasNote ? Buffer.from(reader.readBytesWithLength()).toString('hex') : undefined;
+        const note = hasNote
+            ? Buffer.from(reader.readBytesWithLength()).toString('hex')
+            : undefined;
         const anchor = reader.readBoolean();
         const debugFees = reader.readBoolean();
 
@@ -622,7 +624,10 @@ export class TransactionSerializer {
         }
     }
 
-    private static writeScriptElement(writer: BinaryWriter, element: SerializedScriptElement): void {
+    private static writeScriptElement(
+        writer: BinaryWriter,
+        element: SerializedScriptElement,
+    ): void {
         writer.writeU8(element.elementType === 'buffer' ? 0 : 1);
         if (element.elementType === 'buffer') {
             writer.writeBytesWithLength(Buffer.from(element.value as string, 'hex'));

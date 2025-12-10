@@ -6,12 +6,12 @@ import { TransactionType } from '../enums/TransactionType.js';
 import {
     ISerializableTransactionState,
     PrecomputedData,
+    SERIALIZATION_FORMAT_VERSION,
     SerializationHeader,
     SerializedBaseParams,
     SerializedOutput,
     SerializedSignerMapping,
     SerializedUTXO,
-    SERIALIZATION_FORMAT_VERSION,
 } from './interfaces/ISerializableState.js';
 import {
     CancelSpecificData,
@@ -218,7 +218,9 @@ export class TransactionStateCapture {
     /**
      * Extract signer mappings for address rotation mode
      */
-    private static extractSignerMappings(params: ITransactionParameters): SerializedSignerMapping[] {
+    private static extractSignerMappings(
+        params: ITransactionParameters,
+    ): SerializedSignerMapping[] {
         if (!params.addressRotation?.enabled) {
             return [];
         }
@@ -379,11 +381,7 @@ export class TransactionStateCapture {
         },
     ): CancelSpecificData {
         const script = params.compiledTargetScript;
-        const scriptHex = script
-            ? Buffer.isBuffer(script)
-                ? script.toString('hex')
-                : script
-            : '';
+        const scriptHex = script ? (Buffer.isBuffer(script) ? script.toString('hex') : script) : '';
 
         return {
             type: TransactionType.CANCEL,

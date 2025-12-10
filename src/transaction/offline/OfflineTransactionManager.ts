@@ -5,9 +5,9 @@ import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 import { ISerializableTransactionState, PrecomputedData } from './interfaces/ISerializableState.js';
 import { TransactionSerializer } from './TransactionSerializer.js';
-import { TransactionReconstructor, ReconstructionOptions } from './TransactionReconstructor.js';
+import { ReconstructionOptions, TransactionReconstructor } from './TransactionReconstructor.js';
 import { TransactionStateCapture } from './TransactionStateCapture.js';
-import { isMultiSigSpecificData, MultiSigSpecificData } from './interfaces/ITypeSpecificData.js';
+import { isMultiSigSpecificData } from './interfaces/ITypeSpecificData.js';
 import {
     IDeploymentParameters,
     IFundingTransactionParameters,
@@ -249,10 +249,7 @@ export class OfflineTransactionManager {
      * @param newFeeRate - New fee rate in sat/vB
      * @returns New serialized state with updated fees (not signed yet)
      */
-    public static rebuildWithNewFees(
-        serializedState: string,
-        newFeeRate: number,
-    ): string {
+    public static rebuildWithNewFees(serializedState: string, newFeeRate: number): string {
         // Parse the existing state
         const state = TransactionSerializer.fromBase64(serializedState);
 
@@ -393,7 +390,9 @@ export class OfflineTransactionManager {
             psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
         } else {
             // Need to build the transaction first
-            const builder = this.importForSigning(serializedState, { signer }) as MultiSignTransaction;
+            const builder = this.importForSigning(serializedState, {
+                signer,
+            }) as MultiSignTransaction;
             psbt = await builder.signPSBT();
         }
 
@@ -611,10 +610,7 @@ export class OfflineTransactionManager {
      * @param psbtBase64 - New PSBT with additional signatures
      * @returns Updated state
      */
-    public static multiSigUpdatePsbt(
-        serializedState: string,
-        psbtBase64: string,
-    ): string {
+    public static multiSigUpdatePsbt(serializedState: string, psbtBase64: string): string {
         const state = TransactionSerializer.fromBase64(serializedState);
 
         if (!isMultiSigSpecificData(state.typeSpecificData)) {

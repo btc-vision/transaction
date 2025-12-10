@@ -8,8 +8,10 @@ import {
 } from '../interfaces/ITransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
-export interface ICancelTransactionParameters
-    extends Omit<ITransactionParameters, 'priorityFee' | 'gasSatFee'> {
+export interface ICancelTransactionParameters extends Omit<
+    ITransactionParameters,
+    'priorityFee' | 'gasSatFee'
+> {
     readonly compiledTargetScript: string | Buffer;
 }
 

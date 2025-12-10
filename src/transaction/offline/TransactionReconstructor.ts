@@ -12,11 +12,7 @@ import { InteractionTransaction } from '../builders/InteractionTransaction.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 import { CustomScriptTransaction } from '../builders/CustomScriptTransaction.js';
 import { CancelTransaction } from '../builders/CancelTransaction.js';
-import {
-    ISerializableTransactionState,
-    SerializedOutput,
-    SerializedUTXO,
-} from './interfaces/ISerializableState.js';
+import { ISerializableTransactionState, SerializedOutput, SerializedUTXO, } from './interfaces/ISerializableState.js';
 import {
     CancelSpecificData,
     CustomScriptSpecificData,
@@ -108,9 +104,7 @@ export class TransactionReconstructor {
             priorityFee,
             gasSatFee,
             txVersion: state.baseParams.txVersion as SupportedTransactionVersion,
-            note: state.baseParams.note
-                ? Buffer.from(state.baseParams.note, 'hex')
-                : undefined,
+            note: state.baseParams.note ? Buffer.from(state.baseParams.note, 'hex') : undefined,
             anchor: state.baseParams.anchor,
             debugFees: state.baseParams.debugFees,
             addressRotation,
