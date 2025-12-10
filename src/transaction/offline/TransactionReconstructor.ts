@@ -227,7 +227,26 @@ export class TransactionReconstructor {
     ): MultiSignTransaction {
         const pubkeys = data.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
 
-        // MultiSignParameters has specific requirements - doesn't use 'from', 'signer', etc.
+        // If there's an existing PSBT, use fromBase64 to preserve partial signatures
+        if (data.existingPsbtBase64) {
+            return MultiSignTransaction.fromBase64({
+                mldsaSigner: baseParams.mldsaSigner,
+                network: baseParams.network,
+                chainId: baseParams.chainId,
+                utxos: baseParams.utxos,
+                optionalInputs: baseParams.optionalInputs,
+                optionalOutputs: baseParams.optionalOutputs,
+                feeRate: baseParams.feeRate,
+                pubkeys,
+                minimumSignatures: data.minimumSignatures,
+                receiver: data.receiver,
+                requestedAmount: BigInt(data.requestedAmount),
+                refundVault: data.refundVault,
+                psbt: data.existingPsbtBase64,
+            });
+        }
+
+        // No existing PSBT - create fresh transaction
         const params = {
             mldsaSigner: baseParams.mldsaSigner,
             network: baseParams.network,

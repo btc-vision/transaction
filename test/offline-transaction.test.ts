@@ -1789,6 +1789,263 @@ describe('Offline Transaction Signing', () => {
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
         });
     });
+
+    describe('MultiSig Offline Signing', () => {
+        it('should export and validate multisig state', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+                signer3.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'a'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+
+            expect(OfflineTransactionManager.validate(state)).toBe(true);
+            expect(OfflineTransactionManager.getType(state)).toBe(TransactionType.MULTI_SIG);
+
+            const inspected = OfflineTransactionManager.inspect(state);
+            expect(inspected.typeSpecificData.type).toBe(TransactionType.MULTI_SIG);
+        });
+
+        it('should serialize and deserialize multisig specific data', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 80000n, 'b'.repeat(64), 0)],
+                feeRate: 15,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 40000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+            const inspected = OfflineTransactionManager.inspect(state);
+
+            expect(isMultiSigSpecificData(inspected.typeSpecificData)).toBe(true);
+
+            if (isMultiSigSpecificData(inspected.typeSpecificData)) {
+                expect(inspected.typeSpecificData.pubkeys).toHaveLength(2);
+                expect(inspected.typeSpecificData.minimumSignatures).toBe(2);
+                expect(inspected.typeSpecificData.receiver).toBe(address1);
+                expect(inspected.typeSpecificData.requestedAmount).toBe('40000');
+                expect(inspected.typeSpecificData.refundVault).toBe(address2);
+            }
+        });
+
+        it('should report no signatures initially', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'c'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+            const status = OfflineTransactionManager.multiSigGetSignatureStatus(state);
+
+            expect(status.required).toBe(2);
+            expect(status.collected).toBe(0);
+            expect(status.isComplete).toBe(false);
+            expect(status.signers).toHaveLength(0);
+        });
+
+        it('should return null for PSBT before signing', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'd'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+            const psbt = OfflineTransactionManager.multiSigGetPsbt(state);
+
+            expect(psbt).toBeNull();
+        });
+
+        it('should report signer has not signed before signing', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'e'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+
+            expect(OfflineTransactionManager.multiSigHasSigned(state, signer1.publicKey)).toBe(false);
+            expect(OfflineTransactionManager.multiSigHasSigned(state, signer2.publicKey)).toBe(false);
+        });
+
+        it('should throw error for non-multisig state in multisig methods', () => {
+            const fundingParams = {
+                signer: defaultSigner,
+                mldsaSigner: null,
+                network,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, 'f'.repeat(64), 0)],
+                from: defaultAddress,
+                to: address1,
+                feeRate: 10,
+                priorityFee: 1000n,
+                gasSatFee: 500n,
+                amount: 50000n,
+            };
+
+            const fundingState = OfflineTransactionManager.exportFunding(fundingParams);
+
+            expect(() => OfflineTransactionManager.multiSigGetSignatureStatus(fundingState))
+                .toThrow('State is not a multisig transaction');
+
+            expect(() => OfflineTransactionManager.multiSigHasSigned(fundingState, signer1.publicKey))
+                .toThrow('State is not a multisig transaction');
+
+            expect(() => OfflineTransactionManager.multiSigGetPsbt(fundingState))
+                .toThrow('State is not a multisig transaction');
+
+            expect(() => OfflineTransactionManager.multiSigFinalize(fundingState))
+                .toThrow('State is not a multisig transaction');
+        });
+
+        it('should throw error when finalizing without signatures', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, '1'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+
+            expect(() => OfflineTransactionManager.multiSigFinalize(state))
+                .toThrow('No PSBT found in state');
+        });
+
+        it('should update PSBT in state', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [createTaprootUtxo(defaultAddress, 100000n, '2'.repeat(64), 0)],
+                feeRate: 10,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 50000n,
+                refundVault: address2,
+            };
+
+            const state = OfflineTransactionManager.exportMultiSig(params);
+
+            // Update with a mock PSBT
+            const mockPsbtBase64 = 'cHNidP8BAH0CAAAAAb=='; // Minimal valid base64
+            const updatedState = OfflineTransactionManager.multiSigUpdatePsbt(state, mockPsbtBase64);
+
+            const inspected = OfflineTransactionManager.inspect(updatedState);
+            if (isMultiSigSpecificData(inspected.typeSpecificData)) {
+                expect(inspected.typeSpecificData.existingPsbtBase64).toBe(mockPsbtBase64);
+            }
+        });
+
+        it('should preserve multisig data through serialization round-trip', () => {
+            const pubkeys = [
+                signer1.publicKey,
+                signer2.publicKey,
+                signer3.publicKey,
+            ];
+
+            const params = {
+                network,
+                mldsaSigner: null,
+                utxos: [
+                    createTaprootUtxo(defaultAddress, 50000n, '3'.repeat(64), 0),
+                    createTaprootUtxo(defaultAddress, 60000n, '4'.repeat(64), 1),
+                ],
+                feeRate: 20,
+                pubkeys,
+                minimumSignatures: 2,
+                receiver: address1,
+                requestedAmount: 80000n,
+                refundVault: address2,
+            };
+
+            // Export
+            const state = OfflineTransactionManager.exportMultiSig(params);
+
+            // Convert to hex and back
+            const hexState = OfflineTransactionManager.toHex(state);
+            const backToBase64 = OfflineTransactionManager.fromHex(hexState);
+
+            // Verify data preserved
+            const original = OfflineTransactionManager.inspect(state);
+            const restored = OfflineTransactionManager.inspect(backToBase64);
+
+            expect(restored.typeSpecificData).toEqual(original.typeSpecificData);
+            expect(restored.utxos).toHaveLength(2);
+        });
+    });
 });
 
 // Helper function to create mock challenge data

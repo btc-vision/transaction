@@ -1,9 +1,13 @@
+import { Psbt, Signer } from '@btc-vision/bitcoin';
+import { ECPairInterface } from 'ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
+import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 import { ISerializableTransactionState, PrecomputedData } from './interfaces/ISerializableState.js';
 import { TransactionSerializer } from './TransactionSerializer.js';
 import { TransactionReconstructor, ReconstructionOptions } from './TransactionReconstructor.js';
 import { TransactionStateCapture } from './TransactionStateCapture.js';
+import { isMultiSigSpecificData, MultiSigSpecificData } from './interfaces/ITypeSpecificData.js';
 import {
     IDeploymentParameters,
     IFundingTransactionParameters,
@@ -356,4 +360,277 @@ export class OfflineTransactionManager {
         return TransactionSerializer.toBase64(state);
     }
 
+    /**
+     * Add a partial signature to a multisig transaction state.
+     * This method signs the transaction with the provided signer and returns
+     * updated state with the new signature included.
+     *
+     * @param serializedState - Base64-encoded multisig state
+     * @param signer - The signer to add a signature with
+     * @returns Updated state with new signature, and signing result
+     */
+    public static async multiSigAddSignature(
+        serializedState: string,
+        signer: Signer | ECPairInterface,
+    ): Promise<{
+        state: string;
+        signed: boolean;
+        final: boolean;
+        psbtBase64: string;
+    }> {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        const typeData = state.typeSpecificData;
+        const pubkeys = typeData.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
+
+        // Parse existing PSBT or create new one
+        let psbt: Psbt;
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+
+        if (typeData.existingPsbtBase64) {
+            psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
+        } else {
+            // Need to build the transaction first
+            const builder = this.importForSigning(serializedState, { signer }) as MultiSignTransaction;
+            psbt = await builder.signPSBT();
+        }
+
+        // Calculate minimums array for each input
+        const minimums: number[] = [];
+        for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
+            minimums.push(typeData.minimumSignatures);
+        }
+
+        // Sign the PSBT
+        const result = MultiSignTransaction.signPartial(
+            psbt,
+            signer,
+            typeData.originalInputCount,
+            minimums,
+        );
+
+        // Finalize inputs (partial finalization to preserve signatures)
+        const orderedPubKeys: Buffer[][] = [];
+        for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
+            orderedPubKeys.push(pubkeys);
+        }
+
+        MultiSignTransaction.attemptFinalizeInputs(
+            psbt,
+            typeData.originalInputCount,
+            orderedPubKeys,
+            result.final,
+        );
+
+        const newPsbtBase64 = psbt.toBase64();
+
+        // Update the state with new PSBT
+        const newState: ISerializableTransactionState = {
+            ...state,
+            typeSpecificData: {
+                ...typeData,
+                existingPsbtBase64: newPsbtBase64,
+            },
+        };
+
+        return {
+            state: TransactionSerializer.toBase64(newState),
+            signed: result.signed,
+            final: result.final,
+            psbtBase64: newPsbtBase64,
+        };
+    }
+
+    /**
+     * Check if a public key has already signed a multisig transaction
+     *
+     * @param serializedState - Base64-encoded multisig state
+     * @param signerPubKey - Public key to check (Buffer or hex string)
+     * @returns True if the public key has already signed
+     */
+    public static multiSigHasSigned(
+        serializedState: string,
+        signerPubKey: Buffer | string,
+    ): boolean {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        const typeData = state.typeSpecificData;
+
+        if (!typeData.existingPsbtBase64) {
+            return false;
+        }
+
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+        const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
+
+        const pubKeyBuffer = Buffer.isBuffer(signerPubKey)
+            ? signerPubKey
+            : Buffer.from(signerPubKey, 'hex');
+
+        return MultiSignTransaction.verifyIfSigned(psbt, pubKeyBuffer);
+    }
+
+    /**
+     * Get the current signature count for a multisig transaction
+     *
+     * @param serializedState - Base64-encoded multisig state
+     * @returns Object with signature count info
+     */
+    public static multiSigGetSignatureStatus(serializedState: string): {
+        required: number;
+        collected: number;
+        isComplete: boolean;
+        signers: string[];
+    } {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        const typeData = state.typeSpecificData;
+        const required = typeData.minimumSignatures;
+
+        if (!typeData.existingPsbtBase64) {
+            return {
+                required,
+                collected: 0,
+                isComplete: false,
+                signers: [],
+            };
+        }
+
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+        const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
+
+        // Collect signers from all inputs
+        const signerSet = new Set<string>();
+
+        for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
+            const input = psbt.data.inputs[i];
+
+            if (input.tapScriptSig) {
+                for (const sig of input.tapScriptSig) {
+                    signerSet.add(sig.pubkey.toString('hex'));
+                }
+            }
+
+            if (input.finalScriptWitness) {
+                const decoded = TransactionBuilder.readScriptWitnessToWitnessStack(
+                    input.finalScriptWitness,
+                );
+
+                for (let j = 0; j < decoded.length - 2; j += 3) {
+                    const pubKey = decoded[j + 2];
+                    signerSet.add(pubKey.toString('hex'));
+                }
+            }
+        }
+
+        const signers = Array.from(signerSet);
+
+        return {
+            required,
+            collected: signers.length,
+            isComplete: signers.length >= required,
+            signers,
+        };
+    }
+
+    /**
+     * Finalize a multisig transaction and extract the signed transaction hex.
+     * Only call this when all required signatures have been collected.
+     *
+     * @param serializedState - Base64-encoded multisig state with all signatures
+     * @returns Signed transaction hex ready for broadcast
+     */
+    public static multiSigFinalize(serializedState: string): string {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        const typeData = state.typeSpecificData;
+
+        if (!typeData.existingPsbtBase64) {
+            throw new Error('No PSBT found in state - transaction has not been signed');
+        }
+
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+        const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
+
+        const pubkeys = typeData.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
+        const orderedPubKeys: Buffer[][] = [];
+
+        for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
+            orderedPubKeys.push(pubkeys);
+        }
+
+        // Final finalization
+        const success = MultiSignTransaction.attemptFinalizeInputs(
+            psbt,
+            typeData.originalInputCount,
+            orderedPubKeys,
+            true, // isFinal = true
+        );
+
+        if (!success) {
+            throw new Error('Failed to finalize multisig transaction - not enough signatures');
+        }
+
+        return psbt.extractTransaction(true, true).toHex();
+    }
+
+    /**
+     * Get the PSBT from a multisig state (for external signing tools)
+     *
+     * @param serializedState - Base64-encoded multisig state
+     * @returns PSBT in base64 format, or null if not yet built
+     */
+    public static multiSigGetPsbt(serializedState: string): string | null {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        return state.typeSpecificData.existingPsbtBase64 || null;
+    }
+
+    /**
+     * Update the PSBT in a multisig state (after external signing)
+     *
+     * @param serializedState - Base64-encoded multisig state
+     * @param psbtBase64 - New PSBT with additional signatures
+     * @returns Updated state
+     */
+    public static multiSigUpdatePsbt(
+        serializedState: string,
+        psbtBase64: string,
+    ): string {
+        const state = TransactionSerializer.fromBase64(serializedState);
+
+        if (!isMultiSigSpecificData(state.typeSpecificData)) {
+            throw new Error('State is not a multisig transaction');
+        }
+
+        const newState: ISerializableTransactionState = {
+            ...state,
+            typeSpecificData: {
+                ...state.typeSpecificData,
+                existingPsbtBase64: psbtBase64,
+            },
+        };
+
+        return TransactionSerializer.toBase64(newState);
+    }
 }

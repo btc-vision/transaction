@@ -199,12 +199,16 @@ export class TransactionStateCapture {
                 : Buffer.from(params.note).toString('hex')
             : undefined;
 
+        // Handle optional priorityFee and gasSatFee (not present in MultiSig)
+        const priorityFee = params.priorityFee ?? 0n;
+        const gasSatFee = params.gasSatFee ?? 0n;
+
         return {
             from: params.from || '',
             to: params.to,
             feeRate: params.feeRate,
-            priorityFee: params.priorityFee.toString(),
-            gasSatFee: params.gasSatFee.toString(),
+            priorityFee: priorityFee.toString(),
+            gasSatFee: gasSatFee.toString(),
             networkName: this.networkToName(params.network),
             txVersion: params.txVersion ?? 2,
             note,

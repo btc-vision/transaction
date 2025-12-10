@@ -338,9 +338,151 @@ block-beta
 | Funding | `exportFunding()` | amount, splitInputsInto |
 | Deployment | `exportDeployment()` | bytecode, calldata, challenge |
 | Interaction | `exportInteraction()` | calldata, contract, challenge, loadedStorage |
-| MultiSig | `exportMultiSig()` | pubkeys, minimumSignatures, receiver |
+| MultiSig | `exportMultiSig()` | pubkeys, minimumSignatures, receiver, existingPsbtBase64 |
 | CustomScript | `exportCustomScript()` | scriptElements, witnesses, annex |
 | Cancel | `exportCancel()` | compiledTargetScript |
+
+## MultiSig Transactions
+
+MultiSig transactions require collecting signatures from multiple parties before broadcasting. The offline signing module provides specialized methods for this workflow.
+
+```mermaid
+flowchart LR
+    subgraph Create["1. Create"]
+        A[Export MultiSig State]
+    end
+
+    subgraph Sign["2. Collect Signatures"]
+        B[Signer 1] --> C[Updated State]
+        C --> D[Signer 2]
+        D --> E[Updated State]
+        E --> F[Signer N]
+    end
+
+    subgraph Finalize["3. Finalize"]
+        G[Check Complete] --> H[Extract TX Hex]
+    end
+
+    A --> B
+    F --> G
+```
+
+### MultiSig API Methods
+
+```typescript
+// Add a signature from one signer
+static async multiSigAddSignature(
+    serializedState: string,
+    signer: Signer | ECPairInterface
+): Promise<{
+    state: string;      // Updated state with new signature
+    signed: boolean;    // Whether signing succeeded
+    final: boolean;     // Whether all signatures collected
+    psbtBase64: string; // Current PSBT state
+}>;
+
+// Check if a public key has already signed
+static multiSigHasSigned(
+    serializedState: string,
+    signerPubKey: Buffer | string
+): boolean;
+
+// Get current signature status
+static multiSigGetSignatureStatus(serializedState: string): {
+    required: number;   // Minimum signatures needed
+    collected: number;  // Current signature count
+    isComplete: boolean;
+    signers: string[];  // Public keys that have signed
+};
+
+// Finalize and extract transaction hex
+static multiSigFinalize(serializedState: string): string;
+
+// Get PSBT for external signing tools
+static multiSigGetPsbt(serializedState: string): string | null;
+
+// Update PSBT after external signing
+static multiSigUpdatePsbt(
+    serializedState: string,
+    psbtBase64: string
+): string;
+```
+
+### MultiSig Example
+
+```typescript
+import {
+    OfflineTransactionManager,
+    EcKeyPair,
+} from '@btc-vision/transaction';
+import { networks } from '@btc-vision/bitcoin';
+
+const network = networks.regtest;
+
+// Create 3 signers for a 2-of-3 multisig
+const signer1 = EcKeyPair.generateRandomKeyPair(network);
+const signer2 = EcKeyPair.generateRandomKeyPair(network);
+const signer3 = EcKeyPair.generateRandomKeyPair(network);
+
+const pubkeys = [
+    signer1.publicKey,
+    signer2.publicKey,
+    signer3.publicKey,
+];
+
+// Export initial multisig state
+const params = {
+    network,
+    mldsaSigner: null,
+    utxos: [/* vault UTXOs */],
+    feeRate: 10,
+    pubkeys,
+    minimumSignatures: 2,
+    receiver: 'bcrt1q...recipient',
+    requestedAmount: 50000n,
+    refundVault: 'bcrt1q...vault',
+};
+
+let state = OfflineTransactionManager.exportMultiSig(params);
+
+// Signer 1 adds their signature
+const result1 = await OfflineTransactionManager.multiSigAddSignature(state, signer1);
+console.log('Signer 1 signed:', result1.signed);
+console.log('Complete:', result1.final);
+state = result1.state;
+
+// Check status
+const status = OfflineTransactionManager.multiSigGetSignatureStatus(state);
+console.log(`Signatures: ${status.collected}/${status.required}`);
+
+// Signer 2 adds their signature
+const result2 = await OfflineTransactionManager.multiSigAddSignature(state, signer2);
+console.log('Signer 2 signed:', result2.signed);
+console.log('Complete:', result2.final); // true - we have 2 of 3
+state = result2.state;
+
+// Finalize and get transaction hex
+if (OfflineTransactionManager.multiSigGetSignatureStatus(state).isComplete) {
+    const txHex = OfflineTransactionManager.multiSigFinalize(state);
+    console.log('Ready to broadcast:', txHex);
+}
+```
+
+### External Signing Tools
+
+For hardware wallets or external signing tools, you can extract and update the PSBT directly:
+
+```typescript
+// Get PSBT for external tool
+const psbtBase64 = OfflineTransactionManager.multiSigGetPsbt(state);
+
+// Send psbtBase64 to hardware wallet / external tool
+// ... external signing happens ...
+
+// Update state with signed PSBT
+const signedPsbtBase64 = '...'; // From external tool
+state = OfflineTransactionManager.multiSigUpdatePsbt(state, signedPsbtBase64);
+```
 
 ## Precomputed Data
 
