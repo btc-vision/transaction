@@ -1,4 +1,5 @@
 import { ScriptPubKey } from '@btc-vision/bitcoin-rpc';
+import { RotationSigner } from '../../signer/AddressRotation.js';
 
 export interface UTXO {
     readonly transactionId: string;
@@ -9,6 +10,13 @@ export interface UTXO {
     redeemScript?: string | Buffer;
     witnessScript?: string | Buffer;
     nonWitnessUtxo?: string | Buffer;
+
+    /**
+     * Optional signer for this specific UTXO.
+     * Used in address rotation mode where each UTXO may have its own signer.
+     * If not provided, the signer will be resolved from the signerMap or the default signer.
+     */
+    signer?: RotationSigner;
 }
 
 export interface FetchUTXOParams {
