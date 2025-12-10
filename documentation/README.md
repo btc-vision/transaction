@@ -21,6 +21,7 @@ Complete documentation for the OPNet Transaction Library - Bitcoin transaction b
 
 ### Transaction Building
 
+- **[Transaction Building Guide](./transaction-building.md)** - Complete guide to TransactionFactory, UTXO flow, fee calculation, signing, and all transaction types
 - **[Offline Transaction Signing](./offline-transaction-signing.md)** - Serialize transactions for offline/air-gapped signing, fee bumping (RBF), address rotation, and MultiSig support
 
 ### Quantum Support (ML-DSA)
