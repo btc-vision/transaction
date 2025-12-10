@@ -20,8 +20,10 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { ECPairInterface } from 'ecpair';
 
-export interface ICustomTransactionParameters
-    extends Omit<SharedInteractionParameters, 'challenge'> {
+export interface ICustomTransactionParameters extends Omit<
+    SharedInteractionParameters,
+    'challenge'
+> {
     script: (Buffer | Stack)[];
     witnesses: Buffer[];
 

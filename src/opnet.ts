@@ -73,6 +73,9 @@ export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
 export * from './transaction/builders/CancelTransaction.js';
 
+/** Offline Transaction Signing */
+export * from './transaction/offline/index.js';
+
 /** Epoch */
 export * from './epoch/interfaces/IChallengeSolution.js';
 export * from './epoch/validator/EpochValidator.js';

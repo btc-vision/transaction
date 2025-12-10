@@ -21,8 +21,10 @@ import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { ECPairInterface } from 'ecpair';
 
-export interface MultiSignParameters
-    extends Omit<ITransactionParameters, 'gasSatFee' | 'priorityFee' | 'signer'> {
+export interface MultiSignParameters extends Omit<
+    ITransactionParameters,
+    'gasSatFee' | 'priorityFee' | 'signer'
+> {
     readonly pubkeys: Buffer[];
     readonly minimumSignatures: number;
     readonly from?: undefined;
