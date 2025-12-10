@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, beforeEach } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import { networks, payments } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import {
@@ -12,14 +12,10 @@ import {
     ISerializableTransactionState,
     SerializedUTXO,
     SerializedOutput,
-    SerializedSignerMapping,
     SerializedBaseParams,
     PrecomputedData,
-    SerializationHeader,
     SERIALIZATION_FORMAT_VERSION,
-    SERIALIZATION_MAGIC_BYTE,
     // Type-specific data
-    TypeSpecificData,
     FundingSpecificData,
     DeploymentSpecificData,
     InteractionSpecificData,
@@ -1135,7 +1131,6 @@ describe('Offline Transaction Signing', () => {
                 const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
                     exported,
                     50, // New fee rate
-                    { signer: signer1 },
                 );
 
                 // Verify the new state has updated fee
@@ -1558,7 +1553,6 @@ describe('Offline Transaction Signing', () => {
             const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
                 originalState,
                 25,
-                { signer: signer2 },
             );
 
             // Verify bumped fee rate
@@ -1640,8 +1634,8 @@ describe('Offline Transaction Signing', () => {
             // For address rotation, UTXOs must use addresses that match the signers
             // Use all UTXOs from defaultAddress with defaultSigner for simplicity
             const signerMap = createSignerMap([
-                { address: defaultAddress, signer: defaultSigner },
-            ], network);
+                [defaultAddress, defaultSigner],
+            ]);
 
             const params = {
                 signer: defaultSigner,

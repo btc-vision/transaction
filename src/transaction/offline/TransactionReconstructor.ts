@@ -2,7 +2,6 @@ import { Network, networks, PsbtOutputExtended, Signer, Stack } from '@btc-visio
 import { ECPairInterface } from 'ecpair';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ChainId } from '../../network/ChainId.js';
 import { AddressRotationConfig, SignerMap } from '../../signer/AddressRotation.js';
 import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -15,7 +14,6 @@ import { CustomScriptTransaction } from '../builders/CustomScriptTransaction.js'
 import { CancelTransaction } from '../builders/CancelTransaction.js';
 import {
     ISerializableTransactionState,
-    SerializedBaseParams,
     SerializedOutput,
     SerializedUTXO,
 } from './interfaces/ISerializableState.js';

@@ -1,4 +1,4 @@
-import { Network, networks, PsbtOutputExtended } from '@btc-vision/bitcoin';
+import { Network, PsbtOutputExtended } from '@btc-vision/bitcoin';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ChainId } from '../../network/ChainId.js';
 import { currentConsensus } from '../../consensus/ConsensusConfig.js';
@@ -28,9 +28,7 @@ import {
     IFundingTransactionParameters,
     IInteractionParameters,
     ITransactionParameters,
-    LoadedStorage,
 } from '../interfaces/ITransactionParameters.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
 
 /**
  * Parameters required to capture state from any transaction builder

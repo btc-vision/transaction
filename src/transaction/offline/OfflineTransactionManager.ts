@@ -247,13 +247,11 @@ export class OfflineTransactionManager {
      * Rebuild transaction with new fee rate (fee bumping)
      * @param serializedState - Original state
      * @param newFeeRate - New fee rate in sat/vB
-     * @param _options - Signer options (unused, kept for API consistency)
      * @returns New serialized state with updated fees (not signed yet)
      */
     public static rebuildWithNewFees(
         serializedState: string,
         newFeeRate: number,
-        _options: ReconstructionOptions,
     ): string {
         // Parse the existing state
         const state = TransactionSerializer.fromBase64(serializedState);

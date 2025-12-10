@@ -73,7 +73,6 @@ flowchart LR
 const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
     originalState,
     50, // New fee rate in sat/vB
-    { signer: offlineSigner }
 );
 
 // Or rebuild and sign in one step
@@ -157,8 +156,7 @@ static async importSignAndExport(
 // Rebuild state with new fee rate (returns new state, not signed)
 static rebuildWithNewFees(
     serializedState: string,
-    newFeeRate: number,
-    options: ReconstructionOptions
+    newFeeRate: number
 ): string;
 
 // Rebuild, sign, and export with new fee rate
@@ -249,10 +247,11 @@ import {
 } from '@btc-vision/transaction';
 
 // Phase 1: Export with address rotation enabled
+// createSignerMap takes an array of [address, signer] tuples
 const signerMap = createSignerMap([
-    { address: 'bc1p...address1', signer: signer1 },
-    { address: 'bc1p...address2', signer: signer2 },
-], network);
+    ['bc1p...address1', signer1],
+    ['bc1p...address2', signer2],
+]);
 
 const params: IFundingTransactionParameters = {
     signer: signer1,
@@ -634,7 +633,6 @@ console.log('Signed transaction:', signedTxHex);
 const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
     exportedState,
     50, // 5x higher fee rate
-    { signer }
 );
 
 // Verify the new fee rate
