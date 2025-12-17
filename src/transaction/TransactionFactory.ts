@@ -31,6 +31,11 @@ import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
 import { Address } from '../keypair/Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { CancelTransaction, ICancelTransactionParameters } from './builders/CancelTransaction.js';
+import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
+import {
+    IConsolidatedInteractionParameters,
+    IConsolidatedInteractionResult,
+} from './interfaces/IConsolidatedTransactionParameters.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
@@ -76,6 +81,33 @@ export interface CancelledTransaction {
     readonly transaction: string;
     readonly nextUTXOs: UTXO[];
     readonly inputUtxos: UTXO[];
+}
+
+/**
+ * Response from signConsolidatedInteraction.
+ * Contains both setup and reveal transactions for the CHCT system.
+ */
+export interface ConsolidatedInteractionResponse {
+    /** Setup transaction hex - creates P2WSH commitment outputs */
+    readonly setupTransaction: string;
+    /** Reveal transaction hex - spends commitments, reveals data in witnesses */
+    readonly revealTransaction: string;
+    /** Setup transaction ID */
+    readonly setupTxId: string;
+    /** Reveal transaction ID */
+    readonly revealTxId: string;
+    /** Total fees across both transactions in satoshis */
+    readonly totalFees: bigint;
+    /** Number of data chunks */
+    readonly chunkCount: number;
+    /** Total compiled data size in bytes */
+    readonly dataSize: number;
+    /** Challenge for the interaction */
+    readonly challenge: RawChallenge;
+    /** Input UTXOs used */
+    readonly inputUtxos: UTXO[];
+    /** Compiled target script (same as InteractionTransaction) */
+    readonly compiledTargetScript: string;
 }
 
 export class TransactionFactory {
@@ -318,6 +350,64 @@ export class TransactionFactory {
             fundingUTXOs: fundingUTXO,
             fundingInputUtxos: interactionParameters.utxos,
             compiledTargetScript: interactionTx.exportCompiledTargetScript().toString('hex'),
+        };
+    }
+
+    /**
+     * @description Generates a consolidated interaction transaction (CHCT system).
+     *
+     * Drop-in replacement for signInteraction that bypasses BIP110/Bitcoin Knots censorship.
+     * Uses P2WSH with HASH160 commitments instead of Tapscript (which uses OP_IF and gets censored).
+     *
+     * Returns two transactions:
+     * - Setup: Creates P2WSH outputs with hash commitments to data chunks
+     * - Reveal: Spends those outputs, revealing data in witnesses
+     *
+     * Data integrity is consensus-enforced - if data is stripped/modified,
+     * HASH160(data) != committed_hash and the transaction is INVALID.
+     *
+     * @param {IConsolidatedInteractionParameters} interactionParameters - Same parameters as signInteraction
+     * @returns {Promise<ConsolidatedInteractionResponse>} - Both setup and reveal transactions
+     */
+    public async signConsolidatedInteraction(
+        interactionParameters: IConsolidatedInteractionParameters,
+    ): Promise<ConsolidatedInteractionResponse> {
+        if (!interactionParameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+        if (!interactionParameters.from) {
+            throw new Error('Field "from" not provided.');
+        }
+        if (!interactionParameters.utxos[0]) {
+            throw new Error('Missing at least one UTXO.');
+        }
+        if (!('signer' in interactionParameters)) {
+            throw new Error('Field "signer" not provided.');
+        }
+        if (!interactionParameters.challenge) {
+            throw new Error('Field "challenge" not provided.');
+        }
+
+        const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
+
+        const consolidatedTx = new ConsolidatedInteractionTransaction({
+            ...interactionParameters,
+            optionalInputs: inputs,
+        });
+
+        const result = await consolidatedTx.build();
+
+        return {
+            setupTransaction: result.setup.txHex,
+            revealTransaction: result.reveal.txHex,
+            setupTxId: result.setup.txId,
+            revealTxId: result.reveal.txId,
+            totalFees: result.totalFees,
+            chunkCount: result.setup.chunkCount,
+            dataSize: result.setup.totalDataSize,
+            challenge: consolidatedTx.getChallenge().toRaw(),
+            inputUtxos: interactionParameters.utxos,
+            compiledTargetScript: consolidatedTx.exportCompiledTargetScript().toString('hex'),
         };
     }
 

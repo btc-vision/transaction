@@ -9,6 +9,7 @@ export * from './bytecode/Compressor.js';
 export * from './generators/builders/CalldataGenerator.js';
 export * from './generators/builders/CustomGenerator.js';
 export * from './generators/builders/DeploymentGenerator.js';
+export * from './generators/builders/HashCommitmentGenerator.js';
 export * from './generators/builders/LegacyCalldataGenerator.js';
 export * from './generators/builders/MultiSignGenerator.js';
 export * from './generators/builders/P2WDAGenerator.js';
@@ -59,10 +60,13 @@ export * from './signer/AddressRotation.js';
 /** Transaction */
 export * from './transaction/enums/TransactionType.js';
 export * from './transaction/interfaces/ITransactionParameters.js';
+export * from './transaction/interfaces/IConsolidatedTransactionParameters.js';
 export * from './transaction/interfaces/Tap.js';
 export * from './transaction/TransactionFactory.js';
 
 /** Builders */
+export * from './transaction/builders/CancelTransaction.js';
+export * from './transaction/builders/ConsolidatedInteractionTransaction.js';
 export * from './transaction/builders/CustomScriptTransaction.js';
 export * from './transaction/builders/DeploymentTransaction.js';
 export * from './transaction/builders/FundingTransaction.js';
@@ -71,7 +75,6 @@ export * from './transaction/builders/InteractionTransactionP2WDA.js';
 export * from './transaction/builders/MultiSignTransaction.js';
 export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
-export * from './transaction/builders/CancelTransaction.js';
 
 /** Offline Transaction Signing */
 export * from './transaction/offline/index.js';
