@@ -33,5 +33,3 @@ Complete documentation for the OPNet Transaction Library - Bitcoin transaction b
 - [Address Generation](./quantum-support/03-address-generation.md) - All address types
 - [Message Signing](./quantum-support/04-message-signing.md) - ML-DSA and Schnorr signatures
 - [Address Verification](./quantum-support/05-address-verification.md) - Validation and type detection
-- [Complete Examples](./quantum-support/06-complete-examples.md) - Production-ready code
-- [Complete Message Signing Example](./quantum-support/complete-message-signing-example.md) - Full working example with proper typings

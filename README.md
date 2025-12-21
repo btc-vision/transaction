@@ -22,7 +22,7 @@ complicated.
 
 ### Prerequisites
 
-- Node.js version 16.x or higher
+- Node.js version 24.x or higher
 - npm (Node Package Manager)
 
 ### Installation
