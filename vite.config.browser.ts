@@ -60,6 +60,8 @@ export default defineConfig({
     resolve: {
         alias: {
             crypto: resolve(__dirname, 'src/crypto/crypto-browser.js'),
+            zlib: resolve(__dirname, 'src/shims/zlib-browser.js'),
+            vm: resolve(__dirname, 'src/shims/vm-browser.js'),
             stream: 'stream-browserify',
             buffer: 'buffer',
             // Use source versions for proper tree-shaking (not browser bundles)
@@ -79,8 +81,8 @@ export default defineConfig({
                 global: true,
                 process: true,
             },
-            // Exclude heavy polyfills we don't need
-            exclude: ['fs', 'path', 'os', 'http', 'https', 'zlib', 'net', 'tls', 'dns', 'child_process', 'cluster', 'dgram', 'readline', 'repl', 'tty', 'vm', 'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi'],
+            // Exclude heavy polyfills we don't need (zlib, vm handled via aliases)
+            exclude: ['fs', 'path', 'os', 'http', 'https', 'net', 'tls', 'dns', 'child_process', 'cluster', 'dgram', 'readline', 'repl', 'tty', 'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi'],
         }),
         dts({
             outDir: 'browser',

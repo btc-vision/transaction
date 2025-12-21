@@ -1,7 +1,7 @@
 {
     "name": "@btc-vision/transaction",
     "type": "module",
-    "version": "1.7.24",
+    "version": "1.7.25",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -9,10 +9,19 @@
     },
     "exports": {
         ".": {
-            "browser": "./browser/index.js",
+            "browser": {
+                "types": "./browser/index.d.ts",
+                "import": "./browser/index.js",
+                "require": "./browser/index.js"
+            },
+            "node": {
+                "types": "./build/index.d.ts",
+                "import": "./build/index.js",
+                "require": "./build/index.js"
+            },
+            "types": "./build/index.d.ts",
             "import": "./build/index.js",
-            "require": "./build/index.js",
-            "types": "./build/index.d.ts"
+            "require": "./build/index.js"
         },
         "./browser": {
             "import": "./browser/index.js",
@@ -109,8 +118,8 @@
         "url": "git://github.com/btc-vision/transaction.git"
     },
     "scripts": {
-        "watch": "gulp watch",
-        "build": "gulp build",
+        "watch": "tsc -p tsconfig.build.json --watch",
+        "build": "eslint src && tsc -p tsconfig.build.json",
         "setup": "npm i && npm run build",
         "browserBuild": "vite build --config vite.config.browser.ts",
         "docs": "typedoc --out docs --exclude 'src/tests/*.ts' --tsconfig tsconfig.json --readme README.md --name OPNet --plugin typedoc-material-theme --themeColor '#cb9820' --exclude src/tests/test.ts --exclude src/index.ts src",
@@ -133,9 +142,6 @@
         "@vitejs/plugin-legacy": "^7.2.1",
         "@vitest/ui": "^4.0.8",
         "eslint": "^9.39.1",
-        "gulp": "^5.0.1",
-        "gulp-cached": "^1.1.1",
-        "gulp-typescript": "^6.0.0-alpha.1",
         "https-browserify": "^1.0.0",
         "os-browserify": "^0.3.0",
         "prettier": "^3.6.2",
@@ -147,16 +153,15 @@
         "vite": "^7.3.0",
         "vite-plugin-dts": "^4.5.4",
         "vite-plugin-node-polyfills": "^0.24.0",
-        "vitest": "^4.0.8",
-        "webpack-cli": "^6.0.1"
+        "vitest": "^4.0.8"
     },
     "dependencies": {
         "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
         "@bitcoinerlab/secp256k1": "^1.2.0",
         "@btc-vision/bip32": "^6.0.3",
         "@btc-vision/bitcoin": "^6.5.1",
-        "@btc-vision/bitcoin-rpc": "^1.0.5",
-        "@btc-vision/logger": "^1.0.7",
+        "@btc-vision/bitcoin-rpc": "^1.0.6",
+        "@btc-vision/logger": "^1.0.8",
         "@btc-vision/post-quantum": "^0.5.3",
         "@eslint/js": "^9.39.1",
         "@noble/curves": "^1.9.7",
@@ -172,14 +177,11 @@
         "browserify-zlib": "^0.2.0",
         "buffer": "^6.0.3",
         "ecpair": "^2.1.0",
-        "gulp-clean": "^0.4.0",
-        "gulp-eslint-new": "^2.4.0",
-        "gulp-logger-new": "^1.0.1",
+        "pako": "^2.1.0",
         "process": "^0.11.10",
         "sha.js": "^2.4.12",
         "ts-loader": "^9.5.4",
         "ts-node": "^10.9.2",
-        "typescript": "^5.9.3",
-        "webpack": "^5.102.1"
+        "typescript": "^5.9.3"
     }
 }
