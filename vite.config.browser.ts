@@ -1,7 +1,29 @@
 import { resolve } from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import dts from 'vite-plugin-dts';
+
+// Strip unused bip39 wordlists (keep only English) - saves ~150KB
+function stripBip39Wordlists(): Plugin {
+    return {
+        name: 'strip-bip39-wordlists',
+        resolveId(source, importer) {
+            // Match ./wordlists/*.json except english.json
+            if (importer?.includes('bip39') &&
+                source.includes('/wordlists/') &&
+                !source.includes('english')) {
+                return { id: 'empty-wordlist', external: false };
+            }
+            return null;
+        },
+        load(id) {
+            if (id === 'empty-wordlist') {
+                return 'export default []';
+            }
+            return null;
+        },
+    };
+}
 
 export default defineConfig({
     build: {
@@ -53,6 +75,7 @@ export default defineConfig({
         global: 'globalThis',
     },
     plugins: [
+        stripBip39Wordlists(),
         nodePolyfills({
             globals: {
                 Buffer: true,
