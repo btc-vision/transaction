@@ -81,8 +81,8 @@ export default defineConfig({
                 global: true,
                 process: true,
             },
-            // Exclude heavy polyfills we don't need (zlib, vm handled via aliases)
-            exclude: ['fs', 'path', 'os', 'http', 'https', 'net', 'tls', 'dns', 'child_process', 'cluster', 'dgram', 'readline', 'repl', 'tty', 'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi'],
+            // Exclude heavy polyfills we don't need (crypto, zlib, vm handled via aliases)
+            exclude: ['crypto', 'fs', 'path', 'os', 'http', 'https', 'net', 'tls', 'dns', 'child_process', 'cluster', 'dgram', 'readline', 'repl', 'tty', 'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi', 'zlib', 'vm'],
         }),
         dts({
             outDir: 'browser',
