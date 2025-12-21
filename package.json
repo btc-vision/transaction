@@ -18,6 +18,58 @@
             "import": "./browser/index.js",
             "require": "./browser/index.js",
             "types": "./browser/index.d.ts"
+        },
+        "./browser/noble-curves": {
+            "import": "./browser/noble-curves.js",
+            "require": "./browser/noble-curves.js"
+        },
+        "./browser/noble-hashes": {
+            "import": "./browser/noble-hashes.js",
+            "require": "./browser/noble-hashes.js"
+        },
+        "./browser/btc-vision-bitcoin": {
+            "import": "./browser/btc-vision-bitcoin.js",
+            "require": "./browser/btc-vision-bitcoin.js"
+        },
+        "./browser/btc-vision-bip32": {
+            "import": "./browser/btc-vision-bip32.js",
+            "require": "./browser/btc-vision-bip32.js"
+        },
+        "./browser/btc-vision-post-quantum": {
+            "import": "./browser/btc-vision-post-quantum.js",
+            "require": "./browser/btc-vision-post-quantum.js"
+        },
+        "./browser/btc-vision-logger": {
+            "import": "./browser/btc-vision-logger.js",
+            "require": "./browser/btc-vision-logger.js"
+        },
+        "./browser/valibot": {
+            "import": "./browser/valibot.js",
+            "require": "./browser/valibot.js"
+        },
+        "./browser/pako": {
+            "import": "./browser/pako.js",
+            "require": "./browser/pako.js"
+        },
+        "./browser/bip39": {
+            "import": "./browser/bip39.js",
+            "require": "./browser/bip39.js"
+        },
+        "./browser/bitcoin-utils": {
+            "import": "./browser/bitcoin-utils.js",
+            "require": "./browser/bitcoin-utils.js"
+        },
+        "./browser/scure-base": {
+            "import": "./browser/scure-base.js",
+            "require": "./browser/scure-base.js"
+        },
+        "./browser/polyfills": {
+            "import": "./browser/polyfills.js",
+            "require": "./browser/polyfills.js"
+        },
+        "./browser/vendors": {
+            "import": "./browser/vendors.js",
+            "require": "./browser/vendors.js"
         }
     },
     "browser": {
