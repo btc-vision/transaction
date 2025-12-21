@@ -51,6 +51,12 @@ export class Address extends Uint8Array {
         }
 
         if (publicKeyOrTweak) {
+            // Validate length immediately (cheap check), defer EC operations
+            const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
+            if (!validLengths.includes(publicKeyOrTweak.length)) {
+                throw new Error(`Invalid public key length ${publicKeyOrTweak.length}`);
+            }
+
             // Store but don't process yet - defer EC operations
             this.#pendingLegacyKey = new Uint8Array(publicKeyOrTweak.length);
             this.#pendingLegacyKey.set(publicKeyOrTweak);
@@ -784,10 +790,7 @@ export class Address extends Uint8Array {
         const pending = this.#pendingLegacyKey;
         if (!pending) return;
 
-        const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
-        if (!validLengths.includes(pending.length)) {
-            throw new Error(`Invalid public key length ${pending.length}`);
-        }
+        // Length validation already done in constructor
 
         if (pending.length === ADDRESS_BYTE_LENGTH) {
             // 32-byte input: already tweaked x-only, just generate hybrid
