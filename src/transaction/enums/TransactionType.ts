@@ -6,4 +6,6 @@ export enum TransactionType {
     MULTI_SIG = 4,
     CUSTOM_CODE = 5,
     CANCEL = 6,
+    CONSOLIDATED_SETUP = 7,
+    CONSOLIDATED_REVEAL = 8,
 }
