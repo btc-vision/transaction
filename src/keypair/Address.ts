@@ -36,7 +36,12 @@ export class Address extends Uint8Array {
     #originalMDLSAPublicKey: Uint8Array | undefined;
     #mldsaLevel: MLDSASecurityLevel | undefined;
 
-    private legacyPublicKey: Uint8Array | undefined;
+    // Lazy loading state - defers expensive EC operations until actually needed
+    #pendingLegacyKey: Uint8Array | undefined;
+    #legacyProcessed: boolean = false;
+
+    // After processing, this is 32-byte tweaked x-only (same as original behavior)
+    #legacyPublicKey: Uint8Array | undefined;
 
     public constructor(mldsaPublicKey?: ArrayLike<number>, publicKeyOrTweak?: ArrayLike<number>) {
         super(ADDRESS_BYTE_LENGTH);
@@ -46,11 +51,12 @@ export class Address extends Uint8Array {
         }
 
         if (publicKeyOrTweak) {
-            this.legacyPublicKey = new Uint8Array(publicKeyOrTweak.length);
-            this.legacyPublicKey.set(publicKeyOrTweak);
+            // Store but don't process yet - defer EC operations
+            this.#pendingLegacyKey = new Uint8Array(publicKeyOrTweak.length);
+            this.#pendingLegacyKey.set(publicKeyOrTweak);
         }
 
-        this.set(mldsaPublicKey);
+        this.setMldsaKey(mldsaPublicKey);
     }
 
     public get mldsaLevel(): MLDSASecurityLevel | undefined {
@@ -74,6 +80,7 @@ export class Address extends Uint8Array {
      * @returns {Uint8Array} The original public key used to create the address.
      */
     public get originalPublicKey(): Uint8Array | undefined {
+        this.ensureLegacyProcessed();
         return this.#originalPublicKey;
     }
 
@@ -82,10 +89,20 @@ export class Address extends Uint8Array {
     }
 
     /**
+     * Get the legacy public key (32-byte tweaked x-only after processing).
+     * Triggers lazy processing if not yet done.
+     */
+    private get legacyPublicKey(): Uint8Array | undefined {
+        this.ensureLegacyProcessed();
+        return this.#legacyPublicKey;
+    }
+
+    /**
      * Get the key pair for the address
      * @description This is only for internal use. Please use address.tweakedBytes instead.
      */
     private get keyPair(): ECPairInterface {
+        this.ensureLegacyProcessed();
         if (!this.#keyPair) {
             throw new Error('Legacy public key not set for address');
         }
@@ -291,11 +308,12 @@ export class Address extends Uint8Array {
      * @returns {string} The hex string
      */
     public tweakedToHex(): string {
-        if (!this.legacyPublicKey) {
+        const key = this.legacyPublicKey;
+        if (!key) {
             throw new Error('Legacy public key not set');
         }
 
-        return '0x' + Buffer.from(this.legacyPublicKey).toString('hex');
+        return '0x' + Buffer.from(key).toString('hex');
     }
 
     /**
@@ -311,14 +329,16 @@ export class Address extends Uint8Array {
      * @returns {Buffer} The buffer
      */
     public tweakedPublicKeyToBuffer(): Buffer {
-        if (!this.legacyPublicKey) {
+        const key = this.legacyPublicKey;
+        if (!key) {
             throw new Error('Legacy public key not set');
         }
 
-        return Buffer.from(this.legacyPublicKey);
+        return Buffer.from(key);
     }
 
     public toUncompressedHex(): string {
+        this.ensureLegacyProcessed();
         if (!this.#uncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -327,6 +347,7 @@ export class Address extends Uint8Array {
     }
 
     public toUncompressedBuffer(): Buffer {
+        this.ensureLegacyProcessed();
         if (!this.#uncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -335,6 +356,7 @@ export class Address extends Uint8Array {
     }
 
     public toHybridPublicKeyHex(): string {
+        this.ensureLegacyProcessed();
         if (!this.#uncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -343,6 +365,7 @@ export class Address extends Uint8Array {
     }
 
     public toHybridPublicKeyBuffer(): Buffer {
+        this.ensureLegacyProcessed();
         if (!this.#uncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -351,6 +374,7 @@ export class Address extends Uint8Array {
     }
 
     public originalPublicKeyBuffer(): Buffer {
+        this.ensureLegacyProcessed();
         if (!this.#originalPublicKey) {
             throw new Error('Legacy public key not set');
         }
@@ -454,53 +478,8 @@ export class Address extends Uint8Array {
      * @returns {void}
      */
     public override set(mldsaPublicKey: ArrayLike<number>): void {
-        if (this.legacyPublicKey) {
-            const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
-            if (!validLengths.includes(this.legacyPublicKey.length)) {
-                throw new Error(`Invalid public key length ${this.legacyPublicKey.length}`);
-            }
-
-            if (this.legacyPublicKey.length === ADDRESS_BYTE_LENGTH) {
-                const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
-                buf.set(this.legacyPublicKey);
-
-                this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
-            } else {
-                this.autoFormat(this.legacyPublicKey);
-            }
-        }
-
-        // THIS is the SHA256(ORIGINAL_ML_DSA_PUBLIC_KEY)
-        if (mldsaPublicKey.length === ADDRESS_BYTE_LENGTH) {
-            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
-            buf.set(mldsaPublicKey);
-
-            super.set(buf);
-        } else {
-            // Validate ML-DSA public key lengths according to BIP360 and FIPS 204
-            // ML-DSA-44 (Level 2): 1312 bytes public key
-            // ML-DSA-65 (Level 3): 1952 bytes public key
-            // ML-DSA-87 (Level 5): 2592 bytes public key
-            const validMLDSALengths = [1312, 1952, 2592];
-
-            if (!validMLDSALengths.includes(mldsaPublicKey.length)) {
-                throw new Error(
-                    `Invalid ML-DSA public key length: ${mldsaPublicKey.length}. ` +
-                        `Expected 1312 (ML-DSA-44/LEVEL2), 1952 (ML-DSA-65/LEVEL3), or 2592 (ML-DSA-87/LEVEL5) bytes.`,
-                );
-            }
-
-            // Store the original ML-DSA public key
-            this.#mldsaPublicKey = new Uint8Array(mldsaPublicKey.length);
-            this.#mldsaPublicKey.set(mldsaPublicKey);
-
-            // Hash the ML-DSA public key to get the 32-byte address
-            const hashedPublicKey = sha256(new Uint8Array(mldsaPublicKey));
-            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
-            buf.set(hashedPublicKey);
-
-            super.set(buf);
-        }
+        // Legacy key processing is now deferred via ensureLegacyProcessed()
+        this.setMldsaKey(mldsaPublicKey);
     }
 
     /**
@@ -509,14 +488,12 @@ export class Address extends Uint8Array {
      * @returns {boolean} If the public key is valid
      */
     public isValidLegacyPublicKey(network: Network): boolean {
-        if (!this.legacyPublicKey) {
+        const key = this.legacyPublicKey;
+        if (!key) {
             throw new Error(`Legacy key not set.`);
         }
 
-        return AddressVerificator.isValidPublicKey(
-            Buffer.from(this.legacyPublicKey).toString('hex'),
-            network,
-        );
+        return AddressVerificator.isValidPublicKey(Buffer.from(key).toString('hex'), network);
     }
 
     /**
@@ -569,18 +546,16 @@ export class Address extends Uint8Array {
      * @param {Network} network The network
      */
     public p2tr(network: Network): string {
-        if (!this.legacyPublicKey) {
-            throw new Error('Legacy public key not set');
-        }
-
         if (this.#p2tr && this.#network === network) {
             return this.#p2tr;
         }
 
-        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(
-            this.legacyPublicKey,
-            network,
-        );
+        const key = this.legacyPublicKey;
+        if (!key) {
+            throw new Error('Legacy public key not set');
+        }
+
+        const p2trAddy: string | undefined = EcKeyPair.tweakedPubKeyBufferToAddress(key, network);
 
         if (p2trAddy) {
             this.#network = network;
@@ -619,6 +594,7 @@ export class Address extends Uint8Array {
             return this.#p2wda;
         }
 
+        this.ensureLegacyProcessed();
         if (!this.#originalPublicKey) {
             throw new Error('Cannot create P2WDA address: public key not set');
         }
@@ -665,6 +641,7 @@ export class Address extends Uint8Array {
 
         // We need the original public key in compressed format for the script
         // Your class stores this in #originalPublicKey when a key is set
+        this.ensureLegacyProcessed();
         if (!this.#originalPublicKey) {
             throw new Error('Cannot create CSV address: public key not set');
         }
@@ -698,6 +675,7 @@ export class Address extends Uint8Array {
 
         // We need the original public key in compressed format for the script
         // Your class stores this in #originalPublicKey when a key is set
+        this.ensureLegacyProcessed();
         if (!this.#originalPublicKey) {
             throw new Error('Cannot create CSV address: public key not set');
         }
@@ -726,6 +704,8 @@ export class Address extends Uint8Array {
             return this.#p2op;
         }
 
+        // p2op only uses the MLDSA hash (this Uint8Array), no legacy key processing needed.
+        // This is the HOT PATH for parsing - stays fast without triggering EC operations.
         const p2opAddy: string | undefined = EcKeyPair.p2op(this, network);
         if (p2opAddy) {
             this.#network = network;
@@ -738,6 +718,7 @@ export class Address extends Uint8Array {
     }
 
     public toTweakedHybridPublicKeyHex(): string {
+        this.ensureLegacyProcessed();
         if (!this.#tweakedUncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -746,6 +727,7 @@ export class Address extends Uint8Array {
     }
 
     public toTweakedHybridPublicKeyBuffer(): Buffer {
+        this.ensureLegacyProcessed();
         if (!this.#tweakedUncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -753,6 +735,77 @@ export class Address extends Uint8Array {
         return this.#tweakedUncompressed;
     }
 
+    /**
+     * Sets the MLDSA key portion of the address.
+     * @param {ArrayLike<number>} mldsaPublicKey - The MLDSA public key or its hash
+     */
+    private setMldsaKey(mldsaPublicKey: ArrayLike<number>): void {
+        // THIS is the SHA256(ORIGINAL_ML_DSA_PUBLIC_KEY)
+        if (mldsaPublicKey.length === ADDRESS_BYTE_LENGTH) {
+            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
+            buf.set(mldsaPublicKey);
+
+            super.set(buf);
+        } else {
+            // Validate ML-DSA public key lengths according to BIP360 and FIPS 204
+            // ML-DSA-44 (Level 2): 1312 bytes public key
+            // ML-DSA-65 (Level 3): 1952 bytes public key
+            // ML-DSA-87 (Level 5): 2592 bytes public key
+            const validMLDSALengths = [1312, 1952, 2592];
+
+            if (!validMLDSALengths.includes(mldsaPublicKey.length)) {
+                throw new Error(
+                    `Invalid ML-DSA public key length: ${mldsaPublicKey.length}. ` +
+                        `Expected 1312 (ML-DSA-44/LEVEL2), 1952 (ML-DSA-65/LEVEL3), or 2592 (ML-DSA-87/LEVEL5) bytes.`,
+                );
+            }
+
+            // Store the original ML-DSA public key
+            this.#mldsaPublicKey = new Uint8Array(mldsaPublicKey.length);
+            this.#mldsaPublicKey.set(mldsaPublicKey);
+
+            // Hash the ML-DSA public key to get the 32-byte address
+            const hashedPublicKey = sha256(new Uint8Array(mldsaPublicKey));
+            const buf = new Uint8Array(ADDRESS_BYTE_LENGTH);
+            buf.set(hashedPublicKey);
+
+            super.set(buf);
+        }
+    }
+
+    /**
+     * Lazy processing of legacy key - defers expensive EC operations until actually needed.
+     * Does the EXACT same logic as the original set() method did for legacy keys.
+     */
+    private ensureLegacyProcessed(): void {
+        if (this.#legacyProcessed) return;
+        this.#legacyProcessed = true;
+
+        const pending = this.#pendingLegacyKey;
+        if (!pending) return;
+
+        const validLengths = [ADDRESS_BYTE_LENGTH, 33, 65];
+        if (!validLengths.includes(pending.length)) {
+            throw new Error(`Invalid public key length ${pending.length}`);
+        }
+
+        if (pending.length === ADDRESS_BYTE_LENGTH) {
+            // 32-byte input: already tweaked x-only, just generate hybrid
+            const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
+            buf.set(pending);
+
+            this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
+            this.#legacyPublicKey = pending;
+        } else {
+            // 33 or 65 bytes: full autoFormat processing with EC operations
+            this.autoFormat(pending);
+        }
+    }
+
+    /**
+     * Processes a 33 or 65 byte public key, performing EC operations.
+     * Sets #legacyPublicKey to 32-byte tweaked x-only (same as original behavior).
+     */
     private autoFormat(publicKey: ArrayLike<number>): void {
         const firstByte = publicKey[0];
 
@@ -773,7 +826,7 @@ export class Address extends Uint8Array {
 
         this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(tweakedBytes);
 
-        this.legacyPublicKey = new Uint8Array(ADDRESS_BYTE_LENGTH);
-        this.legacyPublicKey.set(tweakedBytes);
+        this.#legacyPublicKey = new Uint8Array(ADDRESS_BYTE_LENGTH);
+        this.#legacyPublicKey.set(tweakedBytes);
     }
 }
