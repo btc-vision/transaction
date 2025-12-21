@@ -3,10 +3,11 @@ import { hmac } from '@noble/hashes/hmac';
 import { pbkdf2 } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha256';
 import { sha512 } from '@noble/hashes/sha512';
-import assert from 'assert';
 
 function assertArgument(check, message, name, value) {
-    assert(check, message, 'INVALID_ARGUMENT', { argument: name, value: value });
+    if (!check) {
+        throw new Error(`${message} (${name}: ${value})`);
+    }
 }
 
 function getGlobal() {
@@ -48,20 +49,12 @@ export function pbkdf2Sync(password, salt, iterations, keylen, _algo) {
 }
 
 export function randomBytes(length) {
-    assert(
-        crypto != null,
-        'platform does not support secure random numbers',
-        'UNSUPPORTED_OPERATION',
-        {
-            operation: 'randomBytes',
-        },
-    );
-    assertArgument(
-        Number.isInteger(length) && length > 0 && length <= 1024,
-        'invalid length',
-        'length',
-        length,
-    );
+    if (crypto == null) {
+        throw new Error('platform does not support secure random numbers');
+    }
+    if (!Number.isInteger(length) || length <= 0 || length > 1024) {
+        throw new Error(`invalid length: ${length}`);
+    }
     const result = new Uint8Array(length);
     crypto.getRandomValues(result);
     return result;

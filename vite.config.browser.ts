@@ -18,39 +18,17 @@ export default defineConfig({
             output: {
                 chunkFileNames: '[name].js',
                 manualChunks: (id) => {
-                    // BTC Vision packages (check before node_modules since aliases resolve differently)
+                    // BTC Vision packages - keep bitcoin separate as it's large and isolated
                     if (id.includes('@btc-vision/bitcoin') || id.includes('/bitcoin/build/') || id.includes('/bitcoin/src/')) {
                         return 'btc-vision-bitcoin';
                     }
-                    if (id.includes('@btc-vision/bip32') || id.includes('/bip32/src/')) {
-                        return 'btc-vision-bip32';
-                    }
                     if (id.includes('node_modules')) {
-                        // Noble crypto
+                        // Noble crypto - isolated, no circular deps
                         if (id.includes('@noble/curves')) return 'noble-curves';
                         if (id.includes('@noble/hashes')) return 'noble-hashes';
-                        // BTC Vision packages
-                        if (id.includes('@btc-vision/post-quantum')) return 'btc-vision-post-quantum';
-                        if (id.includes('@btc-vision/logger')) return 'btc-vision-logger';
-                        // Bitcoin utilities
-                        if (id.includes('bip39')) return 'bip39';
-                        if (id.includes('ecpair') || id.includes('@bitcoinerlab/secp256k1') ||
-                            id.includes('bech32') || id.includes('bip174') || id.includes('bs58') ||
-                            id.includes('typeforce') || id.includes('varuint')) {
-                            return 'bitcoin-utils';
-                        }
-                        // Validation
+                        // Validation - isolated
                         if (id.includes('valibot')) return 'valibot';
-                        // Scure
-                        if (id.includes('@scure/')) return 'scure-base';
-                        // Polyfills
-                        if (id.includes('buffer/') || id.includes('process/') || id.includes('stream-browserify') ||
-                            id.includes('readable-stream') || id.includes('safe-buffer') || id.includes('events/') ||
-                            id.includes('util/') || id.includes('inherits') || id.includes('ieee754') ||
-                            id.includes('base64-js') || id.includes('string_decoder')) {
-                            return 'polyfills';
-                        }
-                        // Other vendors
+                        // Everything else in vendors to avoid circular deps
                         return 'vendors';
                     }
                 },
