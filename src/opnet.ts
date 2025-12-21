@@ -77,7 +77,15 @@ export * from './transaction/builders/SharedInteractionTransaction.js';
 export * from './transaction/builders/TransactionBuilder.js';
 
 /** Offline Transaction Signing */
-export * from './transaction/offline/index.js';
+export * from './transaction/offline/interfaces/ISerializableState.js';
+export * from './transaction/offline/interfaces/ITypeSpecificData.js';
+export { TransactionSerializer } from './transaction/offline/TransactionSerializer.js';
+export { TransactionStateCapture } from './transaction/offline/TransactionStateCapture.js';
+export type { CaptureParams } from './transaction/offline/TransactionStateCapture.js';
+export { TransactionReconstructor } from './transaction/offline/TransactionReconstructor.js';
+export type { ReconstructionOptions } from './transaction/offline/TransactionReconstructor.js';
+export { OfflineTransactionManager } from './transaction/offline/OfflineTransactionManager.js';
+export type { ExportOptions } from './transaction/offline/OfflineTransactionManager.js';
 
 /** Epoch */
 export * from './epoch/interfaces/IChallengeSolution.js';

@@ -32,10 +32,7 @@ import { Address } from '../keypair/Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { CancelTransaction, ICancelTransactionParameters } from './builders/CancelTransaction.js';
 import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
-import {
-    IConsolidatedInteractionParameters,
-    IConsolidatedInteractionResult,
-} from './interfaces/IConsolidatedTransactionParameters.js';
+import { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];
