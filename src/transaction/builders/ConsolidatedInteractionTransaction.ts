@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer';
-import { Psbt, PsbtInput, Transaction, toXOnly } from '@btc-vision/bitcoin';
+import { Psbt, PsbtInput, toXOnly, Transaction } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
@@ -68,25 +68,18 @@ import { AddressGenerator } from '../../generators/AddressGenerator.js';
  */
 export class ConsolidatedInteractionTransaction extends TransactionBuilder<TransactionType.INTERACTION> {
     public readonly type: TransactionType.INTERACTION = TransactionType.INTERACTION;
-
-    /** The contract address (same as InteractionTransaction.to) */
-    protected readonly contractAddress: string;
-
-    /** The contract secret - 32 bytes (same as InteractionTransaction) */
-    protected readonly contractSecret: Buffer;
-
-    /** The compressed calldata (same as InteractionTransaction) */
-    protected readonly calldata: Buffer;
-
-    /** Challenge solution for epoch (same as InteractionTransaction) */
-    protected readonly challenge: ChallengeSolution;
-
-    /** Epoch challenge P2WSH address (same as InteractionTransaction) */
-    protected readonly epochChallenge: IP2WSHAddress;
-
     /** Random bytes for interaction (same as InteractionTransaction) */
     public readonly randomBytes: Buffer;
-
+    /** The contract address (same as InteractionTransaction.to) */
+    protected readonly contractAddress: string;
+    /** The contract secret - 32 bytes (same as InteractionTransaction) */
+    protected readonly contractSecret: Buffer;
+    /** The compressed calldata (same as InteractionTransaction) */
+    protected readonly calldata: Buffer;
+    /** Challenge solution for epoch (same as InteractionTransaction) */
+    protected readonly challenge: ChallengeSolution;
+    /** Epoch challenge P2WSH address (same as InteractionTransaction) */
+    protected readonly epochChallenge: IP2WSHAddress;
     /** Script signer for interaction (same as InteractionTransaction) */
     protected readonly scriptSigner: ECPairInterface;
 
@@ -289,36 +282,6 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
     }
 
     /**
-     * Build the setup transaction.
-     * Creates P2WSH outputs with hash commitments to the compiled data chunks.
-     * This is called by signTransaction() in the base class.
-     */
-    protected override async buildTransaction(): Promise<void> {
-        // Add funding UTXOs as inputs
-        this.addInputsFromUTXO();
-
-        // Calculate value per output (includes reveal fee + OPNet fee)
-        const valuePerOutput = this.calculateValuePerOutput();
-
-        // Add each hash-committed P2WSH as an output
-        for (const commitment of this.commitmentOutputs) {
-            this.addOutput({
-                value: Number(valuePerOutput),
-                address: commitment.address,
-            });
-        }
-
-        // Calculate total spent on commitment outputs
-        const totalCommitmentValue = BigInt(this.commitmentOutputs.length) * valuePerOutput;
-
-        // Add optional outputs
-        const optionalAmount = this.addOptionalOutputsAndGetAmount();
-
-        // Add refund/change output
-        await this.addRefundOutput(totalCommitmentValue + optionalAmount);
-    }
-
-    /**
      * Build the reveal transaction.
      * Spends the P2WSH commitment outputs, revealing the compiled data in witnesses.
      *
@@ -402,6 +365,43 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         this.log(`Reveal transaction: ${result.txId}`);
 
         return result;
+    }
+
+    /**
+     * Get the value per commitment output (for external access).
+     */
+    public getValuePerOutput(): bigint {
+        return this.calculateValuePerOutput();
+    }
+
+    /**
+     * Build the setup transaction.
+     * Creates P2WSH outputs with hash commitments to the compiled data chunks.
+     * This is called by signTransaction() in the base class.
+     */
+    protected override async buildTransaction(): Promise<void> {
+        // Add funding UTXOs as inputs
+        this.addInputsFromUTXO();
+
+        // Calculate value per output (includes reveal fee + OPNet fee)
+        const valuePerOutput = this.calculateValuePerOutput();
+
+        // Add each hash-committed P2WSH as an output
+        for (const commitment of this.commitmentOutputs) {
+            this.addOutput({
+                value: Number(valuePerOutput),
+                address: commitment.address,
+            });
+        }
+
+        // Calculate total spent on commitment outputs
+        const totalCommitmentValue = BigInt(this.commitmentOutputs.length) * valuePerOutput;
+
+        // Add optional outputs
+        const optionalAmount = this.addOptionalOutputsAndGetAmount();
+
+        // Add refund/change output
+        await this.addRefundOutput(totalCommitmentValue + optionalAmount);
     }
 
     /**
@@ -494,13 +494,6 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         this.cachedValuePerOutput = valuePerOutput > minValue ? valuePerOutput : minValue;
         return this.cachedValuePerOutput;
-    }
-
-    /**
-     * Get the value per commitment output (for external access).
-     */
-    public getValuePerOutput(): bigint {
-        return this.calculateValuePerOutput();
     }
 
     /**
