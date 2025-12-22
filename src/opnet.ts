@@ -136,7 +136,6 @@ export * from './transaction/browser/types/Unisat.js';
 export * from './transaction/browser/types/Xverse.js';
 export * from './transaction/browser/types/OPWallet.js';
 
-export * from './metadata/tokens.js';
 export * from './transaction/browser/Web3Provider.js';
 
 export * from './keypair/Secp256k1PointDeriver.js';
