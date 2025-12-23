@@ -1,25 +1,10 @@
 import { Web3Provider } from '../Web3Provider.js';
-
-export enum UnisatNetwork {
-    testnet = 'testnet',
-    mainnet = 'mainnet',
-    regtest = 'regtest',
-}
-
-export enum UnisatChainType {
-    BITCOIN_MAINNET = 'BITCOIN_MAINNET',
-    BITCOIN_TESTNET = 'BITCOIN_TESTNET',
-    BITCOIN_TESTNET4 = 'BITCOIN_TESTNET4',
-    BITCOIN_REGTEST = 'BITCOIN_REGTEST',
-    BITCOIN_SIGNET = 'BITCOIN_SIGNET',
-    FRACTAL_BITCOIN_MAINNET = 'FRACTAL_BITCOIN_MAINNET',
-    FRACTAL_BITCOIN_TESTNET = 'FRACTAL_BITCOIN_TESTNET',
-}
+import { WalletNetworks } from '../WalletNetworks.js';
 
 export interface UnisatChainInfo {
-    readonly enum: UnisatChainType;
+    readonly enum: WalletNetworks;
     readonly name: string;
-    readonly network: UnisatNetwork;
+    readonly network: WalletNetworks;
 }
 
 export interface Balance {
@@ -77,13 +62,13 @@ export interface Unisat {
 
     requestAccounts(): Promise<string[]>;
 
-    getNetwork(): Promise<UnisatNetwork>;
+    getNetwork(): Promise<WalletNetworks>;
 
     getChain(): Promise<UnisatChainInfo>;
 
     getAccounts(): Promise<string[]>;
 
-    switchNetwork(network: UnisatNetwork): Promise<void>;
+    switchNetwork(network: WalletNetworks): Promise<void>;
 
     getPublicKey(): Promise<string>;
 

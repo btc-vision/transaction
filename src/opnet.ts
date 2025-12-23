@@ -1,4 +1,5 @@
 import { Unisat } from './transaction/browser/types/Unisat.js';
+import { OPWallet } from './transaction/browser/types/OPWallet.js';
 
 export { version } from './_version.js';
 
@@ -139,6 +140,7 @@ export * from './transaction/browser/extensions/XverseSigner.js';
 export * from './transaction/browser/types/Unisat.js';
 export * from './transaction/browser/types/Xverse.js';
 export * from './transaction/browser/types/OPWallet.js';
+export * from './transaction/browser/WalletNetworks.js';
 
 export * from './transaction/browser/Web3Provider.js';
 
@@ -151,6 +153,6 @@ export * from './deterministic/CustomMap.js';
 declare global {
     interface Window {
         unisat?: Unisat;
-        opnet?: Unisat;
+        opnet?: OPWallet;
     }
 }

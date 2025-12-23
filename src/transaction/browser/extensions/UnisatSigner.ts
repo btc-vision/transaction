@@ -12,11 +12,13 @@ import { ECPairInterface } from 'ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
-import { PsbtSignatureOptions, SignatureType, Unisat, UnisatNetwork } from '../types/Unisat.js';
+import { PsbtSignatureOptions, SignatureType, Unisat } from '../types/Unisat.js';
+import { WalletNetworks } from '../WalletNetworks.js';
+import { OPWallet } from '../types/OPWallet.js';
 
 export interface WindowWithWallets {
     unisat?: Unisat;
-    opnet?: Unisat;
+    opnet?: OPWallet;
 }
 
 export class UnisatSigner extends CustomKeypair {
@@ -105,13 +107,13 @@ export class UnisatSigner extends CustomKeypair {
 
         const network = await this.unisat.getNetwork();
         switch (network) {
-            case UnisatNetwork.mainnet:
+            case WalletNetworks.mainnet:
                 this._network = networks.bitcoin;
                 break;
-            case UnisatNetwork.testnet:
+            case WalletNetworks.testnet:
                 this._network = networks.testnet;
                 break;
-            case UnisatNetwork.regtest:
+            case WalletNetworks.regtest:
                 this._network = networks.regtest;
                 break;
             default:
