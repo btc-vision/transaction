@@ -2,18 +2,9 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { P2TRPayment, PaymentType, Psbt, PsbtInput, Taptree } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import {
-    ITransactionParameters,
-    SharedInteractionParameters,
-} from '../interfaces/ITransactionParameters.js';
+import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-
-export interface ICancelTransactionParameters extends Omit<
-    ITransactionParameters,
-    'priorityFee' | 'gasSatFee'
-> {
-    readonly compiledTargetScript: string | Buffer;
-}
 
 export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL> {
     public type: TransactionType.CANCEL = TransactionType.CANCEL;

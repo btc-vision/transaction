@@ -1,9 +1,9 @@
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ITweakedTransactionData } from '../shared/TweakedTransaction.js';
+import { ITweakedTransactionData } from './ITweakedTransactionData.js';
 import { ChainId } from '../../network/ChainId.js';
 import { PsbtOutputExtended } from '@btc-vision/bitcoin';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
-import { AddressRotationConfig } from '../../signer/AddressRotation.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
 
 export interface LoadedStorage {
     [key: string]: string[];
@@ -49,7 +49,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
      * When enabled, allows different signers to sign different UTXOs based on their addresses.
      * This supports proper Bitcoin privacy practices where each UTXO has its own key.
      */
-    readonly addressRotation?: AddressRotationConfig;
+    readonly addressRotation?: AddressRotationConfigBase;
 }
 
 export interface IFundingTransactionParameters extends ITransactionParameters {
@@ -62,7 +62,7 @@ export interface SharedInteractionParameters extends ITransactionParameters {
     calldata?: Buffer;
     disableAutoRefund?: boolean;
 
-    readonly challenge: ChallengeSolution;
+    readonly challenge: IChallengeSolution;
     readonly randomBytes?: Buffer;
 
     readonly loadedStorage?: LoadedStorage;
@@ -81,5 +81,5 @@ export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'
     readonly calldata?: Buffer;
 
     readonly randomBytes?: Buffer;
-    readonly challenge: ChallengeSolution;
+    readonly challenge: IChallengeSolution;
 }

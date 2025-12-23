@@ -10,8 +10,8 @@ import bitcoin, {
     Signer,
     toXOnly,
     Transaction,
-    varuint,
 } from '@btc-vision/bitcoin';
+import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import * as ecc from '@bitcoinerlab/secp256k1';
 import { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -232,33 +232,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {Buffer}
      */
     public static witnessStackToScriptWitness(witness: Buffer[]): Buffer {
-        let buffer = Buffer.allocUnsafe(0);
-
-        function writeSlice(slice: Buffer) {
-            buffer = Buffer.concat([buffer, Buffer.from(slice)]);
-        }
-
-        function writeVarInt(i: number) {
-            const currentLen = buffer.length;
-            const varintLen = varuint.encodingLength(i);
-
-            buffer = Buffer.concat([buffer, Buffer.allocUnsafe(varintLen)]);
-            varuint.encode(i, buffer, currentLen);
-        }
-
-        function writeVarSlice(slice: Buffer) {
-            writeVarInt(slice.length);
-            writeSlice(slice);
-        }
-
-        function writeVector(vector: Buffer[]) {
-            writeVarInt(vector.length);
-            vector.forEach(writeVarSlice);
-        }
-
-        writeVector(witness);
-
-        return buffer;
+        return witnessStackToScriptWitness(witness);
     }
 
     public addOPReturn(buffer: Buffer): void {

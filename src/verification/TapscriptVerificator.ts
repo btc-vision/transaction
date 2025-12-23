@@ -10,7 +10,7 @@ import {
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
-import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../epoch/interfaces/IChallengeSolution.js';
 import { Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
@@ -18,7 +18,7 @@ export interface ContractAddressVerificationParams {
     readonly contractSaltPubKey: Buffer;
     readonly originalSalt: Buffer;
     readonly bytecode: Buffer;
-    readonly challenge: ChallengeSolution;
+    readonly challenge: IChallengeSolution;
     readonly priorityFee: bigint;
     readonly features: Feature<Features>[];
     readonly calldata?: Buffer;

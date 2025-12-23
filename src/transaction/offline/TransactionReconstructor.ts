@@ -33,7 +33,7 @@ import {
     IInteractionParameters,
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
-import { SupportedTransactionVersion } from '../shared/TweakedTransaction.js';
+import { SupportedTransactionVersion } from '../interfaces/ITweakedTransactionData.js';
 
 /**
  * Options for reconstructing a transaction from serialized state

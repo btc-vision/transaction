@@ -9,7 +9,7 @@ import { P2WDAGenerator } from '../../generators/builders/P2WDAGenerator.js';
 import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { ECPairInterface } from 'ecpair';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
@@ -36,7 +36,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     private readonly contractAddress: string;
     private readonly contractSecret: Buffer;
     private readonly calldata: Buffer;
-    private readonly challenge: ChallengeSolution;
+    private readonly challenge: IChallengeSolution;
     private readonly randomBytes: Buffer;
     private p2wdaGenerator: P2WDAGenerator;
     private scriptSigner: ECPairInterface;
@@ -131,7 +131,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     /**
      * Get the challenge (for compatibility if needed elsewhere)
      */
-    public getChallenge(): ChallengeSolution {
+    public getChallenge(): IChallengeSolution {
         return this.challenge;
     }
 

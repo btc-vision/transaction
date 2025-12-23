@@ -1,6 +1,7 @@
 import { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
-import { ChallengeSolution } from '../ChallengeSolution.js';
 import { crypto } from '@btc-vision/bitcoin';
+import { Address } from '../../keypair/Address.js';
+import { stringToBuffer } from '../../utils/StringToBuffer.js';
 
 export class EpochValidator {
     private static readonly BLOCKS_PER_EPOCH: bigint = 5n;
@@ -131,8 +132,58 @@ export class EpochValidator {
      * Validate epoch winner from raw data
      */
     public static validateEpochWinner(epochData: RawChallenge): boolean {
-        const preimage = new ChallengeSolution(epochData);
-        return this.verifySolution(preimage);
+        try {
+            const epochNumber = BigInt(epochData.epochNumber);
+            const publicKey = Address.fromString(
+                epochData.mldsaPublicKey,
+                epochData.legacyPublicKey,
+            );
+            const solution = stringToBuffer(epochData.solution);
+            const salt = stringToBuffer(epochData.salt);
+            const difficulty = epochData.difficulty;
+
+            const verification = {
+                epochHash: stringToBuffer(epochData.verification.epochHash),
+                epochRoot: stringToBuffer(epochData.verification.epochRoot),
+                targetHash: stringToBuffer(epochData.verification.targetHash),
+                targetChecksum: stringToBuffer(epochData.verification.targetChecksum),
+                startBlock: BigInt(epochData.verification.startBlock),
+                endBlock: BigInt(epochData.verification.endBlock),
+                proofs: Object.freeze(epochData.verification.proofs.map((p) => stringToBuffer(p))),
+            };
+
+            const calculatedPreimage = this.calculatePreimage(
+                verification.targetChecksum,
+                publicKey.toBuffer(),
+                salt,
+            );
+
+            const computedSolution = this.sha1(calculatedPreimage);
+            const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
+
+            if (!computedSolutionBuffer.equals(solution)) {
+                return false;
+            }
+
+            const matchingBits = this.countMatchingBits(
+                computedSolutionBuffer,
+                verification.targetHash,
+            );
+
+            if (matchingBits !== difficulty) {
+                return false;
+            }
+
+            const expectedStartBlock = epochNumber * this.BLOCKS_PER_EPOCH;
+            const expectedEndBlock = expectedStartBlock + this.BLOCKS_PER_EPOCH - 1n;
+
+            return !(
+                verification.startBlock !== expectedStartBlock ||
+                verification.endBlock !== expectedEndBlock
+            );
+        } catch {
+            return false;
+        }
     }
 
     /**

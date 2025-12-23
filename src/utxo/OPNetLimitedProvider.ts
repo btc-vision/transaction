@@ -1,5 +1,7 @@
 import { Network } from '@btc-vision/bitcoin';
-import { IFundingTransactionParameters, TransactionFactory, Wallet } from '../opnet.js';
+import { IFundingTransactionParameters } from '../transaction/interfaces/ITransactionParameters.js';
+import { TransactionFactory } from '../transaction/TransactionFactory.js';
+import { Wallet } from '../keypair/Wallet.js';
 import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
 import {
     FetchUTXOParams,

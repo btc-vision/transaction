@@ -31,38 +31,15 @@ import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { ECPairInterface } from 'ecpair';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { ChainId } from '../../network/ChainId.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import {
-    canSignNonTaprootInput,
-    isTaprootInput,
-    pubkeyInScript,
-} from '../../signer/SignerUtils.js';
-import { TransactionBuilder } from '../builders/TransactionBuilder.js';
+import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
+import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { Buffer } from 'buffer';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
-import { AddressRotationConfig, RotationSigner, SignerMap } from '../../signer/AddressRotation.js';
-
-export type SupportedTransactionVersion = 1 | 2 | 3;
-
-export interface ITweakedTransactionData {
-    readonly mldsaSigner: QuantumBIP32Interface | null;
-    readonly signer: Signer | ECPairInterface | UnisatSigner;
-    readonly network: Network;
-    readonly chainId?: ChainId;
-    readonly nonWitnessUtxo?: Buffer;
-    readonly noSignatures?: boolean;
-    readonly unlockScript?: Buffer[];
-    readonly txVersion?: SupportedTransactionVersion;
-
-    /**
-     * Address rotation configuration for per-UTXO signing.
-     * When enabled, each UTXO can be signed by a different signer.
-     */
-    readonly addressRotation?: AddressRotationConfig;
-}
+import { RotationSigner, SignerMap } from '../../signer/AddressRotation.js';
+import { ITweakedTransactionData, SupportedTransactionVersion, } from '../interfaces/ITweakedTransactionData.js';
 
 /**
  * The transaction sequence
@@ -1146,8 +1123,7 @@ export abstract class TweakedTransaction extends Logger {
                 const witnessStack = [input.partialSig[0].signature, input.witnessScript];
                 return {
                     finalScriptSig: undefined,
-                    finalScriptWitness:
-                        TransactionBuilder.witnessStackToScriptWitness(witnessStack),
+                    finalScriptWitness: witnessStackToScriptWitness(witnessStack),
                 };
             }
 
@@ -1191,7 +1167,7 @@ export abstract class TweakedTransaction extends Logger {
 
         return {
             finalScriptSig: undefined,
-            finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witnessStack),
+            finalScriptWitness: witnessStackToScriptWitness(witnessStack),
         };
     }
 

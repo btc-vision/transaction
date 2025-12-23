@@ -1,10 +1,7 @@
 import { Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
-import {
-    CustomScriptTransaction,
-    ICustomTransactionParameters,
-} from './builders/CustomScriptTransaction.js';
+import { CustomScriptTransaction } from './builders/CustomScriptTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
@@ -22,26 +19,23 @@ import {
     ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
     InteractionParametersWithoutSigner,
-} from './browser/Web3Provider.js';
+} from './interfaces/IWeb3ProviderTypes.js';
 import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
-import { RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
+import { IChallengeSolution, RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2WDA.js';
-import { ChallengeSolution } from '../epoch/ChallengeSolution.js';
 import { Address } from '../keypair/Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
-import { CancelTransaction, ICancelTransactionParameters } from './builders/CancelTransaction.js';
+import { CancelTransaction } from './builders/CancelTransaction.js';
 import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
 import { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
-
-export interface DeploymentResult {
-    readonly transaction: [string, string];
-    readonly contractAddress: string;
-    readonly contractPubKey: string;
-    readonly challenge: RawChallenge;
-    readonly utxos: UTXO[];
-    readonly inputUtxos: UTXO[];
-}
+import {
+    CancelledTransaction,
+    DeploymentResult,
+    InteractionResponse,
+} from './interfaces/ITransactionResponses.js';
+import { ICancelTransactionParameters } from './interfaces/ICancelTransactionParameters.js';
+import { ICustomTransactionParameters } from './interfaces/ICustomTransactionParameters.js';
 
 export interface FundingTransactionResponse {
     readonly tx: Transaction;
@@ -58,26 +52,8 @@ export interface BitcoinTransferBase {
     readonly inputUtxos: UTXO[];
 }
 
-export interface InteractionResponse {
-    readonly fundingTransaction: string | null;
-    readonly interactionTransaction: string;
-    readonly estimatedFees: bigint;
-    readonly nextUTXOs: UTXO[];
-    readonly fundingUTXOs: UTXO[];
-    readonly fundingInputUtxos: UTXO[];
-    readonly challenge: RawChallenge;
-    readonly interactionAddress: string | null;
-    readonly compiledTargetScript: string | null;
-}
-
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
     readonly original: FundingTransaction;
-}
-
-export interface CancelledTransaction {
-    readonly transaction: string;
-    readonly nextUTXOs: UTXO[];
-    readonly inputUtxos: UTXO[];
 }
 
 /**
@@ -835,7 +811,7 @@ export class TransactionFactory {
      * @param {new (params: P) => T} TransactionClass - The transaction class constructor
      * @param {(tx: T) => Promise<bigint>} calculateAmount - Function to calculate required amount
      * @param {string} debugPrefix - Prefix for debug logging
-     * @returns {Promise<{finalTransaction: T, estimatedAmount: bigint, challenge: ChallengeSolution | null}>} - The final transaction and estimated amount
+     * @returns {Promise<{finalTransaction: T, estimatedAmount: bigint, challenge: IChallengeSolution | null}>} - The final transaction and estimated amount
      */
     private async iterateFundingAmount<
         T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction,
@@ -848,7 +824,7 @@ export class TransactionFactory {
     ): Promise<{
         finalTransaction: T;
         estimatedAmount: bigint;
-        challenge: ChallengeSolution | null;
+        challenge: IChallengeSolution | null;
     }> {
         const randomBytes =
             'randomBytes' in params
@@ -861,7 +837,7 @@ export class TransactionFactory {
         let previousAmount = 0n;
         let iterations = 0;
         let finalPreTransaction: T | null = null;
-        let challenge: ChallengeSolution | null = null;
+        let challenge: IChallengeSolution | null = null;
 
         while (iterations < this.MAX_ITERATIONS && estimatedFundingAmount !== previousAmount) {
             previousAmount = estimatedFundingAmount;

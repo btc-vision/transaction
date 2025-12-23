@@ -6,32 +6,18 @@ import {
     Psbt,
     PsbtInput,
     Signer,
-    Stack,
     Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { ECPairInterface } from 'ecpair';
-
-export interface ICustomTransactionParameters extends Omit<
-    SharedInteractionParameters,
-    'challenge'
-> {
-    script: (Buffer | Stack)[];
-    witnesses: Buffer[];
-
-    /** optional Taproot annex payload (without the 0x50 prefix) */
-    annex?: Buffer;
-
-    to: string;
-}
+import { ICustomTransactionParameters } from '../interfaces/ICustomTransactionParameters.js';
 
 /**
  * Class for interaction transactions

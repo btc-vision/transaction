@@ -5,7 +5,7 @@ import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { MLDSASecurityLevel, QuantumBIP32Interface } from '@btc-vision/bip32';
 import { isOPWallet, OPWallet } from '../transaction/browser/types/OPWallet.js';
-import { MLDSASignature } from '../transaction/browser/Web3Provider.js';
+import { MLDSASignature } from '../transaction/interfaces/IWeb3ProviderTypes.js';
 
 export interface SignedMessage {
     readonly signature: Uint8Array;

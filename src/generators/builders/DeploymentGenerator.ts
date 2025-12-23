@@ -1,7 +1,7 @@
 import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 export const OPNET_DEPLOYMENT_VERSION = 0x00;
@@ -29,7 +29,7 @@ export class DeploymentGenerator extends Generator {
     public compile(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        challenge: ChallengeSolution,
+        challenge: IChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         features?: Feature<Features>[],
@@ -59,7 +59,7 @@ export class DeploymentGenerator extends Generator {
     private getAsm(
         contractBytecode: Buffer,
         contractSalt: Buffer,
-        challenge: ChallengeSolution,
+        challenge: IChallengeSolution,
         maxPriority: bigint,
         calldata?: Buffer,
         featuresRaw?: Feature<Features>[],

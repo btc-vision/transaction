@@ -4,7 +4,7 @@ import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 /**
@@ -58,7 +58,7 @@ export class CalldataGenerator extends Generator {
      * Compile an interaction bitcoin script
      * @param {Buffer} calldata - The calldata to use
      * @param {Buffer} contractSecret - The contract secret
-     * @param {ChallengeSolution} challenge
+     * @param {IChallengeSolution} challenge
      * @param maxPriority - Amount of satoshis to spend max on priority fee
      * @param {Feature<Features>[]} featuresRaw - The features to use
      * @returns {Buffer} - The compiled script
@@ -67,7 +67,7 @@ export class CalldataGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
-        challenge: ChallengeSolution,
+        challenge: IChallengeSolution,
         maxPriority: bigint,
         featuresRaw: Feature<Features>[] = [],
     ): Buffer {
