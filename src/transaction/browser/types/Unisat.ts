@@ -51,8 +51,8 @@ export interface PsbtSignatureOptions {
 export interface Unisat {
     web3?: Web3Provider;
 
-    disconnect: () => void;
-    connect: () => void;
+    disconnect: () => Promise<void>;
+    connect: () => Promise<void>;
 
     sendBitcoin(
         toAddress: string,
