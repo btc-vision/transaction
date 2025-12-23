@@ -1,8 +1,8 @@
 import { Web3Provider } from '../Web3Provider.js';
-import { WalletNetworks } from '../WalletNetworks.js';
+import { UnisatChainType, WalletNetworks } from '../WalletNetworks.js';
 
 export interface UnisatChainInfo {
-    readonly enum: WalletNetworks;
+    readonly enum: UnisatChainType;
     readonly name: string;
     readonly network: WalletNetworks;
 }
