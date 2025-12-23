@@ -24,7 +24,7 @@ import { ECPairInterface } from 'ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
@@ -33,7 +33,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
-    protected readonly challenge: ChallengeSolution;
+    protected readonly challenge: IChallengeSolution;
     protected readonly epochChallenge: IP2WSHAddress;
 
     /**
@@ -210,7 +210,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract bytecode
      * @returns {Buffer} The contract bytecode
      */
-    public getChallenge(): ChallengeSolution {
+    public getChallenge(): IChallengeSolution {
         return this.challenge;
     }
 

@@ -2,7 +2,7 @@ import { Network, networks } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * @category Generators
@@ -62,7 +62,7 @@ export class P2WDAGenerator extends Generator {
     public compile(
         calldata: Buffer,
         contractSecret: Buffer,
-        challenge: ChallengeSolution,
+        challenge: IChallengeSolution,
         maxPriority: bigint,
         featuresRaw: Feature<Features>[] = [],
     ): Buffer {

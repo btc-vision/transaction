@@ -9,7 +9,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 /**
@@ -33,7 +33,7 @@ export abstract class SharedInteractionTransaction<
     protected abstract readonly compiledTargetScript: Buffer;
     protected abstract readonly scriptTree: Taptree;
 
-    protected readonly challenge: ChallengeSolution;
+    protected readonly challenge: IChallengeSolution;
     protected readonly epochChallenge: IP2WSHAddress;
 
     protected calldataGenerator: CalldataGenerator;
@@ -118,7 +118,7 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the preimage
      */
-    public getChallenge(): ChallengeSolution {
+    public getChallenge(): IChallengeSolution {
         return this.challenge;
     }
 

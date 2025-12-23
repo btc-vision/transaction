@@ -1,11 +1,10 @@
-import { Signer } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { RotationSignerBase } from './IRotationSigner.js';
 import { UnisatSigner } from '../transaction/browser/extensions/UnisatSigner.js';
 
 /**
- * Supported signer types for address rotation
+ * Supported signer types for address rotation (includes browser signers)
  */
-export type RotationSigner = Signer | ECPairInterface | UnisatSigner;
+export type RotationSigner = RotationSignerBase | UnisatSigner;
 
 /**
  * Map of addresses to their respective signers for address rotation mode.

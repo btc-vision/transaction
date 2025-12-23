@@ -18,6 +18,16 @@ export interface IChallengeSolution {
     readonly graffiti: Buffer;
     readonly difficulty: number;
     readonly verification: IChallengeVerification;
+
+    verifySubmissionSignature(): boolean;
+    getSubmission(): IChallengeSubmission | undefined;
+    toRaw(): RawChallenge;
+    verify(): boolean;
+    toBuffer(): Buffer;
+    toHex(): string;
+    calculateSolution(): Buffer;
+    checkDifficulty(minDifficulty: number): { valid: boolean; difficulty: number };
+    getMiningTargetBlock(): bigint | null;
 }
 
 export interface RawChallengeVerification {
@@ -41,8 +51,10 @@ export interface RawChallengeSubmission {
 export interface IChallengeSubmission {
     readonly publicKey: Address;
     readonly solution: Buffer;
-    readonly graffiti?: Buffer;
+    readonly graffiti: Buffer | undefined;
     readonly signature: Buffer;
+    readonly epochNumber: bigint;
+    verifySignature(): boolean;
 }
 
 export interface RawChallenge {

@@ -55,12 +55,18 @@ export * from './network/ChainId.js';
 
 /** Signer */
 export * from './signer/TweakedSigner.js';
+export * from './signer/IRotationSigner.js';
 export * from './signer/AddressRotation.js';
 
 /** Transaction */
 export * from './transaction/enums/TransactionType.js';
 export * from './transaction/interfaces/ITransactionParameters.js';
 export * from './transaction/interfaces/IConsolidatedTransactionParameters.js';
+export * from './transaction/interfaces/ITransactionResponses.js';
+export * from './transaction/interfaces/IWeb3ProviderTypes.js';
+export * from './transaction/interfaces/ICancelTransactionParameters.js';
+export * from './transaction/interfaces/ICustomTransactionParameters.js';
+export * from './transaction/interfaces/ITweakedTransactionData.js';
 export * from './transaction/interfaces/Tap.js';
 export * from './transaction/TransactionFactory.js';
 
@@ -100,9 +106,6 @@ export * from './utils/lengths.js';
 export * from './utxo/interfaces/IUTXO.js';
 export * from './utxo/OPNetLimitedProvider.js';
 
-/** Processor */
-export * from './transaction/processor/PsbtTransaction.js';
-
 /** Shared */
 export * from './transaction/psbt/PSBTTypes.js';
 export * from './transaction/shared/TweakedTransaction.js';
@@ -112,6 +115,7 @@ export * from './transaction/shared/P2TR_MS.js';
 
 /** Consensus */
 export * from './consensus/Consensus.js';
+export * from './consensus/IConsensusConfig.js';
 export * from './consensus/ConsensusConfig.js';
 export * from './consensus/metadata/RoswellConsensus.js';
 

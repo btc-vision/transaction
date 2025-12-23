@@ -14,7 +14,7 @@ import {
 } from '../interfaces/IConsolidatedTransactionParameters.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { ChallengeSolution } from '../../epoch/ChallengeSolution.js';
+import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
@@ -77,7 +77,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
     /** The compressed calldata (same as InteractionTransaction) */
     protected readonly calldata: Buffer;
     /** Challenge solution for epoch (same as InteractionTransaction) */
-    protected readonly challenge: ChallengeSolution;
+    protected readonly challenge: IChallengeSolution;
     /** Epoch challenge P2WSH address (same as InteractionTransaction) */
     protected readonly epochChallenge: IP2WSHAddress;
     /** Script signer for interaction (same as InteractionTransaction) */
@@ -225,7 +225,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
     /**
      * Get the challenge solution (same as InteractionTransaction).
      */
-    public getChallenge(): ChallengeSolution {
+    public getChallenge(): IChallengeSolution {
         return this.challenge;
     }
 
