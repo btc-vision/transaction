@@ -207,7 +207,8 @@ export class Address extends Uint8Array {
      */
     public static fromBigInt(value: bigint, tweakedValue?: bigint): Address {
         const address = Address.bigintToUint8Array(value);
-        const legacyAddress = tweakedValue ? Address.bigintToUint8Array(tweakedValue) : undefined;
+        const legacyAddress =
+            tweakedValue !== undefined ? Address.bigintToUint8Array(tweakedValue) : undefined;
 
         return new Address(address, legacyAddress);
     }
@@ -769,6 +770,7 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyHex(): string {
         this.ensureLegacyProcessed();
+        this.ensureTweakedUncompressed();
         if (!this.#tweakedUncompressed) {
             throw new Error('Legacy public key not set');
         }
@@ -778,11 +780,35 @@ export class Address extends Uint8Array {
 
     public toTweakedHybridPublicKeyBuffer(): Buffer {
         this.ensureLegacyProcessed();
+        this.ensureTweakedUncompressed();
         if (!this.#tweakedUncompressed) {
             throw new Error('Legacy public key not set');
         }
 
         return this.#tweakedUncompressed;
+    }
+
+    /**
+     * Lazily generates the tweaked uncompressed/hybrid key from the legacy public key.
+     * Only called when toTweakedHybridPublicKey* methods are accessed.
+     */
+    private ensureTweakedUncompressed(): void {
+        if (this.#tweakedUncompressed) return;
+
+        const key = this.#legacyPublicKey;
+        if (!key) return;
+
+        // Only attempt hybrid key generation for 32-byte keys that weren't processed through autoFormat
+        if (key.length === ADDRESS_BYTE_LENGTH && !this.#originalPublicKey) {
+            try {
+                const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
+                buf.set(key);
+                this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
+            } catch {
+                // Hybrid key generation may fail for keys that aren't valid EC points
+                // (e.g., zero addresses). Leave #tweakedUncompressed undefined.
+            }
+        }
     }
 
     /**
@@ -837,11 +863,6 @@ export class Address extends Uint8Array {
         // Length validation already done in constructor
 
         if (pending.length === ADDRESS_BYTE_LENGTH) {
-            // 32-byte input: already tweaked x-only, just generate hybrid
-            const buf = Buffer.alloc(ADDRESS_BYTE_LENGTH);
-            buf.set(pending);
-
-            this.#tweakedUncompressed = ContractAddress.generateHybridKeyFromHash(buf);
             this.#legacyPublicKey = pending;
         } else {
             // 33 or 65 bytes: full autoFormat processing with EC operations

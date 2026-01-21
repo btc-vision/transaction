@@ -1,11 +1,19 @@
 import { Address } from '../keypair/Address.js';
 import { FastMap } from './FastMap.js';
 
+/**
+ * A map implementation using Address with both MLDSA and tweaked keys.
+ * Uses the tweaked public key for lookup/indexing, but stores the full Address.
+ */
 export class ExtendedAddressMap<V> {
-    private items: FastMap<bigint, V>;
+    // Store tweaked bigint -> index mapping for fast lookup
+    private indexMap: FastMap<bigint, number>;
+    // Store actual addresses and values
+    private _keys: Address[] = [];
+    private _values: V[] = [];
 
     constructor(iterable?: ReadonlyArray<readonly [Address, V]> | null) {
-        this.items = new FastMap();
+        this.indexMap = new FastMap();
 
         if (iterable) {
             for (const [key, value] of iterable) {
@@ -15,54 +23,86 @@ export class ExtendedAddressMap<V> {
     }
 
     public get size(): number {
-        return this.items.size;
+        return this._keys.length;
     }
 
     public set(key: Address, value: V): this {
         const keyBigInt = key.tweakedToBigInt();
-        this.items.set(keyBigInt, value);
+        const existingIndex = this.indexMap.get(keyBigInt);
+
+        if (existingIndex !== undefined) {
+            // Update existing entry
+            this._values[existingIndex] = value;
+        } else {
+            // Add new entry
+            const newIndex = this._keys.length;
+            this._keys.push(key);
+            this._values.push(value);
+            this.indexMap.set(keyBigInt, newIndex);
+        }
 
         return this;
     }
 
     public get(key: Address): V | undefined {
-        return this.items.get(key.tweakedToBigInt());
+        const keyBigInt = key.tweakedToBigInt();
+        const index = this.indexMap.get(keyBigInt);
+        if (index === undefined) {
+            return undefined;
+        }
+        return this._values[index];
     }
 
     public has(key: Address): boolean {
-        return this.items.has(key.tweakedToBigInt());
+        return this.indexMap.has(key.tweakedToBigInt());
     }
 
     public delete(key: Address): boolean {
         const keyBigInt = key.tweakedToBigInt();
-        return this.items.delete(keyBigInt);
+        const index = this.indexMap.get(keyBigInt);
+
+        if (index === undefined) {
+            return false;
+        }
+
+        // Remove from arrays
+        this._keys.splice(index, 1);
+        this._values.splice(index, 1);
+
+        // Rebuild index map (indices shifted after splice)
+        this.indexMap.clear();
+        for (let i = 0; i < this._keys.length; i++) {
+            this.indexMap.set(this._keys[i].tweakedToBigInt(), i);
+        }
+
+        return true;
     }
 
     public clear(): void {
-        this.items.clear();
+        this.indexMap.clear();
+        this._keys = [];
+        this._values = [];
     }
 
     public indexOf(address: Address): number {
-        return this.items.indexOf(address.tweakedToBigInt());
+        const index = this.indexMap.get(address.tweakedToBigInt());
+        return index !== undefined ? index : -1;
     }
 
-    /**
-     * WARNING, THIS RETURN NEW COPY OF THE KEYS
-     */
     *entries(): IterableIterator<[Address, V]> {
-        for (const [keyBigInt, value] of this.items.entries()) {
-            yield [Address.fromBigInt(keyBigInt), value];
+        for (let i = 0; i < this._keys.length; i++) {
+            yield [this._keys[i], this._values[i]];
         }
     }
 
     *keys(): IterableIterator<Address> {
-        for (const keyBigInt of this.items.keys()) {
-            yield Address.fromBigInt(keyBigInt);
+        for (const key of this._keys) {
+            yield key;
         }
     }
 
     *values(): IterableIterator<V> {
-        for (const value of this.items.values()) {
+        for (const value of this._values) {
             yield value;
         }
     }
@@ -71,9 +111,8 @@ export class ExtendedAddressMap<V> {
         callback: (value: V, key: Address, map: ExtendedAddressMap<V>) => void,
         thisArg?: unknown,
     ): void {
-        for (const [keyBigInt, value] of this.items.entries()) {
-            const key = Address.fromBigInt(0n, keyBigInt);
-            callback.call(thisArg, value, key, this);
+        for (let i = 0; i < this._keys.length; i++) {
+            callback.call(thisArg, this._values[i], this._keys[i], this);
         }
     }
 
