@@ -184,7 +184,7 @@
         "@btc-vision/logger": "^1.0.8",
         "@btc-vision/post-quantum": "^0.5.3",
         "@eslint/js": "^9.39.2",
-        "@noble/curves": "^1.9.7",
+        "@noble/curves": "^2.0.1",
         "@noble/secp256k1": "^3.0.0",
         "assert": "^2.1.0",
         "babel-loader": "^10.0.0",
