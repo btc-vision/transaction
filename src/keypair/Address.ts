@@ -32,6 +32,7 @@ export class Address extends Uint8Array {
     #p2wda: IP2WSHAddress | undefined;
     #mldsaPublicKey: Uint8Array | undefined;
     #cachedBigInt: bigint | undefined;
+    #cachedBigIntTweaked: bigint | undefined;
     #cachedUint64Array: [bigint, bigint, bigint, bigint] | undefined;
     #originalMDLSAPublicKey: Uint8Array | undefined;
     #mldsaLevel: MLDSASecurityLevel | undefined;
@@ -192,6 +193,7 @@ export class Address extends Uint8Array {
      * This is the inverse operation of toBigInt().
      *
      * @param {bigint} value - The 256-bit unsigned integer to convert (0 to 2^256-1)
+     * @param {bigint} [tweakedValue] - Optional tweaked public key as a 256-bit unsigned integer
      * @returns {Address} A new Address instance containing the converted value
      *
      * @throws {RangeError} If the value is negative or exceeds 2^256-1
@@ -203,16 +205,11 @@ export class Address extends Uint8Array {
      * console.log(address.toHex()); // 0x0000000000000000000000000000000000000000000000000000abc123...
      * ```
      */
-    public static fromBigInt(value: bigint): Address {
-        const buffer = new Uint8Array(32);
-        const view = new DataView(buffer.buffer);
+    public static fromBigInt(value: bigint, tweakedValue?: bigint): Address {
+        const address = Address.bigintToUint8Array(value);
+        const legacyAddress = tweakedValue ? Address.bigintToUint8Array(tweakedValue) : undefined;
 
-        view.setBigUint64(0, (value >> 192n) & 0xffffffffffffffffn, false);
-        view.setBigUint64(8, (value >> 128n) & 0xffffffffffffffffn, false);
-        view.setBigUint64(16, (value >> 64n) & 0xffffffffffffffffn, false);
-        view.setBigUint64(24, value & 0xffffffffffffffffn, false);
-
-        return new Address(buffer);
+        return new Address(address, legacyAddress);
     }
 
     /**
@@ -251,6 +248,18 @@ export class Address extends Uint8Array {
         view.setBigUint64(24, w3, false);
 
         return new Address(buffer);
+    }
+
+    private static bigintToUint8Array(value: bigint): Uint8Array {
+        const buffer = new Uint8Array(32);
+        const view = new DataView(buffer.buffer);
+
+        view.setBigUint64(0, (value >> 192n) & 0xffffffffffffffffn, false);
+        view.setBigUint64(8, (value >> 128n) & 0xffffffffffffffffn, false);
+        view.setBigUint64(16, (value >> 64n) & 0xffffffffffffffffn, false);
+        view.setBigUint64(24, value & 0xffffffffffffffffn, false);
+
+        return buffer;
     }
 
     /**
@@ -417,6 +426,41 @@ export class Address extends Uint8Array {
             view.getBigUint64(24, false);
 
         return this.#cachedBigInt;
+    }
+
+    /**
+     * Converts the tweaked public key to a BigInt representation.
+     *
+     * This method uses an optimized DataView approach to read the 32-byte address
+     * as four 64-bit big-endian unsigned integers, then combines them using bitwise
+     * operations. This is approximately 10-20x faster than string-based conversion.
+     *
+     * @returns {bigint} The address as a 256-bit unsigned integer
+     *
+     * @example
+     * ```typescript
+     * const address = Address.fromString('0x0123456789abcdef...', '0xtweaked...');
+     * const bigIntValue = address.tweakedToBigInt();
+     * console.log(bigIntValue); // 123456789...n
+     * ```
+     */
+    public tweakedToBigInt(): bigint {
+        if (!this.legacyPublicKey) {
+            throw new Error('Legacy public key not set');
+        }
+
+        if (this.#cachedBigIntTweaked !== undefined) {
+            return this.#cachedBigIntTweaked;
+        }
+
+        const view = new DataView(this.legacyPublicKey.buffer, this.byteOffset, 32);
+        this.#cachedBigIntTweaked =
+            (view.getBigUint64(0, false) << 192n) |
+            (view.getBigUint64(8, false) << 128n) |
+            (view.getBigUint64(16, false) << 64n) |
+            view.getBigUint64(24, false);
+
+        return this.#cachedBigIntTweaked;
     }
 
     public equals(a: Address): boolean {

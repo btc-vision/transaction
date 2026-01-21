@@ -233,10 +233,11 @@ describe('Wallet.derivePath', () => {
     });
 });
 
-describe('Mnemonic.deriveUnisat', () => {
+describe('Mnemonic.deriveOPWallet', () => {
     const testMnemonic =
         'episode frost someone page color giraffe match vanish sheriff veteran hub year pull save dizzy limb already turn reopen truth cradle rural wisdom change';
-    const unisatExpectedAddress = 'bcrt1phn6ej9ct038j722wdzkvsk7c6pmugtd5d3qnpwxc8g40zerf2ujs55tkz3';
+    const unisatExpectedAddress =
+        'bcrt1phn6ej9ct038j722wdzkvsk7c6pmugtd5d3qnpwxc8g40zerf2ujs55tkz3';
 
     describe('P2TR (Taproot) derivation', () => {
         it('should match Unisat P2TR address for regtest', () => {
@@ -247,7 +248,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, false);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0, 0, false);
 
             expect(wallet.p2tr).toBe(unisatExpectedAddress);
         });
@@ -260,7 +261,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
 
             expect(wallet.p2tr).toMatch(/^bc1p/);
         });
@@ -273,7 +274,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
 
             expect(wallet.p2tr).toMatch(/^tb1p/);
         });
@@ -288,13 +289,13 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2WPKH, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2WPKH, 0);
 
             expect(wallet.p2wpkh).toBeDefined();
             expect(wallet.p2wpkh).toMatch(/^bc1q/);
         });
 
-        it('should use BIP84 path (m/84\'/0\'/0\'/0/0)', () => {
+        it("should use BIP84 path (m/84'/0'/0'/0/0)", () => {
             const mnemonic = new Mnemonic(
                 testMnemonic,
                 '',
@@ -302,7 +303,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2WPKH, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2WPKH, 0);
             expect(wallet.p2wpkh).toBeDefined();
         });
     });
@@ -316,7 +317,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2PKH, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2PKH, 0);
 
             expect(wallet.legacy).toBeDefined();
             expect(wallet.legacy).toMatch(/^1/);
@@ -332,9 +333,9 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
-            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 1);
-            const wallet2 = mnemonic.deriveUnisat(AddressTypes.P2TR, 2);
+            const wallet0 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
+            const wallet1 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 1);
+            const wallet2 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 2);
 
             expect(wallet0.p2tr).not.toBe(wallet1.p2tr);
             expect(wallet1.p2tr).not.toBe(wallet2.p2tr);
@@ -349,8 +350,8 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
-            const wallet2 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
+            const wallet1 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 5);
+            const wallet2 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 5);
 
             expect(wallet1.p2tr).toBe(wallet2.p2tr);
             expect(wallet1.toPublicKeyHex()).toBe(wallet2.toPublicKeyHex());
@@ -366,8 +367,8 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const account0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0);
-            const account1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 1);
+            const account0 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0, 0);
+            const account1 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0, 1);
 
             expect(account0.p2tr).not.toBe(account1.p2tr);
         });
@@ -380,8 +381,8 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const receiving = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, false);
-            const change = mnemonic.deriveUnisat(AddressTypes.P2TR, 0, 0, true);
+            const receiving = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0, 0, false);
+            const change = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0, 0, true);
 
             expect(receiving.p2tr).not.toBe(change.p2tr);
         });
@@ -396,7 +397,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
 
             expect(wallet.quantumPublicKey).toBeDefined();
             expect(wallet.quantumPublicKey.length).toBe(1312); // LEVEL2 size
@@ -411,8 +412,8 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet0 = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
-            const wallet1 = mnemonic.deriveUnisat(AddressTypes.P2TR, 1);
+            const wallet0 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
+            const wallet1 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 1);
 
             expect(wallet0.address.toHex()).not.toBe(wallet1.address.toHex());
         });
@@ -459,7 +460,7 @@ describe('Mnemonic.deriveUnisat', () => {
             );
 
             const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 2, 5);
-            const wallet5 = mnemonic.deriveUnisat(AddressTypes.P2TR, 5);
+            const wallet5 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 5);
 
             expect(wallets[0].p2tr).toBe(wallet5.p2tr);
         });
@@ -475,7 +476,7 @@ describe('Mnemonic.deriveUnisat', () => {
             );
 
             expect(() => {
-                mnemonic.deriveUnisat('INVALID_TYPE' as AddressTypes, 0);
+                mnemonic.deriveOPWallet('INVALID_TYPE' as AddressTypes, 0);
             }).toThrow('Unsupported address type');
         });
     });
@@ -489,7 +490,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
 
             expect(wallet.network.bech32).toBe('tb');
         });
@@ -504,7 +505,7 @@ describe('Mnemonic.deriveUnisat', () => {
                 MLDSASecurityLevel.LEVEL3,
             );
 
-            const wallet = mnemonic.deriveUnisat(AddressTypes.P2TR, 0);
+            const wallet = mnemonic.deriveOPWallet(AddressTypes.P2TR, 0);
 
             expect(wallet.securityLevel).toBe(MLDSASecurityLevel.LEVEL3);
             expect(wallet.quantumPublicKey.length).toBe(1952); // LEVEL3 size

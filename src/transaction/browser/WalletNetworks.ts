@@ -1,7 +1,7 @@
 export enum WalletNetworks {
-    testnet = 'testnet',
-    mainnet = 'mainnet',
-    regtest = 'regtest',
+    Mainnet = 'mainnet',
+    Testnet = 'testnet',
+    Regtest = 'regtest',
 }
 
 export enum UnisatChainType {

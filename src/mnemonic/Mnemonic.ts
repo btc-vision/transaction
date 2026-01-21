@@ -263,7 +263,7 @@ export class Mnemonic {
      * @param isChange - Whether this is a change address (default: false)
      * @returns A Wallet instance with both classical and quantum keys
      */
-    public deriveUnisat(
+    public deriveOPWallet(
         addressType: AddressTypes = AddressTypes.P2TR,
         index: number = 0,
         account: number = 0,
@@ -338,7 +338,7 @@ export class Mnemonic {
         const wallets: Wallet[] = [];
 
         for (let i = 0; i < count; i++) {
-            wallets.push(this.deriveUnisat(addressType, startIndex + i, account, isChange));
+            wallets.push(this.deriveOPWallet(addressType, startIndex + i, account, isChange));
         }
 
         return wallets;
