@@ -948,18 +948,18 @@ export abstract class TweakedTransaction extends Logger {
             if (isP2WPKH(redeemOutput)) {
                 // P2SH-P2WPKH
                 // Use witnessUtxo + redeemScript
-                delete input.nonWitnessUtxo; // ensure we do NOT have nonWitnessUtxo
+                Reflect.deleteProperty(input, 'nonWitnessUtxo'); // ensure we do NOT have nonWitnessUtxo
                 // witnessScript is not needed
             } else if (isP2WSHScript(redeemOutput)) {
                 // P2SH-P2WSH
                 // Use witnessUtxo + redeemScript + witnessScript
-                delete input.nonWitnessUtxo; // ensure we do NOT have nonWitnessUtxo
+                Reflect.deleteProperty(input, 'nonWitnessUtxo'); // ensure we do NOT have nonWitnessUtxo
 
                 this.processP2WSHInput(utxo, input, i);
             } else {
                 // Legacy P2SH
                 // Use nonWitnessUtxo
-                delete input.witnessUtxo; // ensure we do NOT have witnessUtxo
+                Reflect.deleteProperty(input, 'witnessUtxo'); // ensure we do NOT have witnessUtxo
             }
         }
 

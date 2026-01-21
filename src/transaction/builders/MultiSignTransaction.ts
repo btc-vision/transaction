@@ -227,7 +227,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                 input.tapScriptSig = (input.tapScriptSig || []).concat(partialSignatures);
             }
 
-            delete input.finalScriptWitness;
+            Reflect.deleteProperty(input, 'finalScriptWitness');
 
             const signHashTypes: number[] = MultiSignTransaction.signHashTypesArray
                 ? [MultiSignTransaction.calculateSignHash(MultiSignTransaction.signHashTypesArray)]
@@ -397,7 +397,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                     );
                 }
 
-                delete input.finalScriptWitness;
+                Reflect.deleteProperty(input, 'finalScriptWitness');
 
                 psbt.finalizeInput(
                     i,
