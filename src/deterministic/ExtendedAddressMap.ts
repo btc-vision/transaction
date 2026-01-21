@@ -1,7 +1,7 @@
 import { Address } from '../keypair/Address.js';
 import { FastMap } from './FastMap.js';
 
-export class TweakedAddressMap<V> {
+export class ExtendedAddressMap<V> {
     private items: FastMap<bigint, V>;
 
     constructor(iterable?: ReadonlyArray<readonly [Address, V]> | null) {
@@ -68,7 +68,7 @@ export class TweakedAddressMap<V> {
     }
 
     forEach(
-        callback: (value: V, key: Address, map: TweakedAddressMap<V>) => void,
+        callback: (value: V, key: Address, map: ExtendedAddressMap<V>) => void,
         thisArg?: unknown,
     ): void {
         for (const [keyBigInt, value] of this.items.entries()) {

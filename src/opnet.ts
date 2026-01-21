@@ -125,7 +125,7 @@ export * from './abi/ABICoder.js';
 export * from './buffer/BinaryReader.js';
 export * from './buffer/BinaryWriter.js';
 export * from './deterministic/AddressMap.js';
-export * from './deterministic/TweakedAddressMap.js';
+export * from './deterministic/ExtendedAddressMap.js';
 export * from './deterministic/AddressSet.js';
 export * from './deterministic/DeterministicMap.js';
 export * from './deterministic/DeterministicSet.js';
