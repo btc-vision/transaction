@@ -7,3 +7,5 @@ cjs/*
 .github
 .idea
 /bytecode
+./AUDIT
+./test
