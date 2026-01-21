@@ -107,13 +107,13 @@ export class UnisatSigner extends CustomKeypair {
 
         const network = await this.unisat.getNetwork();
         switch (network) {
-            case WalletNetworks.mainnet:
+            case WalletNetworks.Mainnet:
                 this._network = networks.bitcoin;
                 break;
-            case WalletNetworks.testnet:
+            case WalletNetworks.Testnet:
                 this._network = networks.testnet;
                 break;
-            case WalletNetworks.regtest:
+            case WalletNetworks.Regtest:
                 this._network = networks.regtest;
                 break;
             default:
