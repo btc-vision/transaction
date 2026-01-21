@@ -1,9 +1,16 @@
 import { AddressMap } from '../deterministic/AddressMap.js';
+import { ExtendedAddressMap } from '../deterministic/ExtendedAddressMap.js';
 import { Address } from '../keypair/Address.js';
 import { BufferHelper } from '../utils/BufferHelper.js';
 import {
     ADDRESS_BYTE_LENGTH,
+    EXTENDED_ADDRESS_BYTE_LENGTH,
     I128_BYTE_LENGTH,
+    I16_BYTE_LENGTH,
+    I32_BYTE_LENGTH,
+    I64_BYTE_LENGTH,
+    I8_BYTE_LENGTH,
+    SCHNORR_SIGNATURE_BYTE_LENGTH,
     U128_BYTE_LENGTH,
     U16_BYTE_LENGTH,
     U256_BYTE_LENGTH,
@@ -11,7 +18,7 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { Selector, u16, u32, u64, u8 } from '../utils/types.js';
+import { i16, i32, i64, i8, Selector, u16, u32, u64, u8 } from '../utils/types.js';
 import { BinaryReader } from './BinaryReader.js';
 
 export class BinaryWriter {
@@ -63,6 +70,56 @@ export class BinaryWriter {
         this.buffer.setBigUint64(this.currentOffset, value, !be);
         this.currentOffset += 8;
     }
+
+    // ------------------- Signed Integer Writers ------------------- //
+
+    /**
+     * Writes a signed 8-bit integer.
+     */
+    public writeI8(value: i8): void {
+        if (value < -128 || value > 127) throw new Error('i8 value is out of range.');
+
+        this.allocSafe(I8_BYTE_LENGTH);
+        this.buffer.setInt8(this.currentOffset, value);
+        this.currentOffset += I8_BYTE_LENGTH;
+    }
+
+    /**
+     * Writes a signed 16-bit integer. By default big-endian (be = true).
+     */
+    public writeI16(value: i16, be: boolean = true): void {
+        if (value < -32768 || value > 32767) throw new Error('i16 value is out of range.');
+
+        this.allocSafe(I16_BYTE_LENGTH);
+        this.buffer.setInt16(this.currentOffset, value, !be);
+        this.currentOffset += I16_BYTE_LENGTH;
+    }
+
+    /**
+     * Writes a signed 32-bit integer. By default big-endian (be = true).
+     */
+    public writeI32(value: i32, be: boolean = true): void {
+        if (value < -2147483648 || value > 2147483647) throw new Error('i32 value is out of range.');
+
+        this.allocSafe(I32_BYTE_LENGTH);
+        this.buffer.setInt32(this.currentOffset, value, !be);
+        this.currentOffset += I32_BYTE_LENGTH;
+    }
+
+    /**
+     * Writes a signed 64-bit integer. By default big-endian (be = true).
+     */
+    public writeI64(value: i64, be: boolean = true): void {
+        if (value < -9223372036854775808n || value > 9223372036854775807n) {
+            throw new Error('i64 value is out of range.');
+        }
+
+        this.allocSafe(I64_BYTE_LENGTH);
+        this.buffer.setBigInt64(this.currentOffset, value, !be);
+        this.currentOffset += I64_BYTE_LENGTH;
+    }
+
+    // ---------------------------------------------------------------- //
 
     public writeSelector(value: Selector): void {
         this.writeU32(value, true);
@@ -173,10 +230,63 @@ export class BinaryWriter {
         this.writeBytes(bytes);
     }
 
+    /**
+     * Writes an address (32 bytes MLDSA key hash only).
+     */
     public writeAddress(value: Address): void {
         this.verifyAddress(value);
 
         this.writeBytes(value);
+    }
+
+    /**
+     * Writes the tweaked public key from an Address (32 bytes).
+     * @param value - The Address containing the tweaked public key
+     */
+    public writeTweakedPublicKey(value: Address): void {
+        const tweakedKey = value.tweakedPublicKeyToBuffer();
+        this.allocSafe(ADDRESS_BYTE_LENGTH);
+        this.writeBytes(tweakedKey);
+    }
+
+    /**
+     * Writes a full address with both tweaked public key and MLDSA key hash (64 bytes total).
+     * Format: [32 bytes tweakedPublicKey][32 bytes MLDSA key hash]
+     *
+     * This is the equivalent of btc-runtime's writeExtendedAddress().
+     *
+     * @param value - The Address containing both keys
+     */
+    public writeExtendedAddress(value: Address): void {
+        this.allocSafe(EXTENDED_ADDRESS_BYTE_LENGTH);
+
+        // Write tweaked public key first (32 bytes)
+        this.writeTweakedPublicKey(value);
+
+        // Write MLDSA key hash (32 bytes)
+        this.writeBytes(value);
+    }
+
+    /**
+     * Writes a Schnorr signature with its associated full Address.
+     * Format: [64 bytes full Address][64 bytes signature]
+     *
+     * Used for serializing signed data where both the signer's address
+     * and their Schnorr signature need to be stored together.
+     *
+     * @param address - The signer's Address (with both MLDSA and tweaked keys)
+     * @param signature - The 64-byte Schnorr signature
+     * @throws {Error} If signature is not exactly 64 bytes
+     */
+    public writeSchnorrSignature(address: Address, signature: Uint8Array): void {
+        if (signature.length !== SCHNORR_SIGNATURE_BYTE_LENGTH) {
+            throw new Error(
+                `Invalid Schnorr signature length: expected ${SCHNORR_SIGNATURE_BYTE_LENGTH}, got ${signature.length}`,
+            );
+        }
+        this.allocSafe(EXTENDED_ADDRESS_BYTE_LENGTH + SCHNORR_SIGNATURE_BYTE_LENGTH);
+        this.writeExtendedAddress(address);
+        this.writeBytes(signature);
     }
 
     public getBuffer(clear: boolean = true): Uint8Array {
@@ -235,6 +345,23 @@ export class BinaryWriter {
         }
     }
 
+    /**
+     * Writes a map of full Address -> u256 using the tweaked key for map lookup.
+     * Format: [u16 length][FullAddress key][u256 value]...
+     *
+     * This is the equivalent of btc-runtime's writeExtendedAddressMapU256().
+     */
+    public writeExtendedAddressMapU256(map: ExtendedAddressMap<bigint>, be: boolean = true): void {
+        if (map.size > 65535) throw new Error('Map size is too large');
+
+        this.writeU16(map.size, be);
+
+        for (const [key, value] of map.entries()) {
+            this.writeExtendedAddress(key);
+            this.writeU256(value, be);
+        }
+    }
+
     public writeBytesWithLength(value: Uint8Array): void {
         this.writeU32(value.length);
         this.writeBytes(value);
@@ -259,6 +386,21 @@ export class BinaryWriter {
 
         for (let i = 0; i < value.length; i++) {
             this.writeAddress(value[i]);
+        }
+    }
+
+    /**
+     * Writes an array of full addresses (64 bytes each).
+     * Format: [u16 length][FullAddress 0][FullAddress 1]...
+     */
+    public writeExtendedAddressArray(value: Address[]): void {
+        if (value.length > 65535) throw new Error('Array size is too large');
+
+        this.allocSafe(U16_BYTE_LENGTH + value.length * EXTENDED_ADDRESS_BYTE_LENGTH);
+        this.writeU16(value.length);
+
+        for (let i = 0; i < value.length; i++) {
+            this.writeExtendedAddress(value[i]);
         }
     }
 

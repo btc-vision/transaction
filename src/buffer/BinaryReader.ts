@@ -1,8 +1,15 @@
 import { AddressMap } from '../deterministic/AddressMap.js';
+import { ExtendedAddressMap } from '../deterministic/ExtendedAddressMap.js';
 import { Address } from '../keypair/Address.js';
 import {
     ADDRESS_BYTE_LENGTH,
+    EXTENDED_ADDRESS_BYTE_LENGTH,
     I128_BYTE_LENGTH,
+    I16_BYTE_LENGTH,
+    I32_BYTE_LENGTH,
+    I64_BYTE_LENGTH,
+    I8_BYTE_LENGTH,
+    SCHNORR_SIGNATURE_BYTE_LENGTH,
     U128_BYTE_LENGTH,
     U16_BYTE_LENGTH,
     U256_BYTE_LENGTH,
@@ -10,7 +17,20 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { BufferLike, Selector, u16, u32, u8 } from '../utils/types.js';
+import { BufferLike, i16, i32, i64, i8, Selector, u16, u32, u8 } from '../utils/types.js';
+
+/**
+ * Represents a Schnorr signature paired with the signer's Address.
+ * This class bundles a 64-byte Schnorr signature with its associated
+ * full Address (both MLDSA and tweaked keys), providing a complete signed data structure
+ * for Bitcoin Taproot-compatible signatures.
+ */
+export interface SchnorrSignature {
+    /** The signer's Address containing both MLDSA and tweaked public keys */
+    readonly address: Address;
+    /** The 64-byte Schnorr signature */
+    readonly signature: Uint8Array;
+}
 
 export class BinaryReader {
     private buffer: DataView;
@@ -42,6 +62,10 @@ export class BinaryReader {
         this.currentOffset = 0;
     }
 
+    public get byteLength(): number {
+        return this.buffer.byteLength;
+    }
+
     public length(): number {
         return this.buffer.byteLength;
     }
@@ -49,6 +73,53 @@ export class BinaryReader {
     public bytesLeft(): number {
         return this.buffer.byteLength - this.currentOffset;
     }
+
+    // ------------------- Signed Integer Readers ------------------- //
+
+    /**
+     * Reads a single signed byte (i8).
+     */
+    public readI8(): i8 {
+        this.verifyEnd(this.currentOffset + I8_BYTE_LENGTH);
+        const value = this.buffer.getInt8(this.currentOffset);
+        this.currentOffset += I8_BYTE_LENGTH;
+        return value;
+    }
+
+    /**
+     * Reads a signed 16-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readI16(be: boolean = true): i16 {
+        this.verifyEnd(this.currentOffset + I16_BYTE_LENGTH);
+        const value = this.buffer.getInt16(this.currentOffset, !be);
+        this.currentOffset += I16_BYTE_LENGTH;
+        return value;
+    }
+
+    /**
+     * Reads a signed 32-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readI32(be: boolean = true): i32 {
+        this.verifyEnd(this.currentOffset + I32_BYTE_LENGTH);
+        const value = this.buffer.getInt32(this.currentOffset, !be);
+        this.currentOffset += I32_BYTE_LENGTH;
+        return value;
+    }
+
+    /**
+     * Reads a signed 64-bit integer. By default, big-endian.
+     * @param be - Endianness; true means big-endian (the default).
+     */
+    public readI64(be: boolean = true): i64 {
+        this.verifyEnd(this.currentOffset + I64_BYTE_LENGTH);
+        const value = this.buffer.getBigInt64(this.currentOffset, !be);
+        this.currentOffset += I64_BYTE_LENGTH;
+        return value;
+    }
+
+    // ------------------- Unsigned Integer Readers ------------------- //
 
     /**
      * Reads a single unsigned byte (u8).
@@ -197,11 +268,60 @@ export class BinaryReader {
     }
 
     /**
-     * Reads an address.
+     * Reads an address (32 bytes MLDSA key hash only).
      */
     public readAddress(): Address {
         const bytes: u8[] = Array.from(this.readBytes(ADDRESS_BYTE_LENGTH));
         return new Address(bytes);
+    }
+
+    /**
+     * Reads the tweaked public key portion (32 bytes) and returns it as a raw Uint8Array.
+     * Use this when you only need the tweaked key without the full Address object.
+     */
+    public readTweakedPublicKey(): Uint8Array {
+        this.verifyEnd(this.currentOffset + ADDRESS_BYTE_LENGTH);
+        return this.readBytes(ADDRESS_BYTE_LENGTH);
+    }
+
+    /**
+     * Reads a full address with both MLDSA key hash and tweaked public key (64 bytes total).
+     * Format: [32 bytes tweakedPublicKey][32 bytes MLDSA key hash]
+     *
+     * This is the equivalent of btc-runtime's readExtendedAddress().
+     *
+     * @returns An Address instance with both keys set
+     */
+    public readExtendedAddress(): Address {
+        this.verifyEnd(this.currentOffset + EXTENDED_ADDRESS_BYTE_LENGTH);
+
+        // Read tweaked public key first (32 bytes)
+        const tweakedPublicKey: u8[] = Array.from(this.readBytes(ADDRESS_BYTE_LENGTH));
+
+        // Read MLDSA key hash (32 bytes)
+        const mldsaKeyHash: u8[] = Array.from(this.readBytes(ADDRESS_BYTE_LENGTH));
+
+        return new Address(mldsaKeyHash, tweakedPublicKey);
+    }
+
+    /**
+     * Reads a Schnorr signature with its associated full Address.
+     * Format: [64 bytes full Address][64 bytes signature]
+     *
+     * Used for deserializing signed data where both the signer's address
+     * and their Schnorr signature are stored together.
+     *
+     * @returns A SchnorrSignature containing the address and signature
+     */
+    public readSchnorrSignature(): SchnorrSignature {
+        this.verifyEnd(
+            this.currentOffset + EXTENDED_ADDRESS_BYTE_LENGTH + SCHNORR_SIGNATURE_BYTE_LENGTH,
+        );
+
+        const address = this.readExtendedAddress();
+        const signature = this.readBytes(SCHNORR_SIGNATURE_BYTE_LENGTH);
+
+        return { address, signature };
     }
 
     /**
@@ -326,6 +446,42 @@ export class BinaryReader {
             }
             result.set(address, value);
         }
+        return result;
+    }
+
+    /**
+     * Reads an array of full addresses (64 bytes each).
+     * Format: [u16 length][FullAddress 0][FullAddress 1]...
+     */
+    public readExtendedAddressArray(be: boolean = true): Address[] {
+        const length = this.readU16(be);
+        const result: Address[] = new Array<Address>(length);
+        for (let i = 0; i < length; i++) {
+            result[i] = this.readExtendedAddress();
+        }
+        return result;
+    }
+
+    /**
+     * Reads a map of full Address -> u256 using the tweaked key for map lookup.
+     * Format: [u16 length][FullAddress key][u256 value]...
+     *
+     * This is the equivalent of btc-runtime's readExtendedAddressMapU256().
+     */
+    public readExtendedAddressMapU256(be: boolean = true): ExtendedAddressMap<bigint> {
+        const length = this.readU16(be);
+        const result = new ExtendedAddressMap<bigint>();
+
+        for (let i = 0; i < length; i++) {
+            const address = this.readExtendedAddress();
+            const value = this.readU256(be);
+
+            if (result.has(address)) {
+                throw new Error('Duplicate tweaked address found in map');
+            }
+            result.set(address, value);
+        }
+
         return result;
     }
 

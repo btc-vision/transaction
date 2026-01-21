@@ -4,21 +4,40 @@ import { BinaryReader } from '../buffer/BinaryReader.js';
 import { BufferHelper } from '../utils/BufferHelper.js';
 
 export enum ABIDataTypes {
+    // Unsigned integers
     UINT8 = 'UINT8',
     UINT16 = 'UINT16',
     UINT32 = 'UINT32',
     UINT64 = 'UINT64',
     UINT128 = 'UINT128',
     UINT256 = 'UINT256',
+
+    // Signed integers
+    INT8 = 'INT8',
+    INT16 = 'INT16',
+    INT32 = 'INT32',
+    INT64 = 'INT64',
     INT128 = 'INT128',
+
+    // Basic types
     BOOL = 'BOOL',
     ADDRESS = 'ADDRESS',
+    EXTENDED_ADDRESS = 'EXTENDED_ADDRESS',
     STRING = 'STRING',
     BYTES4 = 'BYTES4',
     BYTES32 = 'BYTES32',
     BYTES = 'BYTES',
+
+    // Tuples/Maps
     ADDRESS_UINT256_TUPLE = 'ADDRESS_UINT256_TUPLE',
+    EXTENDED_ADDRESS_UINT256_TUPLE = 'EXTENDED_ADDRESS_UINT256_TUPLE',
+
+    // Signatures
+    SCHNORR_SIGNATURE = 'SCHNORR_SIGNATURE',
+
+    // Arrays
     ARRAY_OF_ADDRESSES = 'ARRAY_OF_ADDRESSES',
+    ARRAY_OF_EXTENDED_ADDRESSES = 'ARRAY_OF_EXTENDED_ADDRESSES',
     ARRAY_OF_UINT256 = 'ARRAY_OF_UINT256',
     ARRAY_OF_UINT128 = 'ARRAY_OF_UINT128',
     ARRAY_OF_UINT64 = 'ARRAY_OF_UINT64',
@@ -68,11 +87,32 @@ export class ABICoder {
                 case ABIDataTypes.UINT256:
                     result.push(byteReader.readU256());
                     break;
+                case ABIDataTypes.INT8:
+                    result.push(byteReader.readI8());
+                    break;
+                case ABIDataTypes.INT16:
+                    result.push(byteReader.readI16());
+                    break;
+                case ABIDataTypes.INT32:
+                    result.push(byteReader.readI32());
+                    break;
+                case ABIDataTypes.INT64:
+                    result.push(byteReader.readI64());
+                    break;
                 case ABIDataTypes.INT128:
                     result.push(byteReader.readI128());
                     break;
+                case ABIDataTypes.EXTENDED_ADDRESS:
+                    result.push(byteReader.readExtendedAddress());
+                    break;
                 case ABIDataTypes.ADDRESS_UINT256_TUPLE:
                     result.push(byteReader.readAddressValueTuple());
+                    break;
+                case ABIDataTypes.EXTENDED_ADDRESS_UINT256_TUPLE:
+                    result.push(byteReader.readExtendedAddressMapU256());
+                    break;
+                case ABIDataTypes.SCHNORR_SIGNATURE:
+                    result.push(byteReader.readSchnorrSignature());
                     break;
                 case ABIDataTypes.BYTES:
                     result.push(byteReader.readBytesWithLength());
@@ -82,6 +122,9 @@ export class ABICoder {
                     break;
                 case ABIDataTypes.ARRAY_OF_ADDRESSES:
                     result.push(byteReader.readAddressArray());
+                    break;
+                case ABIDataTypes.ARRAY_OF_EXTENDED_ADDRESSES:
+                    result.push(byteReader.readExtendedAddressArray());
                     break;
                 case ABIDataTypes.ARRAY_OF_UINT256:
                     result.push(byteReader.readU256Array());
