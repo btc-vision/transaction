@@ -25,6 +25,7 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import { mod } from '@noble/curves/abstract/modular';
 import { sha256 } from '@noble/hashes/sha2';
 import { bytesToNumberBE, concatBytes, randomBytes, utf8ToBytes } from '@noble/curves/utils.js';
+import { Buffer } from 'buffer';
 
 initEccLib(ecc);
 
@@ -323,9 +324,14 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
         securityLevel: MLDSASecurityLevel = MLDSASecurityLevel.LEVEL2,
     ): IWallet {
-        // Generate classical keypair
+        // Generate classical keypair with custom rng to ensure Buffer compatibility
+        // This fixes "Expected Buffer, got Uint8Array" error in browser environments
         const keyPair = this.ECPair.makeRandom({
             network: network,
+            rng: (size: number): Buffer => {
+                const bytes = randomBytes(size);
+                return Buffer.from(bytes);
+            },
         });
 
         const wallet = this.getP2WPKHAddress(keyPair, network);
@@ -475,8 +481,13 @@ export class EcKeyPair {
      * @returns {ECPairInterface} - The generated keypair
      */
     public static generateRandomKeyPair(network: Network = networks.bitcoin): ECPairInterface {
+        // Use custom rng to ensure Buffer compatibility in browser environments
         return this.ECPair.makeRandom({
             network: network,
+            rng: (size: number): Buffer => {
+                const bytes = randomBytes(size);
+                return Buffer.from(bytes);
+            },
         });
     }
 
