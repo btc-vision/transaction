@@ -21,8 +21,8 @@ import bitcoin, {
 } from '@btc-vision/bitcoin';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { mod } from '@noble/curves/abstract/modular';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { mod } from '@noble/curves/abstract/modular.js';
 import { sha256 } from '@noble/hashes/sha2';
 import { bytesToNumberBE, concatBytes, randomBytes } from '@noble/curves/utils.js';
 import { Buffer } from 'buffer';
