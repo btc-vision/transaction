@@ -21,10 +21,10 @@ import bitcoin, {
 } from '@btc-vision/bitcoin';
 import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
 import { IWallet } from './interfaces/IWallet.js';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import { mod } from '@noble/curves/abstract/modular';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { mod } from '@noble/curves/abstract/modular.js';
 import { sha256 } from '@noble/hashes/sha2';
-import { bytesToNumberBE, concatBytes, randomBytes, utf8ToBytes } from '@noble/curves/utils.js';
+import { bytesToNumberBE, concatBytes, randomBytes } from '@noble/curves/utils.js';
 import { Buffer } from 'buffer';
 
 initEccLib(ecc);
@@ -37,7 +37,7 @@ if (!BIP32factory) {
 const Point = secp256k1.Point;
 const CURVE_N = Point.Fn.ORDER;
 
-const TAP_TAG = utf8ToBytes('TapTweak');
+const TAP_TAG = Buffer.from('TapTweak', 'utf-8');
 const TAP_TAG_HASH = sha256(TAP_TAG);
 
 function tapTweakHash(x: Uint8Array): Uint8Array {
@@ -282,7 +282,7 @@ export class EcKeyPair {
     public static tweakPublicKey(pub: Uint8Array | Buffer | string): Buffer {
         if (typeof pub === 'string' && pub.startsWith('0x')) pub = pub.slice(2);
 
-        const P = Point.fromHex(pub);
+        const P = Point.fromHex(Buffer.from(pub).toString('hex'));
         const Peven = (P.y & 1n) === 0n ? P : P.negate();
 
         const xBytes = Buffer.from(Peven.toBytes(true).subarray(1));
@@ -306,7 +306,7 @@ export class EcKeyPair {
         const T = Point.BASE.multiply(tweakScalar);
 
         return pubkeys.map((bytes) => {
-            const P = Point.fromHex(bytes);
+            const P = Point.fromHex(Buffer.from(bytes).toString('hex'));
             const P_even = P.y % 2n === 0n ? P : P.negate();
             const Q = P_even.add(T);
             return Q.toBytes(true);
