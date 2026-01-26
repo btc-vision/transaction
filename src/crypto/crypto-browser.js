@@ -1,8 +1,7 @@
 /* Browser Crypto Shims */
 import { hmac } from '@noble/hashes/hmac.js';
 import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
-import { sha256 } from '@noble/hashes/sha256.js';
-import { sha512 } from '@noble/hashes/sha512.js';
+import { sha256, sha512 } from '@noble/hashes/sha2.js';
 
 function assertArgument(check, message, name, value) {
     if (!check) {
