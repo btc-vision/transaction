@@ -8,7 +8,7 @@ import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
-import { sha256 } from '@noble/hashes/sha2';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 /**
