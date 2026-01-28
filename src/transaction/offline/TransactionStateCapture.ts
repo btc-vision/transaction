@@ -1,4 +1,4 @@
-import { Network, PsbtOutputExtended } from '@btc-vision/bitcoin';
+import { Network, PsbtOutputExtended, toHex } from '@btc-vision/bitcoin';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ChainId } from '../../network/ChainId.js';
 import { currentConsensus } from '../../consensus/ConsensusConfig.js';
@@ -100,7 +100,7 @@ export class TransactionStateCapture {
      */
     public static fromMultiSig(
         params: ITransactionParameters & {
-            pubkeys: Buffer[];
+            pubkeys: Uint8Array[];
             minimumSignatures: number;
             receiver: string;
             requestedAmount: bigint;
@@ -122,9 +122,9 @@ export class TransactionStateCapture {
      */
     public static fromCustomScript(
         params: ITransactionParameters & {
-            scriptElements: (Buffer | number)[];
-            witnesses: Buffer[];
-            annex?: Buffer;
+            scriptElements: (Uint8Array | number)[];
+            witnesses: Uint8Array[];
+            annex?: Uint8Array;
         },
         precomputed?: Partial<PrecomputedData>,
     ): ISerializableTransactionState {
@@ -140,7 +140,7 @@ export class TransactionStateCapture {
      */
     public static fromCancel(
         params: ITransactionParameters & {
-            compiledTargetScript: Buffer | string;
+            compiledTargetScript: Uint8Array | string;
         },
         precomputed?: Partial<PrecomputedData>,
     ): ISerializableTransactionState {
@@ -192,9 +192,9 @@ export class TransactionStateCapture {
      */
     private static extractBaseParams(params: ITransactionParameters): SerializedBaseParams {
         const note = params.note
-            ? Buffer.isBuffer(params.note)
-                ? params.note.toString('hex')
-                : Buffer.from(params.note).toString('hex')
+            ? params.note instanceof Uint8Array
+                ? toHex(params.note)
+                : toHex(new Uint8Array(params.note))
             : undefined;
 
         // Handle optional priorityFee and gasSatFee (not present in MultiSig)
@@ -299,8 +299,8 @@ export class TransactionStateCapture {
     private static extractDeploymentData(params: IDeploymentParameters): DeploymentSpecificData {
         return {
             type: TransactionType.DEPLOYMENT,
-            bytecode: params.bytecode.toString('hex'),
-            calldata: params.calldata?.toString('hex'),
+            bytecode: toHex(params.bytecode),
+            calldata: params.calldata ? toHex(params.calldata) : undefined,
             challenge: params.challenge.toRaw(),
             revealMLDSAPublicKey: params.revealMLDSAPublicKey,
             linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress,
@@ -310,7 +310,7 @@ export class TransactionStateCapture {
     private static extractInteractionData(params: IInteractionParameters): InteractionSpecificData {
         return {
             type: TransactionType.INTERACTION,
-            calldata: params.calldata.toString('hex'),
+            calldata: toHex(params.calldata),
             contract: params.contract,
             challenge: params.challenge.toRaw(),
             loadedStorage: params.loadedStorage,
@@ -334,7 +334,7 @@ export class TransactionStateCapture {
     ): MultiSigSpecificData {
         return {
             type: TransactionType.MULTI_SIG,
-            pubkeys: (params.pubkeys || []).map((pk) => pk.toString('hex')),
+            pubkeys: (params.pubkeys || []).map((pk) => toHex(pk)),
             minimumSignatures: params.minimumSignatures || 0,
             receiver: params.receiver || '',
             requestedAmount: (params.requestedAmount || 0n).toString(),
@@ -348,15 +348,15 @@ export class TransactionStateCapture {
         params: ITransactionParameters & {
             scriptElements?: (Buffer | number)[];
             witnesses?: Buffer[];
-            annex?: Buffer;
+            annex?: Uint8Array;
         },
     ): CustomScriptSpecificData {
         const scriptElements: SerializedScriptElement[] = (params.scriptElements || []).map(
             (element) => {
-                if (Buffer.isBuffer(element)) {
+                if (element instanceof Uint8Array) {
                     return {
                         elementType: 'buffer' as const,
-                        value: element.toString('hex'),
+                        value: toHex(element),
                     };
                 } else {
                     return {
@@ -370,8 +370,8 @@ export class TransactionStateCapture {
         return {
             type: TransactionType.CUSTOM_CODE,
             scriptElements,
-            witnesses: (params.witnesses || []).map((w) => w.toString('hex')),
-            annex: params.annex?.toString('hex'),
+            witnesses: (params.witnesses || []).map((w) => toHex(w)),
+            annex: params.annex ? toHex(params.annex) : undefined,
         };
     }
 
@@ -381,7 +381,7 @@ export class TransactionStateCapture {
         },
     ): CancelSpecificData {
         const script = params.compiledTargetScript;
-        const scriptHex = script ? (Buffer.isBuffer(script) ? script.toString('hex') : script) : '';
+        const scriptHex = script ? (script instanceof Uint8Array ? toHex(script) : script) : '';
 
         return {
             type: TransactionType.CANCEL,
@@ -413,18 +413,18 @@ export class TransactionStateCapture {
             scriptPubKeyHex: utxo.scriptPubKey.hex,
             scriptPubKeyAddress: utxo.scriptPubKey.address,
             redeemScript: utxo.redeemScript
-                ? Buffer.isBuffer(utxo.redeemScript)
-                    ? utxo.redeemScript.toString('hex')
+                ? utxo.redeemScript instanceof Uint8Array
+                    ? toHex(utxo.redeemScript)
                     : utxo.redeemScript
                 : undefined,
             witnessScript: utxo.witnessScript
-                ? Buffer.isBuffer(utxo.witnessScript)
-                    ? utxo.witnessScript.toString('hex')
+                ? utxo.witnessScript instanceof Uint8Array
+                    ? toHex(utxo.witnessScript)
                     : utxo.witnessScript
                 : undefined,
             nonWitnessUtxo: utxo.nonWitnessUtxo
-                ? Buffer.isBuffer(utxo.nonWitnessUtxo)
-                    ? utxo.nonWitnessUtxo.toString('hex')
+                ? utxo.nonWitnessUtxo instanceof Uint8Array
+                    ? toHex(utxo.nonWitnessUtxo)
                     : utxo.nonWitnessUtxo
                 : undefined,
         }));
@@ -442,9 +442,9 @@ export class TransactionStateCapture {
             return {
                 value: output.value,
                 address,
-                script: script ? script.toString('hex') : undefined,
+                script: script ? toHex(script) : undefined,
                 tapInternalKey: output.tapInternalKey
-                    ? output.tapInternalKey.toString('hex')
+                    ? toHex(output.tapInternalKey)
                     : undefined,
             };
         });

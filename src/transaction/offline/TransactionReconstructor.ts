@@ -1,5 +1,5 @@
-import { Network, networks, PsbtOutputExtended, Signer, Stack } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { fromHex, Network, networks, PsbtOutputExtended, Signer, Stack } from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { AddressRotationConfig, SignerMap } from '../../signer/AddressRotation.js';
@@ -40,7 +40,7 @@ import { SupportedTransactionVersion } from '../interfaces/ITweakedTransactionDa
  */
 export interface ReconstructionOptions {
     /** Primary signer (used for normal mode or as default in rotation mode) */
-    signer: Signer | ECPairInterface;
+    signer: Signer | UniversalSigner;
 
     /** Optional: Override fee rate for fee bumping */
     newFeeRate?: number;
@@ -104,7 +104,7 @@ export class TransactionReconstructor {
             priorityFee,
             gasSatFee,
             txVersion: state.baseParams.txVersion as SupportedTransactionVersion,
-            note: state.baseParams.note ? Buffer.from(state.baseParams.note, 'hex') : undefined,
+            note: state.baseParams.note ? fromHex(state.baseParams.note) : undefined,
             anchor: state.baseParams.anchor,
             debugFees: state.baseParams.debugFees,
             addressRotation,
@@ -112,7 +112,7 @@ export class TransactionReconstructor {
                 ? BigInt(state.precomputedData.estimatedFees)
                 : undefined,
             compiledTargetScript: state.precomputedData.compiledTargetScript
-                ? Buffer.from(state.precomputedData.compiledTargetScript, 'hex')
+                ? fromHex(state.precomputedData.compiledTargetScript)
                 : undefined,
         };
 
@@ -164,11 +164,11 @@ export class TransactionReconstructor {
 
         const params: IDeploymentParameters = {
             ...baseParams,
-            bytecode: Buffer.from(data.bytecode, 'hex'),
-            calldata: data.calldata ? Buffer.from(data.calldata, 'hex') : undefined,
+            bytecode: fromHex(data.bytecode),
+            calldata: data.calldata ? fromHex(data.calldata) : undefined,
             challenge,
             randomBytes: state.precomputedData.randomBytes
-                ? Buffer.from(state.precomputedData.randomBytes, 'hex')
+                ? fromHex(state.precomputedData.randomBytes)
                 : undefined,
             revealMLDSAPublicKey: data.revealMLDSAPublicKey,
             linkMLDSAPublicKeyToAddress: data.linkMLDSAPublicKeyToAddress,
@@ -194,11 +194,11 @@ export class TransactionReconstructor {
         const params: IInteractionParameters = {
             ...baseParams,
             to: baseParams.to,
-            calldata: Buffer.from(data.calldata, 'hex'),
+            calldata: fromHex(data.calldata),
             contract: data.contract,
             challenge,
             randomBytes: state.precomputedData.randomBytes
-                ? Buffer.from(state.precomputedData.randomBytes, 'hex')
+                ? fromHex(state.precomputedData.randomBytes)
                 : undefined,
             loadedStorage: data.loadedStorage,
             isCancellation: data.isCancellation,
@@ -217,7 +217,7 @@ export class TransactionReconstructor {
         baseParams: ITransactionParameters,
         data: MultiSigSpecificData,
     ): MultiSignTransaction {
-        const pubkeys = data.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
+        const pubkeys = data.pubkeys.map((pk) => fromHex(pk));
 
         // If there's an existing PSBT, use fromBase64 to preserve partial signatures
         if (data.existingPsbtBase64) {
@@ -265,17 +265,17 @@ export class TransactionReconstructor {
         data: CustomScriptSpecificData,
         state: ISerializableTransactionState,
     ): CustomScriptTransaction {
-        // Convert serialized elements to (Buffer | Stack)[]
-        const scriptElements: (Buffer | Stack)[] = data.scriptElements.map((el) => {
+        // Convert serialized elements to (Uint8Array | Stack)[]
+        const scriptElements: (Uint8Array | Stack)[] = data.scriptElements.map((el) => {
             if (el.elementType === 'buffer') {
-                return Buffer.from(el.value as string, 'hex');
+                return fromHex(el.value as string);
             }
             // Opcodes stored as numbers - wrap in array for Stack type
             return [el.value as number] as Stack;
         });
 
-        const witnesses = data.witnesses.map((w) => Buffer.from(w, 'hex'));
-        const annex = data.annex ? Buffer.from(data.annex, 'hex') : undefined;
+        const witnesses = data.witnesses.map((w) => fromHex(w));
+        const annex = data.annex ? fromHex(data.annex) : undefined;
 
         if (!baseParams.to) {
             throw new Error('CustomScriptTransaction requires a "to" address');
@@ -288,7 +288,7 @@ export class TransactionReconstructor {
             witnesses,
             annex,
             randomBytes: state.precomputedData.randomBytes
-                ? Buffer.from(state.precomputedData.randomBytes, 'hex')
+                ? fromHex(state.precomputedData.randomBytes)
                 : undefined,
         };
 
@@ -304,7 +304,7 @@ export class TransactionReconstructor {
     ): CancelTransaction {
         const params = {
             ...baseParams,
-            compiledTargetScript: Buffer.from(data.compiledTargetScript, 'hex'),
+            compiledTargetScript: fromHex(data.compiledTargetScript),
         };
 
         return new CancelTransaction(params);
@@ -345,9 +345,9 @@ export class TransactionReconstructor {
                 hex: s.scriptPubKeyHex,
                 address: s.scriptPubKeyAddress,
             },
-            redeemScript: s.redeemScript ? Buffer.from(s.redeemScript, 'hex') : undefined,
-            witnessScript: s.witnessScript ? Buffer.from(s.witnessScript, 'hex') : undefined,
-            nonWitnessUtxo: s.nonWitnessUtxo ? Buffer.from(s.nonWitnessUtxo, 'hex') : undefined,
+            redeemScript: s.redeemScript ? fromHex(s.redeemScript) : undefined,
+            witnessScript: s.witnessScript ? fromHex(s.witnessScript) : undefined,
+            nonWitnessUtxo: s.nonWitnessUtxo ? fromHex(s.nonWitnessUtxo) : undefined,
         }));
     }
 
@@ -357,7 +357,7 @@ export class TransactionReconstructor {
     private static deserializeOutputs(serialized: SerializedOutput[]): PsbtOutputExtended[] {
         return serialized.map((s): PsbtOutputExtended => {
             const tapInternalKey = s.tapInternalKey
-                ? Buffer.from(s.tapInternalKey, 'hex')
+                ? fromHex(s.tapInternalKey)
                 : undefined;
 
             // PsbtOutputExtended is a union type - either has address OR script, not both
@@ -370,7 +370,7 @@ export class TransactionReconstructor {
             } else if (s.script) {
                 return {
                     value: s.value,
-                    script: Buffer.from(s.script, 'hex'),
+                    script: fromHex(s.script),
                     tapInternalKey,
                 };
             } else {

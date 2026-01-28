@@ -1,5 +1,5 @@
-import { Psbt, Signer } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { fromHex, Psbt, Signer, toHex } from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
@@ -107,7 +107,7 @@ export class OfflineTransactionManager {
      */
     public static exportMultiSig(
         params: ITransactionParameters & {
-            pubkeys: Buffer[];
+            pubkeys: Uint8Array[];
             minimumSignatures: number;
             receiver: string;
             requestedAmount: bigint;
@@ -129,9 +129,9 @@ export class OfflineTransactionManager {
      */
     public static exportCustomScript(
         params: ITransactionParameters & {
-            scriptElements: (Buffer | number)[];
-            witnesses: Buffer[];
-            annex?: Buffer;
+            scriptElements: (Uint8Array | number)[];
+            witnesses: Uint8Array[];
+            annex?: Uint8Array;
         },
         precomputed?: Partial<PrecomputedData>,
     ): string {
@@ -147,7 +147,7 @@ export class OfflineTransactionManager {
      */
     public static exportCancel(
         params: ITransactionParameters & {
-            compiledTargetScript: Buffer | string;
+            compiledTargetScript: Uint8Array | string;
         },
         precomputed?: Partial<PrecomputedData>,
     ): string {
@@ -366,7 +366,7 @@ export class OfflineTransactionManager {
      */
     public static async multiSigAddSignature(
         serializedState: string,
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
     ): Promise<{
         state: string;
         signed: boolean;
@@ -380,7 +380,7 @@ export class OfflineTransactionManager {
         }
 
         const typeData = state.typeSpecificData;
-        const pubkeys = typeData.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
+        const pubkeys = typeData.pubkeys.map((pk) => fromHex(pk));
 
         // Parse existing PSBT or create new one
         let psbt: Psbt;
@@ -411,7 +411,7 @@ export class OfflineTransactionManager {
         );
 
         // Finalize inputs (partial finalization to preserve signatures)
-        const orderedPubKeys: Buffer[][] = [];
+        const orderedPubKeys: Uint8Array[][] = [];
         for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
             orderedPubKeys.push(pubkeys);
         }
@@ -451,7 +451,7 @@ export class OfflineTransactionManager {
      */
     public static multiSigHasSigned(
         serializedState: string,
-        signerPubKey: Buffer | string,
+        signerPubKey: Uint8Array | string,
     ): boolean {
         const state = TransactionSerializer.fromBase64(serializedState);
 
@@ -468,9 +468,9 @@ export class OfflineTransactionManager {
         const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
         const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
 
-        const pubKeyBuffer = Buffer.isBuffer(signerPubKey)
+        const pubKeyBuffer = signerPubKey instanceof Uint8Array
             ? signerPubKey
-            : Buffer.from(signerPubKey, 'hex');
+            : fromHex(signerPubKey);
 
         return MultiSignTransaction.verifyIfSigned(psbt, pubKeyBuffer);
     }
@@ -516,7 +516,7 @@ export class OfflineTransactionManager {
 
             if (input.tapScriptSig) {
                 for (const sig of input.tapScriptSig) {
-                    signerSet.add(sig.pubkey.toString('hex'));
+                    signerSet.add(toHex(sig.pubkey));
                 }
             }
 
@@ -527,7 +527,7 @@ export class OfflineTransactionManager {
 
                 for (let j = 0; j < decoded.length - 2; j += 3) {
                     const pubKey = decoded[j + 2];
-                    signerSet.add(pubKey.toString('hex'));
+                    signerSet.add(toHex(pubKey));
                 }
             }
         }
@@ -565,8 +565,8 @@ export class OfflineTransactionManager {
         const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
         const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
 
-        const pubkeys = typeData.pubkeys.map((pk) => Buffer.from(pk, 'hex'));
-        const orderedPubKeys: Buffer[][] = [];
+        const pubkeys = typeData.pubkeys.map((pk) => fromHex(pk));
+        const orderedPubKeys: Uint8Array[][] = [];
 
         for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
             orderedPubKeys.push(pubkeys);

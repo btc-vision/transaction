@@ -1,14 +1,17 @@
 import {
     crypto as bitCrypto,
+    equals,
+    fromHex,
     Network,
     networks,
     Psbt,
     script as bitScript,
     TapScriptSig,
+    toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
-import { PartialSig } from 'bip174/src/lib/interfaces.js';
-import { ECPairInterface } from 'ecpair';
+import { PartialSig } from 'bip174';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
@@ -62,9 +65,9 @@ export class UnisatSigner extends CustomKeypair {
         return this._addresses;
     }
 
-    private _publicKey: Buffer | undefined;
+    private _publicKey: Uint8Array | undefined;
 
-    public get publicKey(): Buffer {
+    public get publicKey(): Uint8Array {
         if (!this._publicKey) {
             throw new Error('Public key not set');
         }
@@ -93,11 +96,11 @@ export class UnisatSigner extends CustomKeypair {
         return module;
     }
 
-    public async signData(data: Buffer, type: SignatureType): Promise<Buffer> {
-        const str = data.toString('hex');
+    public async signData(data: Uint8Array, type: SignatureType): Promise<Uint8Array> {
+        const str = toHex(data);
         const signature = await this.unisat.signData(str, type);
 
-        return Buffer.from(signature, 'hex');
+        return fromHex(signature);
     }
 
     public async init(): Promise<void> {
@@ -125,18 +128,18 @@ export class UnisatSigner extends CustomKeypair {
             throw new Error('Unlock your wallet first');
         }
 
-        this._publicKey = Buffer.from(publicKey, 'hex');
+        this._publicKey = fromHex(publicKey);
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as UniversalSigner, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as UniversalSigner, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 
         this.isInitialized = true;
     }
 
-    public getPublicKey(): Buffer {
+    public getPublicKey(): Uint8Array {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
@@ -144,15 +147,15 @@ export class UnisatSigner extends CustomKeypair {
         return this.publicKey;
     }
 
-    public sign(_hash: Buffer, _lowR?: boolean): Buffer {
+    public sign(_hash: Uint8Array, _lowR?: boolean): Uint8Array {
         throw new Error('Not implemented: sign');
     }
 
-    public signSchnorr(_hash: Buffer): Buffer {
+    public signSchnorr(_hash: Uint8Array): Uint8Array {
         throw new Error('Not implemented: signSchnorr');
     }
 
-    public verify(_hash: Buffer, _signature: Buffer): boolean {
+    public verify(_hash: Uint8Array, _signature: Uint8Array): boolean {
         throw new Error('Not implemented: verify');
     }
 
@@ -226,7 +229,7 @@ export class UnisatSigner extends CustomKeypair {
                             const tapInternalKey = input.tapInternalKey;
                             const xOnlyPubKey = toXOnly(this.publicKey);
 
-                            if (tapInternalKey.equals(xOnlyPubKey)) {
+                            if (equals(tapInternalKey, xOnlyPubKey)) {
                                 needsToSign = true;
                                 viaTaproot = true;
                             }
@@ -240,7 +243,7 @@ export class UnisatSigner extends CustomKeypair {
                     if (needsToSign) {
                         return {
                             index: i,
-                            publicKey: this.publicKey.toString('hex'),
+                            publicKey: toHex(this.publicKey),
                             disableTweakSigner: !viaTaproot,
                         };
                     } else {
@@ -256,14 +259,7 @@ export class UnisatSigner extends CustomKeypair {
         }
 
         const signed = await this.unisat.signPsbt(toSignPsbts[0], options[0]);
-        const signedPsbts = Psbt.fromHex(signed); //signed.map((hex) => Psbt.fromHex(hex));
-
-        /*for (let i = 0; i < signedPsbts.length; i++) {
-            const psbtOriginal = transactions[i];
-            const psbtSigned = signedPsbts[i];
-
-            psbtOriginal.combine(psbtSigned);
-        }*/
+        const signedPsbts = Psbt.fromHex(signed);
 
         transactions[0].combine(signedPsbts);
     }
@@ -271,8 +267,8 @@ export class UnisatSigner extends CustomKeypair {
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
             const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -283,8 +279,8 @@ export class UnisatSigner extends CustomKeypair {
     private hasAlreadyPartialSig(input: PartialSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
             const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -326,7 +322,7 @@ export class UnisatSigner extends CustomKeypair {
         sighashTypes: number[],
         disableTweakSigner: boolean = false,
     ): Promise<Psbt> {
-        const pubKey = this.publicKey.toString('hex');
+        const pubKey = toHex(this.publicKey);
         const toSign = transaction.data.inputs.map((_, i) => {
             return [
                 {
@@ -355,7 +351,7 @@ export class UnisatSigner extends CustomKeypair {
     ): TapScriptSig[] {
         const nonDuplicate: TapScriptSig[] = [];
         for (let i = 0; i < scriptSig2.length; i++) {
-            const found = scriptSig1.find((item) => item.pubkey.equals(scriptSig2[i].pubkey));
+            const found = scriptSig1.find((item) => equals(item.pubkey, scriptSig2[i].pubkey));
             if (!found) {
                 nonDuplicate.push(scriptSig2[i]);
             }
@@ -365,11 +361,11 @@ export class UnisatSigner extends CustomKeypair {
     }
 }
 
-function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
+function pubkeyInScript(pubkey: Uint8Array, script: Uint8Array): boolean {
     return pubkeyPositionInScript(pubkey, script) !== -1;
 }
 
-function pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
+function pubkeyPositionInScript(pubkey: Uint8Array, script: Uint8Array): number {
     const pubkeyHash = bitCrypto.hash160(pubkey);
     const pubkeyXOnly = toXOnly(pubkey);
 
@@ -379,8 +375,8 @@ function pubkeyPositionInScript(pubkey: Buffer, script: Buffer): number {
     return decompiled.findIndex((element) => {
         if (typeof element === 'number') return false;
         return (
-            Buffer.isBuffer(element) &&
-            (element.equals(pubkey) || element.equals(pubkeyHash) || element.equals(pubkeyXOnly))
+            element instanceof Uint8Array &&
+            (equals(element, pubkey) || equals(element, pubkeyHash) || equals(element, pubkeyXOnly))
         );
     });
 }

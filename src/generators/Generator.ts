@@ -1,4 +1,4 @@
-import { Network, networks, toXOnly } from '@btc-vision/bitcoin';
+import { alloc, fromHex, fromUtf8, Network, networks, toXOnly } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
 import { AccessListFeature, EpochSubmissionFeature, Feature, Features, MLDSALinkRequest, } from './Features.js';
 import { Address } from '../keypair/Address.js';
@@ -14,25 +14,25 @@ export abstract class Generator {
     /**
      * The magic number of OPNet
      */
-    public static readonly MAGIC: Buffer = Buffer.from('op', 'utf-8');
+    public static readonly MAGIC: Uint8Array = fromUtf8('op');
 
     /**
      * The public key of the sender
      * @protected
      */
-    protected readonly senderPubKey: Buffer;
+    protected readonly senderPubKey: Uint8Array;
 
     /**
      * The public key of the sender
      * @protected
      */
-    protected readonly xSenderPubKey: Buffer;
+    protected readonly xSenderPubKey: Uint8Array;
 
     /**
      * The public key of the contract salt
      * @protected
      */
-    protected readonly contractSaltPubKey?: Buffer;
+    protected readonly contractSaltPubKey?: Uint8Array;
 
     /**
      * The network to use
@@ -41,8 +41,8 @@ export abstract class Generator {
     protected readonly network: Network = networks.bitcoin;
 
     protected constructor(
-        senderPubKey: Buffer,
-        contractSaltPubKey?: Buffer,
+        senderPubKey: Uint8Array,
+        contractSaltPubKey?: Uint8Array,
         network: Network = networks.bitcoin,
     ) {
         this.senderPubKey = senderPubKey;
@@ -51,52 +51,54 @@ export abstract class Generator {
         this.xSenderPubKey = toXOnly(senderPubKey);
     }
 
-    public buildHeader(features: Features[]): Buffer {
+    public buildHeader(features: Features[]): Uint8Array {
         let flags: number = 0;
 
         for (const feature of features) {
             flags |= feature;
         }
 
-        const bytesU24 = Buffer.alloc(3);
-        bytesU24.writeUIntBE(flags, 0, 3);
+        const bytesU24 = alloc(3);
+        bytesU24[0] = (flags >> 16) & 0xff;
+        bytesU24[1] = (flags >> 8) & 0xff;
+        bytesU24[2] = flags & 0xff;
 
-        return Buffer.from([this.senderPubKey[0], ...bytesU24]);
+        return Uint8Array.from([this.senderPubKey[0], ...bytesU24]);
     }
 
-    public getHeader(maxPriority: bigint, features: Features[] = []): Buffer {
+    public getHeader(maxPriority: bigint, features: Features[] = []): Uint8Array {
         const writer = new BinaryWriter(12);
         writer.writeBytes(this.buildHeader(features));
         writer.writeU64(maxPriority);
 
-        return Buffer.from(writer.getBuffer());
+        return new Uint8Array(writer.getBuffer());
     }
 
     /**
      * Compile the script
      * @param args - The arguments to use when compiling the script
-     * @returns {Buffer} - The compiled script
+     * @returns {Uint8Array} - The compiled script
      */
-    public abstract compile(...args: unknown[]): Buffer;
+    public abstract compile(...args: unknown[]): Uint8Array;
 
     /**
      * Split a buffer into chunks
-     * @param {Buffer} buffer - The buffer to split
+     * @param {Uint8Array} buffer - The buffer to split
      * @param {number} chunkSize - The size of each chunk
      * @protected
-     * @returns {Array<Buffer[]>} - The chunks
+     * @returns {Array<Uint8Array[]>} - The chunks
      */
     protected splitBufferIntoChunks(
-        buffer: Buffer,
+        buffer: Uint8Array,
         chunkSize: number = Generator.DATA_CHUNK_SIZE,
-    ): Array<Buffer[]> {
-        const chunks: Array<Buffer[]> = [];
+    ): Array<Uint8Array[]> {
+        const chunks: Array<Uint8Array[]> = [];
         for (let i = 0; i < buffer.length; i += chunkSize) {
             const dataLength = Math.min(chunkSize, buffer.length - i);
 
-            const buf2 = Buffer.alloc(dataLength);
+            const buf2 = alloc(dataLength);
             for (let j = 0; j < dataLength; j++) {
-                buf2.writeUInt8(buffer[i + j], j);
+                buf2[j] = buffer[i + j];
             }
 
             chunks.push([buf2]);
@@ -137,7 +139,7 @@ export abstract class Generator {
             writer.writeU32(data.length);
 
             for (const pointer of data) {
-                const pointerBuffer = Buffer.from(pointer, 'base64');
+                const pointerBuffer = Uint8Array.from(atob(pointer), c => c.charCodeAt(0));
 
                 if (pointerBuffer.length !== 32) {
                     throw new Error(`Invalid pointer length: ${pointerBuffer.length}`);
@@ -147,7 +149,7 @@ export abstract class Generator {
             }
         }
 
-        finalBuffer.writeBytesWithLength(Compressor.compress(Buffer.from(writer.getBuffer())));
+        finalBuffer.writeBytesWithLength(Compressor.compress(new Uint8Array(writer.getBuffer())));
     }
 
     private encodeChallengeSubmission(

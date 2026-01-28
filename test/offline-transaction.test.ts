@@ -1,44 +1,39 @@
-import { describe, expect, it, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { networks, payments } from '@btc-vision/bitcoin';
 import { ECPairInterface } from 'ecpair';
 import {
-    // Core offline signing exports
-    TransactionSerializer,
-    TransactionStateCapture,
-    TransactionReconstructor,
-    OfflineTransactionManager,
-    ReconstructionOptions,
-    // Interfaces
-    ISerializableTransactionState,
-    SerializedUTXO,
-    SerializedOutput,
-    SerializedBaseParams,
-    PrecomputedData,
-    SERIALIZATION_FORMAT_VERSION,
-    // Type-specific data
-    FundingSpecificData,
-    DeploymentSpecificData,
-    InteractionSpecificData,
-    MultiSigSpecificData,
-    CustomScriptSpecificData,
     CancelSpecificData,
-    isFundingSpecificData,
+    ChainId,
+    createAddressRotation,
+    createSignerMap,
+    currentConsensus,
+    CustomScriptSpecificData,
+    DeploymentSpecificData,
+    EcKeyPair,
+    FundingSpecificData,
+    FundingTransaction,
+    InteractionSpecificData,
+    isCancelSpecificData,
+    isCustomScriptSpecificData,
     isDeploymentSpecificData,
+    ISerializableTransactionState,
+    isFundingSpecificData,
     isInteractionSpecificData,
     isMultiSigSpecificData,
-    isCustomScriptSpecificData,
-    isCancelSpecificData,
-    // Transaction types
+    MultiSigSpecificData,
+    OfflineTransactionManager,
+    PrecomputedData,
+    ReconstructionOptions,
+    SERIALIZATION_FORMAT_VERSION,
+    SerializedBaseParams,
+    SerializedOutput,
+    SerializedUTXO,
+    TransactionReconstructor,
+    TransactionSerializer,
+    TransactionStateCapture,
     TransactionType,
-    FundingTransaction,
-    // Utilities
-    EcKeyPair,
-    createSignerMap,
-    createAddressRotation,
     UTXO,
-    ChainId,
 } from '../build/opnet.js';
-import { currentConsensus } from '../build/opnet.js';
 
 describe('Offline Transaction Signing', () => {
     const network = networks.regtest;
@@ -113,7 +108,9 @@ describe('Offline Transaction Signing', () => {
                     transactionId: '0'.repeat(64),
                     outputIndex: 0,
                     value: '100000',
-                    scriptPubKeyHex: payments.p2tr({ address: address1, network }).output!.toString('hex'),
+                    scriptPubKeyHex: payments
+                        .p2tr({ address: address1, network })
+                        .output!.toString('hex'),
                     scriptPubKeyAddress: address1,
                 },
             ],
@@ -364,11 +361,15 @@ describe('Offline Transaction Signing', () => {
                     TransactionSerializer.serialize(state),
                 );
 
-                expect(deserialized.precomputedData.compiledTargetScript).toBe(precomputed.compiledTargetScript);
+                expect(deserialized.precomputedData.compiledTargetScript).toBe(
+                    precomputed.compiledTargetScript,
+                );
                 expect(deserialized.precomputedData.randomBytes).toBe(precomputed.randomBytes);
                 expect(deserialized.precomputedData.estimatedFees).toBe(precomputed.estimatedFees);
                 expect(deserialized.precomputedData.contractSeed).toBe(precomputed.contractSeed);
-                expect(deserialized.precomputedData.contractAddress).toBe(precomputed.contractAddress);
+                expect(deserialized.precomputedData.contractAddress).toBe(
+                    precomputed.contractAddress,
+                );
             });
         });
 
@@ -428,8 +429,8 @@ describe('Offline Transaction Signing', () => {
                     contract: 'bcrt1qtest',
                     challenge: createMockChallenge(),
                     loadedStorage: {
-                        'key1': ['value1', 'value2'],
-                        'key2': ['value3'],
+                        key1: ['value1', 'value2'],
+                        key2: ['value3'],
                     },
                     isCancellation: true,
                     disableAutoRefund: true,
@@ -507,7 +508,10 @@ describe('Offline Transaction Signing', () => {
                 expect(isCustomScriptSpecificData(deserialized.typeSpecificData)).toBe(true);
                 const data = deserialized.typeSpecificData as CustomScriptSpecificData;
                 expect(data.scriptElements).toHaveLength(3);
-                expect(data.scriptElements[0]).toEqual({ elementType: 'buffer', value: 'deadbeef' });
+                expect(data.scriptElements[0]).toEqual({
+                    elementType: 'buffer',
+                    value: 'deadbeef',
+                });
                 expect(data.scriptElements[1]).toEqual({ elementType: 'opcode', value: 118 });
                 expect(data.witnesses).toEqual(typeData.witnesses);
                 expect(data.annex).toBe(typeData.annex);
@@ -573,7 +577,9 @@ describe('Offline Transaction Signing', () => {
                 const newChecksum = crypto.createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid magic byte/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Invalid magic byte/,
+                );
             });
 
             it('should throw on invalid checksum', () => {
@@ -583,7 +589,9 @@ describe('Offline Transaction Signing', () => {
                 // Corrupt checksum
                 serialized[serialized.length - 1] ^= 0xff;
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid checksum/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Invalid checksum/,
+                );
             });
 
             it('should throw on data too short', () => {
@@ -606,7 +614,9 @@ describe('Offline Transaction Signing', () => {
                 const newChecksum = crypto.createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Unsupported format version/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Unsupported format version/,
+                );
             });
         });
 
@@ -1166,7 +1176,7 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isDeploymentSpecificData(deploymentData)).toBe(true);
-            expect(isDeploymentSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+            expect(isDeploymentSpecificData({ type: TransactionType.FUNDING })).toBe(false);
         });
 
         it('isInteractionSpecificData should correctly identify interaction data', () => {
@@ -1177,7 +1187,7 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isInteractionSpecificData(interactionData)).toBe(true);
-            expect(isInteractionSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+            expect(isInteractionSpecificData({ type: TransactionType.FUNDING })).toBe(false);
         });
 
         it('isMultiSigSpecificData should correctly identify multisig data', () => {
@@ -1192,7 +1202,7 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isMultiSigSpecificData(multiSigData)).toBe(true);
-            expect(isMultiSigSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+            expect(isMultiSigSpecificData({ type: TransactionType.FUNDING })).toBe(false);
         });
 
         it('isCustomScriptSpecificData should correctly identify custom script data', () => {
@@ -1203,7 +1213,7 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isCustomScriptSpecificData(customData)).toBe(true);
-            expect(isCustomScriptSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+            expect(isCustomScriptSpecificData({ type: TransactionType.FUNDING })).toBe(false);
         });
 
         it('isCancelSpecificData should correctly identify cancel data', () => {
@@ -1213,7 +1223,7 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isCancelSpecificData(cancelData)).toBe(true);
-            expect(isCancelSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+            expect(isCancelSpecificData({ type: TransactionType.FUNDING })).toBe(false);
         });
     });
 
@@ -1393,7 +1403,9 @@ describe('Offline Transaction Signing', () => {
 
             // Verify header
             expect(deserialized.header.formatVersion).toBe(originalState.header.formatVersion);
-            expect(deserialized.header.consensusVersion).toBe(originalState.header.consensusVersion);
+            expect(deserialized.header.consensusVersion).toBe(
+                originalState.header.consensusVersion,
+            );
             expect(deserialized.header.transactionType).toBe(originalState.header.transactionType);
             expect(deserialized.header.chainId).toBe(originalState.header.chainId);
             expect(deserialized.header.timestamp).toBe(originalState.header.timestamp);
@@ -1401,7 +1413,10 @@ describe('Offline Transaction Signing', () => {
             // Verify base params
             expect(deserialized.baseParams.from).toBe(originalState.baseParams.from);
             expect(deserialized.baseParams.to).toBe(originalState.baseParams.to);
-            expect(deserialized.baseParams.feeRate).toBeCloseTo(originalState.baseParams.feeRate, 3);
+            expect(deserialized.baseParams.feeRate).toBeCloseTo(
+                originalState.baseParams.feeRate,
+                3,
+            );
             expect(deserialized.baseParams.priorityFee).toBe(originalState.baseParams.priorityFee);
             expect(deserialized.baseParams.gasSatFee).toBe(originalState.baseParams.gasSatFee);
             expect(deserialized.baseParams.networkName).toBe(originalState.baseParams.networkName);
@@ -1486,10 +1501,9 @@ describe('Offline Transaction Signing', () => {
             expect(OfflineTransactionManager.validate(exportedState)).toBe(true);
 
             // Phase 2: Offline - Import, sign, export
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             // Verify we got a valid hex transaction
             expect(signedTxHex).toBeDefined();
@@ -1550,20 +1564,16 @@ describe('Offline Transaction Signing', () => {
             expect(originalInspected.baseParams.feeRate).toBeCloseTo(5, 3);
 
             // Bump fee to 25 sat/vB
-            const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
-                originalState,
-                25,
-            );
+            const bumpedState = OfflineTransactionManager.rebuildWithNewFees(originalState, 25);
 
             // Verify bumped fee rate
             const bumpedInspected = OfflineTransactionManager.inspect(bumpedState);
             expect(bumpedInspected.baseParams.feeRate).toBeCloseTo(25, 3);
 
             // Sign the bumped transaction
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                bumpedState,
-                { signer: signer2 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(bumpedState, {
+                signer: signer2,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1621,10 +1631,9 @@ describe('Offline Transaction Signing', () => {
             expect(inspected.utxos).toHaveLength(3);
 
             // Sign
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1633,9 +1642,7 @@ describe('Offline Transaction Signing', () => {
         it('should sign with address rotation using multiple signers', async () => {
             // For address rotation, UTXOs must use addresses that match the signers
             // Use all UTXOs from defaultAddress with defaultSigner for simplicity
-            const signerMap = createSignerMap([
-                [defaultAddress, defaultSigner],
-            ]);
+            const signerMap = createSignerMap([[defaultAddress, defaultSigner]]);
 
             const params = {
                 signer: defaultSigner,
@@ -1662,13 +1669,10 @@ describe('Offline Transaction Signing', () => {
             expect(inspected.signerMappings.length).toBeGreaterThan(0);
 
             // Sign with address rotation
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                {
-                    signer: defaultSigner,
-                    signerMap,
-                },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+                signerMap,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1692,10 +1696,9 @@ describe('Offline Transaction Signing', () => {
             const exportedState = OfflineTransactionManager.exportFunding(params);
 
             // Sign with signer1
-            const signedTx1 = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: signer1 },
-            );
+            const signedTx1 = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: signer1,
+            });
 
             // Sign again with signer1 (should produce same structure, potentially different due to nonce)
             const signedTx1Again = await OfflineTransactionManager.importSignAndExport(
@@ -1736,10 +1739,9 @@ describe('Offline Transaction Signing', () => {
             expect(fundingData.splitInputsInto).toBe(3);
 
             // Sign
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1774,10 +1776,9 @@ describe('Offline Transaction Signing', () => {
             expect(OfflineTransactionManager.validate(backToBase64)).toBe(true);
 
             // Sign from the converted state
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                backToBase64,
-                { signer: signer1 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(backToBase64, {
+                signer: signer1,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1786,11 +1787,7 @@ describe('Offline Transaction Signing', () => {
 
     describe('MultiSig Offline Signing', () => {
         it('should export and validate multisig state', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-                signer3.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
 
             const params = {
                 network,
@@ -1814,10 +1811,7 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should serialize and deserialize multisig specific data', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1846,10 +1840,7 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should report no signatures initially', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1873,10 +1864,7 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should return null for PSBT before signing', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1897,10 +1885,7 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should report signer has not signed before signing', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1916,8 +1901,12 @@ describe('Offline Transaction Signing', () => {
 
             const state = OfflineTransactionManager.exportMultiSig(params);
 
-            expect(OfflineTransactionManager.multiSigHasSigned(state, signer1.publicKey)).toBe(false);
-            expect(OfflineTransactionManager.multiSigHasSigned(state, signer2.publicKey)).toBe(false);
+            expect(OfflineTransactionManager.multiSigHasSigned(state, signer1.publicKey)).toBe(
+                false,
+            );
+            expect(OfflineTransactionManager.multiSigHasSigned(state, signer2.publicKey)).toBe(
+                false,
+            );
         });
 
         it('should throw error for non-multisig state in multisig methods', () => {
@@ -1936,24 +1925,25 @@ describe('Offline Transaction Signing', () => {
 
             const fundingState = OfflineTransactionManager.exportFunding(fundingParams);
 
-            expect(() => OfflineTransactionManager.multiSigGetSignatureStatus(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() =>
+                OfflineTransactionManager.multiSigGetSignatureStatus(fundingState),
+            ).toThrow('State is not a multisig transaction');
 
-            expect(() => OfflineTransactionManager.multiSigHasSigned(fundingState, signer1.publicKey))
-                .toThrow('State is not a multisig transaction');
+            expect(() =>
+                OfflineTransactionManager.multiSigHasSigned(fundingState, signer1.publicKey),
+            ).toThrow('State is not a multisig transaction');
 
-            expect(() => OfflineTransactionManager.multiSigGetPsbt(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() => OfflineTransactionManager.multiSigGetPsbt(fundingState)).toThrow(
+                'State is not a multisig transaction',
+            );
 
-            expect(() => OfflineTransactionManager.multiSigFinalize(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() => OfflineTransactionManager.multiSigFinalize(fundingState)).toThrow(
+                'State is not a multisig transaction',
+            );
         });
 
         it('should throw error when finalizing without signatures', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1969,15 +1959,13 @@ describe('Offline Transaction Signing', () => {
 
             const state = OfflineTransactionManager.exportMultiSig(params);
 
-            expect(() => OfflineTransactionManager.multiSigFinalize(state))
-                .toThrow('No PSBT found in state');
+            expect(() => OfflineTransactionManager.multiSigFinalize(state)).toThrow(
+                'No PSBT found in state',
+            );
         });
 
         it('should update PSBT in state', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey];
 
             const params = {
                 network,
@@ -1995,7 +1983,10 @@ describe('Offline Transaction Signing', () => {
 
             // Update with a mock PSBT
             const mockPsbtBase64 = 'cHNidP8BAH0CAAAAAb=='; // Minimal valid base64
-            const updatedState = OfflineTransactionManager.multiSigUpdatePsbt(state, mockPsbtBase64);
+            const updatedState = OfflineTransactionManager.multiSigUpdatePsbt(
+                state,
+                mockPsbtBase64,
+            );
 
             const inspected = OfflineTransactionManager.inspect(updatedState);
             if (isMultiSigSpecificData(inspected.typeSpecificData)) {
@@ -2004,11 +1995,7 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should preserve multisig data through serialization round-trip', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-                signer3.publicKey,
-            ];
+            const pubkeys = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
 
             const params = {
                 network,

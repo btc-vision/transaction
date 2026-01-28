@@ -1,9 +1,10 @@
-import * as ecc from '@bitcoinerlab/secp256k1';
+import { backend } from '../ecc/backend.js';
 import { initEccLib, Network, Signer, tapTweakHash, toXOnly } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
+import { eccLib } from '../ecc/backend.js';
 
-initEccLib(ecc);
+initEccLib(eccLib);
 
 /**
  * Tweak settings
@@ -17,7 +18,7 @@ export interface TweakSettings {
     /**
      * The tweak hash to use
      */
-    tweakHash?: Buffer;
+    tweakHash?: Uint8Array;
 }
 
 /**
@@ -29,27 +30,27 @@ export class TweakedSigner {
      * Tweak a signer
      * @param {Signer} signer - The signer to tweak
      * @param {TweakSettings} opts - The tweak settings
-     * @returns {ECPairInterface} - The tweaked signer
+     * @returns {UniversalSigner} - The tweaked signer
      */
-    public static tweakSigner(signer: ECPairInterface, opts: TweakSettings = {}): ECPairInterface {
+    public static tweakSigner(signer: UniversalSigner, opts: TweakSettings = {}): UniversalSigner {
         let privateKey: Uint8Array | undefined = signer.privateKey;
         if (!privateKey) {
             throw new Error('Private key is required for tweaking signer!');
         }
 
         if (signer.publicKey[0] === 3) {
-            privateKey = ecc.privateNegate(privateKey);
+            privateKey = backend.privateNegate(privateKey);
         }
 
-        const tweakedPrivateKey = ecc.privateAdd(
+        const tweakedPrivateKey = backend.privateAdd(
             privateKey,
-            tapTweakHash(toXOnly(Buffer.from(signer.publicKey)), opts.tweakHash),
+            tapTweakHash(toXOnly(signer.publicKey), opts.tweakHash),
         );
 
         if (!tweakedPrivateKey) {
             throw new Error('Invalid tweaked private key!');
         }
 
-        return EcKeyPair.fromPrivateKey(Buffer.from(tweakedPrivateKey), opts.network);
+        return EcKeyPair.fromPrivateKey(tweakedPrivateKey, opts.network);
     }
 }

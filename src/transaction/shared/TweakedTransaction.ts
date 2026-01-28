@@ -2,6 +2,7 @@ import { Logger } from '@btc-vision/logger';
 import {
     address as bitAddress,
     crypto as bitCrypto,
+    fromHex,
     getFinalScripts,
     isP2A,
     isP2MS,
@@ -28,13 +29,12 @@ import {
 } from '@btc-vision/bitcoin';
 
 import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
-import { Buffer } from 'buffer';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
@@ -64,12 +64,12 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * @description Was the transaction signed?
      */
-    protected signer: Signer | ECPairInterface | UnisatSigner;
+    protected signer: Signer | UniversalSigner | UnisatSigner;
 
     /**
      * @description Tweaked signer
      */
-    protected tweakedSigner?: ECPairInterface;
+    protected tweakedSigner?: UniversalSigner;
 
     /**
      * @description The network of the transaction
@@ -124,7 +124,7 @@ export abstract class TweakedTransaction extends Logger {
      * Add a non-witness utxo to the transaction
      * @protected
      */
-    protected nonWitnessUtxo?: Buffer;
+    protected nonWitnessUtxo?: Uint8Array;
 
     /**
      * Is the transaction being generated inside a browser?
@@ -142,12 +142,12 @@ export abstract class TweakedTransaction extends Logger {
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
     protected noSignatures: boolean = false;
-    protected unlockScript: Buffer[] | undefined;
+    protected unlockScript: Uint8Array[] | undefined;
 
     protected txVersion: SupportedTransactionVersion = 2;
 
     protected readonly _mldsaSigner: QuantumBIP32Interface | null = null;
-    protected readonly _hashedPublicKey: Buffer | null = null;
+    protected readonly _hashedPublicKey: Uint8Array | null = null;
 
     /**
      * Whether address rotation mode is enabled.
@@ -169,7 +169,7 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Cache of tweaked signers per input for address rotation mode.
      */
-    protected readonly tweakedSignerCache: Map<number, ECPairInterface | undefined> = new Map();
+    protected readonly tweakedSignerCache: Map<number, UniversalSigner | undefined> = new Map();
 
     protected constructor(data: ITweakedTransactionData) {
         super();
@@ -215,7 +215,7 @@ export abstract class TweakedTransaction extends Logger {
      * Get the hashed public key
      * @protected
      */
-    protected get hashedPublicKey(): Buffer {
+    protected get hashedPublicKey(): Uint8Array {
         if (!this._hashedPublicKey) {
             throw new Error('Hashed public key is not set');
         }
@@ -227,11 +227,11 @@ export abstract class TweakedTransaction extends Logger {
      * Read witnesses
      * @protected
      */
-    public static readScriptWitnessToWitnessStack(buffer: Buffer): Buffer[] {
+    public static readScriptWitnessToWitnessStack(buffer: Uint8Array): Uint8Array[] {
         let offset = 0;
 
-        function readSlice(n: number): Buffer {
-            const slice = Buffer.from(buffer.subarray(offset, offset + n));
+        function readSlice(n: number): Uint8Array {
+            const slice = new Uint8Array(buffer.subarray(offset, offset + n));
             offset += n;
             return slice;
         }
@@ -242,12 +242,12 @@ export abstract class TweakedTransaction extends Logger {
             return varint.numberValue || 0;
         }
 
-        function readVarSlice(): Buffer {
+        function readVarSlice(): Uint8Array {
             const len = readVarInt();
             return readSlice(len);
         }
 
-        function readVector(): Buffer[] {
+        function readVector(): Uint8Array[] {
             const count = readVarInt();
             const vector = [];
             for (let i = 0; i < count; i++) {
@@ -308,7 +308,7 @@ export abstract class TweakedTransaction extends Logger {
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
         sighashTypes: number[],
     ): void {
         if (sighashTypes && sighashTypes[0]) input.sighashType = sighashTypes[0];
@@ -403,7 +403,7 @@ export abstract class TweakedTransaction extends Logger {
      *
      * @returns {Buffer | undefined} The tweaked hash
      */
-    public getTweakerHash(): Buffer | undefined {
+    public getTweakerHash(): Uint8Array | undefined {
         return this.tapData?.hash;
     }
 
@@ -494,9 +494,9 @@ export abstract class TweakedTransaction extends Logger {
      * Used for taproot inputs in address rotation mode.
      * @param inputIndex - The index of the input
      */
-    protected internalPubKeyToXOnlyForInput(inputIndex: number): Buffer {
+    protected internalPubKeyToXOnlyForInput(inputIndex: number): Uint8Array {
         const signer = this.getSignerForInput(inputIndex);
-        return toXOnly(Buffer.from(signer.publicKey));
+        return toXOnly(new Uint8Array(signer.publicKey));
     }
 
     /**
@@ -508,7 +508,7 @@ export abstract class TweakedTransaction extends Logger {
     protected getTweakedSignerForInput(
         inputIndex: number,
         useTweakedHash: boolean = false,
-    ): ECPairInterface | undefined {
+    ): UniversalSigner | undefined {
         if (!this.addressRotationEnabled) {
             // Fall back to original behavior
             if (useTweakedHash) {
@@ -555,9 +555,9 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Returns the signer key.
      * @protected
-     * @returns {Signer | ECPairInterface}
+     * @returns {Signer | UniversalSigner}
      */
-    protected getSignerKey(): Signer | ECPairInterface {
+    protected getSignerKey(): Signer | UniversalSigner {
         return this.signer;
     }
 
@@ -575,7 +575,7 @@ export abstract class TweakedTransaction extends Logger {
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
         reverse: boolean = false,
         errored: boolean = false,
     ): Promise<void> {
@@ -697,8 +697,8 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      * @returns {Buffer}
      */
-    protected internalPubKeyToXOnly(): Buffer {
-        return toXOnly(Buffer.from(this.signer.publicKey));
+    protected internalPubKeyToXOnly(): Uint8Array {
+        return toXOnly(new Uint8Array(this.signer.publicKey));
     }
 
     /**
@@ -724,12 +724,12 @@ export abstract class TweakedTransaction extends Logger {
     /**
      * Get the tweaked signer
      * @private
-     * @returns {ECPairInterface} The tweaked signer
+     * @returns {UniversalSigner} The tweaked signer
      */
     protected getTweakedSigner(
         useTweakedHash: boolean = false,
-        signer: Signer | ECPairInterface = this.signer,
-    ): ECPairInterface | undefined {
+        signer: Signer | UniversalSigner = this.signer,
+    ): UniversalSigner | undefined {
         const settings: TweakSettings = {
             network: this.network,
         };
@@ -742,10 +742,10 @@ export abstract class TweakedTransaction extends Logger {
             return;
         }
 
-        return TweakedSigner.tweakSigner(signer as unknown as ECPairInterface, settings);
+        return TweakedSigner.tweakSigner(signer as unknown as UniversalSigner, settings);
     }
 
-    protected generateP2SHRedeemScript(customWitnessScript: Buffer): Buffer | undefined {
+    protected generateP2SHRedeemScript(customWitnessScript: Uint8Array): Uint8Array | undefined {
         const p2wsh = payments.p2wsh({
             redeem: { output: customWitnessScript },
             network: this.network,
@@ -762,12 +762,12 @@ export abstract class TweakedTransaction extends Logger {
 
     protected generateP2SHRedeemScriptLegacy(inputAddr: string):
         | {
-              redeemScript: Buffer;
-              outputScript: Buffer;
+              redeemScript: Uint8Array;
+              outputScript: Uint8Array;
           }
         | undefined {
         const pubKeyHash = bitCrypto.hash160(this.signer.publicKey);
-        const redeemScript: Buffer = script.compile([
+        const redeemScript: Uint8Array = script.compile([
             opcodes.OP_DUP,
             opcodes.OP_HASH160,
             pubKeyHash,
@@ -809,8 +809,8 @@ export abstract class TweakedTransaction extends Logger {
         inputIndex?: number,
     ):
         | {
-              redeemScript: Buffer;
-              outputScript: Buffer;
+              redeemScript: Uint8Array;
+              outputScript: Uint8Array;
           }
         | undefined {
         // Use per-input signer in address rotation mode
@@ -819,9 +819,9 @@ export abstract class TweakedTransaction extends Logger {
                 ? this.getSignerForInput(inputIndex)
                 : this.signer;
 
-        const pubkey = Buffer.isBuffer(signer.publicKey)
+        const pubkey = signer.publicKey instanceof Uint8Array
             ? signer.publicKey
-            : Buffer.from(signer.publicKey, 'hex');
+            : new Uint8Array(signer.publicKey);
 
         const w = payments.p2wpkh({
             pubkey: pubkey,
@@ -862,7 +862,7 @@ export abstract class TweakedTransaction extends Logger {
         i: number,
         _extra: boolean = false,
     ): PsbtInputExtended {
-        const scriptPub = Buffer.from(utxo.scriptPubKey.hex, 'hex');
+        const scriptPub = fromHex(utxo.scriptPubKey.hex);
 
         const input: PsbtInputExtended = {
             hash: utxo.transactionId,
@@ -879,9 +879,9 @@ export abstract class TweakedTransaction extends Logger {
             // Legacy input requires nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
                 //delete input.witnessUtxo;
-                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+                    : fromHex(utxo.nonWitnessUtxo as string);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PKH UTXO');
             }
@@ -901,12 +901,12 @@ export abstract class TweakedTransaction extends Logger {
         // Handle P2SH (Can be legacy or wrapping segwit)
         else if (isP2SHScript(scriptPub)) {
             // Redeem script is required for P2SH
-            let redeemScriptBuf: Buffer | undefined;
+            let redeemScriptBuf: Uint8Array | undefined;
 
             if (utxo.redeemScript) {
-                redeemScriptBuf = Buffer.isBuffer(utxo.redeemScript)
+                redeemScriptBuf = utxo.redeemScript instanceof Uint8Array
                     ? utxo.redeemScript
-                    : Buffer.from(utxo.redeemScript, 'hex');
+                    : fromHex(utxo.redeemScript as string);
             } else {
                 // Attempt to generate a redeem script if missing
                 if (!utxo.scriptPubKey.address) {
@@ -940,9 +940,9 @@ export abstract class TweakedTransaction extends Logger {
             }
 
             if (utxo.nonWitnessUtxo) {
-                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+                    : fromHex(utxo.nonWitnessUtxo as string);
             }
 
             if (isP2WPKH(redeemOutput)) {
@@ -993,9 +993,9 @@ export abstract class TweakedTransaction extends Logger {
         else if (isP2PK(scriptPub) || isP2MS(scriptPub)) {
             // These are legacy scripts, need nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
-                input.nonWitnessUtxo = Buffer.isBuffer(utxo.nonWitnessUtxo)
+                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : Buffer.from(utxo.nonWitnessUtxo, 'hex');
+                    : fromHex(utxo.nonWitnessUtxo as string);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PK or P2MS UTXO');
             }
@@ -1036,9 +1036,9 @@ export abstract class TweakedTransaction extends Logger {
             throw new Error('Missing witnessScript for P2WSH UTXO');
         }
 
-        input.witnessScript = Buffer.isBuffer(utxo.witnessScript)
+        input.witnessScript = utxo.witnessScript instanceof Uint8Array
             ? utxo.witnessScript
-            : Buffer.from(utxo.witnessScript, 'hex');
+            : fromHex(utxo.witnessScript as string);
 
         // No nonWitnessUtxo needed for segwit
 
@@ -1080,13 +1080,13 @@ export abstract class TweakedTransaction extends Logger {
     protected customFinalizerP2SH = (
         inputIndex: number,
         input: PsbtInput,
-        scriptA: Buffer,
+        scriptA: Uint8Array,
         isSegwit: boolean,
         isP2SH: boolean,
         isP2WSH: boolean,
     ): {
-        finalScriptSig: Buffer | undefined;
-        finalScriptWitness: Buffer | undefined;
+        finalScriptSig: Uint8Array | undefined;
+        finalScriptWitness: Uint8Array | undefined;
     } => {
         const inputDecoded = this.inputs[inputIndex];
         if (isP2SH && input.partialSig && inputDecoded && inputDecoded.redeemScript) {
@@ -1102,7 +1102,7 @@ export abstract class TweakedTransaction extends Logger {
         if (this.anchorInputIndices.has(inputIndex)) {
             return {
                 finalScriptSig: undefined,
-                finalScriptWitness: Buffer.from([0]),
+                finalScriptWitness: Uint8Array.from([0]),
             };
         }
 
@@ -1149,8 +1149,8 @@ export abstract class TweakedTransaction extends Logger {
         inputIndex: number,
         input: PsbtInput,
     ): {
-        finalScriptWitness: Buffer | undefined;
-        finalScriptSig: Buffer | undefined;
+        finalScriptWitness: Uint8Array | undefined;
+        finalScriptSig: Uint8Array | undefined;
     } {
         if (!input.partialSig || input.partialSig.length === 0) {
             throw new Error(`No signature for P2WDA input #${inputIndex}`);
@@ -1185,7 +1185,7 @@ export abstract class TweakedTransaction extends Logger {
         this.finalized = true;
     }
 
-    protected isCSVScript(decompiled: (number | Buffer)[]): boolean {
+    protected isCSVScript(decompiled: (number | Uint8Array)[]): boolean {
         return decompiled.some((op) => op === opcodes.OP_CHECKSEQUENCEVERIFY);
     }
 
@@ -1236,11 +1236,11 @@ export abstract class TweakedTransaction extends Logger {
         return csvValue & (1 << 22) ? CSVModes.TIMESTAMPS : CSVModes.BLOCKS;
     }
 
-    private extractCSVBlocks(decompiled: (number | Buffer)[]): number {
+    private extractCSVBlocks(decompiled: (number | Uint8Array)[]): number {
         for (let i = 0; i < decompiled.length; i++) {
             if (decompiled[i] === opcodes.OP_CHECKSEQUENCEVERIFY && i > 0) {
                 const csvValue = decompiled[i - 1];
-                if (Buffer.isBuffer(csvValue)) {
+                if (csvValue instanceof Uint8Array) {
                     return script.number.decode(csvValue);
                 } else if (typeof csvValue === 'number') {
                     // Handle OP_N directly
@@ -1265,15 +1265,15 @@ export abstract class TweakedTransaction extends Logger {
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer: Signer | ECPairInterface,
-        publicKey: Buffer,
+        signer: Signer | UniversalSigner,
+        publicKey: Uint8Array,
     ): Promise<void> {
         const isScriptSpend = this.isTaprootScriptSpend(input, publicKey);
 
         if (isScriptSpend) {
             await this.signTaprootInput(signer, transaction, i);
         } else {
-            let tweakedSigner: ECPairInterface | undefined;
+            let tweakedSigner: UniversalSigner | undefined;
             if (signer !== this.signer) {
                 tweakedSigner = this.getTweakedSigner(true, signer);
             } else {
@@ -1298,7 +1298,7 @@ export abstract class TweakedTransaction extends Logger {
         }
     }
 
-    private isTaprootScriptSpend(input: PsbtInput, publicKey: Buffer): boolean {
+    private isTaprootScriptSpend(input: PsbtInput, publicKey: Uint8Array): boolean {
         if (input.tapLeafScript && input.tapLeafScript.length > 0) {
             // Check if the signer's public key is involved in any tapLeafScript
             for (const tapLeafScript of input.tapLeafScript) {
@@ -1312,10 +1312,10 @@ export abstract class TweakedTransaction extends Logger {
     }
 
     private async signTaprootInput(
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
         transaction: Psbt,
         i: number,
-        tapLeafHash?: Buffer,
+        tapLeafHash?: Uint8Array,
     ): Promise<void> {
         if ('signTaprootInput' in signer) {
             try {
@@ -1323,7 +1323,7 @@ export abstract class TweakedTransaction extends Logger {
                     signer.signTaprootInput as (
                         tx: Psbt,
                         i: number,
-                        tapLeafHash?: Buffer,
+                        tapLeafHash?: Uint8Array,
                     ) => Promise<void>
                 )(transaction, i, tapLeafHash);
             } catch {
@@ -1335,7 +1335,7 @@ export abstract class TweakedTransaction extends Logger {
     }
 
     private async signNonTaprootInput(
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
         transaction: Psbt,
         i: number,
     ): Promise<void> {

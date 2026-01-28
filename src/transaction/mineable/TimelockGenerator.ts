@@ -1,10 +1,9 @@
-import bitcoin, { Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import bitcoin, { fromHex, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
 import { IP2WSHAddress } from './IP2WSHAddress.js';
 
 export class TimeLockGenerator {
-    private static readonly UNSPENDABLE_INTERNAL_KEY = Buffer.from(
+    private static readonly UNSPENDABLE_INTERNAL_KEY = fromHex(
         '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
-        'hex',
     );
 
     private static readonly CSV_BLOCKS = 75;
@@ -14,7 +13,7 @@ export class TimeLockGenerator {
      * Note: This uses ECDSA, not Schnorr (Schnorr only available in Taproot)
      */
     public static generateTimeLockAddress(
-        publicKey: Buffer,
+        publicKey: Uint8Array,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): IP2WSHAddress {
@@ -40,7 +39,7 @@ export class TimeLockGenerator {
      * Note: This uses Schnorr signatures
      */
     public static generateTimeLockAddressP2TR(
-        publicKey: Buffer,
+        publicKey: Uint8Array,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): string {
@@ -64,9 +63,9 @@ export class TimeLockGenerator {
     }
 
     private static generateTimeLockScript(
-        publicKey: Buffer,
+        publicKey: Uint8Array,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
-    ): Buffer {
+    ): Uint8Array {
         return script.compile([
             script.number.encode(csvBlocks),
             opcodes.OP_CHECKSEQUENCEVERIFY,

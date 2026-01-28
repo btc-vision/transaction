@@ -5,12 +5,12 @@ import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 export const OPNET_DEPLOYMENT_VERSION = 0x00;
-export const versionBuffer = Buffer.from([OPNET_DEPLOYMENT_VERSION]);
+export const versionBuffer = Uint8Array.from([OPNET_DEPLOYMENT_VERSION]);
 
 export class DeploymentGenerator extends Generator {
     constructor(
-        senderPubKey: Buffer,
-        contractSaltPubKey: Buffer,
+        senderPubKey: Uint8Array,
+        contractSaltPubKey: Uint8Array,
         network: Network = networks.bitcoin,
     ) {
         super(senderPubKey, contractSaltPubKey, network);
@@ -18,22 +18,22 @@ export class DeploymentGenerator extends Generator {
 
     /**
      * Compile a bitcoin script representing a contract deployment
-     * @param {Buffer} contractBytecode - The contract bytecode
-     * @param {Buffer} contractSalt - The contract salt
+     * @param {Uint8Array} contractBytecode - The contract bytecode
+     * @param {Uint8Array} contractSalt - The contract salt
      * @param {ChallengeSolution} challenge - The challenge for reward
      * @param {bigint} maxPriority - The maximum priority for the contract
-     * @param {Buffer} [calldata] - The calldata to be passed to the contract
+     * @param {Uint8Array} [calldata] - The calldata to be passed to the contract
      * @param {Feature<Features>[]} [features] - Optional features to include in the script
-     * @returns {Buffer} - The compiled script
+     * @returns {Uint8Array} - The compiled script
      */
     public compile(
-        contractBytecode: Buffer,
-        contractSalt: Buffer,
+        contractBytecode: Uint8Array,
+        contractSalt: Uint8Array,
         challenge: IChallengeSolution,
         maxPriority: bigint,
-        calldata?: Buffer,
+        calldata?: Uint8Array,
         features?: Feature<Features>[],
-    ): Buffer {
+    ): Uint8Array {
         const asm = this.getAsm(
             contractBytecode,
             contractSalt,
@@ -57,20 +57,20 @@ export class DeploymentGenerator extends Generator {
     }
 
     private getAsm(
-        contractBytecode: Buffer,
-        contractSalt: Buffer,
+        contractBytecode: Uint8Array,
+        contractSalt: Uint8Array,
         challenge: IChallengeSolution,
         maxPriority: bigint,
-        calldata?: Buffer,
+        calldata?: Uint8Array,
         featuresRaw?: Feature<Features>[],
-    ): (number | Buffer)[] {
+    ): (number | Uint8Array)[] {
         if (!this.contractSaltPubKey) throw new Error('Contract salt public key not set');
 
-        const dataChunks: Buffer[][] = this.splitBufferIntoChunks(contractBytecode);
-        const calldataChunks: Buffer[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
+        const dataChunks: Uint8Array[][] = this.splitBufferIntoChunks(contractBytecode);
+        const calldataChunks: Uint8Array[][] = calldata ? this.splitBufferIntoChunks(calldata) : [];
 
         const featuresList: Features[] = [];
-        const featureData: (number | Buffer | Buffer[])[] = [];
+        const featureData: (number | Uint8Array | Uint8Array[])[] = [];
 
         if (featuresRaw && featuresRaw.length) {
             const features: Feature<Features>[] = featuresRaw.sort(
@@ -85,7 +85,7 @@ export class DeploymentGenerator extends Generator {
                 this.encodeFeature(feature, finalBuffer);
             }
 
-            featureData.push(...this.splitBufferIntoChunks(Buffer.from(finalBuffer.getBuffer())));
+            featureData.push(...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())));
         }
 
         const compiledData = [

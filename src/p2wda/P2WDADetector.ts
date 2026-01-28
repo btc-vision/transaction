@@ -1,44 +1,30 @@
-import { Buffer } from 'buffer';
-import { Network, opcodes, payments, script } from '@btc-vision/bitcoin';
+import { fromHex, Network, opcodes, payments, script } from '@btc-vision/bitcoin';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 
 /**
  * P2WDA Detection and Validation Utilities
- *
- * This class provides methods to detect and validate P2WDA (Pay-to-Witness-Data-Authentication) addresses
- * and UTXOs. P2WDA addresses have a specific witness script pattern that allows for efficient data storage.
  */
 export class P2WDADetector {
     /**
      * Check if a UTXO is a P2WDA output by examining its script structure
-     *
-     * @param utxo The UTXO to check
-     * @returns true if this is a P2WDA UTXO
      */
     public static isP2WDAUTXO(utxo: UTXO): boolean {
-        // P2WDA outputs are P2WSH outputs with a specific witness script pattern
         if (!utxo.witnessScript) {
             return false;
         }
 
-        const witnessScript = Buffer.isBuffer(utxo.witnessScript)
+        const witnessScript = utxo.witnessScript instanceof Uint8Array
             ? utxo.witnessScript
-            : Buffer.from(utxo.witnessScript, 'hex');
+            : fromHex(utxo.witnessScript as string);
 
         return this.isP2WDAWitnessScript(witnessScript);
     }
 
     /**
      * Check if a witness script follows the P2WDA pattern
-     *
-     * P2WDA witness script pattern: (OP_2DROP * 5) <pubkey> OP_CHECKSIG
-     * This allows for up to 10 witness data fields (5 * 2 = 10)
-     *
-     * @param witnessScript The witness script to check
-     * @returns true if this is a P2WDA witness script
      */
-    public static isP2WDAWitnessScript(witnessScript: Buffer): boolean {
+    public static isP2WDAWitnessScript(witnessScript: Uint8Array): boolean {
         try {
             const decompiled = script.decompile(witnessScript);
 
@@ -55,7 +41,7 @@ export class P2WDADetector {
 
             // Check for pubkey and OP_CHECKSIG
             return (
-                Buffer.isBuffer(decompiled[5]) &&
+                decompiled[5] instanceof Uint8Array &&
                 decompiled[5].length === 33 && // Compressed public key
                 decompiled[6] === opcodes.OP_CHECKSIG
             );
@@ -66,16 +52,12 @@ export class P2WDADetector {
 
     /**
      * Generate a P2WDA address from a public key
-     *
-     * @param publicKey The public key to use (33 bytes compressed)
-     * @param network The Bitcoin network
-     * @returns The P2WDA address and related payment information
      */
     public static generateP2WDAAddress(
-        publicKey: Buffer,
+        publicKey: Uint8Array,
         network: Network,
     ): IP2WSHAddress & {
-        scriptPubKey: Buffer;
+        scriptPubKey: Uint8Array;
     } {
         if (publicKey.length !== 33) {
             throw new Error('Public key must be 33 bytes (compressed)');
@@ -111,11 +93,8 @@ export class P2WDADetector {
 
     /**
      * Extract the public key from a P2WDA witness script
-     *
-     * @param witnessScript The P2WDA witness script
-     * @returns The public key or null if not a valid P2WDA script
      */
-    public static extractPublicKeyFromP2WDA(witnessScript: Buffer): Buffer | null {
+    public static extractPublicKeyFromP2WDA(witnessScript: Uint8Array): Uint8Array | null {
         try {
             const decompiled = script.decompile(witnessScript);
 
@@ -131,7 +110,7 @@ export class P2WDADetector {
             }
 
             if (
-                Buffer.isBuffer(decompiled[5]) &&
+                decompiled[5] instanceof Uint8Array &&
                 decompiled[5].length === 33 &&
                 decompiled[6] === opcodes.OP_CHECKSIG
             ) {
@@ -146,23 +125,16 @@ export class P2WDADetector {
 
     /**
      * Create witness data for a simple P2WDA spend (no operation data)
-     *
-     * For simple transfers, P2WDA requires 10 dummy witness items (zeros) before the signature
-     *
-     * @param transactionSignature The transaction signature
-     * @param witnessScript The P2WDA witness script
-     * @returns The witness stack for a simple P2WDA spend
      */
     public static createSimpleP2WDAWitness(
-        transactionSignature: Buffer,
-        witnessScript: Buffer,
-    ): Buffer[] {
-        const witnessStack: Buffer[] = [transactionSignature];
+        transactionSignature: Uint8Array,
+        witnessScript: Uint8Array,
+    ): Uint8Array[] {
+        const witnessStack: Uint8Array[] = [transactionSignature];
 
         // Add 10 empty buffers for the 5x OP_2DROP operations
-        // Bitcoin stack is reversed!
         for (let i = 0; i < 10; i++) {
-            witnessStack.push(Buffer.alloc(0));
+            witnessStack.push(new Uint8Array(0));
         }
 
         witnessStack.push(witnessScript);
@@ -171,48 +143,26 @@ export class P2WDADetector {
 
     /**
      * Validate P2WDA operation data signature
-     *
-     * @param publicKey The public key from the witness script
-     * @param dataSignature The Schnorr signature
-     * @param operationData The operation data that was signed
-     * @returns true if the signature is valid
      */
     public static validateP2WDASignature(
-        publicKey: Buffer,
-        dataSignature: Buffer,
-        operationData: Buffer,
+        publicKey: Uint8Array,
+        dataSignature: Uint8Array,
+        operationData: Uint8Array,
     ): boolean {
-        // This would use MessageSigner.verifySignature internally
-        // For now, we'll assume the signature validation is handled by MessageSigner
         return dataSignature.length === 64; // Schnorr signatures are always 64 bytes
     }
 
     /**
      * Calculate the witness size for P2WDA transaction estimation
-     *
-     * @param dataSize The size of the operation data (0 for simple transfers)
-     * @returns The estimated witness size in bytes
      */
     public static estimateP2WDAWitnessSize(dataSize: number = 0): number {
-        // Witness structure:
-        // - Transaction signature: ~72 bytes
-        // - 10 data fields (can be empty or contain data)
-        // - Witness script: 39 bytes (5x OP_2DROP + 33-byte pubkey + OP_CHECKSIG)
-        // - Overhead for length prefixes: ~12 bytes (1 byte per witness element)
-
-        // For simple transfers, dataSize is 0 (10 empty fields)
-        // For interactions, dataSize is the total size of data split across fields
         return 72 + dataSize + 39 + 12;
     }
 
     /**
      * Check if a scriptPubKey is a P2WSH that could be P2WDA
-     *
-     * @param scriptPubKey The script public key to check
-     * @returns true if this could be a P2WDA output
      */
-    public static couldBeP2WDA(scriptPubKey: Buffer): boolean {
-        // P2WDA uses P2WSH, which is version 0 witness with 32-byte program
-        return scriptPubKey.length === 34 && scriptPubKey[0] === 0x00 && scriptPubKey[1] === 0x20; // 32 bytes
+    public static couldBeP2WDA(scriptPubKey: Uint8Array): boolean {
+        return scriptPubKey.length === 34 && scriptPubKey[0] === 0x00 && scriptPubKey[1] === 0x20;
     }
 }

@@ -1,5 +1,5 @@
 import { Network, Signer } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { ChainId } from '../../network/ChainId.js';
 import { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
@@ -8,12 +8,12 @@ export type SupportedTransactionVersion = 1 | 2 | 3;
 
 export interface ITweakedTransactionData {
     readonly mldsaSigner: QuantumBIP32Interface | null;
-    readonly signer: Signer | ECPairInterface;
+    readonly signer: Signer | UniversalSigner;
     readonly network: Network;
     readonly chainId?: ChainId;
-    readonly nonWitnessUtxo?: Buffer;
+    readonly nonWitnessUtxo?: Uint8Array;
     readonly noSignatures?: boolean;
-    readonly unlockScript?: Buffer[];
+    readonly unlockScript?: Uint8Array[];
     readonly txVersion?: SupportedTransactionVersion;
 
     /**

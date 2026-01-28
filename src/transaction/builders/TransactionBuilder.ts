@@ -1,4 +1,6 @@
 import bitcoin, {
+    equals,
+    fromHex,
     getFinalScripts,
     initEccLib,
     Network,
@@ -12,7 +14,7 @@ import bitcoin, {
     Transaction,
 } from '@btc-vision/bitcoin';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
-import * as ecc from '@bitcoinerlab/secp256k1';
+import { eccLib } from '../../ecc/backend.js';
 import { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import {
@@ -21,7 +23,7 @@ import {
 } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
@@ -34,11 +36,11 @@ import { MLDSASecurityLevel } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { getLevelFromPublicKeyLength } from '../../generators/MLDSAData.js';
 
-initEccLib(ecc);
+initEccLib(eccLib);
 
 export const MINIMUM_AMOUNT_REWARD: bigint = 330n; //540n;
 export const MINIMUM_AMOUNT_CA: bigint = 297n;
-export const ANCHOR_SCRIPT = Buffer.from('51024e73', 'hex');
+export const ANCHOR_SCRIPT = fromHex('51024e73');
 
 /**
  * Allows to build a transaction like you would on Ethereum.
@@ -54,7 +56,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     public debugFees: boolean = false;
 
     // Cancel script
-    public LOCK_LEAF_SCRIPT: Buffer;
+    public LOCK_LEAF_SCRIPT: Uint8Array;
 
     /**
      * @description The overflow fees of the transaction
@@ -105,7 +107,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description The signer of the transaction
      */
-    protected readonly signer: Signer | ECPairInterface | UnisatSigner;
+    protected readonly signer: Signer | UniversalSigner | UnisatSigner;
 
     /**
      * @description The network where the transaction will be broadcasted
@@ -163,7 +165,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     protected anchor: boolean;
 
-    protected note?: Buffer;
+    protected note?: Uint8Array;
 
     private optionalOutputsAdded: boolean = false;
 
@@ -188,7 +190,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         if (parameters.note) {
             if (typeof parameters.note === 'string') {
-                this.note = Buffer.from(parameters.note, 'utf8');
+                this.note = new TextEncoder().encode(parameters.note);
             } else {
                 this.note = parameters.note;
             }
@@ -219,7 +221,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     public static getFrom(
         from: string | undefined,
-        keypair: ECPairInterface | Signer,
+        keypair: UniversalSigner | Signer,
         network: Network,
     ): string {
         return from || EcKeyPair.getTaprootAddress(keypair, network);
@@ -231,11 +233,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @protected
      * @returns {Buffer}
      */
-    public static witnessStackToScriptWitness(witness: Buffer[]): Buffer {
+    public static witnessStackToScriptWitness(witness: Uint8Array[]): Uint8Array {
         return witnessStackToScriptWitness(witness);
     }
 
-    public addOPReturn(buffer: Buffer): void {
+    public addOPReturn(buffer: Uint8Array): void {
         const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
 
         this.addOutput({
@@ -395,7 +397,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     public addOutput(output: PsbtOutputExtended, bypassMinCheck: boolean = false): void {
         if (output.value === 0) {
             const script = output as {
-                script: Buffer;
+                script: Uint8Array;
             };
 
             if (!script.script || script.script.length === 0) {
@@ -406,7 +408,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 throw new Error('Output script is too short');
             }
 
-            if (script.script[0] !== opcodes.OP_RETURN && !script.script.equals(ANCHOR_SCRIPT)) {
+            if (script.script[0] !== opcodes.OP_RETURN && !equals(script.script, ANCHOR_SCRIPT)) {
                 throw new Error(
                     'Output script must start with OP_RETURN or be an ANCHOR when value is 0',
                 );

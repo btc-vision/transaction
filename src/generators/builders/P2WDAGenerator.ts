@@ -12,8 +12,8 @@ export class P2WDAGenerator extends Generator {
     private static readonly P2WDA_VERSION = 0x01;
 
     constructor(
-        senderPubKey: Buffer,
-        contractSaltPubKey: Buffer,
+        senderPubKey: Uint8Array,
+        contractSaltPubKey: Uint8Array,
         network: Network = networks.bitcoin,
     ) {
         super(senderPubKey, contractSaltPubKey, network);
@@ -60,12 +60,12 @@ export class P2WDAGenerator extends Generator {
      * @returns Raw operation data ready for signing and compression
      */
     public compile(
-        calldata: Buffer,
-        contractSecret: Buffer,
+        calldata: Uint8Array,
+        contractSecret: Uint8Array,
         challenge: IChallengeSolution,
         maxPriority: bigint,
         featuresRaw: Feature<Features>[] = [],
-    ): Buffer {
+    ): Uint8Array {
         if (!this.contractSaltPubKey) {
             throw new Error('Contract salt public key not set');
         }
@@ -97,10 +97,10 @@ export class P2WDAGenerator extends Generator {
 
         this.writeFeatures(writer, features);
 
-        return Buffer.from(writer.getBuffer());
+        return new Uint8Array(writer.getBuffer());
     }
 
-    public override getHeader(maxPriority: bigint, features: Features[] = []): Buffer {
+    public override getHeader(maxPriority: bigint, features: Features[] = []): Uint8Array {
         return super.getHeader(maxPriority, features);
     }
 

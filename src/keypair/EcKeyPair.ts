@@ -1,4 +1,4 @@
-import * as ecc from '@bitcoinerlab/secp256k1';
+import { backend, eccLib } from '../ecc/backend.js';
 import bip32, {
     BIP32API,
     BIP32Factory,
@@ -9,25 +9,30 @@ import bip32, {
 } from '@btc-vision/bip32';
 import bitcoin, {
     address,
+    concat,
+    fromHex,
     fromOutputScript,
     initEccLib,
     Network,
     networks,
     opcodes,
     payments,
+    PrivateKey,
+    PublicKey,
     script,
     Signer,
+    toHex,
     toXOnly,
+    XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
-import { ECPairAPI, ECPairFactory, ECPairInterface } from 'ecpair';
+import { ECPairSigner, type UniversalSigner } from '@btc-vision/ecpair';
 import { IWallet } from './interfaces/IWallet.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { mod } from '@noble/curves/abstract/modular.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToNumberBE, concatBytes, randomBytes } from '@noble/curves/utils.js';
-import { Buffer } from 'buffer';
 
-initEccLib(ecc);
+initEccLib(eccLib);
 
 const BIP32factory = typeof bip32 === 'function' ? bip32 : BIP32Factory;
 if (!BIP32factory) {
@@ -37,7 +42,7 @@ if (!BIP32factory) {
 const Point = secp256k1.Point;
 const CURVE_N = Point.Fn.ORDER;
 
-const TAP_TAG = Buffer.from('TapTweak', 'utf-8');
+const TAP_TAG = new Uint8Array([84, 97, 112, 84, 119, 101, 97, 107]); // 'TapTweak' in UTF-8
 const TAP_TAG_HASH = sha256(TAP_TAG);
 
 function tapTweakHash(x: Uint8Array): Uint8Array {
@@ -52,8 +57,8 @@ function tapTweakHash(x: Uint8Array): Uint8Array {
  * @example import { EcKeyPair } from '@btc-vision/transaction';
  */
 export class EcKeyPair {
-    public static BIP32: BIP32API = BIP32factory(ecc);
-    public static ECPair: ECPairAPI = ECPairFactory(ecc);
+    public static BIP32: BIP32API = BIP32factory(backend);
+    public static ECPairSigner = ECPairSigner;
 
     // Initialize precomputation for better performance
     static {
@@ -65,62 +70,57 @@ export class EcKeyPair {
      * Generate a keypair from a WIF
      * @param {string} wif - The WIF to use
      * @param {Network} network - The network to use
-     * @returns {ECPairInterface} - The generated keypair
+     * @returns {UniversalSigner} - The generated keypair
      */
-    public static fromWIF(wif: string, network: Network = networks.bitcoin): ECPairInterface {
-        return this.ECPair.fromWIF(wif, network);
+    public static fromWIF(wif: string, network: Network = networks.bitcoin): UniversalSigner {
+        return ECPairSigner.fromWIF(backend, wif, network);
     }
 
     /**
      * Generate a keypair from a private key
-     * @param {Buffer} privateKey - The private key to use
+     * @param {Uint8Array} privateKey - The private key to use
      * @param {Network} network - The network to use
-     * @returns {ECPairInterface} - The generated keypair
+     * @returns {UniversalSigner} - The generated keypair
      */
     public static fromPrivateKey(
-        privateKey: Buffer | Uint8Array,
+        privateKey: Uint8Array | PrivateKey,
         network: Network = networks.bitcoin,
-    ): ECPairInterface {
-        return this.ECPair.fromPrivateKey(
-            !Buffer.isBuffer(privateKey) ? Buffer.from(privateKey) : privateKey,
-            { network },
-        );
+    ): UniversalSigner {
+        return ECPairSigner.fromPrivateKey(backend, privateKey as PrivateKey, network);
     }
 
     /**
      * Generate a keypair from a public key
-     * @param {Buffer | Uint8Array} publicKey - The public key to use
+     * @param {Uint8Array} publicKey - The public key to use
      * @param {Network} network - The network to use
-     * @returns {ECPairInterface} - The generated keypair
+     * @returns {UniversalSigner} - The generated keypair
      */
     public static fromPublicKey(
-        publicKey: Buffer | Uint8Array,
+        publicKey: Uint8Array | PublicKey,
         network: Network = networks.bitcoin,
-    ): ECPairInterface {
-        const buf = !Buffer.isBuffer(publicKey) ? Buffer.from(publicKey) : publicKey;
-
-        return this.ECPair.fromPublicKey(buf, { network });
+    ): UniversalSigner {
+        return ECPairSigner.fromPublicKey(backend, publicKey as PublicKey, network);
     }
 
     /**
      * Generate a multi-sig address
-     * @param {Buffer[]} pubKeys - The public keys to use
+     * @param {Uint8Array[]} pubKeys - The public keys to use
      * @param {number} minimumSignatureRequired - The minimum number of signatures required
      * @param {Network} network - The network to use
      * @returns {string} - The generated address
      * @throws {Error} - If the address cannot be generated
      */
     public static generateMultiSigAddress(
-        pubKeys: Buffer[],
+        pubKeys: Uint8Array[] | PublicKey[],
         minimumSignatureRequired: number,
         network: Network = networks.bitcoin,
     ): string {
-        const publicKeys: Buffer[] = this.verifyPubKeys(pubKeys, network);
+        const publicKeys: Uint8Array[] = this.verifyPubKeys(pubKeys, network);
         if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
 
         const p2ms = payments.p2ms({
             m: minimumSignatureRequired,
-            pubkeys: publicKeys,
+            pubkeys: publicKeys as PublicKey[],
             network: network,
         });
 
@@ -136,12 +136,15 @@ export class EcKeyPair {
 
     /**
      * Verify public keys and return the public keys
-     * @param {Buffer[]} pubKeys - The public keys to verify
+     * @param {Uint8Array[]} pubKeys - The public keys to verify
      * @param {Network} network - The network to use
-     * @returns {Buffer[]} - The verified public keys
+     * @returns {Uint8Array[]} - The verified public keys
      * @throws {Error} - If the key cannot be regenerated
      */
-    public static verifyPubKeys(pubKeys: Buffer[], network: Network = networks.bitcoin): Buffer[] {
+    public static verifyPubKeys(
+        pubKeys: Uint8Array[],
+        network: Network = networks.bitcoin,
+    ): Uint8Array[] {
         return pubKeys.map((pubKey) => {
             const key = EcKeyPair.fromPublicKey(pubKey, network);
 
@@ -149,21 +152,21 @@ export class EcKeyPair {
                 throw new Error('Failed to regenerate key');
             }
 
-            return Buffer.from(key.publicKey);
+            return key.publicKey;
         });
     }
 
     /**
      * Get a P2WPKH address from a keypair
-     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * @param {UniversalSigner} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
      * @returns {string} - The address
      */
     public static getP2WPKHAddress(
-        keyPair: ECPairInterface,
+        keyPair: UniversalSigner,
         network: Network = networks.bitcoin,
     ): string {
-        const res = payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
+        const res = payments.p2wpkh({ pubkey: keyPair.publicKey, network: network });
 
         if (!res.address) {
             throw new Error('Failed to generate wallet');
@@ -184,8 +187,8 @@ export class EcKeyPair {
             tweakedPubKeyHex = tweakedPubKeyHex.slice(2);
         }
 
-        // Convert the tweaked public key hex string to a Buffer
-        let tweakedPubKeyBuffer: Buffer = Buffer.from(tweakedPubKeyHex, 'hex');
+        // Convert the tweaked public key hex string to a Uint8Array
+        let tweakedPubKeyBuffer: XOnlyPublicKey = fromHex(tweakedPubKeyHex) as XOnlyPublicKey;
         if (tweakedPubKeyBuffer.length !== 32) {
             tweakedPubKeyBuffer = toXOnly(tweakedPubKeyBuffer);
         }
@@ -195,20 +198,18 @@ export class EcKeyPair {
 
     /**
      * Get the address of a tweaked public key
-     * @param {Buffer | Uint8Array} tweakedPubKeyBuffer - The tweaked public key buffer
+     * @param {Uint8Array} tweakedPubKeyBuffer - The tweaked public key buffer
      * @param {Network} network - The network to use
      * @returns {string} - The address
      * @throws {Error} - If the address cannot be generated
      */
     public static tweakedPubKeyBufferToAddress(
-        tweakedPubKeyBuffer: Buffer | Uint8Array,
+        tweakedPubKeyBuffer: XOnlyPublicKey,
         network: Network,
     ): string {
         // Generate the Taproot address using the p2tr payment method
         const { address } = payments.p2tr({
-            pubkey: Buffer.isBuffer(tweakedPubKeyBuffer)
-                ? tweakedPubKeyBuffer
-                : Buffer.from(tweakedPubKeyBuffer),
+            pubkey: tweakedPubKeyBuffer,
             network: network,
         });
 
@@ -227,14 +228,14 @@ export class EcKeyPair {
      * @returns {string} - The generated P2OP address
      */
     public static p2op(
-        bytes: Buffer | Uint8Array,
+        bytes: Uint8Array,
         network: Network = networks.bitcoin,
         deploymentVersion: number = 0,
     ): string {
         // custom opnet contract addresses
-        const witnessProgram = Buffer.concat([
-            Buffer.from([deploymentVersion]),
-            bitcoin.crypto.hash160(Buffer.from(bytes)),
+        const witnessProgram = concat([
+            new Uint8Array([deploymentVersion]),
+            bitcoin.crypto.hash160(bytes),
         ]);
 
         if (witnessProgram.length < 2 || witnessProgram.length > 40) {
@@ -257,8 +258,11 @@ export class EcKeyPair {
             tweakedPubKeyHex = tweakedPubKeyHex.slice(2);
         }
 
-        // Convert the tweaked public key hex string to a Buffer
-        const tweakedPubKeyBuffer = Buffer.from(tweakedPubKeyHex, 'hex');
+        // Convert the tweaked public key hex string to a Uint8Array
+        const tweakedPubKeyBuffer = fromHex(tweakedPubKeyHex) as XOnlyPublicKey;
+        if (tweakedPubKeyBuffer.length !== 32) {
+            throw new Error('Invalid xOnly public key length');
+        }
 
         // Generate the Taproot address using the p2tr payment method
         const { address } = payments.p2tr({
@@ -275,22 +279,23 @@ export class EcKeyPair {
 
     /**
      * Tweak a public key
-     * @param {Buffer | Uint8Array | string} pub - The public key to tweak
-     * @returns {Buffer} - The tweaked public key hex string
+     * @param {Uint8Array | string} pub - The public key to tweak
+     * @returns {Uint8Array} - The tweaked public key
      * @throws {Error} - If the public key cannot be tweaked
      */
-    public static tweakPublicKey(pub: Uint8Array | Buffer | string): Buffer {
+    public static tweakPublicKey(pub: Uint8Array | string): Uint8Array {
         if (typeof pub === 'string' && pub.startsWith('0x')) pub = pub.slice(2);
 
-        const P = Point.fromHex(Buffer.from(pub).toString('hex'));
+        const hexStr = typeof pub === 'string' ? pub : toHex(pub);
+        const P = Point.fromHex(hexStr);
         const Peven = (P.y & 1n) === 0n ? P : P.negate();
 
-        const xBytes = Buffer.from(Peven.toBytes(true).subarray(1));
+        const xBytes = Peven.toBytes(true).subarray(1);
         const tBytes = tapTweakHash(xBytes);
         const t = mod(bytesToNumberBE(tBytes), CURVE_N);
 
         const Q = Peven.add(Point.BASE.multiply(t));
-        return Buffer.from(Q.toBytes(true));
+        return Q.toBytes(true);
     }
 
     /**
@@ -306,7 +311,7 @@ export class EcKeyPair {
         const T = Point.BASE.multiply(tweakScalar);
 
         return pubkeys.map((bytes) => {
-            const P = Point.fromHex(Buffer.from(bytes).toString('hex'));
+            const P = Point.fromHex(toHex(bytes));
             const P_even = P.y % 2n === 0n ? P : P.negate();
             const Q = P_even.add(T);
             return Q.toBytes(true);
@@ -324,13 +329,9 @@ export class EcKeyPair {
         network: Network = networks.bitcoin,
         securityLevel: MLDSASecurityLevel = MLDSASecurityLevel.LEVEL2,
     ): IWallet {
-        // Generate classical keypair with custom rng to ensure Buffer compatibility
-        // This fixes "Expected Buffer, got Uint8Array" error in browser environments
-        const keyPair = this.ECPair.makeRandom({
-            network: network,
-            rng: (size: number): Buffer => {
-                const bytes = randomBytes(size);
-                return Buffer.from(bytes);
+        const keyPair = ECPairSigner.makeRandom(backend, network, {
+            rng: (size: number): Uint8Array => {
+                return randomBytes(size);
             },
         });
 
@@ -346,9 +347,9 @@ export class EcKeyPair {
         return {
             address: wallet,
             privateKey: keyPair.toWIF(),
-            publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
-            quantumPrivateKey: Buffer.from(quantumKeyPair.privateKey).toString('hex'),
-            quantumPublicKey: Buffer.from(quantumKeyPair.publicKey).toString('hex'),
+            publicKey: toHex(keyPair.publicKey),
+            quantumPrivateKey: toHex(quantumKeyPair.privateKey),
+            quantumPublicKey: toHex(quantumKeyPair.publicKey),
         };
     }
 
@@ -370,19 +371,15 @@ export class EcKeyPair {
         const randomSeed = randomBytes(64);
 
         // Create a quantum root from the random seed with network parameter
-        const quantumRoot = QuantumBIP32Factory.fromSeed(
-            Buffer.from(randomSeed),
-            network,
-            securityLevel,
-        );
+        const quantumRoot = QuantumBIP32Factory.fromSeed(randomSeed, network, securityLevel);
 
         if (!quantumRoot.privateKey || !quantumRoot.publicKey) {
             throw new Error('Failed to generate quantum keypair');
         }
 
         return {
-            privateKey: Buffer.from(quantumRoot.privateKey),
-            publicKey: Buffer.from(quantumRoot.publicKey),
+            privateKey: new Uint8Array(quantumRoot.privateKey),
+            publicKey: new Uint8Array(quantumRoot.publicKey),
         };
     }
 
@@ -401,16 +398,16 @@ export class EcKeyPair {
 
     /**
      * Get the legacy segwit address from a keypair
-     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * @param {UniversalSigner} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
      * @returns {string} - The legacy address
      */
     public static getLegacySegwitAddress(
-        keyPair: ECPairInterface,
+        keyPair: UniversalSigner,
         network: Network = networks.bitcoin,
     ): string {
         const wallet = payments.p2sh({
-            redeem: payments.p2wpkh({ pubkey: Buffer.from(keyPair.publicKey), network: network }),
+            redeem: payments.p2wpkh({ pubkey: keyPair.publicKey, network: network }),
             network: network,
         });
 
@@ -423,15 +420,15 @@ export class EcKeyPair {
 
     /**
      * Get the legacy address from a keypair
-     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * @param {UniversalSigner} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
      * @returns {string} - The legacy address
      */
     public static getLegacyAddress(
-        keyPair: ECPairInterface,
+        keyPair: UniversalSigner,
         network: Network = networks.bitcoin,
     ): string {
-        const wallet = payments.p2pkh({ pubkey: Buffer.from(keyPair.publicKey), network: network });
+        const wallet = payments.p2pkh({ pubkey: keyPair.publicKey, network: network });
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
         }
@@ -440,16 +437,13 @@ export class EcKeyPair {
     }
 
     /**
-     * Get the legacy address from a keypair
+     * Get the legacy address from a public key
      * @param publicKey
      * @param {Network} network - The network to use
      * @returns {string} - The legacy address
      */
-    public static getP2PKH(
-        publicKey: Buffer | Uint8Array,
-        network: Network = networks.bitcoin,
-    ): string {
-        const wallet = payments.p2pkh({ pubkey: Buffer.from(publicKey), network: network });
+    public static getP2PKH(publicKey: PublicKey, network: Network = networks.bitcoin): string {
+        const wallet = payments.p2pkh({ pubkey: publicKey, network: network });
         if (!wallet.address) {
             throw new Error('Failed to generate wallet');
         }
@@ -458,61 +452,58 @@ export class EcKeyPair {
     }
 
     /**
-     * Get the legacy address from a keypair
-     * @param {ECPairInterface} keyPair - The keypair to get the address for
+     * Get the P2PK output from a keypair
+     * @param {UniversalSigner} keyPair - The keypair to get the address for
      * @param {Network} network - The network to use
      * @returns {string} - The legacy address
      */
     public static getP2PKAddress(
-        keyPair: ECPairInterface,
+        keyPair: UniversalSigner,
         network: Network = networks.bitcoin,
     ): string {
-        const wallet = payments.p2pk({ pubkey: Buffer.from(keyPair.publicKey), network: network });
+        const wallet = payments.p2pk({ pubkey: keyPair.publicKey, network: network });
         if (!wallet.output) {
             throw new Error('Failed to generate wallet');
         }
 
-        return '0x' + wallet.output.toString('hex');
+        return '0x' + toHex(wallet.output);
     }
 
     /**
      * Generate a random keypair
      * @param {Network} network - The network to use
-     * @returns {ECPairInterface} - The generated keypair
+     * @returns {UniversalSigner} - The generated keypair
      */
-    public static generateRandomKeyPair(network: Network = networks.bitcoin): ECPairInterface {
-        // Use custom rng to ensure Buffer compatibility in browser environments
-        return this.ECPair.makeRandom({
-            network: network,
-            rng: (size: number): Buffer => {
-                const bytes = randomBytes(size);
-                return Buffer.from(bytes);
+    public static generateRandomKeyPair(network: Network = networks.bitcoin): UniversalSigner {
+        return ECPairSigner.makeRandom(backend, network, {
+            rng: (size: number): Uint8Array => {
+                return randomBytes(size);
             },
         });
     }
 
     /**
      * Generate a BIP32 keypair from a seed
-     * @param {Buffer} seed - The seed to generate the keypair from
+     * @param {Uint8Array} seed - The seed to generate the keypair from
      * @param {Network} network - The network to use
      * @returns {BIP32Interface} - The generated keypair
      */
-    public static fromSeed(seed: Buffer, network: Network = networks.bitcoin): BIP32Interface {
+    public static fromSeed(seed: Uint8Array, network: Network = networks.bitcoin): BIP32Interface {
         return this.BIP32.fromSeed(seed, network);
     }
 
     /**
      * Get taproot address from keypair
-     * @param {ECPairInterface} keyPair - The keypair to get the taproot address for
+     * @param {UniversalSigner | Signer} keyPair - The keypair to get the taproot address for
      * @param {Network} network - The network to use
      * @returns {string} - The taproot address
      */
     public static getTaprootAddress(
-        keyPair: ECPairInterface | Signer,
+        keyPair: UniversalSigner | Signer,
         network: Network = networks.bitcoin,
     ): string {
         const { address } = payments.p2tr({
-            internalPubkey: toXOnly(Buffer.from(keyPair.publicKey)),
+            internalPubkey: toXOnly(keyPair.publicKey),
             network: network,
         });
 
@@ -547,18 +538,18 @@ export class EcKeyPair {
 
     /**
      * Get a keypair from a given seed.
-     * @param {Buffer} seed - The seed to generate the key pair from
+     * @param {Uint8Array} seed - The seed to generate the key pair from
      * @param {Network} network - The network to use
-     * @returns {ECPairInterface} - The generated key pair
+     * @returns {UniversalSigner} - The generated key pair
      */
     public static fromSeedKeyPair(
-        seed: Buffer,
+        seed: Uint8Array,
         network: Network = networks.bitcoin,
-    ): ECPairInterface {
+    ): UniversalSigner {
         const fromSeed = this.BIP32.fromSeed(seed, network);
         const privKey = fromSeed.privateKey;
         if (!privKey) throw new Error('Failed to generate key pair');
 
-        return this.ECPair.fromPrivateKey(Buffer.from(privKey), { network });
+        return ECPairSigner.fromPrivateKey(backend, privKey, network);
     }
 }

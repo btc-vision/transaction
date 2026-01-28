@@ -1,5 +1,7 @@
 import {
+    concat,
     crypto as bitCrypto,
+    equals,
     Network,
     networks,
     opcodes,
@@ -14,14 +16,14 @@ import { IChallengeSolution } from '../epoch/interfaces/IChallengeSolution.js';
 import { Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
-    readonly deployerPubKey: Buffer;
-    readonly contractSaltPubKey: Buffer;
-    readonly originalSalt: Buffer;
-    readonly bytecode: Buffer;
+    readonly deployerPubKey: Uint8Array;
+    readonly contractSaltPubKey: Uint8Array;
+    readonly originalSalt: Uint8Array;
+    readonly bytecode: Uint8Array;
     readonly challenge: IChallengeSolution;
     readonly priorityFee: bigint;
     readonly features: Feature<Features>[];
-    readonly calldata?: Buffer;
+    readonly calldata?: Uint8Array;
     readonly network?: Network;
 }
 
@@ -38,7 +40,7 @@ export class TapscriptVerificator {
             network,
         );
 
-        const compiledTargetScript: Buffer = scriptBuilder.compile(
+        const compiledTargetScript: Uint8Array = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
             params.challenge,
@@ -68,7 +70,7 @@ export class TapscriptVerificator {
 
     public static verifyControlBlock(
         params: ContractAddressVerificationParams,
-        controlBlock: Buffer,
+        controlBlock: Uint8Array,
     ): boolean {
         const network = params.network || networks.bitcoin;
         const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
@@ -77,7 +79,7 @@ export class TapscriptVerificator {
             network,
         );
 
-        const compiledTargetScript: Buffer = scriptBuilder.compile(
+        const compiledTargetScript: Uint8Array = scriptBuilder.compile(
             params.bytecode,
             params.originalSalt,
             params.challenge,
@@ -117,17 +119,17 @@ export class TapscriptVerificator {
             return false;
         }
 
-        const requiredControlBlock: Buffer = witness[witness.length - 1];
-        return requiredControlBlock.equals(controlBlock);
+        const requiredControlBlock: Uint8Array = witness[witness.length - 1];
+        return equals(requiredControlBlock, controlBlock);
     }
 
     public static getContractSeed(
-        deployerPubKey: Buffer,
-        bytecode: Buffer,
-        saltHash: Buffer,
-    ): Buffer {
-        const sha256OfBytecode: Buffer = bitCrypto.hash256(bytecode);
-        const buf: Buffer = Buffer.concat([deployerPubKey, saltHash, sha256OfBytecode]);
+        deployerPubKey: Uint8Array,
+        bytecode: Uint8Array,
+        saltHash: Uint8Array,
+    ): Uint8Array {
+        const sha256OfBytecode: Uint8Array = bitCrypto.hash256(bytecode);
+        const buf: Uint8Array = concat([deployerPubKey, saltHash, sha256OfBytecode]);
 
         return bitCrypto.hash256(buf);
     }

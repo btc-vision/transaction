@@ -1,4 +1,4 @@
-import { crypto, Network, networks, opcodes, payments, script } from '@btc-vision/bitcoin';
+import { crypto, equals, Network, networks, opcodes, payments, script } from '@btc-vision/bitcoin';
 import { IHashCommittedP2WSH } from '../../transaction/interfaces/IConsolidatedTransactionParameters.js';
 import { IP2WSHAddress } from '../../transaction/mineable/IP2WSHAddress.js';
 import { Logger } from '@btc-vision/logger';
@@ -88,10 +88,10 @@ export class HashCommitmentGenerator extends Logger {
         HashCommitmentGenerator.INPUT_BASE_WEIGHT +
         HashCommitmentGenerator.INPUT_WITNESS_WEIGHT_MAX;
     public readonly logColor: string = '#4a90d9';
-    private readonly publicKey: Buffer;
+    private readonly publicKey: Uint8Array;
     private readonly network: Network;
 
-    constructor(publicKey: Buffer, network: Network = networks.bitcoin) {
+    constructor(publicKey: Uint8Array, network: Network = networks.bitcoin) {
         super();
 
         if (publicKey.length !== 33) {
@@ -164,7 +164,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script to validate
      * @returns true if valid hash-committed script
      */
-    public static validateHashCommittedScript(witnessScript: Buffer): boolean {
+    public static validateHashCommittedScript(witnessScript: Uint8Array): boolean {
         try {
             const decompiled = script.decompile(witnessScript);
             if (!decompiled || decompiled.length < 5) {
@@ -177,7 +177,7 @@ export class HashCommitmentGenerator extends Logger {
                 return false;
             }
             const pubkey = decompiled[lastIdx - 1];
-            if (!Buffer.isBuffer(pubkey) || pubkey.length !== 33) {
+            if (!(pubkey instanceof Uint8Array) || pubkey.length !== 33) {
                 return false;
             }
 
@@ -191,7 +191,7 @@ export class HashCommitmentGenerator extends Logger {
                 const hash = hashParts[i + 1];
                 if (
                     hashParts[i] !== opcodes.OP_HASH160 ||
-                    !Buffer.isBuffer(hash) ||
+                    !(hash instanceof Uint8Array) ||
                     hash.length !== 20 ||
                     hashParts[i + 2] !== opcodes.OP_EQUALVERIFY
                 ) {
@@ -211,7 +211,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script
      * @returns Array of 20-byte data hashes (in data order), or null if invalid
      */
-    public static extractDataHashes(witnessScript: Buffer): Buffer[] | null {
+    public static extractDataHashes(witnessScript: Uint8Array): Uint8Array[] | null {
         try {
             const decompiled = script.decompile(witnessScript);
             if (
@@ -223,10 +223,10 @@ export class HashCommitmentGenerator extends Logger {
 
             // Extract hashes from triplets (they're in reverse order in script)
             const hashParts = decompiled.slice(0, -2);
-            const hashes: Buffer[] = [];
+            const hashes: Uint8Array[] = [];
 
             for (let i = 0; i < hashParts.length; i += 3) {
-                hashes.push(hashParts[i + 1] as Buffer);
+                hashes.push(hashParts[i + 1] as Uint8Array);
             }
 
             // Reverse to get data order (script has them reversed)
@@ -242,7 +242,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script
      * @returns The 33-byte public key, or null if invalid script
      */
-    public static extractPublicKey(witnessScript: Buffer): Buffer | null {
+    public static extractPublicKey(witnessScript: Uint8Array): Uint8Array | null {
         try {
             const decompiled = script.decompile(witnessScript);
             if (
@@ -251,7 +251,7 @@ export class HashCommitmentGenerator extends Logger {
             ) {
                 return null;
             }
-            return decompiled[decompiled.length - 2] as Buffer;
+            return decompiled[decompiled.length - 2] as Uint8Array;
         } catch {
             return null;
         }
@@ -264,7 +264,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script containing the hash commitments
      * @returns true if all chunks match their commitments
      */
-    public static verifyChunkCommitments(dataChunks: Buffer[], witnessScript: Buffer): boolean {
+    public static verifyChunkCommitments(dataChunks: Uint8Array[], witnessScript: Uint8Array): boolean {
         const committedHashes = HashCommitmentGenerator.extractDataHashes(witnessScript);
         if (!committedHashes || committedHashes.length !== dataChunks.length) {
             return false;
@@ -272,7 +272,7 @@ export class HashCommitmentGenerator extends Logger {
 
         for (let i = 0; i < dataChunks.length; i++) {
             const actualHash = crypto.hash160(dataChunks[i]);
-            if (!committedHashes[i].equals(actualHash)) {
+            if (!equals(committedHashes[i], actualHash)) {
                 return false;
             }
         }
@@ -344,7 +344,7 @@ export class HashCommitmentGenerator extends Logger {
      * Calculate the HASH160 of a data chunk.
      * HASH160 = RIPEMD160(SHA256(data))
      */
-    public hashChunk(data: Buffer): Buffer {
+    public hashChunk(data: Uint8Array): Uint8Array {
         return crypto.hash160(data);
     }
 
@@ -365,7 +365,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param dataHashes Array of HASH160 values (in data order, will be reversed in script)
      * @returns The compiled witness script
      */
-    public generateWitnessScript(dataHashes: Buffer[]): Buffer {
+    public generateWitnessScript(dataHashes: Uint8Array[]): Uint8Array {
         if (dataHashes.length === 0) {
             throw new Error('At least one data hash is required');
         }
@@ -383,7 +383,7 @@ export class HashCommitmentGenerator extends Logger {
         }
 
         // Build script parts - hashes in reverse order (last data chunk verified first)
-        const scriptParts: (number | Buffer)[] = [];
+        const scriptParts: (number | Uint8Array)[] = [];
 
         // Add hash commitments in reverse order
         for (let i = dataHashes.length - 1; i >= 0; i--) {
@@ -405,7 +405,7 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script
      * @returns P2WSH address info
      */
-    public generateP2WSHAddress(witnessScript: Buffer): IP2WSHAddress & { scriptPubKey: Buffer } {
+    public generateP2WSHAddress(witnessScript: Uint8Array): IP2WSHAddress & { scriptPubKey: Uint8Array } {
         const p2wsh = payments.p2wsh({
             redeem: { output: witnessScript },
             network: this.network,
@@ -433,7 +433,7 @@ export class HashCommitmentGenerator extends Logger {
      * @returns Array of hash-committed P2WSH outputs
      */
     public prepareChunks(
-        data: Buffer,
+        data: Uint8Array,
         maxChunkSize: number = HashCommitmentGenerator.MAX_CHUNK_SIZE,
     ): IHashCommittedP2WSH[] {
         if (maxChunkSize > HashCommitmentGenerator.MAX_CHUNK_SIZE) {
@@ -447,12 +447,12 @@ export class HashCommitmentGenerator extends Logger {
         }
 
         // First, split data into 80-byte chunks
-        const allChunks: Buffer[] = [];
+        const allChunks: Uint8Array[] = [];
         let offset = 0;
 
         while (offset < data.length) {
             const chunkSize = Math.min(maxChunkSize, data.length - offset);
-            allChunks.push(Buffer.from(data.subarray(offset, offset + chunkSize)));
+            allChunks.push(new Uint8Array(data.subarray(offset, offset + chunkSize)));
             offset += chunkSize;
         }
 

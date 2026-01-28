@@ -1,6 +1,6 @@
-import { Network, networks, Psbt, TapScriptSig, toXOnly } from '@btc-vision/bitcoin';
-import { PartialSig } from 'bip174/src/lib/interfaces.js';
-import { ECPairInterface } from 'ecpair';
+import { equals, fromHex, Network, networks, Psbt, TapScriptSig, toHex, toXOnly } from '@btc-vision/bitcoin';
+import { PartialSig } from 'bip174';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import {
     canSignNonTaprootInput,
@@ -58,9 +58,9 @@ export class XverseSigner extends CustomKeypair {
         return this._addresses;
     }
 
-    private _publicKey: Buffer | undefined;
+    private _publicKey: Uint8Array | undefined;
 
-    public get publicKey(): Buffer {
+    public get publicKey(): Uint8Array {
         if (!this._publicKey) {
             throw new Error('Public key not set');
         }
@@ -112,11 +112,11 @@ export class XverseSigner extends CustomKeypair {
 
         this._network = network;
 
-        this._publicKey = Buffer.from(payementAddress.publicKey, 'hex');
+        this._publicKey = fromHex(payementAddress.publicKey);
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as UniversalSigner, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as UniversalSigner, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 
@@ -124,17 +124,17 @@ export class XverseSigner extends CustomKeypair {
     }
 
     public async signData(
-        data: Buffer,
+        data: Uint8Array,
         address: string,
         protocol: SigningProtocol,
-    ): Promise<Buffer> {
+    ): Promise<Uint8Array> {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
 
         const callSign = await this.BitcoinProvider.request('signMessage', {
             address,
-            message: data.toString(),
+            message: new TextDecoder().decode(data),
             protocol,
         });
 
@@ -150,10 +150,10 @@ export class XverseSigner extends CustomKeypair {
             throw new Error('Signature not found');
         }
 
-        return Buffer.from(res.signature, 'hex');
+        return fromHex(res.signature);
     }
 
-    public getPublicKey(): Buffer {
+    public getPublicKey(): Uint8Array {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
@@ -161,15 +161,15 @@ export class XverseSigner extends CustomKeypair {
         return this.publicKey;
     }
 
-    public sign(_hash: Buffer, _lowR?: boolean): Buffer {
+    public sign(_hash: Uint8Array, _lowR?: boolean): Uint8Array {
         throw new Error('Not implemented: sign');
     }
 
-    public signSchnorr(_hash: Buffer): Buffer {
+    public signSchnorr(_hash: Uint8Array): Uint8Array {
         throw new Error('Not implemented: signSchnorr');
     }
 
-    public verify(_hash: Buffer, _signature: Buffer): boolean {
+    public verify(_hash: Uint8Array, _signature: Uint8Array): boolean {
         throw new Error('Not implemented: verify');
     }
 
@@ -243,7 +243,7 @@ export class XverseSigner extends CustomKeypair {
                             const tapInternalKey = input.tapInternalKey;
                             const xOnlyPubKey = toXOnly(this.publicKey);
 
-                            if (tapInternalKey.equals(xOnlyPubKey)) {
+                            if (equals(tapInternalKey, xOnlyPubKey)) {
                                 needsToSign = true;
                                 viaTaproot = true;
                             }
@@ -257,7 +257,7 @@ export class XverseSigner extends CustomKeypair {
                     if (needsToSign) {
                         return {
                             index: i,
-                            publicKey: this.publicKey.toString('hex'),
+                            publicKey: toHex(this.publicKey),
                             disableTweakSigner: !viaTaproot,
                         };
                     } else {
@@ -293,8 +293,8 @@ export class XverseSigner extends CustomKeypair {
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
             const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -305,8 +305,8 @@ export class XverseSigner extends CustomKeypair {
     private hasAlreadyPartialSig(input: PartialSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
             const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -348,7 +348,7 @@ export class XverseSigner extends CustomKeypair {
         sighashTypes: number[],
         disableTweakSigner: boolean = false,
     ): Promise<Psbt> {
-        const pubKey = this.publicKey.toString('hex');
+        const pubKey = toHex(this.publicKey);
         const toSign = transaction.data.inputs.map((_, i) => {
             return [
                 {
@@ -389,7 +389,7 @@ export class XverseSigner extends CustomKeypair {
     ): TapScriptSig[] {
         const nonDuplicate: TapScriptSig[] = [];
         for (let i = 0; i < scriptSig2.length; i++) {
-            const found = scriptSig1.find((item) => item.pubkey.equals(scriptSig2[i].pubkey));
+            const found = scriptSig1.find((item) => equals(item.pubkey, scriptSig2[i].pubkey));
             if (!found) {
                 nonDuplicate.push(scriptSig2[i]);
             }
