@@ -1,107 +1,39 @@
 import { Network, networks } from '@btc-vision/bitcoin';
 
-function deepEqual(a: unknown, b: unknown): boolean {
-    if (a === b) return true;
-
-    if (a && b && typeof a === 'object' && typeof b === 'object') {
-        if (a.constructor !== b.constructor) return false;
-
-        if (Array.isArray(a) && Array.isArray(b)) {
-            if (a.length !== b.length) return false;
-            for (let i = a.length; i-- !== 0; ) {
-                if (!deepEqual(a[i], b[i])) return false;
-            }
-            return true;
-        }
-
-        if (a instanceof Map && b instanceof Map) {
-            if (a.size !== b.size) return false;
-            for (const [key] of a) {
-                if (!b.has(key)) return false;
-            }
-            for (const [key, val] of a) {
-                if (!deepEqual(val, b.get(key))) return false;
-            }
-            return true;
-        }
-
-        if (a instanceof Set && b instanceof Set) {
-            if (a.size !== b.size) return false;
-            for (const val of a) {
-                if (!b.has(val)) return false;
-            }
-            return true;
-        }
-
-        if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
-            const viewA = a as Uint8Array;
-            const viewB = b as Uint8Array;
-            if (viewA.length !== viewB.length) return false;
-            for (let i = viewA.length; i-- !== 0; ) {
-                if (viewA[i] !== viewB[i]) return false;
-            }
-            return true;
-        }
-
-        if (a instanceof RegExp && b instanceof RegExp) {
-            return a.source === b.source && a.flags === b.flags;
-        }
-
-        if (a.valueOf !== Object.prototype.valueOf) {
-            return a.valueOf() === b.valueOf();
-        }
-
-        if (a.toString !== Object.prototype.toString) {
-            // eslint-disable-next-line @typescript-eslint/no-base-to-string
-            return a.toString() === b.toString();
-        }
-
-        const keysA = Object.keys(a);
-        const keysB = Object.keys(b);
-        if (keysA.length !== keysB.length) return false;
-
-        for (let i = keysA.length; i-- !== 0; ) {
-            if (!Object.prototype.hasOwnProperty.call(b, keysA[i])) return false;
-        }
-
-        for (let i = keysA.length; i-- !== 0; ) {
-            const key = keysA[i];
-            if (
-                !deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
-            ) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    return a !== a && b !== b;
-}
-
-export function getChainIdHex(network: Network): string {
-    if (deepEqual(network, networks.bitcoin)) {
-        return '000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f';
-    }
-
-    if (deepEqual(network, networks.testnet)) {
-        return '000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943';
-    }
-
-    if (deepEqual(network, networks.regtest)) {
-        return '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206';
-    }
-
-    throw new Error('Unsupported network for chain ID retrieval');
-}
+const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
+    [
+        networks.bitcoin,
+        new Uint8Array([
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0xd6, 0x68, 0x9c, 0x08, 0x5a, 0xe1, 0x65, 0x83,
+            0x1e, 0x93, 0x4f, 0xf7, 0x63, 0xae, 0x46, 0xa2, 0xa6, 0xc1, 0x72, 0xb3, 0xf1, 0xb6,
+            0x0a, 0x8c, 0xe2, 0x6f,
+        ]),
+    ],
+    [
+        networks.testnet,
+        new Uint8Array([
+            0x00, 0x00, 0x00, 0x00, 0x09, 0x33, 0xea, 0x01, 0xad, 0x0e, 0xe9, 0x84, 0x20, 0x97,
+            0x79, 0xba, 0xae, 0xc3, 0xce, 0xd9, 0x0f, 0xa3, 0xf4, 0x08, 0x71, 0x95, 0x26, 0xf8,
+            0xd7, 0x7f, 0x49, 0x43,
+        ]),
+    ],
+    [
+        networks.regtest,
+        new Uint8Array([
+            0x0f, 0x91, 0x88, 0xf1, 0x3c, 0xb7, 0xb2, 0xc7, 0x1f, 0x2a, 0x33, 0x5e, 0x3a, 0x4f,
+            0xc3, 0x28, 0xbf, 0x5b, 0xeb, 0x43, 0x60, 0x12, 0xaf, 0xca, 0x59, 0x0b, 0x1a, 0x11,
+            0x46, 0x6e, 0x22, 0x06,
+        ]),
+    ],
+]);
 
 export function getChainId(network: Network): Uint8Array {
-    return Uint8Array.from(Buffer.from(getChainIdHex(network), 'hex'));
+    const chainId = CHAIN_IDS.get(network);
+    if (!chainId) throw new Error('Unsupported network for chain ID retrieval');
+    return chainId.slice();
 }
 
-export const BITCOIN_PROTOCOL_ID = Uint8Array.from(
-    Buffer.from(
-        'e784995a412d773988c4b8e333d7b39dfb3cabf118d0d645411a916ca2407939', // sha256("OP_NET")
-        'hex',
-    ),
-);
+export const BITCOIN_PROTOCOL_ID = new Uint8Array([
+    0xe7, 0x84, 0x99, 0x5a, 0x41, 0x2d, 0x77, 0x39, 0x88, 0xc4, 0xb8, 0xe3, 0x33, 0xd7, 0xb3, 0x9d,
+    0xfb, 0x3c, 0xab, 0xf1, 0x18, 0xd0, 0xd6, 0x45, 0x41, 0x1a, 0x91, 0x6c, 0xa2, 0x40, 0x79, 0x39,
+]);

@@ -8,6 +8,7 @@ import { FastMap } from './FastMap.js';
 export class ExtendedAddressMap<V> {
     // Store tweaked bigint -> index mapping for fast lookup
     private indexMap: FastMap<bigint, number>;
+
     // Store actual addresses and values
     private _keys: Address[] = [];
     private _values: V[] = [];

@@ -21,6 +21,11 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 import { HybridPublicKey, MLDSAHashedPublicKey } from '../branded/Branded.js';
 
+// ML-DSA-44 (Level 2): 1312 bytes public key
+// ML-DSA-65 (Level 3): 1952 bytes public key
+// ML-DSA-87 (Level 5): 2592 bytes public key
+const validMLDSALengths = [1312, 1952, 2592];
+
 /**
  * Objects of type "Address" represent hashed ML-DSA (quantum) public keys (using SHA256 of quantum keys) and maintain classical public keys separately.
  * This class supports a hybrid quantum-classical architecture, allowing conversion to different address formats and management of both key types.
@@ -74,6 +79,16 @@ export class Address extends Uint8Array {
         }
 
         this.setMldsaKey(mldsaPublicKey);
+    }
+
+    /**
+     * Prevent TypedArray methods (subarray, slice, etc.) from creating Address
+     * instances. Without this, @noble/hashes and other libraries that call
+     * subarray() on an Address would invoke the Address constructor that recomputes
+     * everything leading to bad performance.
+     */
+    public static get [Symbol.species](): Uint8ArrayConstructor {
+        return Uint8Array;
     }
 
     public get mldsaLevel(): MLDSASecurityLevel | undefined {
@@ -832,11 +847,6 @@ export class Address extends Uint8Array {
             super.set(buf);
         } else {
             // Validate ML-DSA public key lengths according to BIP360 and FIPS 204
-            // ML-DSA-44 (Level 2): 1312 bytes public key
-            // ML-DSA-65 (Level 3): 1952 bytes public key
-            // ML-DSA-87 (Level 5): 2592 bytes public key
-            const validMLDSALengths = [1312, 1952, 2592];
-
             if (!validMLDSALengths.includes(mldsaPublicKey.length)) {
                 throw new Error(
                     `Invalid ML-DSA public key length: ${mldsaPublicKey.length}. ` +
