@@ -5,13 +5,10 @@ import {
     disabledAddressRotation,
     EcKeyPair,
     FundingTransaction,
-    SignerMap,
-    RotationSigner,
-    AddressRotationConfig,
 } from '../build/opnet.js';
+import type { SignerMap, RotationSigner, AddressRotationConfig, UTXO } from '../build/opnet.js';
 import { networks, payments, toXOnly, toHex, equals } from '@btc-vision/bitcoin';
-import { type UniversalSigner, PublicKey } from '@btc-vision/ecpair';
-import { UTXO } from '../build/opnet.js';
+import type { UniversalSigner } from '@btc-vision/ecpair';
 
 describe('Address Rotation', () => {
     const network = networks.regtest;
@@ -415,7 +412,7 @@ describe('Address Rotation', () => {
 
             const pairs: [string, UniversalSigner][] = addresses.map((addr, i) => [
                 addr,
-                signers[i],
+                signers[i] as UniversalSigner,
             ]);
 
             const tx = new FundingTransaction({
@@ -518,10 +515,10 @@ describe('Address Rotation', () => {
             const expectedKey1 = toXOnly(signer1.publicKey);
             const expectedKey2 = toXOnly(signer2.publicKey);
 
-            expect(inputs[0].tapInternalKey).toBeDefined();
-            expect(inputs[1].tapInternalKey).toBeDefined();
-            expect(equals(inputs[0].tapInternalKey!, expectedKey1)).toBe(true);
-            expect(equals(inputs[1].tapInternalKey!, expectedKey2)).toBe(true);
+            expect((inputs[0] as (typeof inputs)[0]).tapInternalKey).toBeDefined();
+            expect((inputs[1] as (typeof inputs)[0]).tapInternalKey).toBeDefined();
+            expect(equals((inputs[0] as (typeof inputs)[0]).tapInternalKey!, expectedKey1)).toBe(true);
+            expect(equals((inputs[1] as (typeof inputs)[0]).tapInternalKey!, expectedKey2)).toBe(true);
         });
 
         it('should use default signer tapInternalKey when rotation disabled', async () => {
