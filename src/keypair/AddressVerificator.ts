@@ -1,4 +1,4 @@
-import { address, fromHex, initEccLib, Network, payments } from '@btc-vision/bitcoin';
+import { address, fromHex, initEccLib, Network, payments, Script } from '@btc-vision/bitcoin';
 import { eccLib } from '../ecc/backend.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
@@ -270,7 +270,7 @@ export class AddressVerificator {
             }
 
             const p2wsh = payments.p2wsh({
-                redeem: { output: witnessScript },
+                redeem: { output: witnessScript as Script },
                 network,
             });
 

@@ -13,13 +13,13 @@ import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
  */
 export interface IHashCommittedP2WSH extends IP2WSHAddress {
     /** The HASH160 values of all data chunks this output commits to (in order) */
-    readonly dataHashes: Buffer[];
+    readonly dataHashes: Uint8Array[];
     /** The actual data chunks (stored for later reveal, in order) */
-    readonly dataChunks: Buffer[];
+    readonly dataChunks: Uint8Array[];
     /** The starting index of this output's chunks in the overall data sequence */
     readonly chunkStartIndex: number;
     /** The P2WSH scriptPubKey (OP_0 <32-byte-hash>) */
-    readonly scriptPubKey: Buffer;
+    readonly scriptPubKey: Uint8Array;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { fromHex, Network, networks, PsbtOutputExtended, Signer, Stack } from '@btc-vision/bitcoin';
+import { fromHex, Network, networks, PsbtOutputExtended, Script, Signer, Stack, toSatoshi } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
@@ -363,20 +363,20 @@ export class TransactionReconstructor {
             // PsbtOutputExtended is a union type - either has address OR script, not both
             if (s.address) {
                 return {
-                    value: s.value,
+                    value: toSatoshi(BigInt(s.value)),
                     address: s.address,
                     tapInternalKey,
                 };
             } else if (s.script) {
                 return {
-                    value: s.value,
-                    script: fromHex(s.script),
+                    value: toSatoshi(BigInt(s.value)),
+                    script: fromHex(s.script) as Script,
                     tapInternalKey,
                 };
             } else {
                 // Fallback - shouldn't happen with valid data
                 return {
-                    value: s.value,
+                    value: toSatoshi(BigInt(s.value)),
                     address: '',
                     tapInternalKey,
                 };

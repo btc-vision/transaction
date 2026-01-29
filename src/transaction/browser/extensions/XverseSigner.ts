@@ -1,6 +1,6 @@
 import { equals, fromHex, Network, networks, Psbt, TapScriptSig, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { PartialSig } from 'bip174';
-import { type UniversalSigner } from '@btc-vision/ecpair';
+import { createPublicKey, type MessageHash, type PublicKey, type SchnorrSignature, type Signature, type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import {
     canSignNonTaprootInput,
@@ -58,9 +58,9 @@ export class XverseSigner extends CustomKeypair {
         return this._addresses;
     }
 
-    private _publicKey: Uint8Array | undefined;
+    private _publicKey: PublicKey | undefined;
 
-    public get publicKey(): Uint8Array {
+    public get publicKey(): PublicKey {
         if (!this._publicKey) {
             throw new Error('Public key not set');
         }
@@ -112,11 +112,11 @@ export class XverseSigner extends CustomKeypair {
 
         this._network = network;
 
-        this._publicKey = fromHex(payementAddress.publicKey);
+        this._publicKey = createPublicKey(fromHex(payementAddress.publicKey));
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as UniversalSigner, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as UniversalSigner, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 
@@ -153,7 +153,7 @@ export class XverseSigner extends CustomKeypair {
         return fromHex(res.signature);
     }
 
-    public getPublicKey(): Uint8Array {
+    public getPublicKey(): PublicKey {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
@@ -161,15 +161,15 @@ export class XverseSigner extends CustomKeypair {
         return this.publicKey;
     }
 
-    public sign(_hash: Uint8Array, _lowR?: boolean): Uint8Array {
+    public sign(_hash: MessageHash, _lowR?: boolean): Signature {
         throw new Error('Not implemented: sign');
     }
 
-    public signSchnorr(_hash: Uint8Array): Uint8Array {
+    public signSchnorr(_hash: MessageHash): SchnorrSignature {
         throw new Error('Not implemented: signSchnorr');
     }
 
-    public verify(_hash: Uint8Array, _signature: Uint8Array): boolean {
+    public verify(_hash: MessageHash, _signature: Signature): boolean {
         throw new Error('Not implemented: verify');
     }
 

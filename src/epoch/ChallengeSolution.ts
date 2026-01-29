@@ -170,7 +170,7 @@ export class ChallengeSolution implements IChallengeSolution {
      * Calculate the expected solution hash for this challenge
      * @returns {Promise<Buffer>} The calculated solution hash
      */
-    public calculateSolution(): Buffer {
+    public calculateSolution(): Uint8Array {
         return EpochValidator.calculateSolution(
             this.verification.targetChecksum,
             this.publicKey.toBuffer(),

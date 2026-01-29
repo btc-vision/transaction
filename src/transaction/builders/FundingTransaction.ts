@@ -1,8 +1,8 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
-import { opcodes, script, Signer } from '@btc-vision/bitcoin';
+import { fromHex, opcodes, Script, script, Signer, toSatoshi } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 
 export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDING> {
     public readonly type: TransactionType.FUNDING = TransactionType.FUNDING;
@@ -30,18 +30,18 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
-            const pubKeyScript = script.compile([
-                Buffer.from(this.to.replace('0x', ''), 'hex'),
+            const pubKeyScript: Script = script.compile([
+                fromHex(this.to.replace('0x', '')),
                 opcodes.OP_CHECKSIG,
             ]);
 
             this.addOutput({
-                value: Number(this.amount),
+                value: toSatoshi(this.amount),
                 script: pubKeyScript,
             });
         } else {
             this.addOutput({
-                value: Number(this.amount),
+                value: toSatoshi(this.amount),
                 address: this.to,
             });
         }
@@ -63,19 +63,19 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         for (let i = 0; i < this.splitInputsInto; i++) {
             if (this.isPubKeyDestination) {
                 this.addOutput({
-                    value: Number(splitAmount),
-                    script: Buffer.from(this.to.slice(2), 'hex'),
+                    value: toSatoshi(splitAmount),
+                    script: fromHex(this.to.slice(2)) as Script,
                 });
             } else {
                 this.addOutput({
-                    value: Number(splitAmount),
+                    value: toSatoshi(splitAmount),
                     address: this.to,
                 });
             }
         }
     }
 
-    protected override getSignerKey(): Signer | ECPairInterface {
+    protected override getSignerKey(): Signer | UniversalSigner {
         return this.signer;
     }
 }

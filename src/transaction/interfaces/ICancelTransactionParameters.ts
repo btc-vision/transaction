@@ -4,5 +4,5 @@ export interface ICancelTransactionParameters extends Omit<
     ITransactionParameters,
     'priorityFee' | 'gasSatFee'
 > {
-    readonly compiledTargetScript: string | Buffer;
+    readonly compiledTargetScript: string | Uint8Array;
 }

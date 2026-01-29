@@ -1,8 +1,7 @@
 import { TransactionType } from '../enums/TransactionType.js';
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, Taptree } from '@btc-vision/bitcoin';
+import { fromHex, P2TRPayment, PaymentType, Psbt, PsbtInput, Taptree } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
-import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 
@@ -14,27 +13,25 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
      */
     protected tapLeafScript: TapLeafScript | null = null;
 
-    protected readonly compiledTargetScript: Buffer;
+    protected readonly compiledTargetScript: Uint8Array;
     protected readonly scriptTree: Taptree;
 
-    protected readonly contractSecret: Buffer;
+    protected readonly contractSecret: Uint8Array;
     protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
     public constructor(parameters: ICancelTransactionParameters) {
         super({
             ...parameters,
             gasSatFee: 1n,
-            isCancellation: true,
             priorityFee: 1n,
-            calldata: Buffer.alloc(0),
-        } as unknown as SharedInteractionParameters);
+        });
 
-        this.contractSecret = Buffer.alloc(0);
+        this.contractSecret = new Uint8Array(0);
 
-        if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+        if (parameters.compiledTargetScript instanceof Uint8Array) {
             this.compiledTargetScript = parameters.compiledTargetScript;
         } else {
-            this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+            this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
         }
 
         // Generate the minimal script tree needed for recovery

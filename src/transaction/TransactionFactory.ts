@@ -1,4 +1,4 @@
-import { Transaction, TxOutput } from '@btc-vision/bitcoin';
+import { Script, toHex, toSatoshi, Transaction, TxOutput } from '@btc-vision/bitcoin';
 import { currentConsensus } from '../consensus/ConsensusConfig.js';
 import { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { CustomScriptTransaction } from './builders/CustomScriptTransaction.js';
@@ -86,8 +86,8 @@ export interface ConsolidatedInteractionResponse {
 export class TransactionFactory {
     public debug: boolean = false;
 
-    private readonly DUMMY_PUBKEY = Buffer.alloc(32, 1);
-    private readonly P2TR_SCRIPT = Buffer.concat([Buffer.from([0x51, 0x20]), this.DUMMY_PUBKEY]);
+    private readonly DUMMY_PUBKEY = new Uint8Array(32).fill(1);
+    private readonly P2TR_SCRIPT = Uint8Array.from([0x51, 0x20, ...this.DUMMY_PUBKEY]) as Script;
     private readonly INITIAL_FUNDING_ESTIMATE = 2000n;
     private readonly MAX_ITERATIONS = 10;
 
@@ -322,7 +322,7 @@ export class TransactionFactory {
             challenge: challenge.toRaw(),
             fundingUTXOs: fundingUTXO,
             fundingInputUtxos: interactionParameters.utxos,
-            compiledTargetScript: interactionTx.exportCompiledTargetScript().toString('hex'),
+            compiledTargetScript: toHex(interactionTx.exportCompiledTargetScript()),
         };
     }
 
@@ -380,7 +380,7 @@ export class TransactionFactory {
             dataSize: result.setup.totalDataSize,
             challenge: consolidatedTx.getChallenge().toRaw(),
             inputUtxos: interactionParameters.utxos,
-            compiledTargetScript: consolidatedTx.exportCompiledTargetScript().toString('hex'),
+            compiledTargetScript: toHex(consolidatedTx.exportCompiledTargetScript()),
         };
     }
 
@@ -453,7 +453,7 @@ export class TransactionFactory {
             transactionId: signedTransaction.getId(),
             outputIndex: 0,
             scriptPubKey: {
-                hex: out.script.toString('hex'),
+                hex: toHex(out.script),
                 address: finalTransaction.getScriptAddress(),
             },
             value: BigInt(out.value),
@@ -478,7 +478,7 @@ export class TransactionFactory {
             transactionId: signedTransaction.getId(),
             outputIndex: 1,
             scriptPubKey: {
-                hex: out2.script.toString('hex'),
+                hex: toHex(out2.script),
                 address: deploymentParameters.from,
             },
             value: BigInt(out2.value),
@@ -558,10 +558,8 @@ export class TransactionFactory {
                 !(nonWitness instanceof Uint8Array) &&
                 typeof nonWitness === 'object'
             ) {
-                nonWitness = Buffer.from(
-                    Uint8Array.from(
-                        Object.values(input.nonWitnessUtxo as unknown as Record<number, number>),
-                    ),
+                nonWitness = Uint8Array.from(
+                    Object.values(nonWitness as Record<string, number>),
                 );
             }
 
@@ -722,13 +720,17 @@ export class TransactionFactory {
      * @returns {string} - The hex encoded PSBT with header
      */
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
-        const buf = Buffer.from(psbt, 'base64');
+        const decoded = Uint8Array.from(atob(psbt), c => c.charCodeAt(0));
 
-        const header = Buffer.alloc(2);
-        header.writeUInt8(type, 0);
-        header.writeUInt8(currentConsensus, 1);
+        const header = new Uint8Array(2);
+        header[0] = type;
+        header[1] = currentConsensus;
 
-        return Buffer.concat([header, buf]).toString('hex');
+        const result = new Uint8Array(header.length + decoded.length);
+        result.set(header);
+        result.set(decoded, header.length);
+
+        return toHex(result);
     }
 
     /**
@@ -843,13 +845,13 @@ export class TransactionFactory {
             previousAmount = estimatedFundingAmount;
 
             const dummyTx = new Transaction();
-            dummyTx.addOutput(this.P2TR_SCRIPT, Number(estimatedFundingAmount));
+            dummyTx.addOutput(this.P2TR_SCRIPT, toSatoshi(estimatedFundingAmount));
 
             const simulatedFundedUtxo: UTXO = {
-                transactionId: Buffer.alloc(32, 0).toString('hex'),
+                transactionId: toHex(new Uint8Array(32)),
                 outputIndex: 0,
                 scriptPubKey: {
-                    hex: this.P2TR_SCRIPT.toString('hex'),
+                    hex: toHex(this.P2TR_SCRIPT),
                     address: dummyAddress,
                 },
                 value: estimatedFundingAmount,
@@ -941,7 +943,7 @@ export class TransactionFactory {
             transactionId: tx.getId(),
             outputIndex: index,
             scriptPubKey: {
-                hex: out.script.toString('hex'),
+                hex: toHex(out.script),
                 address: to,
             },
             value: BigInt(out.value),

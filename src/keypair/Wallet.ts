@@ -1,6 +1,6 @@
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
-import { fromHex, initEccLib, Network, networks, toHex, toXOnly } from '@btc-vision/bitcoin';
+import { fromHex, initEccLib, Network, networks, PublicKey, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
@@ -187,7 +187,7 @@ export class Wallet {
 
     public get xOnly(): Uint8Array {
         if (!this.keypair) throw new Error('Keypair not set');
-        return toXOnly(this._bufferPubKey);
+        return toXOnly(this._bufferPubKey as PublicKey);
     }
 
     public static fromWif(

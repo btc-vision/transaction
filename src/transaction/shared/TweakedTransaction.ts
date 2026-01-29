@@ -27,8 +27,9 @@ import {
     Transaction,
     varuint,
 } from '@btc-vision/bitcoin';
+import type { Bytes32, FinalScriptsFunc, PublicKey, Script, XOnlyPublicKey } from '@btc-vision/bitcoin';
 
-import { TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
+import { isUniversalSigner, TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
@@ -393,7 +394,7 @@ export abstract class TweakedTransaction extends Logger {
                 continue;
             }
 
-            input.sequence = TransactionSequence.FINAL;
+            (input as { sequence: number }).sequence = TransactionSequence.FINAL;
         }
     }
 
@@ -494,9 +495,9 @@ export abstract class TweakedTransaction extends Logger {
      * Used for taproot inputs in address rotation mode.
      * @param inputIndex - The index of the input
      */
-    protected internalPubKeyToXOnlyForInput(inputIndex: number): Uint8Array {
+    protected internalPubKeyToXOnlyForInput(inputIndex: number): XOnlyPublicKey {
         const signer = this.getSignerForInput(inputIndex);
-        return toXOnly(new Uint8Array(signer.publicKey));
+        return toXOnly(signer.publicKey);
     }
 
     /**
@@ -686,7 +687,7 @@ export abstract class TweakedTransaction extends Logger {
         }
 
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
+            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this) as FinalScriptsFunc);
         }
 
         this.finalized = true;
@@ -697,8 +698,8 @@ export abstract class TweakedTransaction extends Logger {
      * @protected
      * @returns {Buffer}
      */
-    protected internalPubKeyToXOnly(): Uint8Array {
-        return toXOnly(new Uint8Array(this.signer.publicKey));
+    protected internalPubKeyToXOnly(): XOnlyPublicKey {
+        return toXOnly(this.signer.publicKey);
     }
 
     /**
@@ -735,19 +736,19 @@ export abstract class TweakedTransaction extends Logger {
         };
 
         if (useTweakedHash) {
-            settings.tweakHash = this.getTweakerHash();
+            settings.tweakHash = this.getTweakerHash() as Bytes32 | undefined;
         }
 
-        if (!('privateKey' in signer)) {
+        if (!isUniversalSigner(signer)) {
             return;
         }
 
-        return TweakedSigner.tweakSigner(signer as unknown as UniversalSigner, settings);
+        return TweakedSigner.tweakSigner(signer, settings);
     }
 
     protected generateP2SHRedeemScript(customWitnessScript: Uint8Array): Uint8Array | undefined {
         const p2wsh = payments.p2wsh({
-            redeem: { output: customWitnessScript },
+            redeem: { output: customWitnessScript as Script },
             network: this.network,
         });
 
@@ -767,7 +768,7 @@ export abstract class TweakedTransaction extends Logger {
           }
         | undefined {
         const pubKeyHash = bitCrypto.hash160(this.signer.publicKey);
-        const redeemScript: Uint8Array = script.compile([
+        const redeemScript: Script = script.compile([
             opcodes.OP_DUP,
             opcodes.OP_HASH160,
             pubKeyHash,
@@ -819,9 +820,7 @@ export abstract class TweakedTransaction extends Logger {
                 ? this.getSignerForInput(inputIndex)
                 : this.signer;
 
-        const pubkey = signer.publicKey instanceof Uint8Array
-            ? signer.publicKey
-            : new Uint8Array(signer.publicKey);
+        const pubkey = signer.publicKey;
 
         const w = payments.p2wpkh({
             pubkey: pubkey,
@@ -869,10 +868,10 @@ export abstract class TweakedTransaction extends Logger {
             index: utxo.outputIndex,
             sequence: this.sequence,
             witnessUtxo: {
-                value: Number(utxo.value),
+                value: utxo.value,
                 script: scriptPub,
             },
-        };
+        } as PsbtInputExtended;
 
         // Handle P2PKH (Legacy)
         if (isP2PKH(scriptPub)) {
@@ -881,7 +880,7 @@ export abstract class TweakedTransaction extends Logger {
                 //delete input.witnessUtxo;
                 input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo as string);
+                    : fromHex(utxo.nonWitnessUtxo);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PKH UTXO');
             }
@@ -906,7 +905,7 @@ export abstract class TweakedTransaction extends Logger {
             if (utxo.redeemScript) {
                 redeemScriptBuf = utxo.redeemScript instanceof Uint8Array
                     ? utxo.redeemScript
-                    : fromHex(utxo.redeemScript as string);
+                    : fromHex(utxo.redeemScript);
             } else {
                 // Attempt to generate a redeem script if missing
                 if (!utxo.scriptPubKey.address) {
@@ -929,7 +928,7 @@ export abstract class TweakedTransaction extends Logger {
             input.redeemScript = redeemScriptBuf;
 
             // Check if redeemScript is wrapping segwit (like P2SH-P2WPKH or P2SH-P2WSH)
-            const payment = payments.p2sh({ redeem: { output: input.redeemScript } });
+            const payment = payments.p2sh({ redeem: { output: input.redeemScript as Script } });
             if (!payment.redeem) {
                 throw new Error('Failed to extract redeem script from P2SH UTXO');
             }
@@ -942,7 +941,7 @@ export abstract class TweakedTransaction extends Logger {
             if (utxo.nonWitnessUtxo) {
                 input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo as string);
+                    : fromHex(utxo.nonWitnessUtxo);
             }
 
             if (isP2WPKH(redeemOutput)) {
@@ -986,7 +985,7 @@ export abstract class TweakedTransaction extends Logger {
         else if (isP2A(scriptPub)) {
             this.anchorInputIndices.add(i);
 
-            input.isPayToAnchor = true;
+            (input as { isPayToAnchor: boolean }).isPayToAnchor = true;
         }
 
         // Handle P2PK (legacy) or P2MS (bare multisig)
@@ -995,7 +994,7 @@ export abstract class TweakedTransaction extends Logger {
             if (utxo.nonWitnessUtxo) {
                 input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
                     ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo as string);
+                    : fromHex(utxo.nonWitnessUtxo);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PK or P2MS UTXO');
             }
@@ -1038,7 +1037,7 @@ export abstract class TweakedTransaction extends Logger {
 
         input.witnessScript = utxo.witnessScript instanceof Uint8Array
             ? utxo.witnessScript
-            : fromHex(utxo.witnessScript as string);
+            : fromHex(utxo.witnessScript);
 
         // No nonWitnessUtxo needed for segwit
 
@@ -1052,7 +1051,7 @@ export abstract class TweakedTransaction extends Logger {
                 const csvBlocks = this.extractCSVBlocks(decompiled);
 
                 // Use the setCSVSequence method to properly set the sequence
-                input.sequence = this.setCSVSequence(csvBlocks, this.sequence);
+                (input as { sequence: number }).sequence = this.setCSVSequence(csvBlocks, this.sequence);
             }
         }
     }
@@ -1080,12 +1079,13 @@ export abstract class TweakedTransaction extends Logger {
     protected customFinalizerP2SH = (
         inputIndex: number,
         input: PsbtInput,
-        scriptA: Uint8Array,
+        scriptA: Script,
         isSegwit: boolean,
         isP2SH: boolean,
         isP2WSH: boolean,
+        _canRunChecks?: boolean,
     ): {
-        finalScriptSig: Uint8Array | undefined;
+        finalScriptSig: Script | undefined;
         finalScriptWitness: Uint8Array | undefined;
     } => {
         const inputDecoded = this.inputs[inputIndex];
@@ -1150,7 +1150,7 @@ export abstract class TweakedTransaction extends Logger {
         input: PsbtInput,
     ): {
         finalScriptWitness: Uint8Array | undefined;
-        finalScriptSig: Uint8Array | undefined;
+        finalScriptSig: Script | undefined;
     } {
         if (!input.partialSig || input.partialSig.length === 0) {
             throw new Error(`No signature for P2WDA input #${inputIndex}`);
@@ -1179,7 +1179,7 @@ export abstract class TweakedTransaction extends Logger {
 
         // Then, we finalize every input.
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
+            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this) as FinalScriptsFunc);
         }
 
         this.finalized = true;
@@ -1241,7 +1241,7 @@ export abstract class TweakedTransaction extends Logger {
             if (decompiled[i] === opcodes.OP_CHECKSEQUENCEVERIFY && i > 0) {
                 const csvValue = decompiled[i - 1];
                 if (csvValue instanceof Uint8Array) {
-                    return script.number.decode(csvValue);
+                    return script.number.decode(csvValue as Buffer);
                 } else if (typeof csvValue === 'number') {
                     // Handle OP_N directly
                     if (csvValue === opcodes.OP_0 || csvValue === opcodes.OP_FALSE) {

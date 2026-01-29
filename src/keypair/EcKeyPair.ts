@@ -163,7 +163,7 @@ export class EcKeyPair {
      * @returns {string} - The address
      */
     public static getP2WPKHAddress(
-        keyPair: UniversalSigner,
+        keyPair: UniversalSigner | Signer,
         network: Network = networks.bitcoin,
     ): string {
         const res = payments.p2wpkh({ pubkey: keyPair.publicKey, network: network });

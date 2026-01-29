@@ -1,5 +1,4 @@
-import { Buffer } from 'buffer';
-import { Psbt, PsbtInput, toXOnly } from '@btc-vision/bitcoin';
+import { concat, fromHex, Psbt, PsbtInput, PublicKey, toXOnly } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
@@ -10,7 +9,7 @@ import { Feature, FeaturePriority, Features } from '../../generators/Features.js
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
@@ -34,18 +33,18 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
      */
     protected readonly disableAutoRefund: boolean;
     private readonly contractAddress: string;
-    private readonly contractSecret: Buffer;
-    private readonly calldata: Buffer;
+    private readonly contractSecret: Uint8Array;
+    private readonly calldata: Uint8Array;
     private readonly challenge: IChallengeSolution;
-    private readonly randomBytes: Buffer;
+    private readonly randomBytes: Uint8Array;
     private p2wdaGenerator: P2WDAGenerator;
-    private scriptSigner: ECPairInterface;
+    private scriptSigner: UniversalSigner;
     private p2wdaInputIndices: Set<number> = new Set();
     /**
      * The compiled operation data from CalldataGenerator
      * This is exactly what would go in a taproot script, but we put it in witness instead
      */
-    private readonly compiledOperationData: Buffer | null = null;
+    private readonly compiledOperationData: Uint8Array | null = null;
 
     public constructor(parameters: IInteractionParameters) {
         super(parameters);
@@ -68,7 +67,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.contractAddress = parameters.to;
-        this.contractSecret = Buffer.from(parameters.contract.replace('0x', ''), 'hex');
+        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
         this.calldata = Compressor.compress(parameters.calldata);
         this.challenge = parameters.challenge;
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();
@@ -79,7 +78,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         // Create the P2WDA generator instead of CalldataGenerator
         // P2WDA needs a different data format optimized for witness embedding
         this.p2wdaGenerator = new P2WDAGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
@@ -98,10 +97,10 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         this.validateP2WDAInputs();
 
         if (parameters.compiledTargetScript) {
-            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+            if (parameters.compiledTargetScript instanceof Uint8Array) {
                 this.compiledOperationData = parameters.compiledTargetScript;
             } else if (typeof parameters.compiledTargetScript === 'string') {
-                this.compiledOperationData = Buffer.from(parameters.compiledTargetScript, 'hex');
+                this.compiledOperationData = fromHex(parameters.compiledTargetScript);
             } else {
                 throw new Error('Invalid compiled target script format.');
             }
@@ -124,7 +123,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     /**
      * Get random bytes (for compatibility if needed elsewhere)
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -138,7 +137,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     /**
      * Get contract secret (for compatibility if needed elsewhere)
      */
-    public getContractSecret(): Buffer {
+    public getContractSecret(): Uint8Array {
         return this.contractSecret;
     }
 
@@ -221,15 +220,15 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     /**
      * Generate keypair from seed (same as SharedInteractionTransaction)
      */
-    private generateKeyPairFromSeed(): ECPairInterface {
+    private generateKeyPairFromSeed(): UniversalSigner {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
 
     /**
      * Get script signer x-only pubkey (same as SharedInteractionTransaction)
      */
-    private scriptSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.scriptSigner.publicKey));
+    private scriptSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.scriptSigner.publicKey);
     }
 
     /**
@@ -291,8 +290,8 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         inputIndex: number,
         input: PsbtInput,
     ): {
-        finalScriptSig: Buffer | undefined;
-        finalScriptWitness: Buffer | undefined;
+        finalScriptSig: Uint8Array | undefined;
+        finalScriptWitness: Uint8Array | undefined;
     } {
         if (!input.partialSig || input.partialSig.length === 0) {
             throw new Error(`No signature for P2WDA input #${inputIndex}`);
@@ -307,16 +306,16 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         }
 
         const txSignature = input.partialSig[0].signature;
-        const messageToSign = Buffer.concat([txSignature, this.compiledOperationData]);
+        const messageToSign = concat([txSignature, this.compiledOperationData]);
         const signedMessage = MessageSigner.signMessage(
-            this.signer as ECPairInterface,
+            this.signer as UniversalSigner,
             messageToSign,
         );
 
-        const schnorrSignature = Buffer.from(signedMessage.signature);
+        const schnorrSignature = signedMessage.signature;
 
         // Combine and compress: COMPRESS(signature + compiledOperationData)
-        const fullData = Buffer.concat([schnorrSignature, this.compiledOperationData]);
+        const fullData = concat([schnorrSignature, this.compiledOperationData]);
         const compressedData = Compressor.compress(fullData);
 
         // Split into chunks
@@ -329,12 +328,12 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         }
 
         // Build witness stack
-        const witnessStack: Buffer[] = [txSignature];
+        const witnessStack: Uint8Array[] = [txSignature];
 
         // Add exactly 10 data fields
         // Bitcoin stack is reversed!
         for (let i = 0; i < InteractionTransactionP2WDA.MAX_WITNESS_FIELDS; i++) {
-            witnessStack.push(i < chunks.length ? chunks[i] : Buffer.alloc(0));
+            witnessStack.push(i < chunks.length ? chunks[i] : new Uint8Array(0));
         }
 
         witnessStack.push(input.witnessScript);
@@ -348,8 +347,8 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     /**
      * Split data into 80-byte chunks
      */
-    private splitIntoWitnessChunks(data: Buffer): Buffer[] {
-        const chunks: Buffer[] = [];
+    private splitIntoWitnessChunks(data: Uint8Array): Uint8Array[] {
+        const chunks: Uint8Array[] = [];
         let offset = 0;
 
         while (offset < data.length) {
@@ -357,7 +356,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
                 InteractionTransactionP2WDA.MAX_BYTES_PER_WITNESS,
                 data.length - offset,
             );
-            chunks.push(Buffer.from(data.subarray(offset, offset + size)));
+            chunks.push(data.slice(offset, offset + size));
             offset += size;
         }
 

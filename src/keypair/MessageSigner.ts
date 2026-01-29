@@ -1,4 +1,4 @@
-import { type UniversalSigner } from '@btc-vision/ecpair';
+import { type MessageHash, type PublicKey, type SchnorrSignature, type UniversalSigner } from '@btc-vision/ecpair';
 import { backend } from '../ecc/backend.js';
 import { crypto, fromHex, Network, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
@@ -165,10 +165,7 @@ class MessageSignerBase {
         return this.signMessage(tweaked, message);
     }
 
-    public signMessage(
-        keypair: UniversalSigner,
-        message: Uint8Array | string,
-    ): SignedMessage {
+    public signMessage(keypair: UniversalSigner, message: Uint8Array | string): SignedMessage {
         if (typeof message === 'string') {
             message = new TextEncoder().encode(message);
         }
@@ -178,8 +175,13 @@ class MessageSignerBase {
         }
 
         const hashedMessage = this.sha256(message);
+
+        if (!backend.signSchnorr) {
+            throw new Error('backend.signSchnorr is not available.');
+        }
+
         return {
-            signature: backend.signSchnorr(hashedMessage, keypair.privateKey),
+            signature: backend.signSchnorr(hashedMessage as MessageHash, keypair.privateKey),
             message: hashedMessage,
         };
     }
@@ -198,7 +200,12 @@ class MessageSignerBase {
         }
 
         const hashedMessage = this.sha256(message);
-        return backend.verifySchnorr(hashedMessage, toXOnly(publicKey), signature);
+
+        if (!backend.verifySchnorr) {
+            throw new Error('backend.verifySchnorr is not available.');
+        }
+
+        return backend.verifySchnorr(hashedMessage as MessageHash, toXOnly(publicKey as PublicKey), signature as SchnorrSignature);
     }
 
     public tweakAndVerifySignature(

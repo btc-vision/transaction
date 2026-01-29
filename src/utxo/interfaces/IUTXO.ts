@@ -7,9 +7,9 @@ export interface UTXO {
     readonly value: bigint;
     readonly scriptPubKey: ScriptPubKey;
 
-    redeemScript?: string | Buffer;
-    witnessScript?: string | Buffer;
-    nonWitnessUtxo?: string | Buffer;
+    redeemScript?: string | Uint8Array;
+    witnessScript?: string | Uint8Array;
+    nonWitnessUtxo?: string | Uint8Array;
 
     /**
      * Optional signer for this specific UTXO.

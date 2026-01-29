@@ -1,4 +1,4 @@
-import { crypto, equals, Network, networks, opcodes, payments, script } from '@btc-vision/bitcoin';
+import { crypto, equals, Network, networks, opcodes, payments, Script, script, } from '@btc-vision/bitcoin';
 import { IHashCommittedP2WSH } from '../../transaction/interfaces/IConsolidatedTransactionParameters.js';
 import { IP2WSHAddress } from '../../transaction/mineable/IP2WSHAddress.js';
 import { Logger } from '@btc-vision/logger';
@@ -264,7 +264,10 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script containing the hash commitments
      * @returns true if all chunks match their commitments
      */
-    public static verifyChunkCommitments(dataChunks: Uint8Array[], witnessScript: Uint8Array): boolean {
+    public static verifyChunkCommitments(
+        dataChunks: Uint8Array[],
+        witnessScript: Uint8Array,
+    ): boolean {
         const committedHashes = HashCommitmentGenerator.extractDataHashes(witnessScript);
         if (!committedHashes || committedHashes.length !== dataChunks.length) {
             return false;
@@ -405,9 +408,11 @@ export class HashCommitmentGenerator extends Logger {
      * @param witnessScript The witness script
      * @returns P2WSH address info
      */
-    public generateP2WSHAddress(witnessScript: Uint8Array): IP2WSHAddress & { scriptPubKey: Uint8Array } {
+    public generateP2WSHAddress(
+        witnessScript: Uint8Array | Script,
+    ): IP2WSHAddress & { scriptPubKey: Uint8Array } {
         const p2wsh = payments.p2wsh({
-            redeem: { output: witnessScript },
+            redeem: { output: witnessScript as Script },
             network: this.network,
         });
 

@@ -16,7 +16,7 @@ export class P2WDADetector {
 
         const witnessScript = utxo.witnessScript instanceof Uint8Array
             ? utxo.witnessScript
-            : fromHex(utxo.witnessScript as string);
+            : fromHex(utxo.witnessScript);
 
         return this.isP2WDAWitnessScript(witnessScript);
     }

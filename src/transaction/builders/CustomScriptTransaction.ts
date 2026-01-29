@@ -1,12 +1,14 @@
 import {
     crypto as bitCrypto,
     P2TRPayment,
-    Payment,
     PaymentType,
     Psbt,
     PsbtInput,
+    PublicKey,
+    Script,
     Signer,
     Taptree,
+    toSatoshi,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
@@ -16,7 +18,7 @@ import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { ICustomTransactionParameters } from '../interfaces/ICustomTransactionParameters.js';
 
 /**
@@ -50,7 +52,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The compiled target script
      * @private
      */
-    private readonly compiledTargetScript: Buffer;
+    private readonly compiledTargetScript: Uint8Array;
     /**
      * The script tree
      * @private
@@ -66,26 +68,26 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The contract seed
      * @private
      */
-    private readonly scriptSeed: Buffer;
+    private readonly scriptSeed: Uint8Array;
 
     /**
      * The contract signer
      * @private
      */
-    private readonly contractSigner: Signer | ECPairInterface;
+    private readonly contractSigner: Signer | UniversalSigner;
 
     /**
      * The contract salt random bytes
      * @private
      */
-    private readonly randomBytes: Buffer;
+    private readonly randomBytes: Uint8Array;
 
     /**
      * The witnesses
      * @private
      */
-    private readonly witnesses: Buffer[];
-    private readonly annexData?: Buffer;
+    private readonly witnesses: Uint8Array[];
+    private readonly annexData?: Uint8Array;
 
     public constructor(parameters: ICustomTransactionParameters) {
         super(parameters);
@@ -125,7 +127,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         return this.to || this.getScriptAddress();
     }
 
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
@@ -133,7 +135,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -141,8 +143,8 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the contract signer public key
      * @protected
      */
-    protected contractSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.contractSigner.publicKey));
+    protected contractSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.contractSigner.publicKey);
     }
 
     /**
@@ -154,7 +156,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             this.to = this.getScriptAddress();
         }
 
-        const selectedRedeem: Payment | null = this.contractSigner
+        const selectedRedeem: P2TRPayment | null = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
 
@@ -180,7 +182,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
 
         const amountSpent: bigint = this.getTransactionOPNetFee();
         this.addOutput({
-            value: Number(amountSpent),
+            value: toSatoshi(amountSpent),
             address: this.to,
         });
 
@@ -255,12 +257,12 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         };
     }
 
-    protected getScriptSolution(input: PsbtInput): Buffer[] {
+    protected getScriptSolution(input: PsbtInput): Uint8Array[] {
         if (!input.tapScriptSig) {
             throw new Error('Tap script signature is required');
         }
 
-        const witnesses: Buffer[] = [...this.witnesses];
+        const witnesses: Uint8Array[] = [...this.witnesses];
         if (input.tapScriptSig) {
             for (const sig of input.tapScriptSig) {
                 witnesses.push(sig.signature);
@@ -274,7 +276,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Generate the contract seed for the deployment
      * @private
      */
-    private getContractSeed(): Buffer {
+    private getContractSeed(): Uint8Array {
         return bitCrypto.hash256(this.randomBytes);
     }
 
@@ -294,11 +296,15 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             .concat(this.tapLeafScript.controlBlock);
 
         if (this.annexData && this.annexData.length > 0) {
-            const annex =
-                this.annexData[0] === 0x50
-                    ? this.annexData
-                    : Buffer.concat([Buffer.from([0x50]), this.annexData]);
-
+            let annex: Uint8Array;
+            if (this.annexData[0] === 0x50) {
+                annex = this.annexData;
+            } else {
+                const prefixed = new Uint8Array(this.annexData.length + 1);
+                prefixed[0] = 0x50;
+                prefixed.set(this.annexData, 1);
+                annex = prefixed;
+            }
             witness.push(annex);
         }
 
@@ -311,11 +317,11 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the public keys for the redeem scripts
      * @private
      */
-    private getPubKeys(): Buffer[] {
-        const pubkeys = [Buffer.from(this.signer.publicKey)];
+    private getPubKeys(): Uint8Array[] {
+        const pubkeys = [this.signer.publicKey];
 
         if (this.contractSigner) {
-            pubkeys.push(Buffer.from(this.contractSigner.publicKey));
+            pubkeys.push(this.contractSigner.publicKey);
         }
 
         return pubkeys;
@@ -329,7 +335,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         this.targetScriptRedeem = {
             name: PaymentType.P2TR,
             //pubkeys: this.getPubKeys(),
-            output: this.compiledTargetScript,
+            output: this.compiledTargetScript as Script,
             redeemVersion: 192,
         };
 
@@ -345,7 +351,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the second leaf script
      * @private
      */
-    private getLeafScript(): Buffer {
+    private getLeafScript(): Script {
         return this.LOCK_LEAF_SCRIPT;
     }
 

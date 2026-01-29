@@ -11,8 +11,10 @@ import bitcoin, {
     script,
     Signer,
     toXOnly,
+    toSatoshi,
     Transaction,
 } from '@btc-vision/bitcoin';
+import type { FinalScriptsFunc, Satoshi, Script, PublicKey } from '@btc-vision/bitcoin';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { eccLib } from '../../ecc/backend.js';
 import { UpdateInput } from '../interfaces/Tap.js';
@@ -56,7 +58,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     public debugFees: boolean = false;
 
     // Cancel script
-    public LOCK_LEAF_SCRIPT: Uint8Array;
+    public LOCK_LEAF_SCRIPT: Script;
 
     /**
      * @description The overflow fees of the transaction
@@ -241,15 +243,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         const compileScript = script.compile([opcodes.OP_RETURN, buffer]);
 
         this.addOutput({
-            value: 0,
+            value: toSatoshi(0n),
             script: compileScript,
         });
     }
 
     public addAnchor(): void {
         this.addOutput({
-            value: 0,
-            script: ANCHOR_SCRIPT,
+            value: toSatoshi(0n),
+            script: ANCHOR_SCRIPT as Script,
         });
     }
 
@@ -395,25 +397,25 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     public addOutput(output: PsbtOutputExtended, bypassMinCheck: boolean = false): void {
-        if (output.value === 0) {
-            const script = output as {
+        if (output.value === toSatoshi(0n)) {
+            const scriptOutput = output as {
                 script: Uint8Array;
             };
 
-            if (!script.script || script.script.length === 0) {
+            if (!scriptOutput.script || scriptOutput.script.length === 0) {
                 throw new Error('Output value is 0 and no script provided');
             }
 
-            if (script.script.length < 2) {
+            if (scriptOutput.script.length < 2) {
                 throw new Error('Output script is too short');
             }
 
-            if (script.script[0] !== opcodes.OP_RETURN && !equals(script.script, ANCHOR_SCRIPT)) {
+            if (scriptOutput.script[0] !== opcodes.OP_RETURN && !equals(scriptOutput.script, ANCHOR_SCRIPT)) {
                 throw new Error(
                     'Output script must start with OP_RETURN or be an ANCHOR when value is 0',
                 );
             }
-        } else if (!bypassMinCheck && output.value < TransactionBuilder.MINIMUM_DUST) {
+        } else if (!bypassMinCheck && BigInt(output.value) < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Output value is less than the minimum dust ${output.value} < ${TransactionBuilder.MINIMUM_DUST}`,
             );
@@ -462,26 +464,26 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         fakeTx.addInputs(inputs);
         fakeTx.addOutputs(outputs);
 
-        const dummySchnorrSig = Buffer.alloc(64, 0);
-        const dummyEcdsaSig = Buffer.alloc(72, 0);
-        const dummyCompressedPubkey = Buffer.alloc(33, 2);
+        const dummySchnorrSig = new Uint8Array(64);
+        const dummyEcdsaSig = new Uint8Array(72);
+        const dummyCompressedPubkey = new Uint8Array(33).fill(2);
 
         const finalizer = (inputIndex: number, input: PsbtInputExtended) => {
             if (input.isPayToAnchor || this.anchorInputIndices.has(inputIndex)) {
                 return {
                     finalScriptSig: undefined,
-                    finalScriptWitness: Buffer.from([0]),
+                    finalScriptWitness: Uint8Array.from([0]),
                 };
             }
 
             if (input.witnessScript && P2WDADetector.isP2WDAWitnessScript(input.witnessScript)) {
                 // Create dummy witness stack for P2WDA
-                const dummyDataSlots: Buffer[] = [];
+                const dummyDataSlots: Uint8Array[] = [];
                 for (let i = 0; i < 10; i++) {
-                    dummyDataSlots.push(Buffer.alloc(0));
+                    dummyDataSlots.push(new Uint8Array(0));
                 }
 
-                const dummyEcdsaSig = Buffer.alloc(72, 0);
+                const dummyEcdsaSig = new Uint8Array(72);
                 return {
                     finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
                         ...dummyDataSlots,
@@ -492,11 +494,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             }
 
             if (inputIndex === 0 && this.tapLeafScript) {
-                const dummySecret = Buffer.alloc(32, 0);
+                const dummySecret = new Uint8Array(32);
                 const dummyScript = this.tapLeafScript.script;
 
                 // A control block for a 2-leaf tree contains one 32-byte hash.
-                const dummyControlBlock = Buffer.alloc(1 + 32 + 32, 0);
+                const dummyControlBlock = new Uint8Array(1 + 32 + 32);
 
                 return {
                     finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
@@ -562,14 +564,14 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                         lastOp === opcodes.OP_CHECKMULTISIG
                     ) {
                         const m = firstOp - opcodes.OP_1 + 1;
-                        const signatures: Buffer[] = [];
+                        const signatures: Uint8Array[] = [];
                         for (let i = 0; i < m; i++) {
                             signatures.push(dummyEcdsaSig);
                         }
 
                         return {
                             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
-                                Buffer.alloc(0), // OP_0 due to multisig bug
+                                new Uint8Array(0), // OP_0 due to multisig bug
                                 ...signatures,
                                 input.witnessScript,
                             ]),
@@ -589,7 +591,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                     decompiled &&
                     decompiled.length === 2 &&
                     decompiled[0] === opcodes.OP_0 &&
-                    Buffer.isBuffer(decompiled[1]) &&
+                    decompiled[1] instanceof Uint8Array &&
                     decompiled[1].length === 20
                 ) {
                     // P2SH-P2WPKH
@@ -611,8 +613,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 };
             }
 
-            const script = input.witnessUtxo?.script;
-            if (!script) return { finalScriptSig: undefined, finalScriptWitness: undefined };
+            const inputScript = input.witnessUtxo?.script;
+            if (!inputScript) return { finalScriptSig: undefined, finalScriptWitness: undefined };
 
             if (input.tapInternalKey) {
                 return {
@@ -622,7 +624,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 };
             }
 
-            if (script.length === 22 && script[0] === opcodes.OP_0) {
+            if (inputScript.length === 22 && inputScript[0] === opcodes.OP_0) {
                 return {
                     finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([
                         dummyEcdsaSig,
@@ -643,7 +645,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             return getFinalScripts(
                 inputIndex,
                 input,
-                script,
+                inputScript as Script,
                 true,
                 !!input.redeemScript,
                 !!input.witnessScript,
@@ -766,23 +768,23 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 // Create the appropriate change output
                 if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
                     this.feeOutput = {
-                        value: Number(sendBackAmount),
+                        value: toSatoshi(sendBackAmount),
                         address: this.from,
                         tapInternalKey: this.internalPubKeyToXOnly(),
                     };
                 } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
                     const pubKeyScript = script.compile([
-                        Buffer.from(this.from.replace('0x', ''), 'hex'),
+                        fromHex(this.from.replace('0x', '')),
                         opcodes.OP_CHECKSIG,
                     ]);
 
                     this.feeOutput = {
-                        value: Number(sendBackAmount),
+                        value: toSatoshi(sendBackAmount),
                         script: pubKeyScript,
                     };
                 } else {
                     this.feeOutput = {
-                        value: Number(sendBackAmount),
+                        value: toSatoshi(sendBackAmount),
                         address: this.from,
                     };
                 }
@@ -830,8 +832,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
     }
 
-    protected defineLockScript(): Buffer {
-        return script.compile([toXOnly(Buffer.from(this.signer.publicKey)), opcodes.OP_CHECKSIG]);
+    protected defineLockScript(): Script {
+        return script.compile([toXOnly(this.signer.publicKey), opcodes.OP_CHECKSIG]);
     }
 
     /**
@@ -841,15 +843,19 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @returns {void}
      */
     protected addValueToToOutput(value: number | bigint): void {
-        if (value < TransactionBuilder.MINIMUM_DUST) {
+        if (BigInt(value) < TransactionBuilder.MINIMUM_DUST) {
             throw new Error(
                 `Value to send is less than the minimum dust ${value} < ${TransactionBuilder.MINIMUM_DUST}`,
             );
         }
 
-        for (const output of this.outputs) {
+        for (let i = 0; i < this.outputs.length; i++) {
+            const output = this.outputs[i];
             if ('address' in output && output.address === this.to) {
-                output.value += Number(value);
+                this.outputs[i] = {
+                    ...output,
+                    value: toSatoshi(BigInt(output.value) + BigInt(value)),
+                } as PsbtOutputExtended;
                 return;
             }
         }
@@ -857,7 +863,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         throw new Error('Output not found');
     }
 
-    protected generateLegacySignature(): Buffer {
+    protected generateLegacySignature(): Uint8Array {
         this.tweakSigner();
 
         if (!this.tweakedSigner) {
@@ -890,10 +896,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             throw new Error('Could not verify generated legacy signature for MLDSA link request');
         }
 
-        return Buffer.from(signature.signature);
+        return new Uint8Array(signature.signature);
     }
 
-    protected generateMLDSASignature(): Buffer {
+    protected generateMLDSASignature(): Uint8Array {
         if (!this.mldsaSigner) {
             throw new Error('MLDSA signer is not defined');
         }
@@ -939,7 +945,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             throw new Error('Could not verify generated MLDSA signature for link request');
         }
 
-        return Buffer.from(signature.signature);
+        return new Uint8Array(signature.signature);
     }
 
     protected generateMLDSALinkRequest(
@@ -949,7 +955,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         const mldsaSigner = this.mldsaSigner;
         const legacySignature = this.generateLegacySignature();
 
-        let mldsaSignature: Buffer | null = null;
+        let mldsaSignature: Uint8Array | null = null;
         if (parameters.revealMLDSAPublicKey) {
             mldsaSignature = this.generateMLDSASignature();
         }
@@ -1135,7 +1141,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             // ALWAYS THE FIRST INPUT.
             this.addOutput(
                 {
-                    value: Number(amountToCA),
+                    value: toSatoshi(amountToCA),
                     address: contractAddress,
                 },
                 true,
@@ -1148,7 +1154,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             ) {
                 this.addOutput(
                     {
-                        value: Number(amountSpent - amountToCA),
+                        value: toSatoshi(amountSpent - amountToCA),
                         address: epochChallenge.address,
                     },
                     true,
@@ -1162,7 +1168,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             this.addOutput(
                 {
-                    value: Number(amountToEpoch),
+                    value: toSatoshi(amountToEpoch),
                     address: epochChallenge.address,
                 },
                 true,
@@ -1175,7 +1181,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @protected
      * @returns {Buffer}
      */
-    protected getWitness(): Buffer {
+    protected getWitness(): Uint8Array {
         if (!this.tapData || !this.tapData.witness) {
             throw new Error('Witness is required');
         }
@@ -1192,7 +1198,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @protected
      * @returns {Buffer}
      */
-    protected getTapOutput(): Buffer {
+    protected getTapOutput(): Uint8Array {
         if (!this.tapData || !this.tapData.output) {
             throw new Error('Tap data is required');
         }
@@ -1247,7 +1253,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             }
 
             if (valueLeft >= TransactionBuilder.MINIMUM_DUST) {
-                this.feeOutput = { ...output, value: Number(valueLeft) };
+                this.feeOutput = { ...output, value: toSatoshi(valueLeft) };
                 this.overflowFees = valueLeft;
             } else {
                 this.feeOutput = null;
@@ -1272,7 +1278,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         if (finalValueLeft >= TransactionBuilder.MINIMUM_DUST) {
-            this.feeOutput = { ...output, value: Number(finalValueLeft) };
+            this.feeOutput = { ...output, value: toSatoshi(finalValueLeft) };
             this.overflowFees = finalValueLeft;
             if (this.debugFees) {
                 this.log(

@@ -5,9 +5,12 @@ import {
     Network,
     networks,
     opcodes,
+    P2TRPayment,
     Payment,
     payments,
+    PublicKey,
     script,
+    Script,
     Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
@@ -36,7 +39,7 @@ export class TapscriptVerificator {
         const network = params.network || networks.bitcoin;
         const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
             params.deployerPubKey,
-            toXOnly(params.contractSaltPubKey),
+            toXOnly(params.contractSaltPubKey as PublicKey),
             network,
         );
 
@@ -49,8 +52,8 @@ export class TapscriptVerificator {
             params.features,
         );
 
-        const lockLeafScript = script.compile([
-            toXOnly(params.deployerPubKey),
+        const lockLeafScript: Script = script.compile([
+            toXOnly(params.deployerPubKey as PublicKey),
             opcodes.OP_CHECKSIG,
         ]);
 
@@ -75,7 +78,7 @@ export class TapscriptVerificator {
         const network = params.network || networks.bitcoin;
         const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
             params.deployerPubKey,
-            toXOnly(params.contractSaltPubKey),
+            toXOnly(params.contractSaltPubKey as PublicKey),
             network,
         );
 
@@ -88,8 +91,8 @@ export class TapscriptVerificator {
             params.features,
         );
 
-        const lockLeafScript = script.compile([
-            toXOnly(params.deployerPubKey),
+        const lockLeafScript: Script = script.compile([
+            toXOnly(params.deployerPubKey as PublicKey),
             opcodes.OP_CHECKSIG,
         ]);
 
@@ -105,11 +108,11 @@ export class TapscriptVerificator {
         ];
 
         const tapData = payments.p2tr({
-            internalPubkey: toXOnly(params.deployerPubKey),
+            internalPubkey: toXOnly(params.deployerPubKey as PublicKey),
             network: network,
             scriptTree: scriptTree,
             redeem: {
-                output: compiledTargetScript,
+                output: compiledTargetScript as Script,
                 redeemVersion: TapscriptVerificator.TAP_SCRIPT_VERSION,
             },
         });
@@ -140,8 +143,8 @@ export class TapscriptVerificator {
     ): string | undefined {
         const network = params.network || networks.bitcoin;
 
-        const transactionData: Payment = {
-            internalPubkey: toXOnly(params.deployerPubKey),
+        const transactionData: Omit<P2TRPayment, 'name'> = {
+            internalPubkey: toXOnly(params.deployerPubKey as PublicKey),
             network: network,
             scriptTree: scriptTree,
         };

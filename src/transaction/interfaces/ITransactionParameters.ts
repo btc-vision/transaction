@@ -26,7 +26,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     utxos: UTXO[];
 
-    nonWitnessUtxo?: Buffer;
+    nonWitnessUtxo?: Uint8Array;
     estimatedFees?: bigint;
 
     optionalInputs?: UTXO[];
@@ -35,14 +35,14 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     chainId?: ChainId;
     noSignatures?: boolean;
 
-    readonly note?: string | Buffer;
+    readonly note?: string | Uint8Array;
     readonly anchor?: boolean;
 
     readonly feeRate: number;
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
 
-    readonly compiledTargetScript?: Buffer | string;
+    readonly compiledTargetScript?: Uint8Array | string;
 
     /**
      * Address rotation configuration.
@@ -59,27 +59,27 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {
-    calldata?: Buffer;
+    calldata?: Uint8Array;
     disableAutoRefund?: boolean;
 
     readonly challenge: IChallengeSolution;
-    readonly randomBytes?: Buffer;
+    readonly randomBytes?: Uint8Array;
 
     readonly loadedStorage?: LoadedStorage;
     readonly isCancellation?: boolean;
 }
 
 export interface IInteractionParameters extends SharedInteractionParameters {
-    readonly calldata: Buffer;
+    readonly calldata: Uint8Array;
 
     readonly to: string;
     readonly contract?: string;
 }
 
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
-    readonly bytecode: Buffer;
-    readonly calldata?: Buffer;
+    readonly bytecode: Uint8Array;
+    readonly calldata?: Uint8Array;
 
-    readonly randomBytes?: Buffer;
+    readonly randomBytes?: Uint8Array;
     readonly challenge: IChallengeSolution;
 }

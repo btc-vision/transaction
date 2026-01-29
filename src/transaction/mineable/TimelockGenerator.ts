@@ -1,4 +1,13 @@
-import bitcoin, { fromHex, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import bitcoin, {
+    fromHex,
+    Network,
+    networks,
+    opcodes,
+    PublicKey,
+    Script,
+    script,
+    XOnlyPublicKey,
+} from '@btc-vision/bitcoin';
 import { IP2WSHAddress } from './IP2WSHAddress.js';
 
 export class TimeLockGenerator {
@@ -13,11 +22,11 @@ export class TimeLockGenerator {
      * Note: This uses ECDSA, not Schnorr (Schnorr only available in Taproot)
      */
     public static generateTimeLockAddress(
-        publicKey: Uint8Array,
+        publicKey: PublicKey,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): IP2WSHAddress {
-        const witnessScript = this.generateTimeLockScript(publicKey, csvBlocks);
+        const witnessScript: Script = this.generateTimeLockScript(publicKey, csvBlocks);
 
         const p2wsh = bitcoin.payments.p2wsh({
             redeem: { output: witnessScript },
@@ -39,7 +48,7 @@ export class TimeLockGenerator {
      * Note: This uses Schnorr signatures
      */
     public static generateTimeLockAddressP2TR(
-        publicKey: Uint8Array,
+        publicKey: XOnlyPublicKey,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): string {
@@ -47,12 +56,11 @@ export class TimeLockGenerator {
             throw new Error('Public key must be 32 bytes for Taproot');
         }
 
-        const witnessScript = this.generateTimeLockScript(publicKey, csvBlocks);
-
+        const witnessScript: Script = this.generateTimeLockScript(publicKey, csvBlocks);
         const taproot = bitcoin.payments.p2tr({
             redeem: { output: witnessScript },
             network,
-            internalPubkey: TimeLockGenerator.UNSPENDABLE_INTERNAL_KEY,
+            internalPubkey: TimeLockGenerator.UNSPENDABLE_INTERNAL_KEY as XOnlyPublicKey,
         });
 
         if (!taproot.address) {
@@ -63,9 +71,9 @@ export class TimeLockGenerator {
     }
 
     private static generateTimeLockScript(
-        publicKey: Uint8Array,
+        publicKey: PublicKey | XOnlyPublicKey,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
-    ): Uint8Array {
+    ): Script {
         return script.compile([
             script.number.encode(csvBlocks),
             opcodes.OP_CHECKSEQUENCEVERIFY,

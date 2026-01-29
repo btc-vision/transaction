@@ -1,5 +1,5 @@
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import { P2TRPayment, PaymentType, Psbt, PsbtInput, PublicKey, Script, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
@@ -25,12 +25,12 @@ export abstract class SharedInteractionTransaction<
      * Random salt for the interaction
      * @type {Buffer}
      */
-    public readonly randomBytes: Buffer;
+    public readonly randomBytes: Uint8Array;
 
     protected targetScriptRedeem: P2TRPayment | null = null;
     protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
-    protected abstract readonly compiledTargetScript: Buffer;
+    protected abstract readonly compiledTargetScript: Uint8Array;
     protected abstract readonly scriptTree: Taptree;
 
     protected readonly challenge: IChallengeSolution;
@@ -42,19 +42,19 @@ export abstract class SharedInteractionTransaction<
      * Calldata for the interaction
      * @protected
      */
-    protected readonly calldata: Buffer;
+    protected readonly calldata: Uint8Array;
 
     /**
      * Contract secret for the interaction
      * @protected
      */
-    protected abstract readonly contractSecret: Buffer;
+    protected abstract readonly contractSecret: Uint8Array;
 
     /**
      * Script signer for the interaction
      * @protected
      */
-    protected readonly scriptSigner: Signer | ECPairInterface;
+    protected readonly scriptSigner: Signer | UniversalSigner;
 
     /**
      * Disable auto refund
@@ -89,13 +89,13 @@ export abstract class SharedInteractionTransaction<
         this.scriptSigner = this.generateKeyPairFromSeed();
 
         this.calldataGenerator = new CalldataGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
     }
 
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
@@ -103,7 +103,7 @@ export abstract class SharedInteractionTransaction<
      * Get the contract secret
      * @returns {Buffer} The contract secret
      */
-    public getContractSecret(): Buffer {
+    public getContractSecret(): Uint8Array {
         return this.contractSecret;
     }
 
@@ -111,7 +111,7 @@ export abstract class SharedInteractionTransaction<
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -127,17 +127,17 @@ export abstract class SharedInteractionTransaction<
      * @protected
      * @returns {Buffer} The internal pubkey as an x-only key
      */
-    protected scriptSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.scriptSigner.publicKey));
+    protected scriptSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.scriptSigner.publicKey);
     }
 
     /**
      * Generate a key pair from the seed
      * @protected
      *
-     * @returns {ECPairInterface} The key pair
+     * @returns {UniversalSigner} The key pair
      */
-    protected generateKeyPairFromSeed(): ECPairInterface {
+    protected generateKeyPairFromSeed(): UniversalSigner {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
 
@@ -237,7 +237,7 @@ export abstract class SharedInteractionTransaction<
      *
      * @returns {Buffer[]} The script solution
      */
-    protected getScriptSolution(input: PsbtInput): Buffer[] {
+    protected getScriptSolution(input: PsbtInput): Uint8Array[] {
         if (!input.tapScriptSig) {
             throw new Error('Tap script signature is required');
         }
@@ -246,7 +246,7 @@ export abstract class SharedInteractionTransaction<
             this.contractSecret,
             input.tapScriptSig[0].signature,
             input.tapScriptSig[1].signature,
-        ] as Buffer[];
+        ] as Uint8Array[];
     }
 
     /**
@@ -373,11 +373,11 @@ export abstract class SharedInteractionTransaction<
      *
      * @returns {Buffer[]} The public keys
      */
-    private getPubKeys(): Buffer[] {
-        const pubKeys = [Buffer.from(this.signer.publicKey)];
+    private getPubKeys(): Uint8Array[] {
+        const pubKeys = [this.signer.publicKey];
 
         if (this.scriptSigner) {
-            pubKeys.push(Buffer.from(this.scriptSigner.publicKey));
+            pubKeys.push(this.scriptSigner.publicKey);
         }
 
         return pubKeys;
@@ -396,7 +396,7 @@ export abstract class SharedInteractionTransaction<
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
             name: PaymentType.P2TR,
-            output: this.compiledTargetScript,
+            output: this.compiledTargetScript as Script,
             redeemVersion: 192,
         };
 

@@ -194,7 +194,7 @@ export class TransactionStateCapture {
         const note = params.note
             ? params.note instanceof Uint8Array
                 ? toHex(params.note)
-                : toHex(new Uint8Array(params.note))
+                : toHex(new TextEncoder().encode(params.note))
             : undefined;
 
         // Handle optional priorityFee and gasSatFee (not present in MultiSig)
@@ -268,13 +268,13 @@ export class TransactionStateCapture {
      */
     private static extractTypeSpecificData(
         type: TransactionType,
-        params: ITransactionParameters,
+        params: ITransactionParameters | IDeploymentParameters,
     ): TypeSpecificData {
         switch (type) {
             case TransactionType.FUNDING:
                 return this.extractFundingData(params as IFundingTransactionParameters);
             case TransactionType.DEPLOYMENT:
-                return this.extractDeploymentData(params as unknown as IDeploymentParameters);
+                return this.extractDeploymentData(params as IDeploymentParameters);
             case TransactionType.INTERACTION:
                 return this.extractInteractionData(params as IInteractionParameters);
             case TransactionType.MULTI_SIG:
@@ -323,7 +323,7 @@ export class TransactionStateCapture {
 
     private static extractMultiSigData(
         params: ITransactionParameters & {
-            pubkeys?: Buffer[];
+            pubkeys?: Uint8Array[];
             minimumSignatures?: number;
             receiver?: string;
             requestedAmount?: bigint;
@@ -346,8 +346,8 @@ export class TransactionStateCapture {
 
     private static extractCustomScriptData(
         params: ITransactionParameters & {
-            scriptElements?: (Buffer | number)[];
-            witnesses?: Buffer[];
+            scriptElements?: (Uint8Array | number)[];
+            witnesses?: Uint8Array[];
             annex?: Uint8Array;
         },
     ): CustomScriptSpecificData {
@@ -377,7 +377,7 @@ export class TransactionStateCapture {
 
     private static extractCancelData(
         params: ITransactionParameters & {
-            compiledTargetScript?: Buffer | string;
+            compiledTargetScript?: Uint8Array | string;
         },
     ): CancelSpecificData {
         const script = params.compiledTargetScript;
@@ -440,7 +440,7 @@ export class TransactionStateCapture {
             const script = 'script' in output ? output.script : undefined;
 
             return {
-                value: output.value,
+                value: Number(output.value),
                 address,
                 script: script ? toHex(script) : undefined,
                 tapInternalKey: output.tapInternalKey

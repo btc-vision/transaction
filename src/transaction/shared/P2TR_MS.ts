@@ -12,11 +12,11 @@ export class P2TR_MS {
      * @throws {Error} - If the address cannot be generated
      */
     public static generateMultiSigAddress(
-        pubKeys: Buffer[],
+        pubKeys: Uint8Array[],
         minimumSignatureRequired: number,
         network: Network = networks.bitcoin,
     ): string {
-        const publicKeys: Buffer[] = EcKeyPair.verifyPubKeys(pubKeys, network);
+        const publicKeys: Uint8Array[] = EcKeyPair.verifyPubKeys(pubKeys, network);
         if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
 
         // fake params

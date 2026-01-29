@@ -1,13 +1,18 @@
 import { TransactionType } from '../enums/TransactionType.js';
 import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import {
+    concat,
     crypto as bitCrypto,
+    fromHex,
     P2TRPayment,
     PaymentType,
     Psbt,
     PsbtInput,
+    PublicKey,
+    Script,
     Signer,
     Taptree,
+    toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
@@ -20,7 +25,7 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
@@ -61,7 +66,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The compiled target script
      * @private
      */
-    private readonly compiledTargetScript: Buffer;
+    private readonly compiledTargetScript: Uint8Array;
     /**
      * The script tree
      * @private
@@ -77,25 +82,25 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract seed
      * @private
      */
-    private readonly contractSeed: Buffer;
+    private readonly contractSeed: Uint8Array;
 
     /**
      * The contract bytecode
      * @private
      */
-    private readonly bytecode: Buffer;
+    private readonly bytecode: Uint8Array;
 
     /**
      * Constructor calldata
      * @private
      */
-    private readonly calldata?: Buffer;
+    private readonly calldata?: Uint8Array;
 
     /**
      * The contract signer
      * @private
      */
-    private readonly contractSigner: Signer | ECPairInterface;
+    private readonly contractSigner: Signer | UniversalSigner;
 
     /**
      * The contract public key
@@ -107,7 +112,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract salt random bytes
      * @private
      */
-    private readonly randomBytes: Buffer;
+    private readonly randomBytes: Uint8Array;
     private _computedAddress: string | undefined;
 
     public constructor(parameters: IDeploymentParameters) {
@@ -117,7 +122,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('MLDSA signer must be defined to deploy a contract.');
         }
 
-        this.bytecode = Compressor.compress(Buffer.concat([versionBuffer, parameters.bytecode]));
+        this.bytecode = Compressor.compress(new Uint8Array([...versionBuffer, ...parameters.bytecode]));
 
         this.verifyBytecode();
 
@@ -141,16 +146,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
 
         this.deploymentGenerator = new DeploymentGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.contractSignerXOnlyPubKey(),
             this.network,
         );
 
         if (parameters.compiledTargetScript) {
-            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+            if (parameters.compiledTargetScript instanceof Uint8Array) {
                 this.compiledTargetScript = parameters.compiledTargetScript;
             } else if (typeof parameters.compiledTargetScript === 'string') {
-                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+                this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
             } else {
                 throw new Error('Invalid compiled target script format.');
             }
@@ -169,7 +174,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         this.internalInit();
 
-        this._contractPubKey = '0x' + this.contractSeed.toString('hex');
+        this._contractPubKey = '0x' + toHex(this.contractSeed);
         this._contractAddress = new Address(this.contractSeed);
     }
 
@@ -194,7 +199,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         return this.to || this.getScriptAddress();
     }
 
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
@@ -202,7 +207,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -232,8 +237,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract signer public key
      * @protected
      */
-    protected contractSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.contractSigner.publicKey));
+    protected contractSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.contractSigner.publicKey);
     }
 
     /**
@@ -419,16 +424,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Generate the contract seed for the deployment
      * @private
      */
-    private getContractSeed(): Buffer {
+    private getContractSeed(): Uint8Array {
         if (!this.bytecode) {
             throw new Error('Bytecode is required');
         }
 
         // Concatenate deployer pubkey, salt, and sha256(bytecode)
-        const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
-        const salt: Buffer = bitCrypto.hash256(this.randomBytes);
-        const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
-        const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
+        const deployerPubKey = this.internalPubKeyToXOnly();
+        const salt = bitCrypto.hash256(this.randomBytes);
+        const sha256OfBytecode = bitCrypto.hash256(this.bytecode);
+        const buf = concat([deployerPubKey, salt, sha256OfBytecode]);
 
         return bitCrypto.hash256(buf);
     }
@@ -466,11 +471,11 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the public keys for the redeem scripts
      * @private
      */
-    private getPubKeys(): Buffer[] {
-        const pubkeys = [Buffer.from(this.signer.publicKey)];
+    private getPubKeys(): Uint8Array[] {
+        const pubkeys = [this.signer.publicKey];
 
         if (this.contractSigner) {
-            pubkeys.push(Buffer.from(this.contractSigner.publicKey));
+            pubkeys.push(this.contractSigner.publicKey);
         }
 
         return pubkeys;
@@ -484,7 +489,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.targetScriptRedeem = {
             name: PaymentType.P2TR,
             //pubkeys: this.getPubKeys(),
-            output: this.compiledTargetScript,
+            output: this.compiledTargetScript as Script,
             redeemVersion: 192,
         };
 
@@ -500,7 +505,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the second leaf script
      * @private
      */
-    private getLeafScript(): Buffer {
+    private getLeafScript(): Script {
         return this.LOCK_LEAF_SCRIPT;
     }
 

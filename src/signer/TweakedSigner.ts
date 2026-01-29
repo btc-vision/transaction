@@ -1,5 +1,5 @@
 import { backend } from '../ecc/backend.js';
-import { initEccLib, Network, Signer, tapTweakHash, toXOnly } from '@btc-vision/bitcoin';
+import { type Bytes32, initEccLib, Network, type PrivateKey, Signer, tapTweakHash, toXOnly } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
 import { eccLib } from '../ecc/backend.js';
@@ -18,7 +18,14 @@ export interface TweakSettings {
     /**
      * The tweak hash to use
      */
-    tweakHash?: Uint8Array;
+    tweakHash?: Bytes32;
+}
+
+/**
+ * Type guard to check if a Signer is a UniversalSigner (has privateKey).
+ */
+export function isUniversalSigner(signer: Signer): signer is UniversalSigner {
+    return 'privateKey' in signer;
 }
 
 /**
@@ -28,12 +35,12 @@ export interface TweakSettings {
 export class TweakedSigner {
     /**
      * Tweak a signer
-     * @param {Signer} signer - The signer to tweak
+     * @param {UniversalSigner} signer - The signer to tweak (must have privateKey)
      * @param {TweakSettings} opts - The tweak settings
      * @returns {UniversalSigner} - The tweaked signer
      */
     public static tweakSigner(signer: UniversalSigner, opts: TweakSettings = {}): UniversalSigner {
-        let privateKey: Uint8Array | undefined = signer.privateKey;
+        let privateKey: PrivateKey | undefined = signer.privateKey;
         if (!privateKey) {
             throw new Error('Private key is required for tweaking signer!');
         }

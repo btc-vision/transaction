@@ -1,4 +1,4 @@
-import { alloc, fromHex, fromUtf8, Network, networks, toXOnly } from '@btc-vision/bitcoin';
+import { alloc, fromUtf8, Network, networks, PublicKey, toXOnly } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
 import { AccessListFeature, EpochSubmissionFeature, Feature, Features, MLDSALinkRequest, } from './Features.js';
 import { Address } from '../keypair/Address.js';
@@ -41,7 +41,7 @@ export abstract class Generator {
     protected readonly network: Network = networks.bitcoin;
 
     protected constructor(
-        senderPubKey: Uint8Array,
+        senderPubKey: PublicKey,
         contractSaltPubKey?: Uint8Array,
         network: Network = networks.bitcoin,
     ) {
@@ -139,7 +139,7 @@ export abstract class Generator {
             writer.writeU32(data.length);
 
             for (const pointer of data) {
-                const pointerBuffer = Uint8Array.from(atob(pointer), c => c.charCodeAt(0));
+                const pointerBuffer = Uint8Array.from(atob(pointer), (c) => c.charCodeAt(0));
 
                 if (pointerBuffer.length !== 32) {
                     throw new Error(`Invalid pointer length: ${pointerBuffer.length}`);
