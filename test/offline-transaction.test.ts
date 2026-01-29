@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeAll } from 'vitest';
+import { createHash } from 'crypto';
 import { networks, payments, toHex } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import {
@@ -7,21 +8,7 @@ import {
     TransactionStateCapture,
     TransactionReconstructor,
     OfflineTransactionManager,
-    ReconstructionOptions,
-    // Interfaces
-    ISerializableTransactionState,
-    SerializedUTXO,
-    SerializedOutput,
-    SerializedBaseParams,
-    PrecomputedData,
     SERIALIZATION_FORMAT_VERSION,
-    // Type-specific data
-    FundingSpecificData,
-    DeploymentSpecificData,
-    InteractionSpecificData,
-    MultiSigSpecificData,
-    CustomScriptSpecificData,
-    CancelSpecificData,
     isFundingSpecificData,
     isDeploymentSpecificData,
     isInteractionSpecificData,
@@ -35,10 +22,24 @@ import {
     EcKeyPair,
     createSignerMap,
     createAddressRotation,
-    UTXO,
     ChainId,
+    currentConsensus,
 } from '../build/opnet.js';
-import { currentConsensus } from '../build/opnet.js';
+import type {
+    ReconstructionOptions,
+    ISerializableTransactionState,
+    SerializedUTXO,
+    SerializedOutput,
+    SerializedBaseParams,
+    PrecomputedData,
+    FundingSpecificData,
+    DeploymentSpecificData,
+    InteractionSpecificData,
+    MultiSigSpecificData,
+    CustomScriptSpecificData,
+    CancelSpecificData,
+    UTXO,
+} from '../build/opnet.js';
 
 describe('Offline Transaction Signing', () => {
     const network = networks.regtest;
@@ -79,7 +80,7 @@ describe('Offline Transaction Signing', () => {
             outputIndex: index,
             value,
             scriptPubKey: {
-                hex: toHex(p2tr.output!),
+                hex: toHex(p2tr.output as Uint8Array),
                 address,
             },
         };
@@ -113,7 +114,7 @@ describe('Offline Transaction Signing', () => {
                     transactionId: '0'.repeat(64),
                     outputIndex: 0,
                     value: '100000',
-                    scriptPubKeyHex: toHex(payments.p2tr({ address: address1, network }).output!),
+                    scriptPubKeyHex: toHex(payments.p2tr({ address: address1, network }).output as Uint8Array),
                     scriptPubKeyAddress: address1,
                 },
             ],
@@ -204,8 +205,9 @@ describe('Offline Transaction Signing', () => {
 
             it('should handle optional "to" field being undefined', () => {
                 const base = createMockSerializedState();
+                const { to: _to, ...baseParamsWithoutTo } = base.baseParams;
                 const state = createMockSerializedState(TransactionType.FUNDING, {
-                    baseParams: { ...base.baseParams, to: undefined },
+                    baseParams: baseParamsWithoutTo as SerializedBaseParams,
                 });
 
                 const deserialized = TransactionSerializer.deserialize(
@@ -236,14 +238,15 @@ describe('Offline Transaction Signing', () => {
                 );
 
                 expect(deserialized.utxos).toHaveLength(1);
-                expect(deserialized.utxos[0].transactionId).toBe(utxo.transactionId);
-                expect(deserialized.utxos[0].outputIndex).toBe(utxo.outputIndex);
-                expect(deserialized.utxos[0].value).toBe(utxo.value);
-                expect(deserialized.utxos[0].scriptPubKeyHex).toBe(utxo.scriptPubKeyHex);
-                expect(deserialized.utxos[0].scriptPubKeyAddress).toBe(utxo.scriptPubKeyAddress);
-                expect(deserialized.utxos[0].redeemScript).toBe(utxo.redeemScript);
-                expect(deserialized.utxos[0].witnessScript).toBe(utxo.witnessScript);
-                expect(deserialized.utxos[0].nonWitnessUtxo).toBe(utxo.nonWitnessUtxo);
+                const utxo0 = deserialized.utxos[0] as SerializedUTXO;
+                expect(utxo0.transactionId).toBe(utxo.transactionId);
+                expect(utxo0.outputIndex).toBe(utxo.outputIndex);
+                expect(utxo0.value).toBe(utxo.value);
+                expect(utxo0.scriptPubKeyHex).toBe(utxo.scriptPubKeyHex);
+                expect(utxo0.scriptPubKeyAddress).toBe(utxo.scriptPubKeyAddress);
+                expect(utxo0.redeemScript).toBe(utxo.redeemScript);
+                expect(utxo0.witnessScript).toBe(utxo.witnessScript);
+                expect(utxo0.nonWitnessUtxo).toBe(utxo.nonWitnessUtxo);
             });
 
             it('should handle multiple UTXOs', () => {
@@ -278,9 +281,9 @@ describe('Offline Transaction Signing', () => {
                 );
 
                 expect(deserialized.utxos).toHaveLength(3);
-                expect(deserialized.utxos[0].transactionId).toBe('1'.repeat(64));
-                expect(deserialized.utxos[1].transactionId).toBe('2'.repeat(64));
-                expect(deserialized.utxos[2].transactionId).toBe('3'.repeat(64));
+                expect((deserialized.utxos[0] as SerializedUTXO).transactionId).toBe('1'.repeat(64));
+                expect((deserialized.utxos[1] as SerializedUTXO).transactionId).toBe('2'.repeat(64));
+                expect((deserialized.utxos[2] as SerializedUTXO).transactionId).toBe('3'.repeat(64));
             });
 
             it('should preserve optional inputs', () => {
@@ -300,7 +303,7 @@ describe('Offline Transaction Signing', () => {
                 );
 
                 expect(deserialized.optionalInputs).toHaveLength(1);
-                expect(deserialized.optionalInputs[0].outputIndex).toBe(99);
+                expect((deserialized.optionalInputs[0] as SerializedUTXO).outputIndex).toBe(99);
             });
 
             it('should preserve optional outputs', () => {
@@ -319,9 +322,10 @@ describe('Offline Transaction Signing', () => {
                 );
 
                 expect(deserialized.optionalOutputs).toHaveLength(1);
-                expect(deserialized.optionalOutputs[0].value).toBe(output.value);
-                expect(deserialized.optionalOutputs[0].address).toBe(output.address);
-                expect(deserialized.optionalOutputs[0].tapInternalKey).toBe(output.tapInternalKey);
+                const output0 = deserialized.optionalOutputs[0] as SerializedOutput;
+                expect(output0.value).toBe(output.value);
+                expect(output0.address).toBe(output.address);
+                expect(output0.tapInternalKey).toBe(output.tapInternalKey);
             });
 
             it('should preserve script-based outputs', () => {
@@ -339,8 +343,9 @@ describe('Offline Transaction Signing', () => {
                 );
 
                 expect(deserialized.optionalOutputs).toHaveLength(1);
-                expect(deserialized.optionalOutputs[0].script).toBe(output.script);
-                expect(deserialized.optionalOutputs[0].address).toBeUndefined();
+                const scriptOutput0 = deserialized.optionalOutputs[0] as SerializedOutput;
+                expect(scriptOutput0.script).toBe(output.script);
+                expect(scriptOutput0.address).toBeUndefined();
             });
 
             it('should preserve signer mappings for address rotation', () => {
@@ -358,10 +363,12 @@ describe('Offline Transaction Signing', () => {
 
                 expect(deserialized.addressRotationEnabled).toBe(true);
                 expect(deserialized.signerMappings).toHaveLength(2);
-                expect(deserialized.signerMappings[0].address).toBe(address1);
-                expect(deserialized.signerMappings[0].inputIndices).toEqual([0, 2, 4]);
-                expect(deserialized.signerMappings[1].address).toBe(address2);
-                expect(deserialized.signerMappings[1].inputIndices).toEqual([1, 3]);
+                const mapping0 = deserialized.signerMappings[0] as (typeof deserialized.signerMappings)[0];
+                const mapping1 = deserialized.signerMappings[1] as (typeof deserialized.signerMappings)[0];
+                expect(mapping0.address).toBe(address1);
+                expect(mapping0.inputIndices).toEqual([0, 2, 4]);
+                expect(mapping1.address).toBe(address2);
+                expect(mapping1.inputIndices).toEqual([1, 3]);
             });
 
             it('should preserve precomputed data', () => {
@@ -621,9 +628,8 @@ describe('Offline Transaction Signing', () => {
 
                 // Recalculate checksum to bypass checksum error
                 const payload = serialized.subarray(0, -32);
-                const crypto = require('crypto');
-                const hash1 = crypto.createHash('sha256').update(payload).digest();
-                const newChecksum = crypto.createHash('sha256').update(hash1).digest();
+                const hash1 = createHash('sha256').update(payload).digest();
+                const newChecksum = createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
                 expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid magic byte/);
@@ -634,7 +640,7 @@ describe('Offline Transaction Signing', () => {
                 const serialized = TransactionSerializer.serialize(state);
 
                 // Corrupt checksum
-                serialized[serialized.length - 1] ^= 0xff;
+                serialized[serialized.length - 1] = (serialized[serialized.length - 1] as number) ^ 0xff;
 
                 expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid checksum/);
             });
@@ -654,9 +660,8 @@ describe('Offline Transaction Signing', () => {
 
                 // Recalculate checksum
                 const payload = serialized.subarray(0, -32);
-                const crypto = require('crypto');
-                const hash1 = crypto.createHash('sha256').update(payload).digest();
-                const newChecksum = crypto.createHash('sha256').update(hash1).digest();
+                const hash1 = createHash('sha256').update(payload).digest();
+                const newChecksum = createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
                 expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Unsupported format version/);
@@ -818,10 +823,11 @@ describe('Offline Transaction Signing', () => {
 
                 const state = TransactionStateCapture.fromFunding(params);
 
-                expect(state.utxos[0].transactionId).toBe(utxo.transactionId);
-                expect(state.utxos[0].redeemScript).toBe('cafe');
-                expect(state.utxos[0].witnessScript).toBe('babe');
-                expect(state.utxos[0].nonWitnessUtxo).toBe('feed');
+                const stateUtxo0 = state.utxos[0] as SerializedUTXO;
+                expect(stateUtxo0.transactionId).toBe(utxo.transactionId);
+                expect(stateUtxo0.redeemScript).toBe('cafe');
+                expect(stateUtxo0.witnessScript).toBe('babe');
+                expect(stateUtxo0.nonWitnessUtxo).toBe('feed');
             });
 
             it('should handle UTXOs with string scripts', () => {
@@ -851,7 +857,7 @@ describe('Offline Transaction Signing', () => {
 
                 const state = TransactionStateCapture.fromFunding(params);
 
-                expect(state.utxos[0].redeemScript).toBe('ddeeff');
+                expect((state.utxos[0] as SerializedUTXO).redeemScript).toBe('ddeeff');
             });
         });
     });
@@ -1344,7 +1350,7 @@ describe('Offline Transaction Signing', () => {
                 TransactionSerializer.serialize(state),
             );
 
-            expect(deserialized.utxos[0].value).toBe('9999999999999999');
+            expect((deserialized.utxos[0] as SerializedUTXO).value).toBe('9999999999999999');
         });
 
         it('should handle empty strings', () => {
@@ -1399,7 +1405,7 @@ describe('Offline Transaction Signing', () => {
                 TransactionSerializer.serialize(state),
             );
 
-            expect(deserialized.signerMappings[0].inputIndices).toHaveLength(100);
+            expect((deserialized.signerMappings[0] as (typeof deserialized.signerMappings)[0]).inputIndices).toHaveLength(100);
         });
 
         it('should handle loaded storage with many keys', () => {

@@ -807,7 +807,7 @@ describe('MessageSigner ML-DSA', () => {
 
             // Corrupt the signature
             const corruptedSignature = Buffer.from(signed.signature);
-            corruptedSignature[0] ^= 0xff;
+            corruptedSignature[0] = (corruptedSignature[0] as number) ^ 0xff;
 
             const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(
                 wallet.mldsaKeypair,

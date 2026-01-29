@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Address, AddressMap } from '../src';
+import { Address, AddressMap } from '../src/index.js';
 
 describe('AddressMap', () => {
     // Store original fromBigInt to restore later
@@ -362,12 +362,12 @@ describe('AddressMap', () => {
             const entries = [...map.entries()];
 
             expect(entries.length).toBe(3);
-            expect(entries[0][0].toBigInt()).toBe(1n);
-            expect(entries[0][1]).toBe('a');
-            expect(entries[1][0].toBigInt()).toBe(2n);
-            expect(entries[1][1]).toBe('b');
-            expect(entries[2][0].toBigInt()).toBe(3n);
-            expect(entries[2][1]).toBe('c');
+            expect((entries[0] as [Address, string])[0].toBigInt()).toBe(1n);
+            expect((entries[0] as [Address, string])[1]).toBe('a');
+            expect((entries[1] as [Address, string])[0].toBigInt()).toBe(2n);
+            expect((entries[1] as [Address, string])[1]).toBe('b');
+            expect((entries[2] as [Address, string])[0].toBigInt()).toBe(3n);
+            expect((entries[2] as [Address, string])[1]).toBe('c');
         });
 
         it('should yield nothing for empty map', () => {
@@ -386,20 +386,20 @@ describe('AddressMap', () => {
 
             const entries = [...map.entries()];
 
-            expect(entries[0][0].toBigInt()).toBe(3n);
-            expect(entries[1][0].toBigInt()).toBe(1n);
-            expect(entries[2][0].toBigInt()).toBe(2n);
+            expect((entries[0] as [Address, string])[0].toBigInt()).toBe(3n);
+            expect((entries[1] as [Address, string])[0].toBigInt()).toBe(1n);
+            expect((entries[2] as [Address, string])[0].toBigInt()).toBe(2n);
         });
 
         it('should create new Address instances (not references)', () => {
             const map = new AddressMap<string>();
             map.set(createMockAddress(1n), 'a');
 
-            const entries1 = [...map.entries()];
-            const entries2 = [...map.entries()];
+            void [...map.entries()];
+            void [...map.entries()];
 
             // Address.fromBigInt should be called for each iteration
-            expect(Address.fromBigInt).toHaveBeenCalledWith(1n);
+            expect(vi.mocked(Address.fromBigInt)).toHaveBeenCalledWith(1n);
         });
     });
 
@@ -413,9 +413,9 @@ describe('AddressMap', () => {
             const keys = [...map.keys()];
 
             expect(keys.length).toBe(3);
-            expect(keys[0].toBigInt()).toBe(1n);
-            expect(keys[1].toBigInt()).toBe(2n);
-            expect(keys[2].toBigInt()).toBe(3n);
+            expect((keys[0] as Address).toBigInt()).toBe(1n);
+            expect((keys[1] as Address).toBigInt()).toBe(2n);
+            expect((keys[2] as Address).toBigInt()).toBe(3n);
         });
 
         it('should yield nothing for empty map', () => {
@@ -434,9 +434,9 @@ describe('AddressMap', () => {
 
             const keys = [...map.keys()];
 
-            expect(keys[0].toBigInt()).toBe(30n);
-            expect(keys[1].toBigInt()).toBe(10n);
-            expect(keys[2].toBigInt()).toBe(20n);
+            expect((keys[0] as Address).toBigInt()).toBe(30n);
+            expect((keys[1] as Address).toBigInt()).toBe(10n);
+            expect((keys[2] as Address).toBigInt()).toBe(20n);
         });
     });
 
@@ -518,7 +518,7 @@ describe('AddressMap', () => {
             map.set(createMockAddress(2n), 'b');
 
             const values: string[] = [];
-            map.forEach((value) => values.push(value));
+            map.forEach((value: string) => values.push(value));
 
             expect(values).toEqual(['c', 'a', 'b']);
         });
@@ -545,7 +545,7 @@ describe('AddressMap', () => {
                 },
             };
 
-            map.forEach(function (this: typeof collector, value) {
+            map.forEach(function (this: typeof collector, value: number) {
                 this.add(value);
             }, collector);
 
@@ -557,7 +557,7 @@ describe('AddressMap', () => {
             map.set(createMockAddress(1n), 1);
 
             let sum = 0;
-            map.forEach((value) => {
+            map.forEach((value: number) => {
                 sum += value;
             });
 
@@ -577,10 +577,10 @@ describe('AddressMap', () => {
             }
 
             expect(entries.length).toBe(2);
-            expect(entries[0][0].toBigInt()).toBe(1n);
-            expect(entries[0][1]).toBe('a');
-            expect(entries[1][0].toBigInt()).toBe(2n);
-            expect(entries[1][1]).toBe('b');
+            expect((entries[0] as [Address, string])[0].toBigInt()).toBe(1n);
+            expect((entries[0] as [Address, string])[1]).toBe('a');
+            expect((entries[1] as [Address, string])[0].toBigInt()).toBe(2n);
+            expect((entries[1] as [Address, string])[1]).toBe('b');
         });
 
         it('should work with spread operator', () => {
@@ -612,8 +612,8 @@ describe('AddressMap', () => {
 
             expect(fromIterator.length).toBe(fromEntries.length);
             for (let i = 0; i < fromIterator.length; i++) {
-                expect(fromIterator[i][0].toBigInt()).toBe(fromEntries[i][0].toBigInt());
-                expect(fromIterator[i][1]).toBe(fromEntries[i][1]);
+                expect((fromIterator[i] as [Address, string])[0].toBigInt()).toBe((fromEntries[i] as [Address, string])[0].toBigInt());
+                expect((fromIterator[i] as [Address, string])[1]).toBe((fromEntries[i] as [Address, string])[1]);
             }
         });
     });
@@ -698,8 +698,8 @@ describe('AddressMap', () => {
 
             // Check order: addr3 was added before addr1 was re-added
             const keys = [...map.keys()];
-            expect(keys[0].toBigInt()).toBe(3n);
-            expect(keys[1].toBigInt()).toBe(1n);
+            expect((keys[0] as Address).toBigInt()).toBe(3n);
+            expect((keys[1] as Address).toBigInt()).toBe(1n);
         });
     });
 

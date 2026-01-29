@@ -1029,8 +1029,8 @@ describe('Address - Comprehensive Tests', () => {
             }
 
             for (let i = 0; i < addresses.length - 1; i++) {
-                expect(addresses[i].lessThan(addresses[i + 1])).toBe(true);
-                expect(addresses[i + 1].greaterThan(addresses[i])).toBe(true);
+                expect((addresses[i] as Address).lessThan(addresses[i + 1] as Address)).toBe(true);
+                expect((addresses[i + 1] as Address).greaterThan(addresses[i] as Address)).toBe(true);
             }
         });
     });

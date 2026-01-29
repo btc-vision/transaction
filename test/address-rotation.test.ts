@@ -53,7 +53,7 @@ describe('Address Rotation', () => {
             outputIndex: index,
             value,
             scriptPubKey: {
-                hex: toHex(p2tr.output!),
+                hex: toHex(p2tr.output as Uint8Array),
                 address,
             },
         };
@@ -515,10 +515,12 @@ describe('Address Rotation', () => {
             const expectedKey1 = toXOnly(signer1.publicKey);
             const expectedKey2 = toXOnly(signer2.publicKey);
 
-            expect((inputs[0] as (typeof inputs)[0]).tapInternalKey).toBeDefined();
-            expect((inputs[1] as (typeof inputs)[0]).tapInternalKey).toBeDefined();
-            expect(equals((inputs[0] as (typeof inputs)[0]).tapInternalKey!, expectedKey1)).toBe(true);
-            expect(equals((inputs[1] as (typeof inputs)[0]).tapInternalKey!, expectedKey2)).toBe(true);
+            const input0 = inputs[0] as (typeof inputs)[0];
+            const input1 = inputs[1] as (typeof inputs)[0];
+            expect(input0.tapInternalKey).toBeDefined();
+            expect(input1.tapInternalKey).toBeDefined();
+            expect(equals(input0.tapInternalKey as Uint8Array, expectedKey1)).toBe(true);
+            expect(equals(input1.tapInternalKey as Uint8Array, expectedKey2)).toBe(true);
         });
 
         it('should use default signer tapInternalKey when rotation disabled', async () => {
@@ -543,8 +545,9 @@ describe('Address Rotation', () => {
             const inputs = tx.getInputs();
             const expectedKey = toXOnly(defaultSigner.publicKey);
 
-            expect(inputs[0].tapInternalKey).toBeDefined();
-            expect(equals(inputs[0].tapInternalKey!, expectedKey)).toBe(true);
+            const input0 = inputs[0] as (typeof inputs)[0];
+            expect(input0.tapInternalKey).toBeDefined();
+            expect(equals(input0.tapInternalKey as Uint8Array, expectedKey)).toBe(true);
         });
     });
 });

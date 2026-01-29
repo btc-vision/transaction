@@ -12,10 +12,9 @@ import {
     FundingTransaction,
     MLDSASecurityLevel,
     Mnemonic,
-    Wallet,
     EcKeyPair,
-    UTXO,
 } from '../build/opnet.js';
+import type { UTXO } from '../build/opnet.js';
 import { networks, payments, toHex } from '@btc-vision/bitcoin';
 
 const testMnemonic =
@@ -37,8 +36,8 @@ describe('Disposable - Symbol.dispose implementations', () => {
             expect(wallet.keypair.privateKey).toBeDefined();
             expect(wallet.mldsaKeypair.privateKey).toBeDefined();
 
-            const classicalPrivKey = wallet.keypair.privateKey!;
-            const mldsaPrivKey = wallet.mldsaKeypair.privateKey!;
+            const classicalPrivKey = wallet.keypair.privateKey as Uint8Array;
+            const mldsaPrivKey = wallet.mldsaKeypair.privateKey as Uint8Array;
 
             // Verify non-zero before dispose
             expect(classicalPrivKey.some((b) => b !== 0)).toBe(true);
@@ -94,8 +93,8 @@ describe('Disposable - Symbol.dispose implementations', () => {
 
             // After dispose, the internal seed should be zeroed
             // The getter returns a copy, so check the root keys
-            expect(classicalPrivKey!.every((b) => b === 0)).toBe(true);
-            expect(quantumPrivKey!.every((b) => b === 0)).toBe(true);
+            expect((classicalPrivKey as Uint8Array).every((b) => b === 0)).toBe(true);
+            expect((quantumPrivKey as Uint8Array).every((b) => b === 0)).toBe(true);
         });
     });
 
@@ -253,7 +252,7 @@ describe('Disposable - Symbol.dispose implementations', () => {
                 outputIndex: 0,
                 value: 100_000n,
                 scriptPubKey: {
-                    hex: toHex(p2tr.output!),
+                    hex: toHex(p2tr.output as Uint8Array),
                     address: taprootAddress,
                 },
             };
