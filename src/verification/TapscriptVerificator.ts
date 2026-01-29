@@ -30,43 +30,19 @@ export interface ContractAddressVerificationParams {
     readonly network?: Network;
 }
 
+interface ScriptTreeComponents {
+    readonly scriptTree: Taptree;
+    readonly compiledTargetScript: Uint8Array;
+    readonly network: Network;
+}
+
 export class TapscriptVerificator {
     private static readonly TAP_SCRIPT_VERSION: number = 192;
 
     public static getContractAddress(
         params: ContractAddressVerificationParams,
     ): string | undefined {
-        const network = params.network || networks.bitcoin;
-        const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
-            params.deployerPubKey,
-            toXOnly(params.contractSaltPubKey as PublicKey),
-            network,
-        );
-
-        const compiledTargetScript: Uint8Array = scriptBuilder.compile(
-            params.bytecode,
-            params.originalSalt,
-            params.challenge,
-            params.priorityFee,
-            params.calldata,
-            params.features,
-        );
-
-        const lockLeafScript: Script = script.compile([
-            toXOnly(params.deployerPubKey),
-            opcodes.OP_CHECKSIG,
-        ]);
-
-        const scriptTree: Taptree = [
-            {
-                output: compiledTargetScript,
-                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
-            },
-            {
-                output: lockLeafScript,
-                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
-            },
-        ];
+        const { scriptTree } = TapscriptVerificator.buildScriptTree(params);
 
         return TapscriptVerificator.generateAddressFromScript(params, scriptTree);
     }
@@ -75,37 +51,8 @@ export class TapscriptVerificator {
         params: ContractAddressVerificationParams,
         controlBlock: Uint8Array,
     ): boolean {
-        const network = params.network || networks.bitcoin;
-        const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
-            params.deployerPubKey,
-            toXOnly(params.contractSaltPubKey as PublicKey),
-            network,
-        );
-
-        const compiledTargetScript: Uint8Array = scriptBuilder.compile(
-            params.bytecode,
-            params.originalSalt,
-            params.challenge,
-            params.priorityFee,
-            params.calldata,
-            params.features,
-        );
-
-        const lockLeafScript: Script = script.compile([
-            toXOnly(params.deployerPubKey),
-            opcodes.OP_CHECKSIG,
-        ]);
-
-        const scriptTree: Taptree = [
-            {
-                output: compiledTargetScript,
-                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
-            },
-            {
-                output: lockLeafScript,
-                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
-            },
-        ];
+        const { scriptTree, compiledTargetScript, network } =
+            TapscriptVerificator.buildScriptTree(params);
 
         const tapData = payments.p2tr({
             internalPubkey: toXOnly(params.deployerPubKey),
@@ -133,7 +80,6 @@ export class TapscriptVerificator {
     ): Uint8Array {
         const sha256OfBytecode: Uint8Array = bitCrypto.hash256(bytecode);
         const buf: Uint8Array = concat([deployerPubKey, saltHash, sha256OfBytecode]);
-
         return bitCrypto.hash256(buf);
     }
 
@@ -142,14 +88,50 @@ export class TapscriptVerificator {
         scriptTree: Taptree,
     ): string | undefined {
         const network = params.network || networks.bitcoin;
-
         const transactionData: Omit<P2TRPayment, 'name'> = {
             internalPubkey: toXOnly(params.deployerPubKey),
             network: network,
             scriptTree: scriptTree,
         };
-
         const tx: Payment = payments.p2tr(transactionData);
         return tx.address;
+    }
+
+    private static buildScriptTree(
+        params: ContractAddressVerificationParams,
+    ): ScriptTreeComponents {
+        const network = params.network || networks.bitcoin;
+        const scriptBuilder: DeploymentGenerator = new DeploymentGenerator(
+            params.deployerPubKey,
+            toXOnly(params.contractSaltPubKey as PublicKey),
+            network,
+        );
+
+        const compiledTargetScript: Uint8Array = scriptBuilder.compile(
+            params.bytecode,
+            params.originalSalt,
+            params.challenge,
+            params.priorityFee,
+            params.calldata,
+            params.features,
+        );
+
+        const lockLeafScript: Script = script.compile([
+            toXOnly(params.deployerPubKey),
+            opcodes.OP_CHECKSIG,
+        ]);
+
+        const scriptTree: Taptree = [
+            {
+                output: compiledTargetScript,
+                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
+            },
+            {
+                output: lockLeafScript,
+                version: TapscriptVerificator.TAP_SCRIPT_VERSION,
+            },
+        ];
+
+        return { scriptTree, compiledTargetScript, network };
     }
 }
