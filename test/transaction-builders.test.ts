@@ -13,9 +13,8 @@ import {
     MLDSASecurityLevel,
     Mnemonic,
     MultiSignTransaction,
-    UTXO,
 } from '../build/opnet.js';
-import type { IChallengeSolution, IChallengeVerification } from '../build/opnet.js';
+import type { IChallengeSolution, IChallengeVerification, UTXO } from '../build/opnet.js';
 
 const network = networks.regtest;
 const testMnemonic =
@@ -36,7 +35,7 @@ function createTaprootUtxo(
         outputIndex: index,
         value,
         scriptPubKey: {
-            hex: toHex(p2tr.output!),
+            hex: toHex(p2tr.output as Uint8Array),
             address: addr,
         },
     };

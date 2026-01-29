@@ -1,4 +1,4 @@
-import { fromHex, Psbt, type Signer, toHex } from '@btc-vision/bitcoin';
+import { fromHex, Psbt, type PsbtInput, type Signer, toHex } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
@@ -511,7 +511,7 @@ export class OfflineTransactionManager {
         const signerSet = new Set<string>();
 
         for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
-            const input = psbt.data.inputs[i]!;
+            const input = psbt.data.inputs[i] as PsbtInput;
 
             if (input.tapScriptSig) {
                 for (const sig of input.tapScriptSig) {
@@ -525,7 +525,7 @@ export class OfflineTransactionManager {
                 );
 
                 for (let j = 0; j < decoded.length - 2; j += 3) {
-                    const pubKey = decoded[j + 2]!;
+                    const pubKey = decoded[j + 2] as Uint8Array;
                     signerSet.add(toHex(pubKey));
                 }
             }

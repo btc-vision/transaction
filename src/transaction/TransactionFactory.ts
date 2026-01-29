@@ -914,7 +914,7 @@ export class TransactionFactory {
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {
         if (!tx.outs[index]) return [];
 
-        const out: TxOutput = tx.outs[index] as TxOutput;
+        const out: TxOutput = tx.outs[index];
         const newUtxo: UTXO = {
             transactionId: tx.getId(),
             outputIndex: index,

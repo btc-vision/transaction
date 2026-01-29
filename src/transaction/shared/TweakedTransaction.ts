@@ -739,13 +739,13 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         const batches = this.splitArray(txs, batchSize);
 
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i]!;
+            const batch = batches[i] as PsbtInput[];
             const promises: Promise<void>[] = [];
             const offset = i * batchSize;
 
             for (let j = 0; j < batch.length; j++) {
                 const index = offset + j;
-                const input = batch[j]!;
+                const input = batch[j] as PsbtInput;
 
                 try {
                     // Use per-input signer in address rotation mode
@@ -787,7 +787,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             const promises: Promise<void>[] = [];
 
             for (const index of batch) {
-                const input = txs[index]!;
+                const input = txs[index] as PsbtInput;
                 try {
                     const inputSigner = this.getSignerForInput(index);
                     promises.push(this.signInput(transaction, input, index, inputSigner));
@@ -1322,7 +1322,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             const isCSVInput = this.csvInputIndices.has(inputIndex);
             if (isCSVInput) {
                 // For CSV P2WSH, the witness stack should be: [signature, witnessScript]
-                const witnessStack = [input.partialSig[0]!.signature, input.witnessScript];
+                const witnessStack = [(input.partialSig[0] as { signature: Uint8Array }).signature, input.witnessScript];
                 return {
                     finalScriptSig: undefined,
                     finalScriptWitness: witnessStackToScriptWitness(witnessStack),
@@ -1363,7 +1363,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         const witnessStack = P2WDADetector.createSimpleP2WDAWitness(
-            input.partialSig[0]!.signature,
+            (input.partialSig[0] as { signature: Uint8Array }).signature,
             input.witnessScript,
         );
 

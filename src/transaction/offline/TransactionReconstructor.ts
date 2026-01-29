@@ -200,7 +200,7 @@ export class TransactionReconstructor {
 
         const params: IInteractionParameters = {
             ...baseParams,
-            to: baseParams.to!,
+            to: baseParams.to,
             calldata: fromHex(data.calldata),
             challenge,
             ...(data.contract !== undefined ? { contract: data.contract } : {}),

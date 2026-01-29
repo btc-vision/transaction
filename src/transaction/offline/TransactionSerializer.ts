@@ -824,7 +824,7 @@ export class TransactionSerializer {
         writer.writeU16(keys.length);
         for (const key of keys) {
             writer.writeStringWithLength(key);
-            writer.writeStringArray(storage[key]!);
+            writer.writeStringArray(storage[key] as string[]);
         }
     }
 

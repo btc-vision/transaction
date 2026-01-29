@@ -733,7 +733,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         let total = 0n;
         for (let i = 0; i < this.optionalOutputs.length; i++) {
-            total += BigInt(this.optionalOutputs[i] as PsbtOutputExtended.value);
+            total += BigInt((this.optionalOutputs[i] as PsbtOutputExtended).value);
         }
 
         return total;
@@ -864,7 +864,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         for (let i = 0; i < this.outputs.length; i++) {
-            const output = this.outputs[i]!;
+            const output = this.outputs[i] as PsbtOutputExtended;
             if ('address' in output && output.address === this.to) {
                 this.outputs[i] = {
                     ...output,
@@ -1052,7 +1052,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         for (let i = 0; i < this.optionalOutputs.length; i++) {
             this.addOutput(this.optionalOutputs[i] as PsbtOutputExtended);
-            refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i] as PsbtOutputExtended.value);
+            refundedFromOptionalOutputs += BigInt((this.optionalOutputs[i] as PsbtOutputExtended).value);
         }
 
         this.optionalOutputsAdded = true;
@@ -1076,7 +1076,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             }
 
             for (let i = 0; i < this.utxos.length; i++) {
-                const utxo = this.utxos[i]!;
+                const utxo = this.utxos[i] as UTXO;
 
                 // Register signer BEFORE generating input (needed for tapInternalKey)
                 this.registerInputSigner(i, utxo);
@@ -1092,7 +1092,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 i < this.optionalInputs.length + this.utxos.length;
                 i++
             ) {
-                const utxo = this.optionalInputs[i - this.utxos.length]!;
+                const utxo = this.optionalInputs[i - this.utxos.length] as UTXO;
 
                 // Register signer BEFORE generating input (needed for tapInternalKey)
                 this.registerInputSigner(i, utxo);
@@ -1204,7 +1204,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             throw new Error('Witness is empty');
         }
 
-        return this.tapData.witness[this.tapData.witness.length - 1]!;
+        return this.tapData.witness[this.tapData.witness.length - 1] as Uint8Array;
     }
 
     /**
