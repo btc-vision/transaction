@@ -91,7 +91,7 @@ export class FastBigIntMap {
      */
     *entries(): IterableIterator<[bigint, bigint]> {
         for (const key of this.keyOrder) {
-            yield [key, this.items[key.toString()]];
+            yield [key, this.items[key.toString()] as bigint];
         }
     }
 
@@ -107,7 +107,7 @@ export class FastBigIntMap {
      */
     *values(): IterableIterator<bigint> {
         for (const key of this.keyOrder) {
-            yield this.items[key.toString()];
+            yield this.items[key.toString()] as bigint;
         }
     }
 
@@ -119,7 +119,7 @@ export class FastBigIntMap {
         thisArg?: unknown,
     ): void {
         for (const key of this.keyOrder) {
-            callback.call(thisArg, this.items[key.toString()], key, this);
+            callback.call(thisArg, this.items[key.toString()] as bigint, key, this);
         }
     }
 

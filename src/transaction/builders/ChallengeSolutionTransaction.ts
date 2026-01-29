@@ -1,7 +1,7 @@
 /*import { TransactionType } from '../enums/TransactionType.js';
 import { getFinalScripts, opcodes, Psbt, PsbtInput, script, Signer } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 
 export class ChallengeSolutionTransaction extends TransactionBuilder<TransactionType.CHALLENGE_SOLUTION> {
     public readonly type: TransactionType.CHALLENGE_SOLUTION = TransactionType.CHALLENGE_SOLUTION;
@@ -49,7 +49,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
         transaction: Psbt,
         input: PsbtInput,
         i: number,
-        signer: Signer | ECPairInterface,
+        signer: Signer | UniversalSigner,
         reverse: boolean = false,
         errored: boolean = false,
     ): Promise<void> {
@@ -81,7 +81,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
         return getFinalScripts(inputIndex, input, scriptA, isSegwit, isP2SH, isP2WSH, false);
     };
 
-    protected override getSignerKey(): Signer | ECPairInterface {
+    protected override getSignerKey(): Signer | UniversalSigner {
         return this.signer;
     }
 }*/

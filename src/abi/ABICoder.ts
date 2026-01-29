@@ -1,8 +1,6 @@
 import shajs from 'sha.js';
 
 import { BinaryReader } from '../buffer/BinaryReader.js';
-import { BufferHelper } from '../utils/BufferHelper.js';
-
 export enum ABIDataTypes {
     // Unsigned integers
     UINT8 = 'UINT8',
@@ -169,17 +167,6 @@ export class ABICoder {
 
     public numericSelectorToHex(selector: number): string {
         return selector.toString(16);
-    }
-
-    private bigIntToUint8Array(bigIntValue: bigint, length: number): Uint8Array {
-        const byteArray = new Uint8Array(length);
-        const buf = BufferHelper.valueToUint8Array(bigIntValue);
-
-        for (let i = 0; i < length; i++) {
-            byteArray[i] = buf[i] || 0;
-        }
-
-        return byteArray;
     }
 
     private sha256(buffer: Buffer | string | Uint8Array): Buffer {

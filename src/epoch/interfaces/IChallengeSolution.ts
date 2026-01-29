@@ -1,21 +1,21 @@
 import { Address } from '../../keypair/Address.js';
 
 export interface IChallengeVerification {
-    readonly epochHash: Buffer;
-    readonly epochRoot: Buffer;
-    readonly targetHash: Buffer;
-    readonly targetChecksum: Buffer;
+    readonly epochHash: Uint8Array;
+    readonly epochRoot: Uint8Array;
+    readonly targetHash: Uint8Array;
+    readonly targetChecksum: Uint8Array;
     readonly startBlock: bigint;
     readonly endBlock: bigint;
-    readonly proofs: readonly Buffer[];
+    readonly proofs: readonly Uint8Array[];
 }
 
 export interface IChallengeSolution {
     readonly epochNumber: bigint;
     readonly publicKey: Address;
-    readonly solution: Buffer;
-    readonly salt: Buffer;
-    readonly graffiti: Buffer;
+    readonly solution: Uint8Array;
+    readonly salt: Uint8Array;
+    readonly graffiti: Uint8Array;
     readonly difficulty: number;
     readonly verification: IChallengeVerification;
 
@@ -23,9 +23,9 @@ export interface IChallengeSolution {
     getSubmission(): IChallengeSubmission | undefined;
     toRaw(): RawChallenge;
     verify(): boolean;
-    toBuffer(): Buffer;
+    toBuffer(): Uint8Array;
     toHex(): string;
-    calculateSolution(): Buffer;
+    calculateSolution(): Uint8Array;
     checkDifficulty(minDifficulty: number): { valid: boolean; difficulty: number };
     getMiningTargetBlock(): bigint | null;
 }
@@ -50,9 +50,9 @@ export interface RawChallengeSubmission {
 
 export interface IChallengeSubmission {
     readonly publicKey: Address;
-    readonly solution: Buffer;
-    readonly graffiti: Buffer | undefined;
-    readonly signature: Buffer;
+    readonly solution: Uint8Array;
+    readonly graffiti: Uint8Array | undefined;
+    readonly signature: Uint8Array;
     readonly epochNumber: bigint;
     verifySignature(): boolean;
 }

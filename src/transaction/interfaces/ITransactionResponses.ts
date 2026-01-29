@@ -1,5 +1,5 @@
-import { RawChallenge } from '../../epoch/interfaces/IChallengeSolution.js';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { RawChallenge } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 
 export interface DeploymentResult {
     readonly transaction: [string, string];

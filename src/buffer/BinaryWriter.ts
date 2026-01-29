@@ -18,10 +18,10 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { i16, i32, i64, i8, Selector, u16, u32, u64, u8 } from '../utils/types.js';
+import type { i16, i32, i64, i8, Selector, u16, u32, u64, u8 } from '../utils/types.js';
 import { BinaryReader } from './BinaryReader.js';
 
-export class BinaryWriter {
+export class BinaryWriter implements Disposable {
     private currentOffset: u32 = 0;
     private buffer: DataView;
 
@@ -34,7 +34,7 @@ export class BinaryWriter {
         let totalLength: u32 = U16_BYTE_LENGTH;
 
         for (let i = 0; i < values.length; i++) {
-            totalLength += U32_BYTE_LENGTH + values[i].length; // each entry has a u32 length prefix
+            totalLength += U32_BYTE_LENGTH + (values[i] as Uint8Array).length; // each entry has a u32 length prefix
         }
 
         return totalLength;
@@ -99,7 +99,8 @@ export class BinaryWriter {
      * Writes a signed 32-bit integer. By default big-endian (be = true).
      */
     public writeI32(value: i32, be: boolean = true): void {
-        if (value < -2147483648 || value > 2147483647) throw new Error('i32 value is out of range.');
+        if (value < -2147483648 || value > 2147483647)
+            throw new Error('i32 value is out of range.');
 
         this.allocSafe(I32_BYTE_LENGTH);
         this.buffer.setInt32(this.currentOffset, value, !be);
@@ -146,11 +147,11 @@ export class BinaryWriter {
 
         if (be) {
             for (let i = 0; i < bytesToHex.byteLength; i++) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         } else {
             for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         }
     }
@@ -173,11 +174,11 @@ export class BinaryWriter {
 
         if (be) {
             for (let i = 0; i < bytesToHex.byteLength; i++) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         } else {
             for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         }
     }
@@ -196,11 +197,11 @@ export class BinaryWriter {
 
         if (be) {
             for (let i = 0; i < bytesToHex.byteLength; i++) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         } else {
             for (let i = bytesToHex.byteLength - 1; i >= 0; i--) {
-                this.writeU8(bytesToHex[i]);
+                this.writeU8(bytesToHex[i] as number);
             }
         }
     }
@@ -209,7 +210,7 @@ export class BinaryWriter {
         this.allocSafe(value.byteLength);
 
         for (let i = 0; i < value.byteLength; i++) {
-            this.writeU8(value[i]);
+            this.writeU8(value[i] as number);
         }
     }
 
@@ -322,6 +323,10 @@ export class BinaryWriter {
         this.buffer = this.getDefaultBuffer();
     }
 
+    public [Symbol.dispose](): void {
+        this.clear();
+    }
+
     public allocSafe(size: u32): void {
         if (this.currentOffset + size > this.buffer.byteLength) {
             this.resize(size);
@@ -335,7 +340,7 @@ export class BinaryWriter {
 
         const keys = Array.from(map.keys());
         for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
+            const key = keys[i] as Address;
             const value = map.get(key);
 
             if (value === null || value === undefined) throw new Error('Value not found');
@@ -374,8 +379,8 @@ export class BinaryWriter {
         this.writeU16(values.length, be);
 
         for (let i = 0; i < values.length; i++) {
-            this.writeU32(values[i].length, be);
-            this.writeBytes(values[i]);
+            this.writeU32((values[i] as Uint8Array).length, be);
+            this.writeBytes(values[i] as Uint8Array);
         }
     }
 
@@ -385,7 +390,7 @@ export class BinaryWriter {
         this.writeU16(value.length);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeAddress(value[i]);
+            this.writeAddress(value[i] as Address);
         }
     }
 
@@ -400,7 +405,7 @@ export class BinaryWriter {
         this.writeU16(value.length);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeExtendedAddress(value[i]);
+            this.writeExtendedAddress(value[i] as Address);
         }
     }
 
@@ -410,7 +415,7 @@ export class BinaryWriter {
         this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU32(value[i], be);
+            this.writeU32(value[i] as u32, be);
         }
     }
 
@@ -420,7 +425,7 @@ export class BinaryWriter {
         this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU256(value[i], be);
+            this.writeU256(value[i] as bigint, be);
         }
     }
 
@@ -429,7 +434,7 @@ export class BinaryWriter {
 
         this.writeU16(value.length, be);
         for (let i = 0; i < value.length; i++) {
-            this.writeU128(value[i], be);
+            this.writeU128(value[i] as bigint, be);
         }
     }
 
@@ -439,7 +444,7 @@ export class BinaryWriter {
         this.writeU16(value.length);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeStringWithLength(value[i]);
+            this.writeStringWithLength(value[i] as string);
         }
     }
 
@@ -449,7 +454,7 @@ export class BinaryWriter {
         this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU16(value[i], be);
+            this.writeU16(value[i] as u16, be);
         }
     }
 
@@ -459,7 +464,7 @@ export class BinaryWriter {
         this.writeU16(value.length);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU8(value[i]);
+            this.writeU8(value[i] as u8);
         }
     }
 
@@ -469,7 +474,7 @@ export class BinaryWriter {
         this.writeU16(value.length, be);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeU64(value[i], be);
+            this.writeU64(value[i] as bigint, be);
         }
     }
 
@@ -479,7 +484,7 @@ export class BinaryWriter {
         this.writeU16(value.length);
 
         for (let i = 0; i < value.length; i++) {
-            this.writeBytesWithLength(value[i]);
+            this.writeBytesWithLength(value[i] as Uint8Array);
         }
     }
 

@@ -30,7 +30,6 @@ export default tseslint.config(
             'prefer-spread': 'off',
             '@typescript-eslint/no-empty-object-type': 'off',
             '@typescript-eslint/prefer-literal-enum-member': 'off',
-            '@typescript-eslint/related-getter-setter-pairs': 'off'
         },
     },
     {

@@ -1,71 +1,73 @@
+import { fromHex, toHex } from '@btc-vision/bitcoin';
 import { U256_BYTE_LENGTH } from './lengths.js';
-import { MemorySlotPointer } from './types.js';
+import type { MemorySlotPointer } from './types.js';
 
 export class BufferHelper {
     public static readonly EXPECTED_BUFFER_LENGTH: number = 32;
 
     public static bufferToUint8Array(buffer: Buffer | Uint8Array): Uint8Array {
-        if (Buffer.isBuffer(buffer)) {
-            const length: number = buffer.byteLength;
-            const arrayBuffer: ArrayBuffer = new ArrayBuffer(length);
-
-            const view: Uint8Array = new Uint8Array(arrayBuffer);
-            for (let i = 0; i < length; ++i) {
-                view[i] = buffer[i];
-            }
-
-            return view;
-        }
-
-        return buffer;
+        const result = new Uint8Array(buffer.byteLength);
+        result.set(buffer);
+        return result;
     }
 
     public static uint8ArrayToHex(input: Uint8Array): string {
-        return Buffer.from(input.buffer, 0, input.byteLength).toString('hex');
+        return toHex(input);
     }
 
     public static hexToUint8Array(input: string): Uint8Array {
-        if (input.startsWith('0x')) {
-            input = input.substring(2); // Remove the '0x' prefix
+        let hex = input;
+        if (hex.length >= 2 && hex[0] === '0' && (hex[1] === 'x' || hex[1] === 'X')) {
+            hex = hex.slice(2);
         }
 
-        if (input.length % 2 !== 0) {
-            input = '0' + input; // Pad with a leading zero if the length is odd
+        // Pad with a leading zero if the length is odd
+        if (hex.length % 2 !== 0) {
+            hex = '0' + hex;
         }
 
-        const lengthS = input.length / 2;
-        const buffer = new Uint8Array(lengthS);
-
-        for (let i = 0; i < lengthS; i++) {
-            buffer[i] = parseInt(input.substring(i * 2, i * 2 + 2), 16);
-        }
-
-        return buffer;
+        return fromHex(hex);
     }
 
     public static pointerToUint8Array(pointer: MemorySlotPointer): Uint8Array {
-        const pointerHex = pointer.toString(16).padStart(64, '0');
+        if (pointer < 0n) {
+            throw new RangeError('Pointer cannot be negative');
+        }
 
-        return BufferHelper.hexToUint8Array(pointerHex);
+        const hex = pointer.toString(16).padStart(64, '0');
+        if (hex.length > 64) {
+            throw new RangeError('Pointer exceeds 256-bit range');
+        }
+
+        return fromHex(hex);
     }
 
     public static uint8ArrayToPointer(input: Uint8Array): MemorySlotPointer {
-        const hex = BufferHelper.uint8ArrayToHex(input);
+        if (input.length === 0) {
+            return 0n;
+        }
 
-        return BigInt('0x' + hex);
+        return BigInt('0x' + toHex(input));
     }
 
     public static valueToUint8Array(value: bigint, length: number = U256_BYTE_LENGTH): Uint8Array {
-        const valueHex = value.toString(16).padStart(length * 2, '0');
+        if (value < 0n) {
+            throw new RangeError('Value cannot be negative');
+        }
 
-        return BufferHelper.hexToUint8Array(valueHex);
+        const hex = value.toString(16).padStart(length * 2, '0');
+        if (hex.length > length * 2) {
+            throw new RangeError(`Value exceeds ${length}-byte range`);
+        }
+
+        return fromHex(hex);
     }
 
     public static uint8ArrayToValue(input: Uint8Array): bigint {
-        const hex = BufferHelper.uint8ArrayToHex(input);
+        if (input.length === 0) {
+            return 0n;
+        }
 
-        if (!hex) return BigInt(0);
-
-        return BigInt('0x' + hex);
+        return BigInt('0x' + toHex(input));
     }
 }

@@ -1,4 +1,4 @@
-import { Web3Provider } from '../Web3Provider.js';
+import type { Web3Provider } from '../Web3Provider.js';
 import { UnisatChainType, WalletNetworks } from '../WalletNetworks.js';
 
 export interface UnisatChainInfo {

@@ -260,12 +260,12 @@ describe('BinaryReader/BinaryWriter', () => {
                 const result = reader.readExtendedAddressArray();
 
                 expect(result.length).toBe(3);
-                expect(result[0].toBigInt()).toBe(1n);
-                expect(result[0].tweakedToBigInt()).toBe(2n);
-                expect(result[1].toBigInt()).toBe(3n);
-                expect(result[1].tweakedToBigInt()).toBe(4n);
-                expect(result[2].toBigInt()).toBe(5n);
-                expect(result[2].tweakedToBigInt()).toBe(6n);
+                expect((result[0] as Address).toBigInt()).toBe(1n);
+                expect((result[0] as Address).tweakedToBigInt()).toBe(2n);
+                expect((result[1] as Address).toBigInt()).toBe(3n);
+                expect((result[1] as Address).tweakedToBigInt()).toBe(4n);
+                expect((result[2] as Address).toBigInt()).toBe(5n);
+                expect((result[2] as Address).tweakedToBigInt()).toBe(6n);
             });
 
             it('should handle large arrays', () => {
@@ -282,8 +282,8 @@ describe('BinaryReader/BinaryWriter', () => {
 
                 expect(result.length).toBe(100);
                 for (let i = 0; i < 100; i++) {
-                    expect(result[i].toBigInt()).toBe(BigInt(i));
-                    expect(result[i].tweakedToBigInt()).toBe(BigInt(i * 2));
+                    expect((result[i] as Address).toBigInt()).toBe(BigInt(i));
+                    expect((result[i] as Address).tweakedToBigInt()).toBe(BigInt(i * 2));
                 }
             });
         });

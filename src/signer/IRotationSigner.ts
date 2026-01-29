@@ -1,12 +1,12 @@
-import { Signer } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import type { Signer } from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 
 /**
  * Base signer type for address rotation.
  * This is the minimal interface required for UTXO signing.
  * UnisatSigner extends this through the CustomKeypair base class.
  */
-export type RotationSignerBase = Signer | ECPairInterface;
+export type RotationSignerBase = Signer | UniversalSigner;
 
 /**
  * Map of addresses to their respective signers for address rotation mode.

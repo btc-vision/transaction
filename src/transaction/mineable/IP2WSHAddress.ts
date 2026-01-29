@@ -1,4 +1,4 @@
 export interface IP2WSHAddress {
     address: string;
-    witnessScript: Buffer;
+    witnessScript: Uint8Array;
 }

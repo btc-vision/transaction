@@ -1,6 +1,6 @@
 import { TransactionType } from '../../enums/TransactionType.js';
 import { ChainId } from '../../../network/ChainId.js';
-import { TypeSpecificData } from './ITypeSpecificData.js';
+import type { TypeSpecificData } from './ITypeSpecificData.js';
 
 /**
  * Format version for serialization compatibility

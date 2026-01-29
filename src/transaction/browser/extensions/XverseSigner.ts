@@ -1,6 +1,22 @@
-import { Network, networks, Psbt, TapScriptSig, toXOnly } from '@btc-vision/bitcoin';
-import { PartialSig } from 'bip174/src/lib/interfaces.js';
-import { ECPairInterface } from 'ecpair';
+import {
+    equals,
+    fromHex,
+    type Network,
+    networks,
+    Psbt,
+    type PsbtInput,
+    type TapScriptSig,
+    toHex,
+    toXOnly,
+} from '@btc-vision/bitcoin';
+import type { PartialSig } from 'bip174';
+import {
+    createPublicKey,
+    type MessageHash,
+    type PublicKey,
+    type SchnorrSignature,
+    type Signature,
+} from '@btc-vision/ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import {
     canSignNonTaprootInput,
@@ -8,8 +24,8 @@ import {
     pubkeyInScript,
 } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
-import { PsbtSignatureOptions } from '../types/Unisat.js';
-import { SigningProtocol, Xverse } from '../types/Xverse.js';
+import type { PsbtSignatureOptions } from '../types/Unisat.js';
+import { SigningProtocol, type Xverse } from '../types/Xverse.js';
 
 declare global {
     interface Window {
@@ -58,9 +74,9 @@ export class XverseSigner extends CustomKeypair {
         return this._addresses;
     }
 
-    private _publicKey: Buffer | undefined;
+    private _publicKey: PublicKey | undefined;
 
-    public get publicKey(): Buffer {
+    public get publicKey(): PublicKey {
         if (!this._publicKey) {
             throw new Error('Public key not set');
         }
@@ -112,11 +128,11 @@ export class XverseSigner extends CustomKeypair {
 
         this._network = network;
 
-        this._publicKey = Buffer.from(payementAddress.publicKey, 'hex');
+        this._publicKey = createPublicKey(fromHex(payementAddress.publicKey));
 
-        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this as unknown as ECPairInterface, this.network);
+        this._p2wpkh = EcKeyPair.getP2WPKHAddress(this, this.network);
 
-        this._p2tr = EcKeyPair.getTaprootAddress(this as unknown as ECPairInterface, this.network);
+        this._p2tr = EcKeyPair.getTaprootAddress(this, this.network);
 
         this._addresses = [this._p2wpkh, this._p2tr];
 
@@ -124,17 +140,17 @@ export class XverseSigner extends CustomKeypair {
     }
 
     public async signData(
-        data: Buffer,
+        data: Uint8Array,
         address: string,
         protocol: SigningProtocol,
-    ): Promise<Buffer> {
+    ): Promise<Uint8Array> {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
 
         const callSign = await this.BitcoinProvider.request('signMessage', {
             address,
-            message: data.toString(),
+            message: new TextDecoder().decode(data),
             protocol,
         });
 
@@ -150,10 +166,10 @@ export class XverseSigner extends CustomKeypair {
             throw new Error('Signature not found');
         }
 
-        return Buffer.from(res.signature, 'hex');
+        return fromHex(res.signature);
     }
 
-    public getPublicKey(): Buffer {
+    public getPublicKey(): PublicKey {
         if (!this.isInitialized) {
             throw new Error('UnisatSigner not initialized');
         }
@@ -161,15 +177,15 @@ export class XverseSigner extends CustomKeypair {
         return this.publicKey;
     }
 
-    public sign(_hash: Buffer, _lowR?: boolean): Buffer {
+    public sign(_hash: MessageHash, _lowR?: boolean): Signature {
         throw new Error('Not implemented: sign');
     }
 
-    public signSchnorr(_hash: Buffer): Buffer {
+    public signSchnorr(_hash: MessageHash): SchnorrSignature {
         throw new Error('Not implemented: signSchnorr');
     }
 
-    public verify(_hash: Buffer, _signature: Buffer): boolean {
+    public verify(_hash: MessageHash, _signature: Signature): boolean {
         throw new Error('Not implemented: verify');
     }
 
@@ -178,7 +194,7 @@ export class XverseSigner extends CustomKeypair {
         i: number,
         sighashTypes: number[],
     ): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -197,7 +213,7 @@ export class XverseSigner extends CustomKeypair {
     }
 
     public async signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -243,7 +259,7 @@ export class XverseSigner extends CustomKeypair {
                             const tapInternalKey = input.tapInternalKey;
                             const xOnlyPubKey = toXOnly(this.publicKey);
 
-                            if (tapInternalKey.equals(xOnlyPubKey)) {
+                            if (equals(tapInternalKey, xOnlyPubKey)) {
                                 needsToSign = true;
                                 viaTaproot = true;
                             }
@@ -257,7 +273,7 @@ export class XverseSigner extends CustomKeypair {
                     if (needsToSign) {
                         return {
                             index: i,
-                            publicKey: this.publicKey.toString('hex'),
+                            publicKey: toHex(this.publicKey),
                             disableTweakSigner: !viaTaproot,
                         };
                     } else {
@@ -275,26 +291,26 @@ export class XverseSigner extends CustomKeypair {
         const toSignInputs: {
             [x: string]: number[];
         } = {
-            [this.p2wpkh]: options[0].toSignInputs?.map((input) => input.index) || [],
+            [this.p2wpkh]: (options[0] as PsbtSignatureOptions).toSignInputs?.map((input) => input.index) || [],
         };
 
         const callSign = await this.BitcoinProvider.request('signPsbt', {
-            psbt: toSignPsbts[0],
+            psbt: toSignPsbts[0] as string,
             signInputs: toSignInputs,
         });
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
-        const signedPsbts = Psbt.fromBase64(callSign.result.psbt);
+        const signedPsbts = Psbt.fromBase64((callSign.result as { psbt: string }).psbt);
 
-        transactions[0].combine(signedPsbts);
+        (transactions[0] as Psbt).combine(signedPsbts);
     }
 
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const item = input[i] as TapScriptSig;
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -304,9 +320,9 @@ export class XverseSigner extends CustomKeypair {
 
     private hasAlreadyPartialSig(input: PartialSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
-            const buf = Buffer.from(item.pubkey);
-            if (buf.equals(this.publicKey) && item.signature) {
+            const item = input[i] as PartialSig;
+            const buf = new Uint8Array(item.pubkey);
+            if (equals(buf, this.publicKey) && item.signature) {
                 return true;
             }
         }
@@ -315,8 +331,8 @@ export class XverseSigner extends CustomKeypair {
     }
 
     private combine(transaction: Psbt, newPsbt: Psbt, i: number): void {
-        const signedInput = newPsbt.data.inputs[i];
-        const originalInput = transaction.data.inputs[i];
+        const signedInput = newPsbt.data.inputs[i] as PsbtInput;
+        const originalInput = transaction.data.inputs[i] as PsbtInput;
 
         if (signedInput.partialSig) {
             transaction.updateInput(i, { partialSig: signedInput.partialSig });
@@ -348,7 +364,7 @@ export class XverseSigner extends CustomKeypair {
         sighashTypes: number[],
         disableTweakSigner: boolean = false,
     ): Promise<Psbt> {
-        const pubKey = this.publicKey.toString('hex');
+        const pubKey = toHex(this.publicKey);
         const toSign = transaction.data.inputs.map((_, i) => {
             return [
                 {
@@ -380,7 +396,7 @@ export class XverseSigner extends CustomKeypair {
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
-        return Psbt.fromBase64(callSign.result.psbt);
+        return Psbt.fromBase64((callSign.result as { psbt: string }).psbt);
     }
 
     private getNonDuplicateScriptSig(
@@ -389,9 +405,10 @@ export class XverseSigner extends CustomKeypair {
     ): TapScriptSig[] {
         const nonDuplicate: TapScriptSig[] = [];
         for (let i = 0; i < scriptSig2.length; i++) {
-            const found = scriptSig1.find((item) => item.pubkey.equals(scriptSig2[i].pubkey));
+            const sig2 = scriptSig2[i] as TapScriptSig;
+            const found = scriptSig1.find((item) => equals(item.pubkey, sig2.pubkey));
             if (!found) {
-                nonDuplicate.push(scriptSig2[i]);
+                nonDuplicate.push(sig2);
             }
         }
 
