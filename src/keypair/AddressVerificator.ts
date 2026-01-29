@@ -105,13 +105,11 @@ export class AddressVerificator {
         return false;
     }
 
-    public static isValidMLDSAPublicKey(
-        input: string | Uint8Array,
-    ): MLDSASecurityLevel | null {
+    public static isValidMLDSAPublicKey(input: string | Uint8Array): MLDSASecurityLevel | null {
         try {
             let byteLength: number;
 
-            if (input instanceof Uint8Array) {
+            if (typeof input !== 'string' && input instanceof Uint8Array) {
                 byteLength = input.length;
             } else {
                 if (input.startsWith('0x')) {

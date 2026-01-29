@@ -1,11 +1,11 @@
-import { Network, networks, script, Stack } from '@btc-vision/bitcoin';
+import { Network, networks, script, Stack, XOnlyPublicKey } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 
 /**
  * Class to generate bitcoin script for interaction transactions
  */
 export class CustomGenerator extends Generator {
-    constructor(senderPubKey: Uint8Array, network: Network = networks.bitcoin) {
+    constructor(senderPubKey: XOnlyPublicKey, network: Network = networks.bitcoin) {
         super(senderPubKey, undefined, network);
     }
 

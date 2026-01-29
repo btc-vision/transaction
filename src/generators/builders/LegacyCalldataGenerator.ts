@@ -1,4 +1,4 @@
-import { concat, crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import { concat, crypto, Network, networks, opcodes, PublicKey, script } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -11,7 +11,7 @@ import { BinaryWriter } from '../../buffer/BinaryWriter.js';
  * @deprecated
  */
 export class LegacyCalldataGenerator extends Generator {
-    constructor(senderPubKey: Uint8Array, network: Network = networks.bitcoin) {
+    constructor(senderPubKey: PublicKey, network: Network = networks.bitcoin) {
         super(senderPubKey, new Uint8Array(0), network);
     }
 

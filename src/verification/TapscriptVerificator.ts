@@ -19,7 +19,7 @@ import { IChallengeSolution } from '../epoch/interfaces/IChallengeSolution.js';
 import { Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
-    readonly deployerPubKey: Uint8Array;
+    readonly deployerPubKey: PublicKey;
     readonly contractSaltPubKey: Uint8Array;
     readonly originalSalt: Uint8Array;
     readonly bytecode: Uint8Array;
@@ -53,7 +53,7 @@ export class TapscriptVerificator {
         );
 
         const lockLeafScript: Script = script.compile([
-            toXOnly(params.deployerPubKey as PublicKey),
+            toXOnly(params.deployerPubKey),
             opcodes.OP_CHECKSIG,
         ]);
 
@@ -92,7 +92,7 @@ export class TapscriptVerificator {
         );
 
         const lockLeafScript: Script = script.compile([
-            toXOnly(params.deployerPubKey as PublicKey),
+            toXOnly(params.deployerPubKey),
             opcodes.OP_CHECKSIG,
         ]);
 
@@ -108,7 +108,7 @@ export class TapscriptVerificator {
         ];
 
         const tapData = payments.p2tr({
-            internalPubkey: toXOnly(params.deployerPubKey as PublicKey),
+            internalPubkey: toXOnly(params.deployerPubKey),
             network: network,
             scriptTree: scriptTree,
             redeem: {
@@ -144,7 +144,7 @@ export class TapscriptVerificator {
         const network = params.network || networks.bitcoin;
 
         const transactionData: Omit<P2TRPayment, 'name'> = {
-            internalPubkey: toXOnly(params.deployerPubKey as PublicKey),
+            internalPubkey: toXOnly(params.deployerPubKey),
             network: network,
             scriptTree: scriptTree,
         };

@@ -1,4 +1,4 @@
-import { concat, crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import { concat, crypto, Network, networks, opcodes, PublicKey, script } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -12,7 +12,7 @@ import { BinaryWriter } from '../../buffer/BinaryWriter.js';
  */
 export class CalldataGenerator extends Generator {
     constructor(
-        senderPubKey: Uint8Array,
+        senderPubKey: PublicKey,
         contractSaltPubKey: Uint8Array,
         network: Network = networks.bitcoin,
     ) {

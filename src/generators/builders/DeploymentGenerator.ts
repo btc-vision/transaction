@@ -1,4 +1,4 @@
-import { crypto, Network, networks, opcodes, script } from '@btc-vision/bitcoin';
+import { crypto, Network, networks, opcodes, PublicKey, script } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 import { Feature, Features } from '../Features.js';
 import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
@@ -9,7 +9,7 @@ export const versionBuffer = Uint8Array.from([OPNET_DEPLOYMENT_VERSION]);
 
 export class DeploymentGenerator extends Generator {
     constructor(
-        senderPubKey: Uint8Array,
+        senderPubKey: PublicKey,
         contractSaltPubKey: Uint8Array,
         network: Network = networks.bitcoin,
     ) {

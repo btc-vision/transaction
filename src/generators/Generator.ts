@@ -1,4 +1,4 @@
-import { alloc, fromUtf8, Network, networks, PublicKey, toXOnly } from '@btc-vision/bitcoin';
+import { alloc, fromUtf8, Network, networks, PublicKey, toXOnly, XOnlyPublicKey, } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
 import { AccessListFeature, EpochSubmissionFeature, Feature, Features, MLDSALinkRequest, } from './Features.js';
 import { Address } from '../keypair/Address.js';
@@ -41,7 +41,7 @@ export abstract class Generator {
     protected readonly network: Network = networks.bitcoin;
 
     protected constructor(
-        senderPubKey: PublicKey,
+        senderPubKey: PublicKey | XOnlyPublicKey,
         contractSaltPubKey?: Uint8Array,
         network: Network = networks.bitcoin,
     ) {

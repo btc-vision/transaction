@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MessageSigner, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 describe('MessageSigner ML-DSA', () => {
     const testMnemonic =
@@ -155,7 +155,7 @@ describe('MessageSigner ML-DSA', () => {
 
             // Verify it matches the SHA-256 hash
             const expectedHash = MessageSigner.sha256(Buffer.from(message, 'utf-8'));
-            expect(Buffer.from(signed.message).toString('hex')).toBe(expectedHash.toString('hex'));
+            expect(toHex(signed.message)).toBe(toHex(expectedHash));
         });
     });
 
