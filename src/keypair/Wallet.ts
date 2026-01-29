@@ -25,7 +25,7 @@ initEccLib(eccLib);
 /**
  * Wallet class for managing both classical and quantum-resistant keys
  */
-export class Wallet {
+export class Wallet implements Disposable {
     private readonly _keypair: UniversalSigner;
     private readonly _mldsaKeypair: QuantumBIP32Interface;
     private readonly _securityLevel: MLDSASecurityLevel;
@@ -256,6 +256,24 @@ export class Wallet {
 
     public toQuantumBase58(): string {
         return this._mldsaKeypair.toBase58();
+    }
+
+    /**
+     * Best-effort zeroing of private key material held by this wallet.
+     *
+     * Zeros classical and quantum private key buffers and the chain code in-place.
+     * This cannot guarantee all copies are erased (the JS runtime may have copied
+     * buffers internally, and string representations cannot be zeroed), but it
+     * eliminates the primary references.
+     */
+    public zeroize(): void {
+        this._keypair.privateKey?.fill(0);
+        this._mldsaKeypair.privateKey?.fill(0);
+        this._chainCode.fill(0);
+    }
+
+    public [Symbol.dispose](): void {
+        this.zeroize();
     }
 
     public derivePath(path: string): Wallet {

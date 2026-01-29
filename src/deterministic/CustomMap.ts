@@ -1,4 +1,4 @@
-export class CustomMap<K, V> {
+export class CustomMap<K, V> implements Disposable {
     private static readonly INITIAL_CAPACITY = 16;
     private static readonly LOAD_FACTOR = 0.75;
 
@@ -74,6 +74,10 @@ export class CustomMap<K, V> {
         this.#values = new Array<V>(this.capacity);
         this.deleted = new Array<boolean>(this.capacity).fill(false);
         this._size = 0;
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public *entries(): MapIterator<[K, V]> {

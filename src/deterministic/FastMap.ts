@@ -10,7 +10,7 @@ export type FastRecord<V> = {
 
 export type IndexKey = string | number;
 
-export class FastMap<K extends PropertyExtendedKey, V> {
+export class FastMap<K extends PropertyExtendedKey, V> implements Disposable {
     protected _keys: K[] = [];
     protected _values: FastRecord<V> = {};
 
@@ -105,6 +105,10 @@ export class FastMap<K extends PropertyExtendedKey, V> {
     public clear(): void {
         this._keys = [];
         this._values = {};
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public forEach(

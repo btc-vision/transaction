@@ -1,4 +1,4 @@
-export class DeterministicSet<T> {
+export class DeterministicSet<T> implements Disposable {
     private elements: T[];
 
     constructor(private compareFn: (a: T, b: T) => number) {
@@ -42,6 +42,10 @@ export class DeterministicSet<T> {
 
     public clear(): void {
         this.elements = [];
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public forEach(callback: (value: T, set: DeterministicSet<T>) => void): void {

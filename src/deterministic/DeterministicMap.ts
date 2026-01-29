@@ -1,6 +1,6 @@
 import { FastMap, PropertyExtendedKey } from './FastMap.js';
 
-export class DeterministicMap<K extends PropertyExtendedKey, V> {
+export class DeterministicMap<K extends PropertyExtendedKey, V> implements Disposable {
     private map: FastMap<K, V>;
     #keys: K[];
 
@@ -102,6 +102,10 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> {
     public clear(): void {
         this.map.clear();
         this.#keys = [];
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public forEach(callback: (value: V, key: K, map: DeterministicMap<K, V>) => void): void {

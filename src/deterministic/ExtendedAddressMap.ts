@@ -5,7 +5,7 @@ import { FastMap } from './FastMap.js';
  * A map implementation using Address with both MLDSA and tweaked keys.
  * Uses the tweaked public key for lookup/indexing, but stores the full Address.
  */
-export class ExtendedAddressMap<V> {
+export class ExtendedAddressMap<V> implements Disposable {
     // Store tweaked bigint -> index mapping for fast lookup
     private indexMap: FastMap<bigint, number>;
 
@@ -83,6 +83,10 @@ export class ExtendedAddressMap<V> {
         this.indexMap.clear();
         this._keys = [];
         this._values = [];
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public indexOf(address: Address): number {

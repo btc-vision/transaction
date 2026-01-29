@@ -36,7 +36,7 @@ const validMLDSALengths = [1312, 1952, 2592];
  *
  * @category KeyPair
  */
-export class Address extends Uint8Array {
+export class Address extends Uint8Array implements Disposable {
     #p2tr: string | undefined;
     #p2op: string | undefined;
     #network: Network | undefined;
@@ -209,6 +209,31 @@ export class Address extends Uint8Array {
         compressed.set(x, 1);
 
         return compressed;
+    }
+
+    public [Symbol.dispose](): void {
+        // Zero the base Uint8Array (hashed ML-DSA public key)
+        this.fill(0);
+
+        // Clear all cached / derived state
+        this.#p2tr = undefined;
+        this.#p2op = undefined;
+        this.#network = undefined;
+        this.#originalPublicKey = undefined;
+        this.#keyPair = undefined;
+        this.#uncompressed = undefined;
+        this.#tweakedUncompressed = undefined;
+        this.#p2wda = undefined;
+        this.#mldsaPublicKey?.fill(0);
+        this.#mldsaPublicKey = undefined;
+        this.#cachedBigInt = undefined;
+        this.#cachedBigIntTweaked = undefined;
+        this.#cachedUint64Array = undefined;
+        this.#originalMDLSAPublicKey?.fill(0);
+        this.#originalMDLSAPublicKey = undefined;
+        this.#mldsaLevel = undefined;
+        this.#legacyProcessed = false;
+        this.#tweakedPublicKey = undefined;
     }
 
     /**

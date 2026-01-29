@@ -1,6 +1,6 @@
 import { Address } from '../keypair/Address.js';
 
-export class AddressSet {
+export class AddressSet implements Disposable {
     private items: Set<bigint>;
     private keys: Address[];
 
@@ -43,6 +43,10 @@ export class AddressSet {
     public clear(): void {
         this.items.clear();
         this.keys = [];
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public combine(set: AddressSet): AddressSet {

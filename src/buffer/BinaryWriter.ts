@@ -21,7 +21,7 @@ import {
 import { i16, i32, i64, i8, Selector, u16, u32, u64, u8 } from '../utils/types.js';
 import { BinaryReader } from './BinaryReader.js';
 
-export class BinaryWriter {
+export class BinaryWriter implements Disposable {
     private currentOffset: u32 = 0;
     private buffer: DataView;
 
@@ -321,6 +321,10 @@ export class BinaryWriter {
     public clear(): void {
         this.currentOffset = 0;
         this.buffer = this.getDefaultBuffer();
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public allocSafe(size: u32): void {

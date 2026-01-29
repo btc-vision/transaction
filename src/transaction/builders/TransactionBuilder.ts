@@ -221,6 +221,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         });
     }
 
+    public override [Symbol.dispose](): void {
+        super[Symbol.dispose]();
+
+        this.updateInputs.length = 0;
+        this.outputs.length = 0;
+        this.feeOutput = null;
+        this.optionalOutputs = undefined;
+        this.utxos = [];
+        this.optionalInputs = [];
+    }
+
     public static getFrom(
         from: string | undefined,
         keypair: UniversalSigner | Signer,

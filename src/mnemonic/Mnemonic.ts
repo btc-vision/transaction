@@ -22,7 +22,7 @@ export { BIPStandard, getBIPDescription } from './BIPStandard.js';
 /**
  * Mnemonic class for managing BIP39 mnemonic phrases with BIP360 quantum support
  */
-export class Mnemonic {
+export class Mnemonic implements Disposable {
     private readonly _phrase: string;
     private readonly _passphrase: string;
     private readonly _network: Network;
@@ -74,6 +74,22 @@ export class Mnemonic {
 
     public get seed(): Uint8Array {
         return new Uint8Array(this._seed);
+    }
+
+    /**
+     * Best-effort zeroing of secret material held by this mnemonic.
+     *
+     * Zeros the seed buffer and root private keys in-place.
+     * The mnemonic phrase and passphrase are JS strings and cannot be zeroed.
+     */
+    public zeroize(): void {
+        this._seed.fill(0);
+        this._classicalRoot.privateKey?.fill(0);
+        this._quantumRoot.privateKey?.fill(0);
+    }
+
+    public [Symbol.dispose](): void {
+        this.zeroize();
     }
 
     public static generatePhrase(strength: MnemonicStrength = MnemonicStrength.MAXIMUM): string {

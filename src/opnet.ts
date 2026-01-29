@@ -1,3 +1,6 @@
+/** Polyfill Symbol.dispose / Symbol.asyncDispose for Safari & Android WebView */
+import './polyfill/disposable.js';
+
 import { Unisat } from './transaction/browser/types/Unisat.js';
 import { OPWallet } from './transaction/browser/types/OPWallet.js';
 

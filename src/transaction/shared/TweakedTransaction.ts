@@ -65,7 +65,7 @@ export enum CSVModes {
 /**
  * @description PSBT Transaction processor.
  * */
-export abstract class TweakedTransaction extends Logger {
+export abstract class TweakedTransaction extends Logger implements Disposable {
     public readonly logColor: string = '#00ffe1';
     public finalized: boolean = false;
 
@@ -205,6 +205,18 @@ export abstract class TweakedTransaction extends Logger {
             this.addressRotationEnabled = true;
             this.signerMap = data.addressRotation.signerMap;
         }
+    }
+
+    public [Symbol.dispose](): void {
+        this.inputs.length = 0;
+        this.scriptData = null;
+        this.tapData = null;
+        this.tapLeafScript = null;
+        this.tweakedSigner = undefined;
+        this.csvInputIndices.clear();
+        this.anchorInputIndices.clear();
+        this.inputSignerMap.clear();
+        this.tweakedSignerCache.clear();
     }
 
     /**
