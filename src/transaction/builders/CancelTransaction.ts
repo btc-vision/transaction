@@ -4,6 +4,7 @@ import { TransactionBuilder } from './TransactionBuilder.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 
 export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL> {
     public type: TransactionType.CANCEL = TransactionType.CANCEL;
@@ -23,8 +24,10 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
         super({
             ...parameters,
             gasSatFee: 1n,
+            isCancellation: true,
             priorityFee: 1n,
-        });
+            calldata: Buffer.alloc(0),
+        } as unknown as SharedInteractionParameters);
 
         this.contractSecret = new Uint8Array(0);
 
