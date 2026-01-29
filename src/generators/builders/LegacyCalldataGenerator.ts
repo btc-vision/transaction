@@ -86,7 +86,9 @@ export class LegacyCalldataGenerator extends Generator {
                 this.encodeFeature(feature, finalBuffer);
             }
 
-            featureData.push(...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())));
+            featureData.push(
+                ...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())),
+            );
         }
 
         let compiledData = [

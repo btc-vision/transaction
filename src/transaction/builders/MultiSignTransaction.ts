@@ -60,7 +60,9 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         //Transaction.SIGHASH_ALL,
         //Transaction.SIGHASH_ANYONECANPAY,
     ];
-    public static readonly numsPoint: PublicKey = fromHex('50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0') as PublicKey;
+    public static readonly numsPoint: PublicKey = fromHex(
+        '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
+    ) as PublicKey;
 
     public type: TransactionType.MULTI_SIG = TransactionType.MULTI_SIG;
 

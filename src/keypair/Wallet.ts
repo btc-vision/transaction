@@ -1,6 +1,14 @@
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
-import { fromHex, initEccLib, Network, networks, PublicKey, toHex, toXOnly } from '@btc-vision/bitcoin';
+import {
+    fromHex,
+    initEccLib,
+    Network,
+    networks,
+    PublicKey,
+    toHex,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
@@ -45,10 +53,7 @@ export class Wallet {
             : privateKeyOrWif;
 
         if (BitcoinUtils.isValidHex(parsedPrivateKey)) {
-            this._keypair = EcKeyPair.fromPrivateKey(
-                fromHex(parsedPrivateKey),
-                this.network,
-            );
+            this._keypair = EcKeyPair.fromPrivateKey(fromHex(parsedPrivateKey), this.network);
         } else {
             this._keypair = EcKeyPair.fromWIF(parsedPrivateKey, this.network);
         }

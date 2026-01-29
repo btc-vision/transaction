@@ -1,4 +1,5 @@
 import { Logger } from '@btc-vision/logger';
+import type { Bytes32, FinalScriptsFunc, Script, XOnlyPublicKey } from '@btc-vision/bitcoin';
 import {
     address as bitAddress,
     crypto as bitCrypto,
@@ -27,20 +28,26 @@ import {
     Transaction,
     varuint,
 } from '@btc-vision/bitcoin';
-import type { Bytes32, FinalScriptsFunc, PublicKey, Script, XOnlyPublicKey } from '@btc-vision/bitcoin';
 
 import { isUniversalSigner, TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TapLeafScript } from '../interfaces/Tap.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
+import {
+    canSignNonTaprootInput,
+    isTaprootInput,
+    pubkeyInScript,
+} from '../../signer/SignerUtils.js';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { RotationSigner, SignerMap } from '../../signer/AddressRotation.js';
-import { ITweakedTransactionData, SupportedTransactionVersion, } from '../interfaces/ITweakedTransactionData.js';
+import {
+    ITweakedTransactionData,
+    SupportedTransactionVersion,
+} from '../interfaces/ITweakedTransactionData.js';
 
 /**
  * The transaction sequence
@@ -878,9 +885,10 @@ export abstract class TweakedTransaction extends Logger {
             // Legacy input requires nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
                 //delete input.witnessUtxo;
-                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
-                    ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo);
+                input.nonWitnessUtxo =
+                    utxo.nonWitnessUtxo instanceof Uint8Array
+                        ? utxo.nonWitnessUtxo
+                        : fromHex(utxo.nonWitnessUtxo);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PKH UTXO');
             }
@@ -903,9 +911,10 @@ export abstract class TweakedTransaction extends Logger {
             let redeemScriptBuf: Uint8Array | undefined;
 
             if (utxo.redeemScript) {
-                redeemScriptBuf = utxo.redeemScript instanceof Uint8Array
-                    ? utxo.redeemScript
-                    : fromHex(utxo.redeemScript);
+                redeemScriptBuf =
+                    utxo.redeemScript instanceof Uint8Array
+                        ? utxo.redeemScript
+                        : fromHex(utxo.redeemScript);
             } else {
                 // Attempt to generate a redeem script if missing
                 if (!utxo.scriptPubKey.address) {
@@ -939,9 +948,10 @@ export abstract class TweakedTransaction extends Logger {
             }
 
             if (utxo.nonWitnessUtxo) {
-                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
-                    ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo);
+                input.nonWitnessUtxo =
+                    utxo.nonWitnessUtxo instanceof Uint8Array
+                        ? utxo.nonWitnessUtxo
+                        : fromHex(utxo.nonWitnessUtxo);
             }
 
             if (isP2WPKH(redeemOutput)) {
@@ -992,9 +1002,10 @@ export abstract class TweakedTransaction extends Logger {
         else if (isP2PK(scriptPub) || isP2MS(scriptPub)) {
             // These are legacy scripts, need nonWitnessUtxo
             if (utxo.nonWitnessUtxo) {
-                input.nonWitnessUtxo = utxo.nonWitnessUtxo instanceof Uint8Array
-                    ? utxo.nonWitnessUtxo
-                    : fromHex(utxo.nonWitnessUtxo);
+                input.nonWitnessUtxo =
+                    utxo.nonWitnessUtxo instanceof Uint8Array
+                        ? utxo.nonWitnessUtxo
+                        : fromHex(utxo.nonWitnessUtxo);
             } else {
                 throw new Error('Missing nonWitnessUtxo for P2PK or P2MS UTXO');
             }
@@ -1035,9 +1046,10 @@ export abstract class TweakedTransaction extends Logger {
             throw new Error('Missing witnessScript for P2WSH UTXO');
         }
 
-        input.witnessScript = utxo.witnessScript instanceof Uint8Array
-            ? utxo.witnessScript
-            : fromHex(utxo.witnessScript);
+        input.witnessScript =
+            utxo.witnessScript instanceof Uint8Array
+                ? utxo.witnessScript
+                : fromHex(utxo.witnessScript);
 
         // No nonWitnessUtxo needed for segwit
 
@@ -1051,7 +1063,10 @@ export abstract class TweakedTransaction extends Logger {
                 const csvBlocks = this.extractCSVBlocks(decompiled);
 
                 // Use the setCSVSequence method to properly set the sequence
-                (input as { sequence: number }).sequence = this.setCSVSequence(csvBlocks, this.sequence);
+                (input as { sequence: number }).sequence = this.setCSVSequence(
+                    csvBlocks,
+                    this.sequence,
+                );
             }
         }
     }

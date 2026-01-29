@@ -92,7 +92,9 @@ export class CalldataGenerator extends Generator {
                 this.encodeFeature(feature, finalBuffer);
             }
 
-            featureData.push(...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())));
+            featureData.push(
+                ...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())),
+            );
         }
 
         let compiledData: (number | Uint8Array | Uint8Array[])[] = [

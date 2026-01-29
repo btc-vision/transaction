@@ -1,3 +1,4 @@
+import type { Script } from '@btc-vision/bitcoin';
 import bitcoin, {
     equals,
     fromHex,
@@ -10,11 +11,10 @@ import bitcoin, {
     PsbtOutputExtended,
     script,
     Signer,
-    toXOnly,
     toSatoshi,
+    toXOnly,
     Transaction,
 } from '@btc-vision/bitcoin';
-import type { FinalScriptsFunc, Satoshi, Script, PublicKey } from '@btc-vision/bitcoin';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { eccLib } from '../../ecc/backend.js';
 import { UpdateInput } from '../interfaces/Tap.js';
@@ -410,7 +410,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 throw new Error('Output script is too short');
             }
 
-            if (scriptOutput.script[0] !== opcodes.OP_RETURN && !equals(scriptOutput.script, ANCHOR_SCRIPT)) {
+            if (
+                scriptOutput.script[0] !== opcodes.OP_RETURN &&
+                !equals(scriptOutput.script, ANCHOR_SCRIPT)
+            ) {
                 throw new Error(
                     'Output script must start with OP_RETURN or be an ANCHOR when value is 0',
                 );

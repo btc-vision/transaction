@@ -1,4 +1,4 @@
-import { concat, fromHex, Psbt, PsbtInput, PublicKey, toXOnly } from '@btc-vision/bitcoin';
+import { concat, fromHex, Psbt, PsbtInput, toXOnly } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
 import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { TransactionBuilder } from './TransactionBuilder.js';

@@ -40,6 +40,10 @@ export class BinaryReader {
         this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     }
 
+    public get byteLength(): number {
+        return this.buffer.byteLength;
+    }
+
     // Helpers for comparisons; unchanged
     public static stringCompare(a: string, b: string): number {
         return a.localeCompare(b);
@@ -60,10 +64,6 @@ export class BinaryReader {
     public setBuffer(bytes: BufferLike): void {
         this.buffer = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         this.currentOffset = 0;
-    }
-
-    public get byteLength(): number {
-        return this.buffer.byteLength;
     }
 
     public length(): number {

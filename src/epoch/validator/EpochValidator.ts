@@ -16,7 +16,11 @@ export class EpochValidator {
     /**
      * Calculate mining preimage
      */
-    public static calculatePreimage(checksumRoot: Uint8Array, publicKey: Uint8Array, salt: Uint8Array): Uint8Array {
+    public static calculatePreimage(
+        checksumRoot: Uint8Array,
+        publicKey: Uint8Array,
+        salt: Uint8Array,
+    ): Uint8Array {
         // Ensure all are 32 bytes
         if (checksumRoot.length !== 32 || publicKey.length !== 32 || salt.length !== 32) {
             throw new Error('All inputs must be 32 bytes');
@@ -79,10 +83,7 @@ export class EpochValidator {
                 return false;
             }
 
-            const matchingBits = this.countMatchingBits(
-                computedSolution,
-                verification.targetHash,
-            );
+            const matchingBits = this.countMatchingBits(computedSolution, verification.targetHash);
 
             if (matchingBits !== challenge.difficulty) {
                 return false;
@@ -149,10 +150,7 @@ export class EpochValidator {
                 return false;
             }
 
-            const matchingBits = this.countMatchingBits(
-                computedSolution,
-                verification.targetHash,
-            );
+            const matchingBits = this.countMatchingBits(computedSolution, verification.targetHash);
 
             if (matchingBits !== difficulty) {
                 return false;

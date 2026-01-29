@@ -99,7 +99,8 @@ export class BinaryWriter {
      * Writes a signed 32-bit integer. By default big-endian (be = true).
      */
     public writeI32(value: i32, be: boolean = true): void {
-        if (value < -2147483648 || value > 2147483647) throw new Error('i32 value is out of range.');
+        if (value < -2147483648 || value > 2147483647)
+            throw new Error('i32 value is out of range.');
 
         this.allocSafe(I32_BYTE_LENGTH);
         this.buffer.setInt32(this.currentOffset, value, !be);

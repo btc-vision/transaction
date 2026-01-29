@@ -1,4 +1,12 @@
-import { fromHex, Psbt, PsbtInput, PublicKey, Script, toSatoshi, toXOnly, Transaction } from '@btc-vision/bitcoin';
+import {
+    fromHex,
+    Psbt,
+    PsbtInput,
+    Script,
+    toSatoshi,
+    toXOnly,
+    Transaction,
+} from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';

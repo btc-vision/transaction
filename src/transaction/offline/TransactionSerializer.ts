@@ -24,7 +24,10 @@ import {
     TypeSpecificData,
 } from './interfaces/ITypeSpecificData.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { RawChallenge, RawChallengeVerification, } from '../../epoch/interfaces/IChallengeSolution.js';
+import {
+    RawChallenge,
+    RawChallengeVerification,
+} from '../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * Serializes and deserializes transaction state for offline signing.

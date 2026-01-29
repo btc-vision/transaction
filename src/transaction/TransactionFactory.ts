@@ -558,9 +558,7 @@ export class TransactionFactory {
                 !(nonWitness instanceof Uint8Array) &&
                 typeof nonWitness === 'object'
             ) {
-                nonWitness = Uint8Array.from(
-                    Object.values(nonWitness as Record<string, number>),
-                );
+                nonWitness = Uint8Array.from(Object.values(nonWitness as Record<string, number>));
             }
 
             return {
@@ -720,7 +718,7 @@ export class TransactionFactory {
      * @returns {string} - The hex encoded PSBT with header
      */
     private writePSBTHeader(type: PSBTTypes, psbt: string): string {
-        const decoded = Uint8Array.from(atob(psbt), c => c.charCodeAt(0));
+        const decoded = Uint8Array.from(atob(psbt), (c) => c.charCodeAt(0));
 
         const header = new Uint8Array(2);
         header[0] = type;

@@ -443,9 +443,7 @@ export class TransactionStateCapture {
                 value: Number(output.value),
                 address,
                 script: script ? toHex(script) : undefined,
-                tapInternalKey: output.tapInternalKey
-                    ? toHex(output.tapInternalKey)
-                    : undefined,
+                tapInternalKey: output.tapInternalKey ? toHex(output.tapInternalKey) : undefined,
             };
         });
     }

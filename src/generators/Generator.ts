@@ -1,6 +1,20 @@
-import { alloc, fromUtf8, Network, networks, PublicKey, toXOnly, XOnlyPublicKey, } from '@btc-vision/bitcoin';
+import {
+    alloc,
+    fromUtf8,
+    Network,
+    networks,
+    PublicKey,
+    toXOnly,
+    XOnlyPublicKey,
+} from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
-import { AccessListFeature, EpochSubmissionFeature, Feature, Features, MLDSALinkRequest, } from './Features.js';
+import {
+    AccessListFeature,
+    EpochSubmissionFeature,
+    Feature,
+    Features,
+    MLDSALinkRequest,
+} from './Features.js';
 import { Address } from '../keypair/Address.js';
 import { Compressor } from '../bytecode/Compressor.js';
 

@@ -1,4 +1,13 @@
-import { fromHex, Network, networks, PsbtOutputExtended, Script, Signer, Stack, toSatoshi } from '@btc-vision/bitcoin';
+import {
+    fromHex,
+    Network,
+    networks,
+    PsbtOutputExtended,
+    Script,
+    Signer,
+    Stack,
+    toSatoshi,
+} from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { UTXO } from '../../utxo/interfaces/IUTXO.js';
@@ -12,7 +21,11 @@ import { InteractionTransaction } from '../builders/InteractionTransaction.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 import { CustomScriptTransaction } from '../builders/CustomScriptTransaction.js';
 import { CancelTransaction } from '../builders/CancelTransaction.js';
-import { ISerializableTransactionState, SerializedOutput, SerializedUTXO, } from './interfaces/ISerializableState.js';
+import {
+    ISerializableTransactionState,
+    SerializedOutput,
+    SerializedUTXO,
+} from './interfaces/ISerializableState.js';
 import {
     CancelSpecificData,
     CustomScriptSpecificData,
@@ -356,9 +369,7 @@ export class TransactionReconstructor {
      */
     private static deserializeOutputs(serialized: SerializedOutput[]): PsbtOutputExtended[] {
         return serialized.map((s): PsbtOutputExtended => {
-            const tapInternalKey = s.tapInternalKey
-                ? fromHex(s.tapInternalKey)
-                : undefined;
+            const tapInternalKey = s.tapInternalKey ? fromHex(s.tapInternalKey) : undefined;
 
             // PsbtOutputExtended is a union type - either has address OR script, not both
             if (s.address) {

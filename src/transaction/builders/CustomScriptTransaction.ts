@@ -4,7 +4,6 @@ import {
     PaymentType,
     Psbt,
     PsbtInput,
-    PublicKey,
     Script,
     Signer,
     Taptree,

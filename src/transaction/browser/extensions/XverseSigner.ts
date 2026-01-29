@@ -1,6 +1,21 @@
-import { equals, fromHex, Network, networks, Psbt, TapScriptSig, toHex, toXOnly } from '@btc-vision/bitcoin';
+import {
+    equals,
+    fromHex,
+    Network,
+    networks,
+    Psbt,
+    TapScriptSig,
+    toHex,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { PartialSig } from 'bip174';
-import { createPublicKey, type MessageHash, type PublicKey, type SchnorrSignature, type Signature, type UniversalSigner } from '@btc-vision/ecpair';
+import {
+    createPublicKey,
+    type MessageHash,
+    type PublicKey,
+    type SchnorrSignature,
+    type Signature,
+} from '@btc-vision/ecpair';
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import {
     canSignNonTaprootInput,

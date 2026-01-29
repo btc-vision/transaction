@@ -85,7 +85,9 @@ export class DeploymentGenerator extends Generator {
                 this.encodeFeature(feature, finalBuffer);
             }
 
-            featureData.push(...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())));
+            featureData.push(
+                ...this.splitBufferIntoChunks(new Uint8Array(finalBuffer.getBuffer())),
+            );
         }
 
         const compiledData = [

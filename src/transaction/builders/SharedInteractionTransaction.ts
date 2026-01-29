@@ -1,4 +1,13 @@
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, PublicKey, Script, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
+import {
+    P2TRPayment,
+    PaymentType,
+    Psbt,
+    PsbtInput,
+    Script,
+    Signer,
+    Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';

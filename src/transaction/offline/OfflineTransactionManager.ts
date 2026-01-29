@@ -468,9 +468,8 @@ export class OfflineTransactionManager {
         const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
         const psbt = Psbt.fromBase64(typeData.existingPsbtBase64, { network });
 
-        const pubKeyBuffer = signerPubKey instanceof Uint8Array
-            ? signerPubKey
-            : fromHex(signerPubKey);
+        const pubKeyBuffer =
+            signerPubKey instanceof Uint8Array ? signerPubKey : fromHex(signerPubKey);
 
         return MultiSignTransaction.verifyIfSigned(psbt, pubKeyBuffer);
     }

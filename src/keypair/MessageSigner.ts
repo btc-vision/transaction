@@ -1,4 +1,9 @@
-import { type MessageHash, type PublicKey, type SchnorrSignature, type UniversalSigner } from '@btc-vision/ecpair';
+import {
+    type MessageHash,
+    type PublicKey,
+    type SchnorrSignature,
+    type UniversalSigner,
+} from '@btc-vision/ecpair';
 import { backend } from '../ecc/backend.js';
 import { crypto, fromHex, Network, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
@@ -205,7 +210,11 @@ class MessageSignerBase {
             throw new Error('backend.verifySchnorr is not available.');
         }
 
-        return backend.verifySchnorr(hashedMessage as MessageHash, toXOnly(publicKey as PublicKey), signature as SchnorrSignature);
+        return backend.verifySchnorr(
+            hashedMessage as MessageHash,
+            toXOnly(publicKey as PublicKey),
+            signature as SchnorrSignature,
+        );
     }
 
     public tweakAndVerifySignature(

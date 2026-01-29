@@ -8,7 +8,6 @@ import {
     PaymentType,
     Psbt,
     PsbtInput,
-    PublicKey,
     Script,
     Signer,
     Taptree,
@@ -122,7 +121,9 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('MLDSA signer must be defined to deploy a contract.');
         }
 
-        this.bytecode = Compressor.compress(new Uint8Array([...versionBuffer, ...parameters.bytecode]));
+        this.bytecode = Compressor.compress(
+            new Uint8Array([...versionBuffer, ...parameters.bytecode]),
+        );
 
         this.verifyBytecode();
 
