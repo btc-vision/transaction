@@ -14,25 +14,25 @@ import {
     isP2WPKH,
     isP2WSHScript,
     isUnknownSegwitVersion,
-    Network,
+    type Network,
     opcodes,
-    P2TRPayment,
+    type P2TRPayment,
     payments,
     PaymentType,
     Psbt,
-    PsbtInput,
-    PsbtInputExtended,
+    type PsbtInput,
+    type PsbtInputExtended,
     script,
-    Signer,
+    type Signer,
     toXOnly,
     Transaction,
     varuint,
 } from '@btc-vision/bitcoin';
 
-import { isUniversalSigner, TweakedSigner, TweakSettings } from '../../signer/TweakedSigner.js';
+import { isUniversalSigner, TweakedSigner, type TweakSettings } from '../../signer/TweakedSigner.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import {
     canSignNonTaprootInput,
@@ -41,13 +41,21 @@ import {
 } from '../../signer/SignerUtils.js';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import { QuantumBIP32Interface } from '@btc-vision/bip32';
+import type { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
-import { RotationSigner, SignerMap } from '../../signer/AddressRotation.js';
-import {
+import { type RotationSigner, type SignerMap } from '../../signer/AddressRotation.js';
+import type {
     ITweakedTransactionData,
     SupportedTransactionVersion,
 } from '../interfaces/ITweakedTransactionData.js';
+import {
+    prepareSigningTasks,
+    applySignaturesToPsbt,
+    type ParallelSigningResult,
+    WorkerSigningPool,
+    type WorkerPoolConfig,
+} from '@btc-vision/bitcoin/workers';
+import { toTweakedParallelKeyPair } from '../../signer/ParallelSignerAdapter.js';
 
 /**
  * The transaction sequence
@@ -66,7 +74,7 @@ export enum CSVModes {
  * @description PSBT Transaction processor.
  * */
 export abstract class TweakedTransaction extends Logger implements Disposable {
-    public readonly logColor: string = '#00ffe1';
+    public override readonly logColor: string = '#00ffe1';
     public finalized: boolean = false;
 
     /**
@@ -179,6 +187,12 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      */
     protected readonly tweakedSignerCache: Map<number, UniversalSigner | undefined> = new Map();
 
+    /**
+     * Parallel signing configuration using worker threads.
+     * When set, key-path taproot inputs are signed in parallel via workers.
+     */
+    protected parallelSigningConfig?: WorkerSigningPool | WorkerPoolConfig;
+
     protected constructor(data: ITweakedTransactionData) {
         super();
 
@@ -186,8 +200,12 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         this.network = data.network;
 
         this.noSignatures = data.noSignatures || false;
-        this.nonWitnessUtxo = data.nonWitnessUtxo;
-        this.unlockScript = data.unlockScript;
+        if (data.nonWitnessUtxo !== undefined) {
+            this.nonWitnessUtxo = data.nonWitnessUtxo;
+        }
+        if (data.unlockScript !== undefined) {
+            this.unlockScript = data.unlockScript;
+        }
 
         this.isBrowser = typeof window !== 'undefined';
 
@@ -205,6 +223,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             this.addressRotationEnabled = true;
             this.signerMap = data.addressRotation.signerMap;
         }
+
+        if (data.parallelSigning) {
+            this.parallelSigningConfig = data.parallelSigning;
+        }
     }
 
     public [Symbol.dispose](): void {
@@ -212,11 +234,12 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         this.scriptData = null;
         this.tapData = null;
         this.tapLeafScript = null;
-        this.tweakedSigner = undefined;
+        delete this.tweakedSigner;
         this.csvInputIndices.clear();
         this.anchorInputIndices.clear();
         this.inputSignerMap.clear();
         this.tweakedSignerCache.clear();
+        delete this.parallelSigningConfig;
     }
 
     /**
@@ -676,32 +699,25 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
     }
 
     protected async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
-        // non web based signing.
-        const txs: PsbtInput[] = transaction.data.inputs;
-
-        const batchSize: number = 20;
-        const batches = this.splitArray(txs, batchSize);
-
         if (!this.noSignatures) {
-            for (let i = 0; i < batches.length; i++) {
-                const batch = batches[i];
-                const promises: Promise<void>[] = [];
-                const offset = i * batchSize;
+            if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+                let parallelSignedIndices = new Set<number>();
 
-                for (let j = 0; j < batch.length; j++) {
-                    const index = offset + j;
-                    const input = batch[j];
-
-                    try {
-                        // Use per-input signer in address rotation mode
-                        const inputSigner = this.getSignerForInput(index);
-                        promises.push(this.signInput(transaction, input, index, inputSigner));
-                    } catch (e) {
-                        this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                try {
+                    const result = await this.signKeyPathInputsParallel(transaction);
+                    if (result.success) {
+                        parallelSignedIndices = new Set(result.signatures.keys());
                     }
+                } catch (e) {
+                    this.error(
+                        `Parallel signing failed, falling back to sequential: ${(e as Error).message}`,
+                    );
                 }
 
-                await Promise.all(promises);
+                // Sign remaining inputs (script-path, non-taproot, etc.) sequentially
+                await this.signRemainingInputsSequential(transaction, parallelSignedIndices);
+            } else {
+                await this.signInputsSequential(transaction);
             }
         }
 
@@ -710,6 +726,78 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         this.finalized = true;
+    }
+
+    /**
+     * Signs all inputs sequentially in batches of 20.
+     * This is the original signing logic, used as fallback when parallel signing is unavailable.
+     */
+    protected async signInputsSequential(transaction: Psbt): Promise<void> {
+        const txs: PsbtInput[] = transaction.data.inputs;
+
+        const batchSize: number = 20;
+        const batches = this.splitArray(txs, batchSize);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i]!;
+            const promises: Promise<void>[] = [];
+            const offset = i * batchSize;
+
+            for (let j = 0; j < batch.length; j++) {
+                const index = offset + j;
+                const input = batch[j]!;
+
+                try {
+                    // Use per-input signer in address rotation mode
+                    const inputSigner = this.getSignerForInput(index);
+                    promises.push(this.signInput(transaction, input, index, inputSigner));
+                } catch (e) {
+                    this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                }
+            }
+
+            await Promise.all(promises);
+        }
+    }
+
+    /**
+     * Signs inputs that were not handled by parallel signing.
+     * After parallel key-path signing, script-path taproot inputs, non-taproot inputs,
+     * and any inputs that failed parallel signing need sequential signing.
+     */
+    protected async signRemainingInputsSequential(
+        transaction: Psbt,
+        signedIndices: Set<number>,
+    ): Promise<void> {
+        const txs: PsbtInput[] = transaction.data.inputs;
+
+        const unsignedIndices: number[] = [];
+        for (let i = 0; i < txs.length; i++) {
+            if (!signedIndices.has(i)) {
+                unsignedIndices.push(i);
+            }
+        }
+
+        if (unsignedIndices.length === 0) return;
+
+        const batchSize = 20;
+        const batches = this.splitArray(unsignedIndices, batchSize);
+
+        for (const batch of batches) {
+            const promises: Promise<void>[] = [];
+
+            for (const index of batch) {
+                const input = txs[index]!;
+                try {
+                    const inputSigner = this.getSignerForInput(index);
+                    promises.push(this.signInput(transaction, input, index, inputSigner));
+                } catch (e) {
+                    this.log(`Failed to sign input ${index}: ${(e as Error).stack}`);
+                }
+            }
+
+            await Promise.all(promises);
+        }
     }
 
     /**
@@ -738,7 +826,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         if (this.tweakedSigner) return;
 
         // tweaked p2tr signer.
-        this.tweakedSigner = this.getTweakedSigner(true);
+        const tweaked = this.getTweakedSigner(true);
+        if (tweaked !== undefined) {
+            this.tweakedSigner = tweaked;
+        }
     }
 
     /**
@@ -755,7 +846,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         };
 
         if (useTweakedHash) {
-            settings.tweakHash = this.getTweakerHash() as Bytes32 | undefined;
+            const tweakHash = this.getTweakerHash() as Bytes32 | undefined;
+            if (tweakHash !== undefined) {
+                settings.tweakHash = tweakHash;
+            }
         }
 
         if (!isUniversalSigner(signer)) {
@@ -763,6 +857,87 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         return TweakedSigner.tweakSigner(signer, settings);
+    }
+
+    /**
+     * Whether parallel signing can be used for this transaction.
+     * Requires parallelSigningConfig and excludes browser, address rotation, and no-signature modes.
+     */
+    protected get canUseParallelSigning(): boolean {
+        return (
+            !!this.parallelSigningConfig &&
+            !this.addressRotationEnabled &&
+            !this.noSignatures
+        );
+    }
+
+    /**
+     * Signs key-path taproot inputs in parallel using worker threads.
+     * @param transaction - The PSBT to sign
+     * @param excludeIndices - Input indices to skip (e.g., script-path inputs already signed)
+     * @returns The parallel signing result
+     */
+    protected async signKeyPathInputsParallel(
+        transaction: Psbt,
+        excludeIndices?: Set<number>,
+    ): Promise<ParallelSigningResult> {
+        const signer = this.signer as UniversalSigner;
+
+        // Get the tweaked signer for key-path
+        const tweakedSigner = this.getTweakedSigner(true);
+        if (!tweakedSigner) {
+            throw new Error('Cannot create tweaked signer for parallel signing');
+        }
+
+        // Create hybrid adapter: untweaked pubkey (for PSBT matching) + tweaked privkey
+        const adapter = toTweakedParallelKeyPair(signer, tweakedSigner);
+
+        // Prepare tasks from PSBT
+        const allTasks = prepareSigningTasks(transaction, adapter);
+
+        // Filter out excluded indices
+        const tasks = excludeIndices
+            ? allTasks.filter((t) => !excludeIndices.has(t.inputIndex))
+            : allTasks;
+
+        if (tasks.length === 0) {
+            return {
+                success: true,
+                signatures: new Map(),
+                errors: new Map(),
+                durationMs: 0,
+            };
+        }
+
+        // Get or create pool
+        let pool: WorkerSigningPool;
+        let shouldShutdown = false;
+
+        if (this.parallelSigningConfig instanceof WorkerSigningPool) {
+            pool = this.parallelSigningConfig;
+        } else {
+            pool = WorkerSigningPool.getInstance(this.parallelSigningConfig);
+            if (!pool.isPreservingWorkers) shouldShutdown = true;
+        }
+
+        try {
+            await pool.initialize();
+            const result = await pool.signBatch(tasks, adapter);
+
+            if (result.success) {
+                applySignaturesToPsbt(transaction, result, adapter);
+            } else {
+                const errorEntries = [...result.errors.entries()];
+                const errorMsg = errorEntries
+                    .map(([idx, err]) => `Input ${idx}: ${err}`)
+                    .join(', ');
+                this.error(`Parallel signing had errors: ${errorMsg}`);
+            }
+
+            return result;
+        } finally {
+            if (shouldShutdown) await pool.shutdown();
+        }
     }
 
     protected generateP2SHRedeemScript(customWitnessScript: Uint8Array): Uint8Array | undefined {
@@ -1147,7 +1322,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             const isCSVInput = this.csvInputIndices.has(inputIndex);
             if (isCSVInput) {
                 // For CSV P2WSH, the witness stack should be: [signature, witnessScript]
-                const witnessStack = [input.partialSig[0].signature, input.witnessScript];
+                const witnessStack = [input.partialSig[0]!.signature, input.witnessScript];
                 return {
                     finalScriptSig: undefined,
                     finalScriptWitness: witnessStackToScriptWitness(witnessStack),
@@ -1188,7 +1363,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         const witnessStack = P2WDADetector.createSimpleP2WDAWitness(
-            input.partialSig[0].signature,
+            input.partialSig[0]!.signature,
             input.witnessScript,
         );
 

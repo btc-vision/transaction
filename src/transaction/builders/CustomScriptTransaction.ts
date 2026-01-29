@@ -1,24 +1,26 @@
 import {
     crypto as bitCrypto,
-    P2TRPayment,
+    type FinalScriptsFunc,
+    type P2TRPayment,
     PaymentType,
     Psbt,
-    PsbtInput,
-    Script,
-    Signer,
-    Taptree,
+    type PsbtInput,
+    type Script,
+    type Signer,
+    type Taptree,
     toSatoshi,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
-import { ICustomTransactionParameters } from '../interfaces/ICustomTransactionParameters.js';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
+import type { ICustomTransactionParameters } from '../interfaces/ICustomTransactionParameters.js';
 
 /**
  * Class for interaction transactions
@@ -36,7 +38,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * The tap leaf script
      * @private
      */
-    protected tapLeafScript: TapLeafScript | null = null;
+    protected override tapLeafScript: TapLeafScript | null = null;
     /**
      * The target script redeem
      * @private
@@ -193,25 +195,55 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected async signInputs(transaction: Psbt): Promise<void> {
+    protected override async signInputs(transaction: Psbt): Promise<void> {
         if (!this.contractSigner) {
             await super.signInputs(transaction);
 
             return;
         }
 
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                // multi sig input
-                try {
-                    transaction.signInput(0, this.contractSigner);
-                } catch (e) {}
+        // Input 0: sequential (contractSigner + main signer, custom finalizer)
+        try {
+            transaction.signInput(0, this.contractSigner);
+        } catch {
+            // contractSigner may fail for some script types
+        }
+        transaction.signInput(0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer);
 
-                transaction.signInput(0, this.getSignerKey());
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        const signedIndices = new Set<number>([0]);
 
-                transaction.finalizeInput(0, this.customFinalizer);
-            } else {
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            try {
+                const result = await this.signKeyPathInputsParallel(
+                    transaction,
+                    new Set([0]),
+                );
+                if (result.success) {
+                    for (const idx of result.signatures.keys()) signedIndices.add(idx);
+                }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed: ${(e as Error).message}`,
+                );
+            }
+        }
+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            if (!signedIndices.has(i)) {
                 transaction.signInput(i, this.getSignerKey());
+            }
+        }
+
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
                 transaction.finalizeInput(i);
             }
         }
@@ -311,20 +343,6 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
-
-    /**
-     * Get the public keys for the redeem scripts
-     * @private
-     */
-    private getPubKeys(): Uint8Array[] {
-        const pubkeys = [this.signer.publicKey];
-
-        if (this.contractSigner) {
-            pubkeys.push(this.contractSigner.publicKey);
-        }
-
-        return pubkeys;
-    }
 
     /**
      * Generate the redeem scripts

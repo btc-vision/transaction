@@ -1,12 +1,12 @@
 import * as bip39 from 'bip39';
 import {
     BIP32Factory,
-    BIP32Interface,
+    type BIP32Interface,
     MLDSASecurityLevel,
     QuantumBIP32Factory,
-    QuantumBIP32Interface,
+    type QuantumBIP32Interface,
 } from '@btc-vision/bip32';
-import { initEccLib, Network, networks, toHex } from '@btc-vision/bitcoin';
+import { initEccLib, type Network, networks, toHex } from '@btc-vision/bitcoin';
 import { backend, eccLib } from '../ecc/backend.js';
 import { Wallet } from '../keypair/Wallet.js';
 import { MnemonicStrength } from './MnemonicStrength.js';

@@ -4,34 +4,34 @@ import bitcoin, {
     fromHex,
     getFinalScripts,
     initEccLib,
-    Network,
+    type Network,
     opcodes,
     Psbt,
-    PsbtInputExtended,
-    PsbtOutputExtended,
+    type PsbtInputExtended,
+    type PsbtOutputExtended,
     script,
-    Signer,
+    type Signer,
     toSatoshi,
     toXOnly,
     Transaction,
 } from '@btc-vision/bitcoin';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { eccLib } from '../../ecc/backend.js';
-import { UpdateInput } from '../interfaces/Tap.js';
+import type { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import {
+import type {
     IFundingTransactionParameters,
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import { Feature, FeaturePriority, Features, MLDSALinkRequest } from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features, type MLDSALinkRequest } from '../../generators/Features.js';
 import { BITCOIN_PROTOCOL_ID, getChainId } from '../../chain/ChainData.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
@@ -54,7 +54,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     public static readonly MINIMUM_DUST: bigint = 330n;
 
     public abstract readonly type: T;
-    public readonly logColor: string = '#785def';
+    public override readonly logColor: string = '#785def';
     public debugFees: boolean = false;
 
     // Cancel script
@@ -109,12 +109,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * @description The signer of the transaction
      */
-    protected readonly signer: Signer | UniversalSigner | UnisatSigner;
+    protected override readonly signer: Signer | UniversalSigner | UnisatSigner;
 
     /**
      * @description The network where the transaction will be broadcasted
      */
-    protected readonly network: Network;
+    protected override readonly network: Network;
 
     /**
      * @description The fee rate of the transaction
@@ -281,10 +281,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             gasSatFee: this.gasSatFee ?? 0n,
             from: this.from,
             amount: this.estimatedFees,
-            optionalOutputs: this.optionalOutputs,
             optionalInputs: this.optionalInputs,
             mldsaSigner: null,
-        };
+            ...(this.optionalOutputs !== undefined ? { optionalOutputs: this.optionalOutputs } : {}),
+        } satisfies IFundingTransactionParameters;
     }
 
     /**
@@ -369,7 +369,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             this.transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
-                this.transaction.updateInput(i, this.updateInputs[i]);
+                this.transaction.updateInput(i, this.updateInputs[i] as UpdateInput);
             }
 
             this.transaction.addOutputs(outputs);
@@ -733,7 +733,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         let total = 0n;
         for (let i = 0; i < this.optionalOutputs.length; i++) {
-            total += BigInt(this.optionalOutputs[i].value);
+            total += BigInt(this.optionalOutputs[i] as PsbtOutputExtended.value);
         }
 
         return total;
@@ -864,7 +864,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         for (let i = 0; i < this.outputs.length; i++) {
-            const output = this.outputs[i];
+            const output = this.outputs[i]!;
             if ('address' in output && output.address === this.to) {
                 this.outputs[i] = {
                     ...output,
@@ -1051,8 +1051,8 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         let refundedFromOptionalOutputs: bigint = 0n;
 
         for (let i = 0; i < this.optionalOutputs.length; i++) {
-            this.addOutput(this.optionalOutputs[i]);
-            refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i].value);
+            this.addOutput(this.optionalOutputs[i] as PsbtOutputExtended);
+            refundedFromOptionalOutputs += BigInt(this.optionalOutputs[i] as PsbtOutputExtended.value);
         }
 
         this.optionalOutputsAdded = true;
@@ -1076,7 +1076,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             }
 
             for (let i = 0; i < this.utxos.length; i++) {
-                const utxo = this.utxos[i];
+                const utxo = this.utxos[i]!;
 
                 // Register signer BEFORE generating input (needed for tapInternalKey)
                 this.registerInputSigner(i, utxo);
@@ -1092,7 +1092,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 i < this.optionalInputs.length + this.utxos.length;
                 i++
             ) {
-                const utxo = this.optionalInputs[i - this.utxos.length];
+                const utxo = this.optionalInputs[i - this.utxos.length]!;
 
                 // Register signer BEFORE generating input (needed for tapInternalKey)
                 this.registerInputSigner(i, utxo);
@@ -1204,7 +1204,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             throw new Error('Witness is empty');
         }
 
-        return this.tapData.witness[this.tapData.witness.length - 1];
+        return this.tapData.witness[this.tapData.witness.length - 1]!;
     }
 
     /**
@@ -1362,7 +1362,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             transaction.addInputs(inputs, checkPartialSigs);
 
             for (let i = 0; i < this.updateInputs.length; i++) {
-                transaction.updateInput(i, this.updateInputs[i]);
+                transaction.updateInput(i, this.updateInputs[i] as UpdateInput);
             }
 
             transaction.addOutputs(outputs);

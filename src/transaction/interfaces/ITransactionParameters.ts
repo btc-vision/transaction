@@ -1,9 +1,9 @@
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ITweakedTransactionData } from './ITweakedTransactionData.js';
-import { ChainId } from '../../network/ChainId.js';
-import { PsbtOutputExtended } from '@btc-vision/bitcoin';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { ITweakedTransactionData } from './ITweakedTransactionData.js';
+import type { ChainId } from '../../network/ChainId.js';
+import type { PsbtOutputExtended } from '@btc-vision/bitcoin';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
 
 export interface LoadedStorage {
     [key: string]: string[];

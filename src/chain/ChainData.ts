@@ -1,4 +1,4 @@
-import { Network, networks } from '@btc-vision/bitcoin';
+import { type Network, networks } from '@btc-vision/bitcoin';
 
 const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
     [

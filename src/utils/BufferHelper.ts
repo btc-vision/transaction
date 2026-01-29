@@ -1,6 +1,6 @@
 import { fromHex, toHex } from '@btc-vision/bitcoin';
 import { U256_BYTE_LENGTH } from './lengths.js';
-import { MemorySlotPointer } from './types.js';
+import type { MemorySlotPointer } from './types.js';
 
 export class BufferHelper {
     public static readonly EXPECTED_BUFFER_LENGTH: number = 32;

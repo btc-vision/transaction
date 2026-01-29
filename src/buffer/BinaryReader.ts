@@ -17,7 +17,7 @@ import {
     U64_BYTE_LENGTH,
     U8_BYTE_LENGTH,
 } from '../utils/lengths.js';
-import { BufferLike, i16, i32, i64, i8, Selector, u16, u32, u8 } from '../utils/types.js';
+import type { BufferLike, i16, i32, i64, i8, Selector, u16, u32, u8 } from '../utils/types.js';
 
 /**
  * Represents a Schnorr signature paired with the signer's Address.
@@ -207,7 +207,7 @@ export class BinaryReader {
 
         // If the top bit is set (sign bit in big-endian), interpret negative
         const signBitMask = 0x80;
-        if (bytes[0] & signBitMask) {
+        if ((bytes[0] as number) & signBitMask) {
             // (1 << 128)
             const twoTo128 = BigInt(1) << BigInt(128);
             // 2's complement
@@ -512,7 +512,7 @@ export class BinaryReader {
     private reverseBytes(bytes: Uint8Array): Uint8Array {
         const out = new Uint8Array(bytes.length);
         for (let i = 0; i < bytes.length; i++) {
-            out[i] = bytes[bytes.length - 1 - i];
+            out[i] = bytes[bytes.length - 1 - i] as number;
         }
         return out;
     }

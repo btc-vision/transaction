@@ -1,4 +1,4 @@
-import { Network, Psbt, Signer } from '@btc-vision/bitcoin';
+import { type Network, Psbt, type Signer } from '@btc-vision/bitcoin';
 import {
     type MessageHash,
     type PublicKey,

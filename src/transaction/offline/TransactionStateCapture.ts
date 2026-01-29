@@ -1,19 +1,19 @@
-import { Network, PsbtOutputExtended, toHex } from '@btc-vision/bitcoin';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import { type Network, type PsbtOutputExtended, toHex } from '@btc-vision/bitcoin';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { ChainId } from '../../network/ChainId.js';
 import { currentConsensus } from '../../consensus/ConsensusConfig.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import {
+import type {
     ISerializableTransactionState,
     PrecomputedData,
-    SERIALIZATION_FORMAT_VERSION,
     SerializationHeader,
     SerializedBaseParams,
     SerializedOutput,
     SerializedSignerMapping,
     SerializedUTXO,
 } from './interfaces/ISerializableState.js';
-import {
+import { SERIALIZATION_FORMAT_VERSION } from './interfaces/ISerializableState.js';
+import type {
     CancelSpecificData,
     CustomScriptSpecificData,
     DeploymentSpecificData,
@@ -23,7 +23,7 @@ import {
     SerializedScriptElement,
     TypeSpecificData,
 } from './interfaces/ITypeSpecificData.js';
-import {
+import type {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
@@ -57,7 +57,7 @@ export class TransactionStateCapture {
         return this.captureState({
             params,
             type: TransactionType.FUNDING,
-            precomputed,
+            ...(precomputed !== undefined ? { precomputed } : {}),
         });
     }
 
@@ -113,7 +113,7 @@ export class TransactionStateCapture {
         return this.captureState({
             params,
             type: TransactionType.MULTI_SIG,
-            precomputed,
+            ...(precomputed !== undefined ? { precomputed } : {}),
         });
     }
 
@@ -131,7 +131,7 @@ export class TransactionStateCapture {
         return this.captureState({
             params,
             type: TransactionType.CUSTOM_CODE,
-            precomputed,
+            ...(precomputed !== undefined ? { precomputed } : {}),
         });
     }
 
@@ -147,7 +147,7 @@ export class TransactionStateCapture {
         return this.captureState({
             params,
             type: TransactionType.CANCEL,
-            precomputed,
+            ...(precomputed !== undefined ? { precomputed } : {}),
         });
     }
 
@@ -203,15 +203,15 @@ export class TransactionStateCapture {
 
         return {
             from: params.from || '',
-            to: params.to,
             feeRate: params.feeRate,
             priorityFee: priorityFee.toString(),
             gasSatFee: gasSatFee.toString(),
             networkName: this.networkToName(params.network),
             txVersion: params.txVersion ?? 2,
-            note,
             anchor: params.anchor ?? false,
-            debugFees: params.debugFees,
+            ...(params.to !== undefined ? { to: params.to } : {}),
+            ...(note !== undefined ? { note } : {}),
+            ...(params.debugFees !== undefined ? { debugFees: params.debugFees } : {}),
         };
     }
 
@@ -300,10 +300,10 @@ export class TransactionStateCapture {
         return {
             type: TransactionType.DEPLOYMENT,
             bytecode: toHex(params.bytecode),
-            calldata: params.calldata ? toHex(params.calldata) : undefined,
             challenge: params.challenge.toRaw(),
-            revealMLDSAPublicKey: params.revealMLDSAPublicKey,
-            linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress,
+            ...(params.calldata ? { calldata: toHex(params.calldata) } : {}),
+            ...(params.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey } : {}),
+            ...(params.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress } : {}),
         };
     }
 
@@ -311,13 +311,13 @@ export class TransactionStateCapture {
         return {
             type: TransactionType.INTERACTION,
             calldata: toHex(params.calldata),
-            contract: params.contract,
             challenge: params.challenge.toRaw(),
-            loadedStorage: params.loadedStorage,
-            isCancellation: params.isCancellation,
-            disableAutoRefund: params.disableAutoRefund,
-            revealMLDSAPublicKey: params.revealMLDSAPublicKey,
-            linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress,
+            ...(params.contract !== undefined ? { contract: params.contract } : {}),
+            ...(params.loadedStorage !== undefined ? { loadedStorage: params.loadedStorage } : {}),
+            ...(params.isCancellation !== undefined ? { isCancellation: params.isCancellation } : {}),
+            ...(params.disableAutoRefund !== undefined ? { disableAutoRefund: params.disableAutoRefund } : {}),
+            ...(params.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey } : {}),
+            ...(params.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress } : {}),
         };
     }
 
@@ -340,7 +340,7 @@ export class TransactionStateCapture {
             requestedAmount: (params.requestedAmount || 0n).toString(),
             refundVault: params.refundVault || '',
             originalInputCount: params.originalInputCount || params.utxos.length,
-            existingPsbtBase64: params.existingPsbtBase64,
+            ...(params.existingPsbtBase64 !== undefined ? { existingPsbtBase64: params.existingPsbtBase64 } : {}),
         };
     }
 
@@ -371,7 +371,7 @@ export class TransactionStateCapture {
             type: TransactionType.CUSTOM_CODE,
             scriptElements,
             witnesses: (params.witnesses || []).map((w) => toHex(w)),
-            annex: params.annex ? toHex(params.annex) : undefined,
+            ...(params.annex ? { annex: toHex(params.annex) } : {}),
         };
     }
 
@@ -394,11 +394,11 @@ export class TransactionStateCapture {
      */
     private static buildPrecomputedData(precomputed?: Partial<PrecomputedData>): PrecomputedData {
         return {
-            compiledTargetScript: precomputed?.compiledTargetScript,
-            randomBytes: precomputed?.randomBytes,
-            estimatedFees: precomputed?.estimatedFees,
-            contractSeed: precomputed?.contractSeed,
-            contractAddress: precomputed?.contractAddress,
+            ...(precomputed?.compiledTargetScript !== undefined ? { compiledTargetScript: precomputed.compiledTargetScript } : {}),
+            ...(precomputed?.randomBytes !== undefined ? { randomBytes: precomputed.randomBytes } : {}),
+            ...(precomputed?.estimatedFees !== undefined ? { estimatedFees: precomputed.estimatedFees } : {}),
+            ...(precomputed?.contractSeed !== undefined ? { contractSeed: precomputed.contractSeed } : {}),
+            ...(precomputed?.contractAddress !== undefined ? { contractAddress: precomputed.contractAddress } : {}),
         };
     }
 
@@ -406,44 +406,50 @@ export class TransactionStateCapture {
      * Serialize UTXOs array
      */
     private static serializeUTXOs(utxos: UTXO[]): SerializedUTXO[] {
-        return utxos.map((utxo) => ({
-            transactionId: utxo.transactionId,
-            outputIndex: utxo.outputIndex,
-            value: utxo.value.toString(),
-            scriptPubKeyHex: utxo.scriptPubKey.hex,
-            scriptPubKeyAddress: utxo.scriptPubKey.address,
-            redeemScript: utxo.redeemScript
+        return utxos.map((utxo): SerializedUTXO => {
+            const redeemScript = utxo.redeemScript
                 ? utxo.redeemScript instanceof Uint8Array
                     ? toHex(utxo.redeemScript)
                     : utxo.redeemScript
-                : undefined,
-            witnessScript: utxo.witnessScript
+                : undefined;
+            const witnessScript = utxo.witnessScript
                 ? utxo.witnessScript instanceof Uint8Array
                     ? toHex(utxo.witnessScript)
                     : utxo.witnessScript
-                : undefined,
-            nonWitnessUtxo: utxo.nonWitnessUtxo
+                : undefined;
+            const nonWitnessUtxo = utxo.nonWitnessUtxo
                 ? utxo.nonWitnessUtxo instanceof Uint8Array
                     ? toHex(utxo.nonWitnessUtxo)
                     : utxo.nonWitnessUtxo
-                : undefined,
-        }));
+                : undefined;
+            return {
+                transactionId: utxo.transactionId,
+                outputIndex: utxo.outputIndex,
+                value: utxo.value.toString(),
+                scriptPubKeyHex: utxo.scriptPubKey.hex,
+                ...(utxo.scriptPubKey.address !== undefined ? { scriptPubKeyAddress: utxo.scriptPubKey.address } : {}),
+                ...(redeemScript !== undefined ? { redeemScript } : {}),
+                ...(witnessScript !== undefined ? { witnessScript } : {}),
+                ...(nonWitnessUtxo !== undefined ? { nonWitnessUtxo } : {}),
+            };
+        });
     }
 
     /**
      * Serialize outputs array
      */
     private static serializeOutputs(outputs: PsbtOutputExtended[]): SerializedOutput[] {
-        return outputs.map((output) => {
-            // PsbtOutputExtended is a union - handle both address and script variants
+        return outputs.map((output): SerializedOutput => {
             const address = 'address' in output ? output.address : undefined;
             const script = 'script' in output ? output.script : undefined;
+            const scriptHex = script ? toHex(script) : undefined;
+            const tapInternalKeyHex = output.tapInternalKey ? toHex(output.tapInternalKey) : undefined;
 
             return {
                 value: Number(output.value),
-                address,
-                script: script ? toHex(script) : undefined,
-                tapInternalKey: output.tapInternalKey ? toHex(output.tapInternalKey) : undefined,
+                ...(address !== undefined ? { address } : {}),
+                ...(scriptHex !== undefined ? { script: scriptHex } : {}),
+                ...(tapInternalKeyHex !== undefined ? { tapInternalKey: tapInternalKeyHex } : {}),
             };
         });
     }
@@ -460,7 +466,7 @@ export class TransactionStateCapture {
     /**
      * Convert network to chain ID
      */
-    private static networkToChainId(network: Network): ChainId {
+    private static networkToChainId(_network: Network): ChainId {
         // Default to Bitcoin chain
         return ChainId.Bitcoin;
     }

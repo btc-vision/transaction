@@ -1,9 +1,9 @@
 import { backend, eccLib } from '../ecc/backend.js';
 import bip32, {
-    BIP32API,
+    type BIP32API,
     BIP32Factory,
-    BIP32Interface,
-    MLDSAKeyPair,
+    type BIP32Interface,
+    type MLDSAKeyPair,
     MLDSASecurityLevel,
     QuantumBIP32Factory,
 } from '@btc-vision/bip32';
@@ -13,20 +13,20 @@ import bitcoin, {
     fromHex,
     fromOutputScript,
     initEccLib,
-    Network,
+    type Network,
     networks,
     opcodes,
     payments,
-    PrivateKey,
-    PublicKey,
+    type PrivateKey,
+    type PublicKey,
     script,
-    Signer,
+    type Signer,
     toHex,
     toXOnly,
-    XOnlyPublicKey,
+    type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
 import { ECPairSigner, type UniversalSigner } from '@btc-vision/ecpair';
-import { IWallet } from './interfaces/IWallet.js';
+import type { IWallet } from './interfaces/IWallet.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { mod } from '@noble/curves/abstract/modular.js';
 import { sha256 } from '@noble/hashes/sha2.js';

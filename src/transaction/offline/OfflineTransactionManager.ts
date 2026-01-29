@@ -1,14 +1,14 @@
-import { fromHex, Psbt, Signer, toHex } from '@btc-vision/bitcoin';
+import { fromHex, Psbt, type Signer, toHex } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
-import { ISerializableTransactionState, PrecomputedData } from './interfaces/ISerializableState.js';
+import type { ISerializableTransactionState, PrecomputedData } from './interfaces/ISerializableState.js';
 import { TransactionSerializer } from './TransactionSerializer.js';
-import { ReconstructionOptions, TransactionReconstructor } from './TransactionReconstructor.js';
+import { type ReconstructionOptions, TransactionReconstructor } from './TransactionReconstructor.js';
 import { TransactionStateCapture } from './TransactionStateCapture.js';
 import { isMultiSigSpecificData } from './interfaces/ITypeSpecificData.js';
-import {
+import type {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
@@ -511,7 +511,7 @@ export class OfflineTransactionManager {
         const signerSet = new Set<string>();
 
         for (let i = typeData.originalInputCount; i < psbt.data.inputs.length; i++) {
-            const input = psbt.data.inputs[i];
+            const input = psbt.data.inputs[i]!;
 
             if (input.tapScriptSig) {
                 for (const sig of input.tapScriptSig) {
@@ -525,7 +525,7 @@ export class OfflineTransactionManager {
                 );
 
                 for (let j = 0; j < decoded.length - 2; j += 3) {
-                    const pubKey = decoded[j + 2];
+                    const pubKey = decoded[j + 2]!;
                     signerSet.add(toHex(pubKey));
                 }
             }

@@ -1,41 +1,39 @@
-import { Script, toHex, toSatoshi, Transaction, TxOutput } from '@btc-vision/bitcoin';
-import { currentConsensus } from '../consensus/ConsensusConfig.js';
-import { UTXO } from '../utxo/interfaces/IUTXO.js';
+import { type PsbtOutputExtended, type Script, toHex, toSatoshi, Transaction, type TxOutput } from '@btc-vision/bitcoin';
+import type { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { CustomScriptTransaction } from './builders/CustomScriptTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
 import { FundingTransaction } from './builders/FundingTransaction.js';
 import { InteractionTransaction } from './builders/InteractionTransaction.js';
 import { TransactionBuilder } from './builders/TransactionBuilder.js';
 import { TransactionType } from './enums/TransactionType.js';
-import {
+import type {
     IDeploymentParameters,
     IFundingTransactionParameters,
     IInteractionParameters,
     ITransactionParameters,
 } from './interfaces/ITransactionParameters.js';
-import { PSBTTypes } from './psbt/PSBTTypes.js';
-import {
+import type {
     ICancelTransactionParametersWithoutSigner,
     ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
     InteractionParametersWithoutSigner,
 } from './interfaces/IWeb3ProviderTypes.js';
-import { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
-import { IChallengeSolution, RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
+import type { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
+import type { IChallengeSolution, RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2WDA.js';
 import { Address } from '../keypair/Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { CancelTransaction } from './builders/CancelTransaction.js';
 import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
-import { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
-import {
+import type { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
+import type {
     CancelledTransaction,
     DeploymentResult,
     InteractionResponse,
 } from './interfaces/ITransactionResponses.js';
-import { ICancelTransactionParameters } from './interfaces/ICancelTransactionParameters.js';
-import { ICustomTransactionParameters } from './interfaces/ICustomTransactionParameters.js';
+import type { ICancelTransactionParameters } from './interfaces/ICancelTransactionParameters.js';
+import type { ICustomTransactionParameters } from './interfaces/ICustomTransactionParameters.js';
 
 export interface FundingTransactionResponse {
     readonly tx: Transaction;
@@ -152,7 +150,7 @@ export class TransactionFactory {
 
         const inputs = this.parseOptionalInputs(interactionParameters.optionalInputs);
 
-        const { finalTransaction, estimatedAmount, challenge } = await this.iterateFundingAmount(
+        const { finalTransaction, estimatedAmount } = await this.iterateFundingAmount(
             { ...interactionParameters, optionalInputs: inputs },
             CustomScriptTransaction,
             async (tx) => {
@@ -448,7 +446,7 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
-        const out = signedTransaction.outs[0];
+        const out = signedTransaction.outs[0] as TxOutput;
         const newUtxo: UTXO = {
             transactionId: signedTransaction.getId(),
             outputIndex: 0,
@@ -473,13 +471,13 @@ export class TransactionFactory {
         const deploymentTx = new DeploymentTransaction(newParams);
         const outTx = await deploymentTx.signTransaction();
 
-        const out2 = signedTransaction.outs[1];
+        const out2 = signedTransaction.outs[1] as TxOutput;
         const refundUTXO: UTXO = {
             transactionId: signedTransaction.getId(),
             outputIndex: 1,
             scriptPubKey: {
                 hex: toHex(out2.script),
-                address: deploymentParameters.from,
+                address: deploymentParameters.from as string,
             },
             value: BigInt(out2.value),
         };
@@ -532,7 +530,7 @@ export class TransactionFactory {
 
         const utxos: UTXO[] = [];
         for (let i = 0; i < tx.outs.length; i++) {
-            const output = outputs[i];
+            const output = outputs[i] as PsbtOutputExtended;
             if ('address' in output) {
                 if (output.address !== to) continue;
             } else {
@@ -564,7 +562,7 @@ export class TransactionFactory {
             return {
                 ...input,
                 nonWitnessUtxo: nonWitness,
-            };
+            } as UTXO;
         });
     }
 
@@ -709,26 +707,6 @@ export class TransactionFactory {
      */
     private hasP2WDAInputs(utxos: UTXO[]): boolean {
         return utxos.some((utxo) => P2WDADetector.isP2WDAUTXO(utxo));
-    }
-
-    /**
-     * Write PSBT header with type and consensus version.
-     * @param {PSBTTypes} type - The PSBT type
-     * @param {string} psbt - The base64 encoded PSBT
-     * @returns {string} - The hex encoded PSBT with header
-     */
-    private writePSBTHeader(type: PSBTTypes, psbt: string): string {
-        const decoded = Uint8Array.from(atob(psbt), (c) => c.charCodeAt(0));
-
-        const header = new Uint8Array(2);
-        header[0] = type;
-        header[1] = currentConsensus;
-
-        const result = new Uint8Array(header.length + decoded.length);
-        result.set(header);
-        result.set(decoded, header.length);
-
-        return toHex(result);
     }
 
     /**
@@ -883,7 +861,7 @@ export class TransactionFactory {
                 if (error instanceof Error) {
                     const match = error.message.match(/need (\d+) sats but only have (\d+) sats/);
                     if (match) {
-                        estimatedFundingAmount = BigInt(match[1]);
+                        estimatedFundingAmount = BigInt(match[1] as string);
                         if (this.debug) {
                             console.log(
                                 `${debugPrefix}: Caught insufficient funds, updating to ${estimatedFundingAmount}`,
@@ -936,7 +914,7 @@ export class TransactionFactory {
     private getUTXOAsTransaction(tx: Transaction, to: string, index: number): UTXO[] {
         if (!tx.outs[index]) return [];
 
-        const out: TxOutput = tx.outs[index];
+        const out: TxOutput = tx.outs[index] as TxOutput;
         const newUtxo: UTXO = {
             transactionId: tx.getId(),
             outputIndex: index,

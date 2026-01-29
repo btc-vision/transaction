@@ -5,12 +5,12 @@ import {
     type UniversalSigner,
 } from '@btc-vision/ecpair';
 import { backend } from '../ecc/backend.js';
-import { crypto, fromHex, Network, toHex, toXOnly } from '@btc-vision/bitcoin';
+import { crypto, fromHex, type Network, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
-import { MLDSASecurityLevel, QuantumBIP32Interface } from '@btc-vision/bip32';
-import { isOPWallet, OPWallet } from '../transaction/browser/types/OPWallet.js';
-import { MLDSASignature } from '../transaction/interfaces/IWeb3ProviderTypes.js';
+import { MLDSASecurityLevel, type QuantumBIP32Interface } from '@btc-vision/bip32';
+import { isOPWallet, type OPWallet } from '../transaction/browser/types/OPWallet.js';
+import type { MLDSASignature } from '../transaction/interfaces/IWeb3ProviderTypes.js';
 
 export interface SignedMessage {
     readonly signature: Uint8Array;

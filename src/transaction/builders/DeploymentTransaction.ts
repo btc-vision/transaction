@@ -1,21 +1,23 @@
 import { TransactionType } from '../enums/TransactionType.js';
-import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
+import type { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import {
     concat,
     crypto as bitCrypto,
+    type FinalScriptsFunc,
     fromHex,
-    P2TRPayment,
+    type P2TRPayment,
     PaymentType,
     Psbt,
-    PsbtInput,
-    Script,
-    Signer,
-    Taptree,
+    type PsbtInput,
+    type Script,
+    type Signer,
+    type TapScriptSig,
+    type Taptree,
     toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
 import {
     DeploymentGenerator,
     versionBuffer,
@@ -25,12 +27,13 @@ import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -49,7 +52,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The tap leaf script
      * @private
      */
-    protected tapLeafScript: TapLeafScript | null = null;
+    protected override tapLeafScript: TapLeafScript | null = null;
     private readonly deploymentVersion: number = 0x00;
     /**
      * The target script redeem
@@ -285,7 +288,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const signer: UnisatSigner = this.signer as UnisatSigner;
 
         // first, we sign the first input with the script signer.
-        await this.signInput(transaction, transaction.data.inputs[0], 0, this.contractSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.contractSigner);
 
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
@@ -309,7 +312,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected async signInputs(transaction: Psbt): Promise<void> {
+    protected override async signInputs(transaction: Psbt): Promise<void> {
         if (!this.contractSigner) {
             await super.signInputs(transaction);
 
@@ -321,21 +324,45 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             return;
         }
 
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                // multi sig input
-                transaction.signInput(0, this.contractSigner);
-                transaction.signInput(0, this.getSignerKey());
+        // Input 0: sequential (contractSigner + main signer, custom finalizer)
+        transaction.signInput(0, this.contractSigner);
+        transaction.signInput(0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
-                transaction.finalizeInput(0, this.customFinalizer.bind(this));
-            } else {
-                transaction.signInput(i, this.getSignerKey());
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        const signedIndices = new Set<number>([0]);
 
-                try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
-                } catch (e) {
-                    transaction.finalizeInput(i);
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            try {
+                const result = await this.signKeyPathInputsParallel(
+                    transaction,
+                    new Set([0]),
+                );
+                if (result.success) {
+                    for (const idx of result.signatures.keys()) signedIndices.add(idx);
                 }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed: ${(e as Error).message}`,
+                );
+            }
+        }
+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            if (!signedIndices.has(i)) {
+                transaction.signInput(i, this.getSignerKey());
+            }
+        }
+
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
+                transaction.finalizeInput(i);
             }
         }
     }
@@ -455,8 +482,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         const scriptSolution = [
             this.randomBytes,
-            input.tapScriptSig[0].signature,
-            input.tapScriptSig[1].signature,
+            (input.tapScriptSig[0] as TapScriptSig).signature,
+            (input.tapScriptSig[1] as TapScriptSig).signature,
         ];
 
         const witness = scriptSolution
@@ -467,20 +494,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
         };
     };
-
-    /**
-     * Get the public keys for the redeem scripts
-     * @private
-     */
-    private getPubKeys(): Uint8Array[] {
-        const pubkeys = [this.signer.publicKey];
-
-        if (this.contractSigner) {
-            pubkeys.push(this.contractSigner.publicKey);
-        }
-
-        return pubkeys;
-    }
 
     /**
      * Generate the redeem scripts

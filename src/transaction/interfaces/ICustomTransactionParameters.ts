@@ -1,5 +1,5 @@
-import { Stack } from '@btc-vision/bitcoin';
-import { SharedInteractionParameters } from './ITransactionParameters.js';
+import type { Stack } from '@btc-vision/bitcoin';
+import type { SharedInteractionParameters } from './ITransactionParameters.js';
 
 export interface ICustomTransactionParameters extends Omit<
     SharedInteractionParameters,

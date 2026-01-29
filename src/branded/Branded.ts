@@ -1,4 +1,4 @@
-import { Brand } from '@btc-vision/ecpair';
+import type { Brand } from '@btc-vision/ecpair';
 
 export type MLDSAHashedPublicKey = Brand<Uint8Array, 'MLDSAHashedPublicKey'>;
 

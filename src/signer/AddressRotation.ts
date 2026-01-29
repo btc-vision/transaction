@@ -1,4 +1,4 @@
-import { RotationSignerBase } from './IRotationSigner.js';
+import type { RotationSignerBase } from './IRotationSigner.js';
 import { UnisatSigner } from '../transaction/browser/extensions/UnisatSigner.js';
 
 /**

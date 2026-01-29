@@ -1,4 +1,4 @@
-import { Signer } from '@btc-vision/bitcoin';
+import type { Signer } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 
 /**

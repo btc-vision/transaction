@@ -1,4 +1,4 @@
-import { address, fromHex, initEccLib, Network, payments, Script } from '@btc-vision/bitcoin';
+import { address, fromHex, initEccLib, type Network, payments, type Script } from '@btc-vision/bitcoin';
 import { eccLib } from '../ecc/backend.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';

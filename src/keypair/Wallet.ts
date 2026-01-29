@@ -3,21 +3,21 @@ import { EcKeyPair } from './EcKeyPair.js';
 import {
     fromHex,
     initEccLib,
-    Network,
+    type Network,
     networks,
-    PublicKey,
+    type PublicKey,
     toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
-import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { eccLib } from '../ecc/backend.js';
 import {
     getMLDSAConfig,
     MLDSASecurityLevel,
     QuantumBIP32Factory,
-    QuantumBIP32Interface,
+    type QuantumBIP32Interface,
 } from '@btc-vision/bip32';
 
 initEccLib(eccLib);

@@ -1,8 +1,8 @@
 import {
     fromHex,
     Psbt,
-    PsbtInput,
-    Script,
+    type PsbtInput,
+    type Script,
     toSatoshi,
     toXOnly,
     Transaction,
@@ -12,20 +12,20 @@ import { TransactionType } from '../enums/TransactionType.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { HashCommitmentGenerator } from '../../generators/builders/HashCommitmentGenerator.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
-import {
+import type {
     IConsolidatedInteractionParameters,
     IConsolidatedInteractionResult,
     IHashCommittedP2WSH,
     IRevealTransactionResult,
     ISetupTransactionResult,
 } from '../interfaces/IConsolidatedTransactionParameters.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 
 /**
@@ -306,7 +306,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Add commitment outputs as inputs (from setup tx)
         for (let i = 0; i < this.commitmentOutputs.length; i++) {
-            const commitment = this.commitmentOutputs[i];
+            const commitment = this.commitmentOutputs[i] as IHashCommittedP2WSH;
 
             revealPsbt.addInput({
                 hash: setupTxId,
@@ -353,7 +353,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Finalize all inputs with hash-commitment finalizer
         for (let i = 0; i < this.commitmentOutputs.length; i++) {
-            const commitment = this.commitmentOutputs[i];
+            const commitment = this.commitmentOutputs[i] as IHashCommittedP2WSH;
             revealPsbt.finalizeInput(i, (_inputIndex: number, input: PsbtInput) => {
                 return this.finalizeCommitmentInput(input, commitment);
             });
@@ -437,7 +437,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         // Witness stack for hash-committed P2WSH with multiple chunks
         // Order: [signature, data_1, data_2, ..., data_N, witnessScript]
         const witnessStack: Uint8Array[] = [
-            input.partialSig[0].signature, // Signature for OP_CHECKSIG
+            (input.partialSig[0] as { signature: Uint8Array }).signature, // Signature for OP_CHECKSIG
             ...commitment.dataChunks, // All data chunks for OP_HASH160 verification
             input.witnessScript, // The witness script
         ];
@@ -452,8 +452,6 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
      * Estimate reveal transaction vBytes.
      */
     private estimateRevealVBytes(): number {
-        const inputCount = this.commitmentOutputs.length;
-
         // Calculate actual witness weight based on chunks per output
         let witnessWeight = 0;
         for (const commitment of this.commitmentOutputs) {

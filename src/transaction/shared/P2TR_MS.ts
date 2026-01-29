@@ -1,6 +1,6 @@
-import { Network, networks } from '@btc-vision/bitcoin';
+import { type Network, networks } from '@btc-vision/bitcoin';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
+import { type MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 
 export class P2TR_MS {
     /**

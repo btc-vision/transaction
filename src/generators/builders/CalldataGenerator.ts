@@ -1,10 +1,10 @@
-import { concat, crypto, Network, networks, opcodes, PublicKey, script } from '@btc-vision/bitcoin';
+import { concat, crypto, type Network, networks, opcodes, type PublicKey, script } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { Feature, Features } from '../Features.js';
+import { type Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 
 /**
@@ -86,7 +86,7 @@ export class CalldataGenerator extends Generator {
 
             const finalBuffer = new BinaryWriter();
             for (let i = 0; i < features.length; i++) {
-                const feature = features[i];
+                const feature = features[i] as Feature<Features>;
                 featuresList.push(feature.opcode);
 
                 this.encodeFeature(feature, finalBuffer);

@@ -1,19 +1,19 @@
 import {
     alloc,
     fromUtf8,
-    Network,
+    type Network,
     networks,
-    PublicKey,
+    type PublicKey,
     toXOnly,
-    XOnlyPublicKey,
+    type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
 import {
-    AccessListFeature,
-    EpochSubmissionFeature,
-    Feature,
+    type AccessListFeature,
+    type EpochSubmissionFeature,
+    type Feature,
     Features,
-    MLDSALinkRequest,
+    type MLDSALinkRequest,
 } from './Features.js';
 import { Address } from '../keypair/Address.js';
 import { Compressor } from '../bytecode/Compressor.js';
@@ -46,7 +46,7 @@ export abstract class Generator {
      * The public key of the contract salt
      * @protected
      */
-    protected readonly contractSaltPubKey?: Uint8Array;
+    protected readonly contractSaltPubKey?: Uint8Array | undefined;
 
     /**
      * The network to use
@@ -112,7 +112,7 @@ export abstract class Generator {
 
             const buf2 = alloc(dataLength);
             for (let j = 0; j < dataLength; j++) {
-                buf2[j] = buffer[i + j];
+                buf2[j] = buffer[i + j] as number;
             }
 
             chunks.push([buf2]);
@@ -147,7 +147,7 @@ export abstract class Generator {
 
         for (const contract in feature.data) {
             const parsedContract = Address.fromString(contract);
-            const data = feature.data[contract];
+            const data = feature.data[contract] as string[];
 
             writer.writeAddress(parsedContract);
             writer.writeU32(data.length);

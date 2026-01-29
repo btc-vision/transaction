@@ -2,15 +2,16 @@ import {
     crypto as bitCrypto,
     equals,
     fromHex,
-    Network,
+    type Network,
     networks,
     Psbt,
+    type PsbtInput,
     script as bitScript,
-    TapScriptSig,
+    type TapScriptSig,
     toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
-import { PartialSig } from 'bip174';
+import type { PartialSig } from 'bip174';
 import {
     createPublicKey,
     type MessageHash,
@@ -21,9 +22,9 @@ import {
 import { EcKeyPair } from '../../../keypair/EcKeyPair.js';
 import { canSignNonTaprootInput, isTaprootInput } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
-import { PsbtSignatureOptions, SignatureType, Unisat } from '../types/Unisat.js';
+import { type PsbtSignatureOptions, SignatureType, type Unisat } from '../types/Unisat.js';
 import { WalletNetworks } from '../WalletNetworks.js';
-import { OPWallet } from '../types/OPWallet.js';
+import type { OPWallet } from '../types/OPWallet.js';
 
 export interface WindowWithWallets {
     unisat?: Unisat;
@@ -170,7 +171,7 @@ export class UnisatSigner extends CustomKeypair {
         i: number,
         sighashTypes: number[],
     ): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -189,7 +190,7 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     public async signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -264,15 +265,15 @@ export class UnisatSigner extends CustomKeypair {
             });
         }
 
-        const signed = await this.unisat.signPsbt(toSignPsbts[0], options[0]);
+        const signed = await this.unisat.signPsbt(toSignPsbts[0] as string, options[0] as PsbtSignatureOptions);
         const signedPsbts = Psbt.fromHex(signed);
 
-        transactions[0].combine(signedPsbts);
+        (transactions[0] as Psbt).combine(signedPsbts);
     }
 
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
+            const item = input[i] as TapScriptSig;
             const buf = new Uint8Array(item.pubkey);
             if (equals(buf, this.publicKey) && item.signature) {
                 return true;
@@ -284,7 +285,7 @@ export class UnisatSigner extends CustomKeypair {
 
     private hasAlreadyPartialSig(input: PartialSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
+            const item = input[i] as PartialSig;
             const buf = new Uint8Array(item.pubkey);
             if (equals(buf, this.publicKey) && item.signature) {
                 return true;
@@ -295,8 +296,8 @@ export class UnisatSigner extends CustomKeypair {
     }
 
     private combine(transaction: Psbt, newPsbt: Psbt, i: number): void {
-        const signedInput = newPsbt.data.inputs[i];
-        const originalInput = transaction.data.inputs[i];
+        const signedInput = newPsbt.data.inputs[i] as PsbtInput;
+        const originalInput = transaction.data.inputs[i] as PsbtInput;
 
         if (signedInput.partialSig) {
             transaction.updateInput(i, { partialSig: signedInput.partialSig });
@@ -357,9 +358,10 @@ export class UnisatSigner extends CustomKeypair {
     ): TapScriptSig[] {
         const nonDuplicate: TapScriptSig[] = [];
         for (let i = 0; i < scriptSig2.length; i++) {
-            const found = scriptSig1.find((item) => equals(item.pubkey, scriptSig2[i].pubkey));
+            const sig2 = scriptSig2[i] as TapScriptSig;
+            const found = scriptSig1.find((item) => equals(item.pubkey, sig2.pubkey));
             if (!found) {
-                nonDuplicate.push(scriptSig2[i]);
+                nonDuplicate.push(sig2);
             }
         }
 

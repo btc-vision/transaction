@@ -227,7 +227,7 @@ export class CustomMap<K, V> implements Disposable {
         let hash = 2166136261;
         for (let i = 0; i < Math.min(bytes.length, 100); i++) {
             // Cap at 100 bytes for performance
-            hash ^= bytes[i];
+            hash ^= bytes[i] as number;
             hash = Math.imul(hash, 16777619);
         }
         return hash;

@@ -1,25 +1,28 @@
 import {
-    P2TRPayment,
+    type FinalScriptsFunc,
+    type P2TRPayment,
     PaymentType,
     Psbt,
-    PsbtInput,
-    Script,
-    Signer,
-    Taptree,
+    type PsbtInput,
+    type Script,
+    type Signer,
+    type TapScriptSig,
+    type Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
-import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import type { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 /**
  * Shared interaction transaction
@@ -253,8 +256,8 @@ export abstract class SharedInteractionTransaction<
 
         return [
             this.contractSecret,
-            input.tapScriptSig[0].signature,
-            input.tapScriptSig[1].signature,
+            (input.tapScriptSig[0] as TapScriptSig).signature,
+            (input.tapScriptSig[1] as TapScriptSig).signature,
         ] as Uint8Array[];
     }
 
@@ -312,7 +315,7 @@ export abstract class SharedInteractionTransaction<
         const signer: UnisatSigner = this.signer as UnisatSigner;
 
         // first, we sign the first input with the script signer.
-        await this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
 
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
@@ -332,28 +335,56 @@ export abstract class SharedInteractionTransaction<
     }
 
     protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
+        // Input 0: always sequential (needs scriptSigner + main signer, custom finalizer)
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            let parallelSignedIndices = new Set<number>();
+
+            try {
+                const result = await this.signKeyPathInputsParallel(transaction, new Set([0]));
+                if (result.success) {
+                    parallelSignedIndices = new Set(result.signatures.keys());
+                }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed, falling back to sequential: ${(e as Error).message}`,
                 );
+            }
 
-                transaction.finalizeInput(0, this.customFinalizer.bind(this));
-            } else {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
-
-                try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
-                } catch (e) {
-                    transaction.finalizeInput(i);
+            // Sign remaining inputs 1+ that weren't handled by parallel signing
+            for (let i = 1; i < transaction.data.inputs.length; i++) {
+                if (!parallelSignedIndices.has(i)) {
+                    await this.signInput(
+                        transaction,
+                        transaction.data.inputs[i] as PsbtInput,
+                        i,
+                        this.signer,
+                    );
                 }
             }
+        } else {
+            for (let i = 1; i < transaction.data.inputs.length; i++) {
+                await this.signInput(transaction, transaction.data.inputs[i] as PsbtInput, i, this.signer);
+            }
         }
+
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
+                transaction.finalizeInput(i);
+            }
+        }
+
+        this.finalized = true;
     }
 
     protected async createMineableRewardOutputs(): Promise<void> {
@@ -374,22 +405,6 @@ export abstract class SharedInteractionTransaction<
             // Pass the TOTAL amount spent: actual output amount + optional outputs
             await this.addRefundOutput(actualOutputAmount + optionalAmount);
         }
-    }
-
-    /**
-     * Get the public keys
-     * @private
-     *
-     * @returns {Buffer[]} The public keys
-     */
-    private getPubKeys(): Uint8Array[] {
-        const pubKeys = [this.signer.publicKey];
-
-        if (this.scriptSigner) {
-            pubKeys.push(this.scriptSigner.publicKey);
-        }
-
-        return pubKeys;
     }
 
     /**

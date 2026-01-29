@@ -1,4 +1,4 @@
-import { ConsensusConfig } from '../IConsensusConfig.js';
+import type { ConsensusConfig } from '../IConsensusConfig.js';
 import { Consensus } from '../Consensus.js';
 
 export const RoswellConsensus: ConsensusConfig<Consensus.Roswell> = {

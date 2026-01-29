@@ -73,7 +73,7 @@ export class ExtendedAddressMap<V> implements Disposable {
         // Rebuild index map (indices shifted after splice)
         this.indexMap.clear();
         for (let i = 0; i < this._keys.length; i++) {
-            this.indexMap.set(this._keys[i].tweakedToBigInt(), i);
+            this.indexMap.set((this._keys[i] as Address).tweakedToBigInt(), i);
         }
 
         return true;
@@ -96,7 +96,7 @@ export class ExtendedAddressMap<V> implements Disposable {
 
     *entries(): IterableIterator<[Address, V]> {
         for (let i = 0; i < this._keys.length; i++) {
-            yield [this._keys[i], this._values[i]];
+            yield [this._keys[i] as Address, this._values[i] as V];
         }
     }
 
@@ -117,7 +117,7 @@ export class ExtendedAddressMap<V> implements Disposable {
         thisArg?: unknown,
     ): void {
         for (let i = 0; i < this._keys.length; i++) {
-            callback.call(thisArg, this._values[i], this._keys[i], this);
+            callback.call(thisArg, this._values[i] as V, this._keys[i] as Address, this);
         }
     }
 

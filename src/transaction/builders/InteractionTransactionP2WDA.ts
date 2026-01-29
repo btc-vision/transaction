@@ -1,17 +1,18 @@
-import { concat, fromHex, Psbt, PsbtInput, toXOnly } from '@btc-vision/bitcoin';
+import { concat, fromHex, Psbt, type PsbtInput, toXOnly } from '@btc-vision/bitcoin';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import type { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { P2WDAGenerator } from '../../generators/builders/P2WDAGenerator.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
 
 /**
@@ -32,7 +33,6 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
      * @protected
      */
     protected readonly disableAutoRefund: boolean;
-    private readonly contractAddress: string;
     private readonly contractSecret: Uint8Array;
     private readonly calldata: Uint8Array;
     private readonly challenge: IChallengeSolution;
@@ -66,7 +66,6 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         }
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
-        this.contractAddress = parameters.to;
         this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
         this.calldata = Compressor.compress(parameters.calldata);
         this.challenge = parameters.challenge;
@@ -172,7 +171,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     protected override async signInputs(transaction: Psbt): Promise<void> {
         // Sign all inputs
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
+            await this.signInput(transaction, transaction.data.inputs[i] as PsbtInput, i, this.signer);
         }
 
         // Finalize with appropriate finalizers
@@ -235,20 +234,20 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
      * Validate that input 0 is P2WDA
      */
     private validateP2WDAInputs(): void {
-        if (this.utxos.length === 0 || !P2WDADetector.isP2WDAUTXO(this.utxos[0])) {
+        if (this.utxos.length === 0 || !P2WDADetector.isP2WDAUTXO(this.utxos[0] as UTXO)) {
             throw new Error('Input 0 must be a P2WDA UTXO');
         }
 
         // Track all P2WDA inputs
         for (let i = 0; i < this.utxos.length; i++) {
-            if (P2WDADetector.isP2WDAUTXO(this.utxos[i])) {
+            if (P2WDADetector.isP2WDAUTXO(this.utxos[i] as UTXO)) {
                 this.p2wdaInputIndices.add(i);
             }
         }
 
         for (let i = 0; i < this.optionalInputs.length; i++) {
             const actualIndex = this.utxos.length + i;
-            if (P2WDADetector.isP2WDAUTXO(this.optionalInputs[i])) {
+            if (P2WDADetector.isP2WDAUTXO(this.optionalInputs[i] as UTXO)) {
                 this.p2wdaInputIndices.add(actualIndex);
             }
         }
@@ -305,7 +304,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
             throw new Error('Operation data not compiled');
         }
 
-        const txSignature = input.partialSig[0].signature;
+        const txSignature = (input.partialSig[0] as { signature: Uint8Array }).signature;
         const messageToSign = concat([txSignature, this.compiledOperationData]);
         const signedMessage = MessageSigner.signMessage(
             this.signer as UniversalSigner,
@@ -333,10 +332,10 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         // Add exactly 10 data fields
         // Bitcoin stack is reversed!
         for (let i = 0; i < InteractionTransactionP2WDA.MAX_WITNESS_FIELDS; i++) {
-            witnessStack.push(i < chunks.length ? chunks[i] : new Uint8Array(0));
+            witnessStack.push(i < chunks.length ? (chunks[i] as Uint8Array) : new Uint8Array(0));
         }
 
-        witnessStack.push(input.witnessScript);
+        witnessStack.push(input.witnessScript as Uint8Array);
 
         return {
             finalScriptSig: undefined,

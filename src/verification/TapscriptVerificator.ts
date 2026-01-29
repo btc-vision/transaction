@@ -2,21 +2,21 @@ import {
     concat,
     crypto as bitCrypto,
     equals,
-    Network,
+    type Network,
     networks,
     opcodes,
-    P2TRPayment,
-    Payment,
+    type P2TRPayment,
+    type Payment,
     payments,
-    PublicKey,
+    type PublicKey,
     script,
-    Script,
-    Taptree,
+    type Script,
+    type Taptree,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { DeploymentGenerator } from '../generators/builders/DeploymentGenerator.js';
-import { IChallengeSolution } from '../epoch/interfaces/IChallengeSolution.js';
-import { Feature, Features } from '../generators/Features.js';
+import type { IChallengeSolution } from '../epoch/interfaces/IChallengeSolution.js';
+import { type Feature, Features } from '../generators/Features.js';
 
 export interface ContractAddressVerificationParams {
     readonly deployerPubKey: PublicKey;
@@ -69,7 +69,7 @@ export class TapscriptVerificator {
             return false;
         }
 
-        const requiredControlBlock: Uint8Array = witness[witness.length - 1];
+        const requiredControlBlock: Uint8Array = witness[witness.length - 1] as Uint8Array;
         return equals(requiredControlBlock, controlBlock);
     }
 

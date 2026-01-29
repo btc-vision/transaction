@@ -1,6 +1,6 @@
-import { crypto, equals, Network, networks, opcodes, payments, Script, script, } from '@btc-vision/bitcoin';
-import { IHashCommittedP2WSH } from '../../transaction/interfaces/IConsolidatedTransactionParameters.js';
-import { IP2WSHAddress } from '../../transaction/mineable/IP2WSHAddress.js';
+import { crypto, equals, type Network, networks, opcodes, payments, type Script, script, } from '@btc-vision/bitcoin';
+import type { IHashCommittedP2WSH } from '../../transaction/interfaces/IConsolidatedTransactionParameters.js';
+import type { IP2WSHAddress } from '../../transaction/mineable/IP2WSHAddress.js';
 import { Logger } from '@btc-vision/logger';
 
 /**
@@ -43,11 +43,6 @@ export class HashCommitmentGenerator extends Logger {
      */
     private static readonly BYTES_PER_COMMITMENT: number = 23;
     /**
-     * Signature check bytes in witness script.
-     * push (1) + pubkey (33) + OP_CHECKSIG (1) = 35 bytes
-     */
-    private static readonly SIG_CHECK_BYTES: number = 35;
-    /**
      * Fixed overhead in witness serialization:
      * - Stack item count: 1 byte
      * - Signature: 73 bytes (72 + 1 length prefix)
@@ -87,7 +82,7 @@ export class HashCommitmentGenerator extends Logger {
     public static readonly WEIGHT_PER_INPUT: number =
         HashCommitmentGenerator.INPUT_BASE_WEIGHT +
         HashCommitmentGenerator.INPUT_WITNESS_WEIGHT_MAX;
-    public readonly logColor: string = '#4a90d9';
+    public override readonly logColor: string = '#4a90d9';
     private readonly publicKey: Uint8Array;
     private readonly network: Network;
 
@@ -274,8 +269,8 @@ export class HashCommitmentGenerator extends Logger {
         }
 
         for (let i = 0; i < dataChunks.length; i++) {
-            const actualHash = crypto.hash160(dataChunks[i]);
-            if (!equals(committedHashes[i], actualHash)) {
+            const actualHash = crypto.hash160(dataChunks[i] as Uint8Array);
+            if (!equals(committedHashes[i] as Uint8Array, actualHash)) {
                 return false;
             }
         }
@@ -391,7 +386,7 @@ export class HashCommitmentGenerator extends Logger {
         // Add hash commitments in reverse order
         for (let i = dataHashes.length - 1; i >= 0; i--) {
             scriptParts.push(opcodes.OP_HASH160);
-            scriptParts.push(dataHashes[i]);
+            scriptParts.push(dataHashes[i] as Uint8Array);
             scriptParts.push(opcodes.OP_EQUALVERIFY);
         }
 

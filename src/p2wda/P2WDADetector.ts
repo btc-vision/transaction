@@ -1,6 +1,6 @@
-import { fromHex, Network, opcodes, payments, script } from '@btc-vision/bitcoin';
-import { UTXO } from '../utxo/interfaces/IUTXO.js';
-import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
+import { fromHex, type Network, opcodes, payments, script } from '@btc-vision/bitcoin';
+import type { UTXO } from '../utxo/interfaces/IUTXO.js';
+import type { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 
 /**
  * P2WDA Detection and Validation Utilities
@@ -146,9 +146,9 @@ export class P2WDADetector {
      * Validate P2WDA operation data signature
      */
     public static validateP2WDASignature(
-        publicKey: Uint8Array,
+        _publicKey: Uint8Array,
         dataSignature: Uint8Array,
-        operationData: Uint8Array,
+        _operationData: Uint8Array,
     ): boolean {
         return dataSignature.length === 64; // Schnorr signatures are always 64 bytes
     }

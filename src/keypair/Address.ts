@@ -1,12 +1,12 @@
 import {
     decompressPublicKey,
     fromHex,
-    Network,
-    PublicKey,
+    type Network,
+    type PublicKey,
     toHex,
     toXOnly,
-    UncompressedPublicKey,
-    XOnlyPublicKey,
+    type UncompressedPublicKey,
+    type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { ADDRESS_BYTE_LENGTH } from '../utils/lengths.js';
@@ -15,11 +15,11 @@ import { EcKeyPair } from './EcKeyPair.js';
 import { ContractAddress } from '../transaction/ContractAddress.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { TimeLockGenerator } from '../transaction/mineable/TimelockGenerator.js';
-import { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
-import { HybridPublicKey, MLDSAHashedPublicKey } from '../branded/Branded.js';
+import type { HybridPublicKey, MLDSAHashedPublicKey } from '../branded/Branded.js';
 
 // ML-DSA-44 (Level 2): 1312 bytes public key
 // ML-DSA-65 (Level 3): 1952 bytes public key
@@ -95,7 +95,7 @@ export class Address extends Uint8Array implements Disposable {
         return this.#mldsaLevel;
     }
 
-    public set mldsaLevel(level: MLDSASecurityLevel) {
+    public set mldsaLevel(level: MLDSASecurityLevel | undefined) {
         this.#mldsaLevel = level;
     }
 
@@ -103,8 +103,8 @@ export class Address extends Uint8Array implements Disposable {
         return this.#originalMDLSAPublicKey;
     }
 
-    public set originalMDLSAPublicKey(key: Uint8Array) {
-        this.#originalMDLSAPublicKey = new Uint8Array(key);
+    public set originalMDLSAPublicKey(key: Uint8Array | undefined) {
+        this.#originalMDLSAPublicKey = key ? new Uint8Array(key) : undefined;
     }
 
     /**
@@ -205,7 +205,7 @@ export class Address extends Uint8Array implements Disposable {
         const y = buffer.slice(33);
 
         const compressed = new Uint8Array(33);
-        compressed[0] = 0x02 + (y[y.length - 1] & 0x01);
+        compressed[0] = 0x02 + ((y[y.length - 1] as number) & 0x01);
         compressed.set(x, 1);
 
         return compressed;
@@ -542,9 +542,9 @@ export class Address extends Uint8Array implements Disposable {
             const thisByte = b[i];
             const aByte = a[i];
 
-            if (thisByte < aByte) {
+            if ((thisByte as number) < (aByte as number)) {
                 return true; // this is less than a
-            } else if (thisByte > aByte) {
+            } else if ((thisByte as number) > (aByte as number)) {
                 return false; // this is greater than or equal to a
             }
         }
@@ -564,9 +564,9 @@ export class Address extends Uint8Array implements Disposable {
             const thisByte = b[i];
             const aByte = a[i];
 
-            if (thisByte > aByte) {
+            if ((thisByte as number) > (aByte as number)) {
                 return true; // this is greater than a
-            } else if (thisByte < aByte) {
+            } else if ((thisByte as number) < (aByte as number)) {
                 return false; // this is less than or equal to a
             }
         }
@@ -632,7 +632,7 @@ export class Address extends Uint8Array implements Disposable {
     /**
      * Convert the address to a string
      */
-    public toString(): string {
+    public override toString(): string {
         return this.toHex();
     }
 

@@ -1,8 +1,8 @@
-import { Network, networks, PublicKey } from '@btc-vision/bitcoin';
+import { type Network, networks, type PublicKey } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
-import { Feature, Features } from '../Features.js';
+import { type Feature, Features } from '../Features.js';
 import { Generator } from '../Generator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * @category Generators

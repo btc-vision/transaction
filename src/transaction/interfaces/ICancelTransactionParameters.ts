@@ -1,4 +1,4 @@
-import { ITransactionParameters } from './ITransactionParameters.js';
+import type { ITransactionParameters } from './ITransactionParameters.js';
 
 export interface ICancelTransactionParameters extends Omit<
     ITransactionParameters,

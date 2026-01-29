@@ -1,5 +1,5 @@
-import { IInteractionParameters } from './ITransactionParameters.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IInteractionParameters } from './ITransactionParameters.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 /**
  * Extended P2WSH address with hash commitments for CHCT system.

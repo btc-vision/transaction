@@ -1,5 +1,5 @@
 import { bech32, bech32m } from 'bech32';
-import { initEccLib, Network, ripemd160 } from '@btc-vision/bitcoin';
+import { initEccLib, type Network, ripemd160 } from '@btc-vision/bitcoin';
 import { eccLib } from '../ecc/backend.js';
 
 initEccLib(eccLib);

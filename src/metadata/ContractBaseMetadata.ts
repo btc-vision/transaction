@@ -1,4 +1,4 @@
-import { Network, networks } from '@btc-vision/bitcoin';
+import { type Network, networks } from '@btc-vision/bitcoin';
 
 export abstract class ContractBaseMetadata {
     protected abstract readonly address: string;
@@ -9,7 +9,7 @@ export abstract class ContractBaseMetadata {
      * @description Get the contract address
      * @param {Network} network - The network to get the address for
      */
-    public static getAddress(network: Network = networks.bitcoin): string {
+    public static getAddress(_network: Network = networks.bitcoin): string {
         throw new Error('Method not implemented.');
     }
 

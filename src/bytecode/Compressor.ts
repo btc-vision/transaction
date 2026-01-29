@@ -1,4 +1,4 @@
-import zlib, { ZlibOptions } from 'zlib';
+import zlib, { type ZlibOptions } from 'zlib';
 
 /** Compressor class for compressing and decompressing data. */
 export class Compressor {

@@ -1,14 +1,15 @@
 import {
     equals,
     fromHex,
-    Network,
+    type Network,
     networks,
     Psbt,
-    TapScriptSig,
+    type PsbtInput,
+    type TapScriptSig,
     toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
-import { PartialSig } from 'bip174';
+import type { PartialSig } from 'bip174';
 import {
     createPublicKey,
     type MessageHash,
@@ -23,8 +24,8 @@ import {
     pubkeyInScript,
 } from '../../../signer/SignerUtils.js';
 import { CustomKeypair } from '../BrowserSignerBase.js';
-import { PsbtSignatureOptions } from '../types/Unisat.js';
-import { SigningProtocol, Xverse } from '../types/Xverse.js';
+import type { PsbtSignatureOptions } from '../types/Unisat.js';
+import { SigningProtocol, type Xverse } from '../types/Xverse.js';
 
 declare global {
     interface Window {
@@ -193,7 +194,7 @@ export class XverseSigner extends CustomKeypair {
         i: number,
         sighashTypes: number[],
     ): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -212,7 +213,7 @@ export class XverseSigner extends CustomKeypair {
     }
 
     public async signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void> {
-        const input = transaction.data.inputs[i];
+        const input = transaction.data.inputs[i] as PsbtInput;
         if (
             input.tapKeySig ||
             input.finalScriptSig ||
@@ -290,24 +291,24 @@ export class XverseSigner extends CustomKeypair {
         const toSignInputs: {
             [x: string]: number[];
         } = {
-            [this.p2wpkh]: options[0].toSignInputs?.map((input) => input.index) || [],
+            [this.p2wpkh]: (options[0] as PsbtSignatureOptions).toSignInputs?.map((input) => input.index) || [],
         };
 
         const callSign = await this.BitcoinProvider.request('signPsbt', {
-            psbt: toSignPsbts[0],
+            psbt: toSignPsbts[0] as string,
             signInputs: toSignInputs,
         });
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
-        const signedPsbts = Psbt.fromBase64(callSign.result.psbt);
+        const signedPsbts = Psbt.fromBase64((callSign.result as { psbt: string }).psbt);
 
-        transactions[0].combine(signedPsbts);
+        (transactions[0] as Psbt).combine(signedPsbts);
     }
 
     private hasAlreadySignedTapScriptSig(input: TapScriptSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
+            const item = input[i] as TapScriptSig;
             const buf = new Uint8Array(item.pubkey);
             if (equals(buf, this.publicKey) && item.signature) {
                 return true;
@@ -319,7 +320,7 @@ export class XverseSigner extends CustomKeypair {
 
     private hasAlreadyPartialSig(input: PartialSig[]): boolean {
         for (let i = 0; i < input.length; i++) {
-            const item = input[i];
+            const item = input[i] as PartialSig;
             const buf = new Uint8Array(item.pubkey);
             if (equals(buf, this.publicKey) && item.signature) {
                 return true;
@@ -330,8 +331,8 @@ export class XverseSigner extends CustomKeypair {
     }
 
     private combine(transaction: Psbt, newPsbt: Psbt, i: number): void {
-        const signedInput = newPsbt.data.inputs[i];
-        const originalInput = transaction.data.inputs[i];
+        const signedInput = newPsbt.data.inputs[i] as PsbtInput;
+        const originalInput = transaction.data.inputs[i] as PsbtInput;
 
         if (signedInput.partialSig) {
             transaction.updateInput(i, { partialSig: signedInput.partialSig });
@@ -395,7 +396,7 @@ export class XverseSigner extends CustomKeypair {
 
         if ('error' in callSign) throw new Error(callSign.error.message);
 
-        return Psbt.fromBase64(callSign.result.psbt);
+        return Psbt.fromBase64((callSign.result as { psbt: string }).psbt);
     }
 
     private getNonDuplicateScriptSig(
@@ -404,9 +405,10 @@ export class XverseSigner extends CustomKeypair {
     ): TapScriptSig[] {
         const nonDuplicate: TapScriptSig[] = [];
         for (let i = 0; i < scriptSig2.length; i++) {
-            const found = scriptSig1.find((item) => equals(item.pubkey, scriptSig2[i].pubkey));
+            const sig2 = scriptSig2[i] as TapScriptSig;
+            const found = scriptSig1.find((item) => equals(item.pubkey, sig2.pubkey));
             if (!found) {
-                nonDuplicate.push(scriptSig2[i]);
+                nonDuplicate.push(sig2);
             }
         }
 

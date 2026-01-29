@@ -1,5 +1,5 @@
 import { stringToBuffer } from '../utils/StringToBuffer.js';
-import {
+import type {
     IChallengeSolution,
     IChallengeSubmission,
     IChallengeVerification,
@@ -76,7 +76,7 @@ export class ChallengeSolution implements IChallengeSolution {
     public readonly difficulty: number;
     public readonly verification: ChallengeVerification;
 
-    private readonly submission?: ChallengeSubmission;
+    private readonly submission?: ChallengeSubmission | undefined;
 
     constructor(data: RawChallenge) {
         this.epochNumber = BigInt(data.epochNumber);

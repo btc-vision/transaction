@@ -1,4 +1,4 @@
-import { FastMap, PropertyExtendedKey } from './FastMap.js';
+import { FastMap, type PropertyExtendedKey } from './FastMap.js';
 
 export class DeterministicMap<K extends PropertyExtendedKey, V> implements Disposable {
     private map: FastMap<K, V>;
@@ -32,7 +32,7 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> implements Dispo
 
             while (left < right) {
                 const mid = Math.floor((left + right) / 2);
-                if (this.compareFn(this.#keys[mid], key) < 0) {
+                if (this.compareFn(this.#keys[mid] as K, key) < 0) {
                     left = mid + 1;
                 } else {
                     right = mid;
@@ -83,7 +83,7 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> implements Dispo
 
             while (left <= right) {
                 const mid = Math.floor((left + right) / 2);
-                const cmp = this.compareFn(this.#keys[mid], key);
+                const cmp = this.compareFn(this.#keys[mid] as K, key);
 
                 if (cmp === 0) {
                     // Found it, remove at this index

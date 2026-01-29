@@ -1,11 +1,9 @@
 import { createHash } from 'crypto';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { BinaryReader } from '../../buffer/BinaryReader.js';
-import {
+import type {
     ISerializableTransactionState,
     PrecomputedData,
-    SERIALIZATION_FORMAT_VERSION,
-    SERIALIZATION_MAGIC_BYTE,
     SerializationHeader,
     SerializedBaseParams,
     SerializedOutput,
@@ -13,6 +11,10 @@ import {
     SerializedUTXO,
 } from './interfaces/ISerializableState.js';
 import {
+    SERIALIZATION_FORMAT_VERSION,
+    SERIALIZATION_MAGIC_BYTE,
+} from './interfaces/ISerializableState.js';
+import type {
     CancelSpecificData,
     CustomScriptSpecificData,
     DeploymentSpecificData,
@@ -24,7 +26,7 @@ import {
     TypeSpecificData,
 } from './interfaces/ITypeSpecificData.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import {
+import type {
     RawChallenge,
     RawChallengeVerification,
 } from '../../epoch/interfaces/IChallengeSolution.js';
@@ -234,15 +236,15 @@ export class TransactionSerializer {
 
         return {
             from,
-            to,
             feeRate,
             priorityFee,
             gasSatFee,
             networkName,
             txVersion,
-            note,
             anchor,
             debugFees,
+            ...(to !== undefined ? { to } : {}),
+            ...(note !== undefined ? { note } : {}),
         };
     }
 
@@ -321,10 +323,10 @@ export class TransactionSerializer {
             outputIndex,
             value,
             scriptPubKeyHex,
-            scriptPubKeyAddress,
-            redeemScript,
-            witnessScript,
-            nonWitnessUtxo,
+            ...(scriptPubKeyAddress !== undefined ? { scriptPubKeyAddress } : {}),
+            ...(redeemScript !== undefined ? { redeemScript } : {}),
+            ...(witnessScript !== undefined ? { witnessScript } : {}),
+            ...(nonWitnessUtxo !== undefined ? { nonWitnessUtxo } : {}),
         };
     }
 
@@ -379,7 +381,12 @@ export class TransactionSerializer {
             ? Buffer.from(reader.readBytesWithLength()).toString('hex')
             : undefined;
 
-        return { value, address, script, tapInternalKey };
+        return {
+            value,
+            ...(address !== undefined ? { address } : {}),
+            ...(script !== undefined ? { script } : {}),
+            ...(tapInternalKey !== undefined ? { tapInternalKey } : {}),
+        };
     }
 
     private static writeSignerMappings(
@@ -505,11 +512,11 @@ export class TransactionSerializer {
         return {
             type: TransactionType.DEPLOYMENT,
             bytecode,
-            calldata,
             challenge,
             revealMLDSAPublicKey,
             linkMLDSAPublicKeyToAddress,
-            hashedPublicKey,
+            ...(calldata !== undefined ? { calldata } : {}),
+            ...(hashedPublicKey !== undefined ? { hashedPublicKey } : {}),
         };
     }
 
@@ -554,14 +561,14 @@ export class TransactionSerializer {
         return {
             type: TransactionType.INTERACTION,
             calldata,
-            contract,
             challenge,
-            loadedStorage,
             isCancellation,
             disableAutoRefund,
             revealMLDSAPublicKey,
             linkMLDSAPublicKeyToAddress,
-            hashedPublicKey,
+            ...(contract !== undefined ? { contract } : {}),
+            ...(loadedStorage !== undefined ? { loadedStorage } : {}),
+            ...(hashedPublicKey !== undefined ? { hashedPublicKey } : {}),
         };
     }
 
@@ -604,7 +611,7 @@ export class TransactionSerializer {
             requestedAmount,
             refundVault,
             originalInputCount,
-            existingPsbtBase64,
+            ...(existingPsbtBase64 !== undefined ? { existingPsbtBase64 } : {}),
         };
     }
 
@@ -659,7 +666,7 @@ export class TransactionSerializer {
             type: TransactionType.CUSTOM_CODE,
             scriptElements,
             witnesses,
-            annex,
+            ...(annex !== undefined ? { annex } : {}),
         };
     }
 
@@ -767,8 +774,8 @@ export class TransactionSerializer {
                 mldsaPublicKey: subMldsaPublicKey,
                 legacyPublicKey: subLegacyPublicKey,
                 solution: subSolution,
-                graffiti: subGraffiti,
                 signature: subSignature,
+                ...(subGraffiti !== undefined ? { graffiti: subGraffiti } : {}),
             };
         }
 
@@ -781,7 +788,7 @@ export class TransactionSerializer {
             graffiti,
             difficulty,
             verification,
-            submission,
+            ...(submission !== undefined ? { submission } : {}),
         };
     }
 
@@ -817,7 +824,7 @@ export class TransactionSerializer {
         writer.writeU16(keys.length);
         for (const key of keys) {
             writer.writeStringWithLength(key);
-            writer.writeStringArray(storage[key]);
+            writer.writeStringArray(storage[key]!);
         }
     }
 
@@ -879,11 +886,11 @@ export class TransactionSerializer {
         const contractAddress = hasContractAddress ? reader.readStringWithLength() : undefined;
 
         return {
-            compiledTargetScript,
-            randomBytes,
-            estimatedFees,
-            contractSeed,
-            contractAddress,
+            ...(compiledTargetScript !== undefined ? { compiledTargetScript } : {}),
+            ...(randomBytes !== undefined ? { randomBytes } : {}),
+            ...(estimatedFees !== undefined ? { estimatedFees } : {}),
+            ...(contractSeed !== undefined ? { contractSeed } : {}),
+            ...(contractAddress !== undefined ? { contractAddress } : {}),
         };
     }
 

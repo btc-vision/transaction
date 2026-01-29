@@ -1,6 +1,6 @@
 import { TransactionType } from '../enums/TransactionType.js';
-import { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
-import { fromHex, opcodes, Script, script, Signer, toSatoshi } from '@btc-vision/bitcoin';
+import type { IFundingTransactionParameters } from '../interfaces/ITransactionParameters.js';
+import { fromHex, opcodes, type Script, script, type Signer, toSatoshi } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 

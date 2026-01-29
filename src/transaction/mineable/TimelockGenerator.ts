@@ -1,14 +1,14 @@
 import bitcoin, {
     fromHex,
-    Network,
+    type Network,
     networks,
     opcodes,
-    PublicKey,
-    Script,
+    type PublicKey,
+    type Script,
     script,
-    XOnlyPublicKey,
+    type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
-import { IP2WSHAddress } from './IP2WSHAddress.js';
+import type { IP2WSHAddress } from './IP2WSHAddress.js';
 
 export class TimeLockGenerator {
     private static readonly UNSPENDABLE_INTERNAL_KEY = fromHex(

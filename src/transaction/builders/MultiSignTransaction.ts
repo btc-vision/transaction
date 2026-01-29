@@ -3,38 +3,39 @@ import {
     equals,
     fromHex,
     opcodes,
-    P2TRPayment,
+    type P2TRPayment,
     PaymentType,
     Psbt,
-    PsbtInput,
-    PsbtInputExtended,
-    PsbtOutputExtended,
-    PublicKey,
-    Script,
+    type PsbtInput,
+    type PsbtInputExtended,
+    type PsbtOutputExtended,
+    type PublicKey,
+    type Script,
     script,
-    Signer,
-    TapScriptSig,
-    Taptree,
+    type Signer,
+    type TapScriptSig,
+    type Taptree,
     toHex,
     toSatoshi,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
+import type { UpdateInput } from '../interfaces/Tap.js';
+import type { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
 import { MultiSignGenerator } from '../../generators/builders/MultiSignGenerator.js';
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 
 export interface MultiSignParameters extends Omit<
     ITransactionParameters,
-    'gasSatFee' | 'priorityFee' | 'signer'
+    'gasSatFee' | 'priorityFee' | 'signer' | 'from' | 'to'
 > {
     readonly pubkeys: Uint8Array[];
     readonly minimumSignatures: number;
-    readonly from?: undefined;
-    readonly to?: undefined;
+    readonly from?: string | undefined;
+    readonly to?: string | undefined;
     readonly psbt?: Psbt;
     readonly receiver: string;
     readonly requestedAmount: bigint;
@@ -84,7 +85,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @description Sign hash types
      * @protected
      */
-    protected readonly sighashTypes: number[] = MultiSignTransaction.signHashTypesArray;
+    protected override readonly sighashTypes: number[] = MultiSignTransaction.signHashTypesArray;
 
     public constructor(parameters: MultiSignParameters) {
         if (!parameters.refundVault) {
@@ -106,7 +107,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             ),
             priorityFee: 0n,
             gasSatFee: 0n,
-        });
+        } as ITransactionParameters);
 
         if (!parameters.pubkeys) {
             throw new Error('Pubkeys are required');
@@ -157,7 +158,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     public static verifyIfSigned(psbt: Psbt, signerPubKey: Uint8Array): boolean {
         let alreadySigned: boolean = false;
         for (let i = 1; i < psbt.data.inputs.length; i++) {
-            const input: PsbtInput = psbt.data.inputs[i];
+            const input: PsbtInput = psbt.data.inputs[i] as PsbtInput;
             if (!input.finalScriptWitness) {
                 continue;
             }
@@ -171,7 +172,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             }
 
             for (let j = 0; j < decoded.length - 2; j += 3) {
-                const pubKey = decoded[j + 2];
+                const pubKey = decoded[j + 2] as Uint8Array;
 
                 if (equals(pubKey, signerPubKey)) {
                     alreadySigned = true;
@@ -201,7 +202,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         let final: boolean = true;
 
         for (let i = originalInputCount; i < psbt.data.inputs.length; i++) {
-            const input: PsbtInput = psbt.data.inputs[i];
+            const input: PsbtInput = psbt.data.inputs[i] as PsbtInput;
             if (!input.tapInternalKey) {
                 input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
             }
@@ -215,17 +216,17 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                 input.tapLeafScript = [
                     {
                         leafVersion: 192,
-                        script: decoded[decoded.length - 2],
-                        controlBlock: decoded[decoded.length - 1],
+                        script: decoded[decoded.length - 2] as Uint8Array,
+                        controlBlock: decoded[decoded.length - 1] as Uint8Array,
                     },
                 ];
 
                 // we must insert all the partial signatures, decoded.length - 2
                 for (let j = 0; j < decoded.length - 2; j += 3) {
                     partialSignatures.push({
-                        signature: decoded[j],
-                        leafHash: decoded[j + 1],
-                        pubkey: decoded[j + 2],
+                        signature: decoded[j] as Uint8Array,
+                        leafHash: decoded[j + 1] as Uint8Array,
+                        pubkey: decoded[j + 2] as Uint8Array,
                     });
                 }
 
@@ -277,8 +278,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     ) => {
         if (
             !input.tapLeafScript ||
-            !input.tapLeafScript[0].script ||
-            !input.tapLeafScript[0].controlBlock
+            !input.tapLeafScript[0]?.script ||
+            !input.tapLeafScript[0]?.controlBlock
         ) {
             throw new Error('Tap leaf script is required');
         }
@@ -317,9 +318,10 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             scriptSolution = scriptSolution.concat(partialSignatures);
         }
 
+        const tapLeaf = input.tapLeafScript[0] as { script: Uint8Array; controlBlock: Uint8Array };
         const witness = scriptSolution
-            .concat(input.tapLeafScript[0].script)
-            .concat(input.tapLeafScript[0].controlBlock);
+            .concat(tapLeaf.script)
+            .concat(tapLeaf.controlBlock);
 
         return {
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),
@@ -367,7 +369,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         let finalizedInputs = 0;
         for (let i = startIndex; i < psbt.data.inputs.length; i++) {
             try {
-                const input = psbt.data.inputs[i];
+                const input = psbt.data.inputs[i] as PsbtInput;
 
                 if (!input.tapInternalKey) {
                     input.tapInternalKey = toXOnly(MultiSignTransaction.numsPoint);
@@ -382,17 +384,17 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                     // we must insert all the partial signatures, decoded.length - 2
                     for (let j = 0; j < decoded.length - 2; j += 3) {
                         partialSignatures.push({
-                            signature: decoded[j],
-                            leafHash: decoded[j + 1],
-                            pubkey: decoded[j + 2],
+                            signature: decoded[j] as Uint8Array,
+                            leafHash: decoded[j + 1] as Uint8Array,
+                            pubkey: decoded[j + 2] as Uint8Array,
                         });
                     }
 
                     input.tapLeafScript = [
                         {
                             leafVersion: 192,
-                            script: decoded[decoded.length - 2],
-                            controlBlock: decoded[decoded.length - 1],
+                            script: decoded[decoded.length - 2] as Uint8Array,
+                            controlBlock: decoded[decoded.length - 1] as Uint8Array,
                         },
                     ];
 
@@ -416,7 +418,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
                             inputIndex,
                             input,
                             [],
-                            orderedPubKeys[i - startIndex],
+                            orderedPubKeys[i - startIndex] as Uint8Array[],
                             isFinal,
                         );
                     },
@@ -453,7 +455,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @returns {Promise<Psbt>} - The signed transaction in hex format
      * @throws {Error} - If something went wrong
      */
-    public async signPSBT(): Promise<Psbt> {
+    public override async signPSBT(): Promise<Psbt> {
         if (await this.signTransaction()) {
             return this.transaction;
         }
@@ -527,7 +529,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         transaction.addInputs(inputs, checkPartialSigs);
 
         for (let i = 0; i < this.updateInputs.length; i++) {
-            transaction.updateInput(i, this.updateInputs[i]);
+            transaction.updateInput(i, this.updateInputs[i] as UpdateInput);
         }
 
         transaction.addOutputs(outputs);

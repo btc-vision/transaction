@@ -1,4 +1,4 @@
-import { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
+import type { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
 import { crypto, equals } from '@btc-vision/bitcoin';
 import { Address } from '../../keypair/Address.js';
 import { stringToBuffer } from '../../utils/StringToBuffer.js';
@@ -28,7 +28,7 @@ export class EpochValidator {
 
         const preimage = new Uint8Array(32);
         for (let i = 0; i < 32; i++) {
-            preimage[i] = checksumRoot[i] ^ publicKey[i] ^ salt[i];
+            preimage[i] = (checksumRoot[i] as number) ^ (publicKey[i] as number) ^ (salt[i] as number);
         }
 
         return preimage;
@@ -53,7 +53,7 @@ export class EpochValidator {
             } else {
                 // Check individual bits
                 for (let bit = 7; bit >= 0; bit--) {
-                    if (((byte1 >> bit) & 1) === ((byte2 >> bit) & 1)) {
+                    if ((((byte1 as number) >> bit) & 1) === (((byte2 as number) >> bit) & 1)) {
                         matchingBits++;
                     } else {
                         return matchingBits;

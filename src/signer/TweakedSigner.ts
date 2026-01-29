@@ -2,9 +2,9 @@ import { backend, eccLib } from '../ecc/backend.js';
 import {
     type Bytes32,
     initEccLib,
-    Network,
+    type Network,
     type PrivateKey,
-    Signer,
+    type Signer,
     tapTweakHash,
     toXOnly,
 } from '@btc-vision/bitcoin';

@@ -1,8 +1,9 @@
-import { Network, Signer } from '@btc-vision/bitcoin';
-import { type UniversalSigner } from '@btc-vision/ecpair';
-import { QuantumBIP32Interface } from '@btc-vision/bip32';
-import { ChainId } from '../../network/ChainId.js';
-import { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
+import type { Network, Signer } from '@btc-vision/bitcoin';
+import type { WorkerSigningPool, WorkerPoolConfig } from '@btc-vision/bitcoin/workers';
+import type { UniversalSigner } from '@btc-vision/ecpair';
+import type { QuantumBIP32Interface } from '@btc-vision/bip32';
+import type { ChainId } from '../../network/ChainId.js';
+import type { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
 
 export type SupportedTransactionVersion = 1 | 2 | 3;
 
@@ -21,4 +22,12 @@ export interface ITweakedTransactionData {
      * When enabled, each UTXO can be signed by a different signer.
      */
     readonly addressRotation?: AddressRotationConfigBase;
+
+    /**
+     * Parallel signing configuration using worker threads.
+     * Pass a WorkerSigningPool instance (recommended for reuse) or a WorkerPoolConfig.
+     * When provided, key-path taproot inputs are signed in parallel.
+     * Falls back to sequential for address rotation, browser, or non-taproot inputs.
+     */
+    readonly parallelSigning?: WorkerSigningPool | WorkerPoolConfig;
 }

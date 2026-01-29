@@ -47,13 +47,13 @@ export class FastMap<K extends PropertyExtendedKey, V> implements Disposable {
 
     public *values(): IterableIterator<V> {
         for (const key of this._keys) {
-            yield this._values[key as IndexKey];
+            yield this._values[key as IndexKey] as V;
         }
     }
 
     public *entries(): IterableIterator<[K, V]> {
         for (const key of this._keys) {
-            yield [key, this._values[key as IndexKey]];
+            yield [key, this._values[key as IndexKey] as V];
         }
     }
 
@@ -116,13 +116,13 @@ export class FastMap<K extends PropertyExtendedKey, V> implements Disposable {
         thisArg?: unknown,
     ): void {
         for (const key of this._keys) {
-            callback.call(thisArg, this._values[key as IndexKey], key, this);
+            callback.call(thisArg, this._values[key as IndexKey] as V, key, this);
         }
     }
 
     *[Symbol.iterator](): IterableIterator<[K, V]> {
         for (const key of this._keys) {
-            yield [key, this._values[key as IndexKey]];
+            yield [key, this._values[key as IndexKey] as V];
         }
     }
 }

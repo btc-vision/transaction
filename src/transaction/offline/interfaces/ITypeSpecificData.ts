@@ -1,5 +1,5 @@
 import { TransactionType } from '../../enums/TransactionType.js';
-import { RawChallenge } from '../../../epoch/interfaces/IChallengeSolution.js';
+import type { RawChallenge } from '../../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * Discriminated union for type-specific serialized data
