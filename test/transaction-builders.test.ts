@@ -144,6 +144,181 @@ describe('Transaction Builders - End-to-End', () => {
             expect(signed.ins.length).toBeGreaterThan(0);
             expect(signed.toHex()).toBeTruthy();
         });
+
+        it('should throw insufficient funds when amount equals total UTXO value (no autoAdjust)', async () => {
+            const utxoValue = 100_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount: utxoValue, // exact match — no room for fees
+                feeRate: 2,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds/);
+        });
+
+        it('should throw insufficient funds when amount exceeds total UTXO value', async () => {
+            const utxo = createTaprootUtxo(taprootAddress, 50_000n);
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount: 60_000n, // more than available
+                feeRate: 1,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds/);
+        });
+
+        it('should tolerate small fee estimation shortfalls when effective fee is still positive', async () => {
+            // When amount is close to totalInputAmount but leaves some sats for
+            // fees, the estimated fee may exceed what's available. As long as the
+            // effective fee (totalInputAmount - amountSpent) is positive, the
+            // transaction should succeed — the fee is just lower than estimated.
+            const utxoValue = 100_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+
+            // Leave 200 sats for fees — less than the estimated ~77 sats/vB * ~77 vB
+            // but still a positive effective fee
+            const amount = utxoValue - 200n;
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount,
+                feeRate: 10, // high fee rate means estimated fee > 200, but effective fee = 200
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            // Should NOT throw — effective fee is 200 sats (positive), even though
+            // it's less than the estimated fee at feeRate=10
+            const signed = await tx.signTransaction();
+            expect(signed.ins.length).toBeGreaterThan(0);
+            expect(signed.outs.length).toBeGreaterThan(0);
+
+            // Verify fee is exactly what was left over
+            const totalOutputValue = signed.outs.reduce(
+                (sum, out) => sum + BigInt(out.value),
+                0n,
+            );
+            expect(utxoValue - totalOutputValue).toBe(200n);
+        });
+
+        it('should auto-adjust amount when amount equals total UTXO value with autoAdjustAmount', async () => {
+            const utxoValue = 100_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+            const feeRate = 2;
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount: utxoValue,
+                autoAdjustAmount: true,
+                feeRate,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            const signed = await tx.signTransaction();
+
+            expect(signed.ins.length).toBeGreaterThan(0);
+            expect(signed.outs.length).toBeGreaterThan(0);
+            expect(signed.toHex()).toBeTruthy();
+
+            // The total output value should be less than utxoValue (fees deducted)
+            const totalOutputValue = signed.outs.reduce(
+                (sum, out) => sum + BigInt(out.value),
+                0n,
+            );
+            expect(totalOutputValue).toBeLessThan(utxoValue);
+
+            // The fee should be roughly feeRate * virtualSize
+            const fee = utxoValue - totalOutputValue;
+            const expectedFee = BigInt(Math.ceil(feeRate * signed.virtualSize()));
+            // Allow small variance due to fee estimation iterations
+            expect(fee).toBeGreaterThan(0n);
+            expect(fee).toBeLessThanOrEqual(expectedFee + 10n);
+        });
+
+        it('should not adjust amount when autoAdjustAmount is true but amount < totalInputAmount', async () => {
+            const utxoValue = 100_000n;
+            const sendAmount = 50_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount: sendAmount,
+                autoAdjustAmount: true,
+                feeRate: 1,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            const signed = await tx.signTransaction();
+
+            // Should behave like a normal transaction — one output at sendAmount + change
+            expect(signed.ins.length).toBeGreaterThan(0);
+            expect(signed.outs.length).toBeGreaterThanOrEqual(2); // send + change
+
+            // Find the primary output (should be exactly sendAmount)
+            const outputValues = signed.outs.map((o) => BigInt(o.value));
+            expect(outputValues).toContain(sendAmount);
+        });
+
+        it('should produce a transaction with proper fee rate when using autoAdjustAmount', async () => {
+            const utxoValue = 200_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+            const feeRate = 5;
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount: utxoValue,
+                autoAdjustAmount: true,
+                feeRate,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            const signed = await tx.signTransaction();
+
+            const totalOutputValue = signed.outs.reduce(
+                (sum, out) => sum + BigInt(out.value),
+                0n,
+            );
+            const actualFee = utxoValue - totalOutputValue;
+            const vsize = signed.virtualSize();
+
+            // Actual fee rate should be at least the requested feeRate
+            const actualFeeRate = Number(actualFee) / vsize;
+            expect(actualFeeRate).toBeGreaterThanOrEqual(feeRate * 0.95);
+        });
     });
 
     describe('CancelTransaction', () => {

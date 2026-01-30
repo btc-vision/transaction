@@ -56,6 +56,19 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
     amount: bigint;
 
     splitInputsInto?: number;
+
+    /**
+     * When true, fees are deducted from the output amount automatically.
+     * Useful for consolidation / send-max use cases where amount equals total UTXO value.
+     */
+    autoAdjustAmount?: boolean;
+
+    /**
+     * Extra UTXOs used exclusively to cover transaction fees.
+     * When provided, the output amount stays exact and fees are paid from these UTXOs.
+     * Any leftover becomes the change output as normal.
+     */
+    feeUtxos?: UTXO[];
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {
