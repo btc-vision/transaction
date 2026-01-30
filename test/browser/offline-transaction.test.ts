@@ -1225,7 +1225,7 @@ describe('Offline Transaction Signing', () => {
 
             const otherData: CancelSpecificData = {
                 type: TransactionType.CANCEL,
-                compiledTargetScript: 'abc',
+                compiledTargetScript: 'ab0c',
             };
 
             expect(isFundingSpecificData(otherData)).toBe(false);
@@ -1234,7 +1234,7 @@ describe('Offline Transaction Signing', () => {
         it('isDeploymentSpecificData should correctly identify deployment data', () => {
             const deploymentData: DeploymentSpecificData = {
                 type: TransactionType.DEPLOYMENT,
-                bytecode: 'abc',
+                bytecode: 'ab0c',
                 challenge: createMockChallenge(),
             };
 
@@ -1251,7 +1251,7 @@ describe('Offline Transaction Signing', () => {
         it('isInteractionSpecificData should correctly identify interaction data', () => {
             const interactionData: InteractionSpecificData = {
                 type: TransactionType.INTERACTION,
-                calldata: 'abc',
+                calldata: 'ab0c',
                 challenge: createMockChallenge(),
             };
 
@@ -1306,7 +1306,7 @@ describe('Offline Transaction Signing', () => {
         it('isCancelSpecificData should correctly identify cancel data', () => {
             const cancelData: CancelSpecificData = {
                 type: TransactionType.CANCEL,
-                compiledTargetScript: 'abc',
+                compiledTargetScript: 'ab0c',
             };
 
             expect(isCancelSpecificData(cancelData)).toBe(true);
@@ -1422,7 +1422,7 @@ describe('Offline Transaction Signing', () => {
                 },
                 typeSpecificData: {
                     type: TransactionType.INTERACTION,
-                    calldata: 'abc',
+                    calldata: 'ab0c',
                     challenge: createMockChallenge(),
                     loadedStorage,
                 } as InteractionSpecificData,

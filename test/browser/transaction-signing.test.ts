@@ -15,6 +15,7 @@ import {
     createAddressRotation,
     ChainId,
     currentConsensus,
+    MessageSigner,
 } from '../../build/opnet.js';
 import type {
     ReconstructionOptions,
@@ -405,17 +406,12 @@ describe('Browser Transaction Signing', () => {
     });
 
     describe('Message Signing', () => {
-        it('should sign and verify a message', () => {
-            const message = 'Hello from the browser!';
-            const { MessageSigner } = require('../../build/opnet.js');
+        it('should sign a message with a keypair', () => {
+            const signer = new MessageSigner();
+            const signed = signer.signMessage(signer1, 'Hello from the browser!');
 
-            if (MessageSigner) {
-                const signer = new MessageSigner();
-                const signed = signer.signMessage(signer1, message);
-
-                expect(signed).toBeDefined();
-                expect(signed.signature).toBeDefined();
-            }
+            expect(signed).toBeDefined();
+            expect(signed.signature).toBeDefined();
         });
     });
 });
