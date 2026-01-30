@@ -1,8 +1,12 @@
 import { type Network, networks } from '@btc-vision/bitcoin';
 
-const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
+function networkKey(network: Network): string {
+    return `${network.messagePrefix}|${network.bech32}`;
+}
+
+const CHAIN_IDS: ReadonlyMap<string, Uint8Array> = new Map([
     [
-        networks.bitcoin,
+        networkKey(networks.bitcoin),
         new Uint8Array([
             0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0xd6, 0x68, 0x9c, 0x08, 0x5a, 0xe1, 0x65, 0x83,
             0x1e, 0x93, 0x4f, 0xf7, 0x63, 0xae, 0x46, 0xa2, 0xa6, 0xc1, 0x72, 0xb3, 0xf1, 0xb6,
@@ -10,7 +14,7 @@ const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
         ]),
     ],
     [
-        networks.testnet,
+        networkKey(networks.testnet),
         new Uint8Array([
             0x00, 0x00, 0x00, 0x00, 0x09, 0x33, 0xea, 0x01, 0xad, 0x0e, 0xe9, 0x84, 0x20, 0x97,
             0x79, 0xba, 0xae, 0xc3, 0xce, 0xd9, 0x0f, 0xa3, 0xf4, 0x08, 0x71, 0x95, 0x26, 0xf8,
@@ -18,7 +22,7 @@ const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
         ]),
     ],
     [
-        networks.regtest,
+        networkKey(networks.regtest),
         new Uint8Array([
             0x0f, 0x91, 0x88, 0xf1, 0x3c, 0xb7, 0xb2, 0xc7, 0x1f, 0x2a, 0x33, 0x5e, 0x3a, 0x4f,
             0xc3, 0x28, 0xbf, 0x5b, 0xeb, 0x43, 0x60, 0x12, 0xaf, 0xca, 0x59, 0x0b, 0x1a, 0x11,
@@ -28,7 +32,7 @@ const CHAIN_IDS: ReadonlyMap<Network, Uint8Array> = new Map([
 ]);
 
 export function getChainId(network: Network): Uint8Array {
-    const chainId = CHAIN_IDS.get(network);
+    const chainId = CHAIN_IDS.get(networkKey(network));
     if (!chainId) throw new Error('Unsupported network for chain ID retrieval');
     return chainId.slice();
 }

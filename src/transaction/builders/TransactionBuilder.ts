@@ -747,98 +747,79 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             this.addAnchor();
         }
 
-        // Initialize variables for iteration
-        let previousFee = -1n;
-        let estimatedFee = 0n;
-        let iterations = 0;
-        const maxIterations = 5; // Prevent infinite loops
+        // Step 1: Add a dummy change output to estimate fee with the change-output shape
+        this.feeOutput = this.createChangeOutput(TransactionBuilder.MINIMUM_DUST);
+        const feeWithChange = await this.estimateTransactionFees();
 
-        let sendBackAmount = 0n;
-        // Iterate until fee stabilizes
-        while (iterations < maxIterations && estimatedFee !== previousFee) {
-            previousFee = estimatedFee;
-
-            // Calculate the fee with current outputs
-            estimatedFee = await this.estimateTransactionFees();
-
-            // Total amount that needs to be spent (outputs + fee)
-            const totalSpent = amountSpent + estimatedFee;
-
-            // Calculate refund
-            sendBackAmount = this.totalInputAmount - totalSpent;
-
-            if (this.debugFees) {
-                this.log(
-                    `Iteration ${iterations + 1}: inputAmount=${this.totalInputAmount}, totalSpent=${totalSpent}, sendBackAmount=${sendBackAmount}`,
-                );
-            }
-
-            // Determine if we should add a change output
-            if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
-                // Create the appropriate change output
-                if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
-                    this.feeOutput = {
-                        value: toSatoshi(sendBackAmount),
-                        address: this.from,
-                        tapInternalKey: this.internalPubKeyToXOnly(),
-                    };
-                } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
-                    const pubKeyScript = script.compile([
-                        fromHex(this.from.replace('0x', '')),
-                        opcodes.OP_CHECKSIG,
-                    ]);
-
-                    this.feeOutput = {
-                        value: toSatoshi(sendBackAmount),
-                        script: pubKeyScript,
-                    };
-                } else {
-                    this.feeOutput = {
-                        value: toSatoshi(sendBackAmount),
-                        address: this.from,
-                    };
-                }
-
-                // Set overflowFees when we have a change output
-                this.overflowFees = sendBackAmount;
-            } else {
-                // No change output if below dust
-                this.feeOutput = null;
-                this.overflowFees = 0n;
-
-                if (sendBackAmount < 0n && iterations === maxIterations) {
-                    throw new Error(
-                        `Insufficient funds: need ${totalSpent} sats but only have ${this.totalInputAmount} sats`,
-                    );
-                }
-
-                if (this.debugFees) {
-                    this.warn(
-                        `Amount to send back (${sendBackAmount} sat) is less than minimum dust...`,
-                    );
-                }
-            }
-
-            iterations++;
-        }
-
-        if (expectRefund && sendBackAmount < 0n) {
-            throw new Error(
-                `Insufficient funds: need at least ${-sendBackAmount} more sats to cover fees.`,
-            );
-        }
-
-        if (iterations >= maxIterations) {
-            this.warn(`Fee calculation did not stabilize after ${maxIterations} iterations`);
-        }
-
-        // Store the final fee
-        this.transactionFee = estimatedFee;
+        const sendBackAmount = this.totalInputAmount - amountSpent - feeWithChange;
 
         if (this.debugFees) {
             this.log(
-                `Final fee: ${estimatedFee} sats, Change output: ${this.feeOutput ? `${this.feeOutput.value} sats` : 'none'}`,
+                `Fee with change: ${feeWithChange} sats, inputAmount=${this.totalInputAmount}, amountSpent=${amountSpent}, sendBackAmount=${sendBackAmount}`,
             );
+        }
+
+        if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
+            // Change output is viable — set it to the real value
+            this.feeOutput = this.createChangeOutput(sendBackAmount);
+            this.overflowFees = sendBackAmount;
+            this.transactionFee = feeWithChange;
+        } else {
+            // Change output not viable — remove it and re-estimate without it
+            this.feeOutput = null;
+            this.overflowFees = 0n;
+
+            const feeWithoutChange = await this.estimateTransactionFees();
+            this.transactionFee = feeWithoutChange;
+
+            if (this.debugFees) {
+                this.warn(
+                    `Amount to send back (${sendBackAmount} sat) is less than minimum dust. Fee without change: ${feeWithoutChange} sats`,
+                );
+            }
+
+            if (this.totalInputAmount <= amountSpent) {
+                throw new Error(
+                    `Insufficient funds: need ${amountSpent + feeWithoutChange} sats but only have ${this.totalInputAmount} sats`,
+                );
+            }
+
+            if (expectRefund && sendBackAmount < 0n) {
+                throw new Error(
+                    `Insufficient funds: need at least ${-sendBackAmount} more sats to cover fees.`,
+                );
+            }
+        }
+
+        if (this.debugFees) {
+            this.log(
+                `Final fee: ${this.transactionFee} sats, Change output: ${this.feeOutput ? `${this.feeOutput.value} sats` : 'none'}`,
+            );
+        }
+    }
+
+    private createChangeOutput(amount: bigint): PsbtOutputExtended {
+        if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
+            return {
+                value: toSatoshi(amount),
+                address: this.from,
+                tapInternalKey: this.internalPubKeyToXOnly(),
+            };
+        } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
+            const pubKeyScript = script.compile([
+                fromHex(this.from.replace('0x', '')),
+                opcodes.OP_CHECKSIG,
+            ]);
+
+            return {
+                value: toSatoshi(amount),
+                script: pubKeyScript,
+            };
+        } else {
+            return {
+                value: toSatoshi(amount),
+                address: this.from,
+            };
         }
     }
 
@@ -1233,110 +1214,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             }
         }
     }
-
-    /**
-     * Set transaction fee output.
-     * @param {PsbtOutputExtended} output - The output to set the fees
-     * @protected
-     * @returns {Promise<void>}
-     */
-    protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
-        const initialValue = output.value;
-        this.feeOutput = null; // Start with no fee output
-
-        let estimatedFee = 0n;
-        let lastFee = -1n;
-
-        this.log(
-            `setFeeOutput: Starting fee calculation for change. Initial available value: ${initialValue} sats.`,
-        );
-
-        for (let i = 0; i < 3 && estimatedFee !== lastFee; i++) {
-            lastFee = estimatedFee;
-            estimatedFee = await this.estimateTransactionFees();
-            const valueLeft = BigInt(initialValue) - estimatedFee;
-
-            if (this.debugFees) {
-                this.log(
-                    ` -> Iteration ${i + 1}: Estimated fee is ${estimatedFee} sats. Value left for change: ${valueLeft} sats.`,
-                );
-            }
-
-            if (valueLeft >= TransactionBuilder.MINIMUM_DUST) {
-                this.feeOutput = { ...output, value: toSatoshi(valueLeft) };
-                this.overflowFees = valueLeft;
-            } else {
-                this.feeOutput = null;
-                this.overflowFees = 0n;
-                // Re-estimate fee one last time without the change output
-                estimatedFee = await this.estimateTransactionFees();
-
-                if (this.debugFees) {
-                    this.log(
-                        ` -> Change is less than dust. Final fee without change output: ${estimatedFee} sats.`,
-                    );
-                }
-            }
-        }
-
-        const finalValueLeft = BigInt(initialValue) - estimatedFee;
-
-        if (finalValueLeft < 0) {
-            throw new Error(
-                `setFeeOutput: Insufficient funds to pay the fees. Required fee: ${estimatedFee}, Available: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
-            );
-        }
-
-        if (finalValueLeft >= TransactionBuilder.MINIMUM_DUST) {
-            this.feeOutput = { ...output, value: toSatoshi(finalValueLeft) };
-            this.overflowFees = finalValueLeft;
-            if (this.debugFees) {
-                this.log(
-                    `setFeeOutput: Final change output set to ${finalValueLeft} sats. Final fee: ${estimatedFee} sats.`,
-                );
-            }
-        } else {
-            this.warn(
-                `Amount to send back (${finalValueLeft} sat) is less than the minimum dust (${TransactionBuilder.MINIMUM_DUST} sat), it will be consumed in fees instead.`,
-            );
-            this.feeOutput = null;
-            this.overflowFees = 0n;
-        }
-    }
-    /*protected async setFeeOutput(output: PsbtOutputExtended): Promise<void> {
-        const initialValue = output.value;
-
-        const fee = await this.estimateTransactionFees();
-        output.value = initialValue - Number(fee);
-
-        if (output.value < TransactionBuilder.MINIMUM_DUST) {
-            this.feeOutput = null;
-
-            if (output.value < 0) {
-                throw new Error(
-                    `setFeeOutput: Insufficient funds to pay the fees. Fee: ${fee} < Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
-                );
-            }
-        } else {
-            this.feeOutput = output;
-
-            const fee = await this.estimateTransactionFees();
-            if (fee > BigInt(initialValue)) {
-                throw new Error(
-                    `estimateTransactionFees: Insufficient funds to pay the fees. Fee: ${fee} > Value: ${initialValue}. Total input: ${this.totalInputAmount} sat`,
-                );
-            }
-
-            const valueLeft = initialValue - Number(fee);
-            if (valueLeft < TransactionBuilder.MINIMUM_DUST) {
-                this.feeOutput = null;
-            } else {
-                this.feeOutput.value = valueLeft;
-            }
-
-            this.overflowFees = BigInt(valueLeft);
-        }
-    }*/
 
     /**
      * Builds the transaction.
