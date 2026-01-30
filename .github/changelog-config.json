@@ -53,27 +53,28 @@
           "on_property": "title"
         }
       ]
-    },
-    {
-      "title": "### Other Changes",
-      "rules": [
-        {
-          "pattern": ".*",
-          "on_property": "title"
-        }
-      ]
     }
   ],
   "sort": {
     "order": "ASC",
     "on_property": "authoredDate"
   },
-  "template": "#{{CHANGELOG}}",
+  "template": "#{{CHANGELOG}}\n\n### Other Changes\n#{{UNCATEGORIZED}}",
   "commit_template": "- #{{TITLE}} (#{{SHORT_SHA}})",
   "empty_template": "- No changes",
   "max_tags_to_fetch": 200,
   "max_back_track_time_days": 365,
   "tag_resolver": {
     "method": "semver"
-  }
+  },
+  "custom_placeholders": [
+    {
+      "name": "SHORT_SHA",
+      "source": "MERGE_SHA",
+      "transformer": {
+        "pattern": "^(.{7}).*$",
+        "target": "$1"
+      }
+    }
+  ]
 }
