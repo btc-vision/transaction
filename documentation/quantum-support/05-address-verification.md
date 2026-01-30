@@ -16,22 +16,22 @@ The `AddressVerificator` provides methods to validate ML-DSA public keys and det
 import { AddressVerificator, MLDSASecurityLevel } from '@btc-vision/transaction';
 
 // Valid ML-DSA-44 public key (1312 bytes)
-const level2Key = Buffer.alloc(1312);
+const level2Key = new Uint8Array(1312);
 const level2Check = AddressVerificator.isValidMLDSAPublicKey(level2Key);
 console.log('LEVEL2 valid:', level2Check);  // MLDSASecurityLevel.LEVEL2
 
 // Valid ML-DSA-65 public key (1952 bytes)
-const level3Key = Buffer.alloc(1952);
+const level3Key = new Uint8Array(1952);
 const level3Check = AddressVerificator.isValidMLDSAPublicKey(level3Key);
 console.log('LEVEL3 valid:', level3Check);  // MLDSASecurityLevel.LEVEL3
 
 // Valid ML-DSA-87 public key (2592 bytes)
-const level5Key = Buffer.alloc(2592);
+const level5Key = new Uint8Array(2592);
 const level5Check = AddressVerificator.isValidMLDSAPublicKey(level5Key);
 console.log('LEVEL5 valid:', level5Check);  // MLDSASecurityLevel.LEVEL5
 
 // Invalid length
-const invalidKey = Buffer.alloc(1000);
+const invalidKey = new Uint8Array(1000);
 const invalidCheck = AddressVerificator.isValidMLDSAPublicKey(invalidKey);
 console.log('Invalid:', invalidCheck);  // null
 ```
@@ -53,15 +53,10 @@ const hexWithout0x = 'a'.repeat(2624);
 const check2 = AddressVerificator.isValidMLDSAPublicKey(hexWithout0x);
 console.log('Hex without 0x:', check2);  // MLDSASecurityLevel.LEVEL2
 
-// Buffer
-const buffer = Buffer.alloc(1312);
-const check3 = AddressVerificator.isValidMLDSAPublicKey(buffer);
-console.log('Buffer:', check3);  // MLDSASecurityLevel.LEVEL2
-
 // Uint8Array
 const uint8Array = new Uint8Array(1312);
-const check4 = AddressVerificator.isValidMLDSAPublicKey(uint8Array);
-console.log('Uint8Array:', check4);  // MLDSASecurityLevel.LEVEL2
+const check3 = AddressVerificator.isValidMLDSAPublicKey(uint8Array);
+console.log('Uint8Array:', check3);  // MLDSASecurityLevel.LEVEL2
 ```
 
 ### Validating Wallet Keys
@@ -90,18 +85,18 @@ console.log('Match:', securityLevel === wallet.securityLevel);  // true
 // Empty string
 console.log(AddressVerificator.isValidMLDSAPublicKey(''));  // null
 
-// Empty Buffer
-console.log(AddressVerificator.isValidMLDSAPublicKey(Buffer.alloc(0)));  // null
+// Empty Uint8Array
+console.log(AddressVerificator.isValidMLDSAPublicKey(new Uint8Array(0)));  // null
 
 // Invalid hex
 console.log(AddressVerificator.isValidMLDSAPublicKey('not hex'));  // null
 
 // Wrong length (classical key size)
-const classicalKey = Buffer.alloc(33);
+const classicalKey = new Uint8Array(33);
 console.log(AddressVerificator.isValidMLDSAPublicKey(classicalKey));  // null
 
 // Wrong length (arbitrary size)
-const wrongSize = Buffer.alloc(1500);
+const wrongSize = new Uint8Array(1500);
 console.log(AddressVerificator.isValidMLDSAPublicKey(wrongSize));  // null
 ```
 
@@ -234,13 +229,13 @@ console.log('=== ML-DSA Public Key Validation ===');
 
 // Validate quantum public key
 const quantumKeyHex = wallet.quantumPublicKeyHex;
-const quantumKeyBuffer = wallet.quantumPublicKey;
+const quantumKeyBytes = wallet.quantumPublicKey;
 
 const securityLevelFromHex = AddressVerificator.isValidMLDSAPublicKey(quantumKeyHex);
-const securityLevelFromBuffer = AddressVerificator.isValidMLDSAPublicKey(quantumKeyBuffer);
+const securityLevelFromBytes = AddressVerificator.isValidMLDSAPublicKey(quantumKeyBytes);
 
 console.log('Hex validation:', securityLevelFromHex);  // MLDSASecurityLevel.LEVEL2
-console.log('Buffer validation:', securityLevelFromBuffer);  // MLDSASecurityLevel.LEVEL2
+console.log('Uint8Array validation:', securityLevelFromBytes);  // MLDSASecurityLevel.LEVEL2
 console.log('Matches wallet:', securityLevelFromHex === wallet.securityLevel);  // true
 
 console.log('\n=== Address Type Detection ===');
