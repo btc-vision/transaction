@@ -2,42 +2,76 @@
   "categories": [
     {
       "title": "### Breaking Changes",
-      "labels": ["breaking", "breaking-change", "BREAKING-CHANGE"]
+      "rules": [
+        {
+          "pattern": "^(break|BREAKING)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Features",
-      "labels": ["feature", "feat", "enhancement"]
+      "rules": [
+        {
+          "pattern": "^(feat|Add|Support|Introduce)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Bug Fixes",
-      "labels": ["bug", "fix", "bugfix"]
+      "rules": [
+        {
+          "pattern": "^(fix|Fix|Restore)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Performance",
-      "labels": ["performance", "perf"]
+      "rules": [
+        {
+          "pattern": "(perf|Refactor fee|Deterministic|optimiz)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Documentation",
-      "labels": ["documentation", "docs"]
+      "rules": [
+        {
+          "pattern": "(doc|Doc|Update docs|README)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Dependencies",
-      "labels": ["dependencies", "deps"]
+      "rules": [
+        {
+          "pattern": "(Bump|deps|dependencies|Update package)",
+          "on_property": "title"
+        }
+      ]
     },
     {
       "title": "### Other Changes",
-      "labels": []
+      "rules": [
+        {
+          "pattern": ".*",
+          "on_property": "title"
+        }
+      ]
     }
   ],
   "sort": {
     "order": "ASC",
-    "on_property": "mergedAt"
+    "on_property": "authoredDate"
   },
   "template": "#{{CHANGELOG}}",
-  "pr_template": "- #{{TITLE}} (#{{NUMBER}}) by @#{{AUTHOR}}",
+  "commit_template": "- #{{TITLE}} (#{{SHORT_SHA}})",
   "empty_template": "- No changes",
   "max_tags_to_fetch": 200,
-  "max_pull_requests": 200,
   "max_back_track_time_days": 365,
   "tag_resolver": {
     "method": "semver"
