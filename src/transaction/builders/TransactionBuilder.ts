@@ -29,7 +29,12 @@ import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import { type Feature, FeaturePriority, Features, type MLDSALinkRequest } from '../../generators/Features.js';
+import {
+    type Feature,
+    FeaturePriority,
+    Features,
+    type MLDSALinkRequest,
+} from '../../generators/Features.js';
 import { BITCOIN_PROTOCOL_ID, getChainId } from '../../chain/ChainData.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
@@ -217,17 +222,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         });
     }
 
-    public override [Symbol.dispose](): void {
-        super[Symbol.dispose]();
-
-        this.updateInputs.length = 0;
-        this.outputs.length = 0;
-        this.feeOutput = null;
-        this.optionalOutputs = undefined;
-        this.utxos = [];
-        this.optionalInputs = [];
-    }
-
     public static getFrom(
         from: string | undefined,
         keypair: UniversalSigner | Signer,
@@ -244,6 +238,17 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      */
     public static witnessStackToScriptWitness(witness: Uint8Array[]): Uint8Array {
         return witnessStackToScriptWitness(witness);
+    }
+
+    public override [Symbol.dispose](): void {
+        super[Symbol.dispose]();
+
+        this.updateInputs.length = 0;
+        this.outputs.length = 0;
+        this.feeOutput = null;
+        this.optionalOutputs = undefined;
+        this.utxos = [];
+        this.optionalInputs = [];
     }
 
     public addOPReturn(buffer: Uint8Array): void {
@@ -279,7 +284,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             amount: this.estimatedFees,
             optionalInputs: this.optionalInputs,
             mldsaSigner: null,
-            ...(this.optionalOutputs !== undefined ? { optionalOutputs: this.optionalOutputs } : {}),
+            ...(this.optionalOutputs !== undefined
+                ? { optionalOutputs: this.optionalOutputs }
+                : {}),
         } satisfies IFundingTransactionParameters;
     }
 
@@ -747,7 +754,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             this.addAnchor();
         }
 
-        // Step 1: Add a dummy change output to estimate fee with the change-output shape
+        // Add a dummy change output to estimate fee with the change-output shape
         this.feeOutput = this.createChangeOutput(TransactionBuilder.MINIMUM_DUST);
         const feeWithChange = await this.estimateTransactionFees();
 
@@ -760,12 +767,12 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         if (sendBackAmount >= TransactionBuilder.MINIMUM_DUST) {
-            // Change output is viable — set it to the real value
+            // Change output is viable, set it to the real value
             this.feeOutput = this.createChangeOutput(sendBackAmount);
             this.overflowFees = sendBackAmount;
             this.transactionFee = feeWithChange;
         } else {
-            // Change output not viable — remove it and re-estimate without it
+            // Change output not viable, remove it and re-estimate without it
             this.feeOutput = null;
             this.overflowFees = 0n;
 
@@ -795,31 +802,6 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             this.log(
                 `Final fee: ${this.transactionFee} sats, Change output: ${this.feeOutput ? `${this.feeOutput.value} sats` : 'none'}`,
             );
-        }
-    }
-
-    private createChangeOutput(amount: bigint): PsbtOutputExtended {
-        if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
-            return {
-                value: toSatoshi(amount),
-                address: this.from,
-                tapInternalKey: this.internalPubKeyToXOnly(),
-            };
-        } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
-            const pubKeyScript = script.compile([
-                fromHex(this.from.replace('0x', '')),
-                opcodes.OP_CHECKSIG,
-            ]);
-
-            return {
-                value: toSatoshi(amount),
-                script: pubKeyScript,
-            };
-        } else {
-            return {
-                value: toSatoshi(amount),
-                address: this.from,
-            };
         }
     }
 
@@ -1029,7 +1011,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
         for (let i = 0; i < this.optionalOutputs.length; i++) {
             this.addOutput(this.optionalOutputs[i] as PsbtOutputExtended);
-            refundedFromOptionalOutputs += BigInt((this.optionalOutputs[i] as PsbtOutputExtended).value);
+            refundedFromOptionalOutputs += BigInt(
+                (this.optionalOutputs[i] as PsbtOutputExtended).value,
+            );
         }
 
         this.optionalOutputsAdded = true;
@@ -1258,5 +1242,30 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         }
 
         return false;
+    }
+
+    private createChangeOutput(amount: bigint): PsbtOutputExtended {
+        if (AddressVerificator.isValidP2TRAddress(this.from, this.network)) {
+            return {
+                value: toSatoshi(amount),
+                address: this.from,
+                tapInternalKey: this.internalPubKeyToXOnly(),
+            };
+        } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
+            const pubKeyScript = script.compile([
+                fromHex(this.from.replace('0x', '')),
+                opcodes.OP_CHECKSIG,
+            ]);
+
+            return {
+                value: toSatoshi(amount),
+                script: pubKeyScript,
+            };
+        } else {
+            return {
+                value: toSatoshi(amount),
+                address: this.from,
+            };
+        }
     }
 }

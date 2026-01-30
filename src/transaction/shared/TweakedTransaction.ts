@@ -2,6 +2,7 @@ import { Logger } from '@btc-vision/logger';
 import type { Bytes32, FinalScriptsFunc, Script, XOnlyPublicKey } from '@btc-vision/bitcoin';
 import {
     address as bitAddress,
+    applySignaturesToPsbt,
     crypto as bitCrypto,
     fromHex,
     getFinalScripts,
@@ -17,45 +18,35 @@ import {
     type Network,
     opcodes,
     type P2TRPayment,
+    type ParallelSigningResult,
     payments,
     PaymentType,
+    prepareSigningTasks,
     Psbt,
     type PsbtInput,
     type PsbtInputExtended,
     script,
     type Signer,
+    type SigningPoolLike,
     toXOnly,
     Transaction,
     varuint,
+    type WorkerPoolConfig,
+    WorkerSigningPool,
 } from '@btc-vision/bitcoin';
 
-import { isUniversalSigner, TweakedSigner, type TweakSettings } from '../../signer/TweakedSigner.js';
+import { isUniversalSigner, TweakedSigner, type TweakSettings, } from '../../signer/TweakedSigner.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
-import {
-    canSignNonTaprootInput,
-    isTaprootInput,
-    pubkeyInScript,
-} from '../../signer/SignerUtils.js';
+import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { type RotationSigner, type SignerMap } from '../../signer/AddressRotation.js';
-import type {
-    ITweakedTransactionData,
-    SupportedTransactionVersion,
-} from '../interfaces/ITweakedTransactionData.js';
-import {
-    prepareSigningTasks,
-    applySignaturesToPsbt,
-    type ParallelSigningResult,
-    type SigningPoolLike,
-    WorkerSigningPool,
-    type WorkerPoolConfig,
-} from '@btc-vision/bitcoin';
+import type { ITweakedTransactionData, SupportedTransactionVersion, } from '../interfaces/ITweakedTransactionData.js';
 import { toTweakedParallelKeyPair } from '../../signer/ParallelSignerAdapter.js';
 
 /**
@@ -230,19 +221,6 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
     }
 
-    public [Symbol.dispose](): void {
-        this.inputs.length = 0;
-        this.scriptData = null;
-        this.tapData = null;
-        this.tapLeafScript = null;
-        delete this.tweakedSigner;
-        this.csvInputIndices.clear();
-        this.anchorInputIndices.clear();
-        this.inputSignerMap.clear();
-        this.tweakedSignerCache.clear();
-        delete this.parallelSigningConfig;
-    }
-
     /**
      * Get the MLDSA signer
      * @protected
@@ -265,6 +243,14 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         return this._hashedPublicKey;
+    }
+
+    /**
+     * Whether parallel signing can be used for this transaction.
+     * Requires parallelSigningConfig and excludes browser, address rotation, and no-signature modes.
+     */
+    protected get canUseParallelSigning(): boolean {
+        return !!this.parallelSigningConfig && !this.addressRotationEnabled && !this.noSignatures;
     }
 
     /**
@@ -377,6 +363,19 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         return signHash || 0;
+    }
+
+    public [Symbol.dispose](): void {
+        this.inputs.length = 0;
+        this.scriptData = null;
+        this.tapData = null;
+        this.tapLeafScript = null;
+        delete this.tweakedSigner;
+        this.csvInputIndices.clear();
+        this.anchorInputIndices.clear();
+        this.inputSignerMap.clear();
+        this.tweakedSignerCache.clear();
+        delete this.parallelSigningConfig;
     }
 
     /**
@@ -861,18 +860,6 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
     }
 
     /**
-     * Whether parallel signing can be used for this transaction.
-     * Requires parallelSigningConfig and excludes browser, address rotation, and no-signature modes.
-     */
-    protected get canUseParallelSigning(): boolean {
-        return (
-            !!this.parallelSigningConfig &&
-            !this.addressRotationEnabled &&
-            !this.noSignatures
-        );
-    }
-
-    /**
      * Signs key-path taproot inputs in parallel using worker threads.
      * @param transaction - The PSBT to sign
      * @param excludeIndices - Input indices to skip (e.g., script-path inputs already signed)
@@ -947,7 +934,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             network: this.network,
         });
 
-        // Step 2: Wrap the P2WSH inside a P2SH (Pay-to-Script-Hash)
+        // Wrap the P2WSH inside a P2SH (Pay-to-Script-Hash)
         const p2sh = payments.p2sh({
             redeem: p2wsh,
             network: this.network,
@@ -983,7 +970,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             network: this.network,
         });
 
-        // Step 3: Wrap the P2WSH in a P2SH
+        // Wrap the P2WSH in a P2SH
         const p2sh = payments.p2sh({
             redeem: p2wsh, // The P2WSH is wrapped inside the P2SH
             network: this.network,
@@ -1323,7 +1310,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             const isCSVInput = this.csvInputIndices.has(inputIndex);
             if (isCSVInput) {
                 // For CSV P2WSH, the witness stack should be: [signature, witnessScript]
-                const witnessStack = [(input.partialSig[0] as { signature: Uint8Array }).signature, input.witnessScript];
+                const witnessStack = [
+                    (input.partialSig[0] as { signature: Uint8Array }).signature,
+                    input.witnessScript,
+                ];
                 return {
                     finalScriptSig: undefined,
                     finalScriptWitness: witnessStackToScriptWitness(witnessStack),

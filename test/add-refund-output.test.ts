@@ -1,15 +1,14 @@
-import { describe, expect, it, beforeAll } from 'vitest';
-import { networks, payments, script, toHex, toXOnly, opcodes } from '@btc-vision/bitcoin';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { networks, opcodes, payments, script, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
+import type { UTXO } from '../build/opnet.js';
 import {
     CancelTransaction,
-    EcKeyPair,
     FundingTransaction,
     MLDSASecurityLevel,
     Mnemonic,
     TransactionBuilder,
 } from '../build/opnet.js';
-import type { UTXO } from '../build/opnet.js';
 
 const network = networks.regtest;
 const testMnemonic =
@@ -33,7 +32,7 @@ function createTaprootUtxo(
     };
 }
 
-describe('addRefundOutput — deterministic fee estimation', () => {
+describe('addRefundOutput ,  deterministic fee estimation', () => {
     let signer: UniversalSigner;
     let taprootAddress: string;
 
@@ -85,10 +84,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             expect(signed.outs.length).toBeGreaterThanOrEqual(2);
 
             // Total output value + fee = total input value
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const fee = utxoValue - totalOut;
             expect(fee).toBeGreaterThan(0n);
             expect(totalOut).toBeLessThan(utxoValue);
@@ -134,10 +130,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const fee = totalInput - totalOut;
 
             expect(fee).toBeGreaterThan(0n);
@@ -170,10 +163,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             expect(tx.overflowFees).toBe(0n);
 
             // Fee = all the leftover (absorbed by miner)
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             expect(utxoValue - totalOut).toBeGreaterThan(0n);
         });
 
@@ -215,10 +205,10 @@ describe('addRefundOutput — deterministic fee estimation', () => {
     // ================================================================
     //  Tolerance: sendBack < 0 but totalInput > amountSpent
     // ================================================================
-    describe('tolerance — effective fee is positive but less than estimated', () => {
+    describe('tolerance ,  effective fee is positive but less than estimated', () => {
         it('should succeed when amount is close to totalInput leaving a small effective fee', async () => {
             const utxoValue = 100_000n;
-            // Leave 200 sats for fees — less than the estimated fee at high rate
+            // Leave 200 sats for fees ,  less than the estimated fee at high rate
             // but totalInput > amountSpent so it's valid
             const amount = utxoValue - 200n;
 
@@ -230,10 +220,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             expect(signed.outs.length).toBeGreaterThan(0);
 
             // Verify fee is exactly the 200 sats leftover
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             expect(utxoValue - totalOut).toBe(200n);
         });
 
@@ -246,10 +233,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             const signed = await tx.signTransaction();
             expect(signed.ins.length).toBeGreaterThan(0);
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             expect(utxoValue - totalOut).toBe(1n);
         });
     });
@@ -257,7 +241,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
     // ================================================================
     //  CancelTransaction (amountSpent = 0n)
     // ================================================================
-    describe('CancelTransaction — amountSpent = 0n', () => {
+    describe('CancelTransaction ,  amountSpent = 0n', () => {
         it('should not throw from addRefundOutput when amountSpent is 0', async () => {
             const utxo = createTaprootUtxo(taprootAddress, 100_000n);
 
@@ -302,10 +286,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const fee = utxoValue - totalOut;
 
             // Fee should be small relative to total
@@ -340,7 +321,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
         });
 
         it('should throw when expectRefund is true but fees consume all input', async () => {
-            // Use a tiny UTXO so that fees eat everything — expectRefund
+            // Use a tiny UTXO so that fees eat everything ,  expectRefund
             // (set by CancelTransaction) must reject this since the user
             // would get nothing back.
             const utxo = createTaprootUtxo(taprootAddress, 500n);
@@ -364,20 +345,15 @@ describe('addRefundOutput — deterministic fee estimation', () => {
     });
 
     // ================================================================
-    //  feeUtxos — separate fee funding
+    //  feeUtxos ,  separate fee funding
     // ================================================================
-    describe('feeUtxos — separate UTXOs for fees', () => {
+    describe('feeUtxos ,  separate UTXOs for fees', () => {
         it('should use feeUtxos to cover fees while preserving exact send amount', async () => {
             const utxoValue = 50_000n;
             const feeUtxoValue = 10_000n;
             const amount = 50_000n; // exact match with primary UTXO
 
-            const feeUtxo = createTaprootUtxo(
-                taprootAddress,
-                feeUtxoValue,
-                'f'.repeat(64),
-                0,
-            );
+            const feeUtxo = createTaprootUtxo(taprootAddress, feeUtxoValue, 'f'.repeat(64), 0);
 
             const tx = buildFunding({
                 utxoValue,
@@ -394,10 +370,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             expect(outputValues).toContain(amount);
 
             // Total outputs + fee = total inputs
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const totalIn = utxoValue + feeUtxoValue;
             expect(totalOut + tx.transactionFee).toBeLessThanOrEqual(totalIn);
         });
@@ -407,12 +380,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
             const feeUtxoValue = 50_000n; // generous fee UTXO
             const amount = 50_000n;
 
-            const feeUtxo = createTaprootUtxo(
-                taprootAddress,
-                feeUtxoValue,
-                'f'.repeat(64),
-                0,
-            );
+            const feeUtxo = createTaprootUtxo(taprootAddress, feeUtxoValue, 'f'.repeat(64), 0);
 
             const tx = buildFunding({
                 utxoValue,
@@ -473,10 +441,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const fee = utxoValue - totalOut;
 
             expect(fee).toBeGreaterThan(0n);
@@ -493,10 +458,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const actualFee = utxoValue - totalOut;
 
             // Actual fee >= estimated fee (extra absorbed by miner)
@@ -542,10 +504,7 @@ describe('addRefundOutput — deterministic fee estimation', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOut = signed.outs.reduce(
-                (sum, o) => sum + BigInt(o.value),
-                0n,
-            );
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
             const fee = utxoValue - totalOut;
 
             expect(fee).toBeGreaterThan(0n);

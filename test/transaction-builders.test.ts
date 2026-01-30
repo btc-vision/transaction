@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeAll } from 'vitest';
-import { networks, payments, script, toHex, toXOnly, opcodes } from '@btc-vision/bitcoin';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { networks, opcodes, payments, script, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
+import type { IChallengeSolution, IChallengeVerification, UTXO } from '../build/opnet.js';
 import {
     Address,
     CancelTransaction,
@@ -14,7 +15,6 @@ import {
     Mnemonic,
     MultiSignTransaction,
 } from '../build/opnet.js';
-import type { IChallengeSolution, IChallengeVerification, UTXO } from '../build/opnet.js';
 
 const network = networks.regtest;
 const testMnemonic =
@@ -84,12 +84,7 @@ describe('Transaction Builders - End-to-End', () => {
     let quantumRoot: QuantumBIP32Interface;
 
     beforeAll(() => {
-        const mnemonic = new Mnemonic(
-            testMnemonic,
-            '',
-            network,
-            MLDSASecurityLevel.LEVEL2,
-        );
+        const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
         const wallet = mnemonic.derive(0);
         signer = wallet.keypair;
         walletAddress = wallet.address;
@@ -154,7 +149,7 @@ describe('Transaction Builders - End-to-End', () => {
                 network,
                 utxos: [utxo],
                 to: taprootAddress,
-                amount: utxoValue, // exact match — no room for fees
+                amount: utxoValue, // exact match ,  no room for fees
                 feeRate: 2,
                 priorityFee: 0n,
                 gasSatFee: 0n,
@@ -186,11 +181,11 @@ describe('Transaction Builders - End-to-End', () => {
             // When amount is close to totalInputAmount but leaves some sats for
             // fees, the estimated fee may exceed what's available. As long as the
             // effective fee (totalInputAmount - amountSpent) is positive, the
-            // transaction should succeed — the fee is just lower than estimated.
+            // transaction should succeed ,  the fee is just lower than estimated.
             const utxoValue = 100_000n;
             const utxo = createTaprootUtxo(taprootAddress, utxoValue);
 
-            // Leave 200 sats for fees — less than the estimated ~77 sats/vB * ~77 vB
+            // Leave 200 sats for fees ,  less than the estimated ~77 sats/vB * ~77 vB
             // but still a positive effective fee
             const amount = utxoValue - 200n;
 
@@ -206,17 +201,14 @@ describe('Transaction Builders - End-to-End', () => {
                 mldsaSigner: null,
             });
 
-            // Should NOT throw — effective fee is 200 sats (positive), even though
+            // Should NOT throw ,  effective fee is 200 sats (positive), even though
             // it's less than the estimated fee at feeRate=10
             const signed = await tx.signTransaction();
             expect(signed.ins.length).toBeGreaterThan(0);
             expect(signed.outs.length).toBeGreaterThan(0);
 
             // Verify fee is exactly what was left over
-            const totalOutputValue = signed.outs.reduce(
-                (sum, out) => sum + BigInt(out.value),
-                0n,
-            );
+            const totalOutputValue = signed.outs.reduce((sum, out) => sum + BigInt(out.value), 0n);
             expect(utxoValue - totalOutputValue).toBe(200n);
         });
 
@@ -245,10 +237,7 @@ describe('Transaction Builders - End-to-End', () => {
             expect(signed.toHex()).toBeTruthy();
 
             // The total output value should be less than utxoValue (fees deducted)
-            const totalOutputValue = signed.outs.reduce(
-                (sum, out) => sum + BigInt(out.value),
-                0n,
-            );
+            const totalOutputValue = signed.outs.reduce((sum, out) => sum + BigInt(out.value), 0n);
             expect(totalOutputValue).toBeLessThan(utxoValue);
 
             // The fee should be roughly feeRate * virtualSize
@@ -279,7 +268,7 @@ describe('Transaction Builders - End-to-End', () => {
 
             const signed = await tx.signTransaction();
 
-            // Should behave like a normal transaction — one output at sendAmount + change
+            // Should behave like a normal transaction ,  one output at sendAmount + change
             expect(signed.ins.length).toBeGreaterThan(0);
             expect(signed.outs.length).toBeGreaterThanOrEqual(2); // send + change
 
@@ -308,10 +297,7 @@ describe('Transaction Builders - End-to-End', () => {
 
             const signed = await tx.signTransaction();
 
-            const totalOutputValue = signed.outs.reduce(
-                (sum, out) => sum + BigInt(out.value),
-                0n,
-            );
+            const totalOutputValue = signed.outs.reduce((sum, out) => sum + BigInt(out.value), 0n);
             const actualFee = utxoValue - totalOutputValue;
             const vsize = signed.virtualSize();
 
