@@ -407,8 +407,7 @@ describe('Browser Transaction Signing', () => {
 
     describe('Message Signing', () => {
         it('should sign a message with a keypair', () => {
-            const signer = new MessageSigner();
-            const signed = signer.signMessage(signer1, 'Hello from the browser!');
+            const signed = MessageSigner.signMessage(signer1, 'Hello from the browser!');
 
             expect(signed).toBeDefined();
             expect(signed.signature).toBeDefined();
