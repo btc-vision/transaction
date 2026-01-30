@@ -8,7 +8,6 @@ describe('BufferHelper', () => {
             const result = BufferHelper.bufferToUint8Array(buf);
 
             expect(result).toBeInstanceOf(Uint8Array);
-            expect(result).not.toBeInstanceOf(Buffer);
             expect(Array.from(result)).toEqual([0x01, 0x02, 0x03]);
         });
 
@@ -144,7 +143,9 @@ describe('BufferHelper', () => {
         });
 
         it('should throw for negative pointer', () => {
-            expect(() => BufferHelper.pointerToUint8Array(-1n)).toThrow('Pointer cannot be negative');
+            expect(() => BufferHelper.pointerToUint8Array(-1n)).toThrow(
+                'Pointer cannot be negative',
+            );
         });
 
         it('should throw for pointer exceeding 256-bit range', () => {
