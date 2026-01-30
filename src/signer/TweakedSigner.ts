@@ -1,7 +1,6 @@
-import { backend, eccLib } from '../ecc/backend.js';
+import { backend } from '../ecc/backend.js';
 import {
     type Bytes32,
-    initEccLib,
     type Network,
     type PrivateKey,
     type Signer,
@@ -10,8 +9,6 @@ import {
 } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
-
-initEccLib(eccLib);
 
 /**
  * Tweak settings
@@ -32,7 +29,7 @@ export interface TweakSettings {
  * Type guard to check if a Signer is a UniversalSigner (has privateKey).
  */
 export function isUniversalSigner(signer: Signer): signer is UniversalSigner {
-    return 'privateKey' in signer;
+    return 'privateKey' in signer && signer.privateKey != null;
 }
 
 /**

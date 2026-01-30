@@ -6,14 +6,12 @@ import {
     QuantumBIP32Factory,
     type QuantumBIP32Interface,
 } from '@btc-vision/bip32';
-import { initEccLib, type Network, networks, toHex } from '@btc-vision/bitcoin';
-import { backend, eccLib } from '../ecc/backend.js';
+import { type Network, networks, toHex } from '@btc-vision/bitcoin';
+import { backend } from '../ecc/backend.js';
 import { Wallet } from '../keypair/Wallet.js';
 import { MnemonicStrength } from './MnemonicStrength.js';
 import { BIPStandard, buildBIPPath } from './BIPStandard.js';
 import { AddressTypes } from '../keypair/AddressVerificator.js';
-
-initEccLib(eccLib);
 
 const bip32 = BIP32Factory(backend);
 

@@ -1,11 +1,8 @@
-import { address, fromHex, initEccLib, type Network, payments, type Script } from '@btc-vision/bitcoin';
-import { eccLib } from '../ecc/backend.js';
+import { address, fromHex, type Network, payments, type Script } from '@btc-vision/bitcoin';
 import { EcKeyPair } from './EcKeyPair.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
-
-initEccLib(eccLib);
 
 export enum AddressTypes {
     P2PKH = 'P2PKH',

@@ -1,8 +1,5 @@
 import { bech32, bech32m } from 'bech32';
-import { initEccLib, type Network, ripemd160 } from '@btc-vision/bitcoin';
-import { eccLib } from '../ecc/backend.js';
-
-initEccLib(eccLib);
+import { type Network, ripemd160 } from '@btc-vision/bitcoin';
 
 export class AddressGenerator {
     // Generate a valid SegWit address from random bytes

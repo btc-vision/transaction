@@ -3,7 +3,6 @@ import bitcoin, {
     equals,
     fromHex,
     getFinalScripts,
-    initEccLib,
     type Network,
     opcodes,
     Psbt,
@@ -16,7 +15,6 @@ import bitcoin, {
     Transaction,
 } from '@btc-vision/bitcoin';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
-import { eccLib } from '../../ecc/backend.js';
 import type { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import type {
@@ -37,8 +35,6 @@ import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { getLevelFromPublicKeyLength } from '../../generators/MLDSAData.js';
-
-initEccLib(eccLib);
 
 export const MINIMUM_AMOUNT_REWARD: bigint = 330n; //540n;
 export const MINIMUM_AMOUNT_CA: bigint = 297n;

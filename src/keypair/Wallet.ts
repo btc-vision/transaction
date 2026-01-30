@@ -2,7 +2,6 @@ import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
 import {
     fromHex,
-    initEccLib,
     type Network,
     networks,
     type PublicKey,
@@ -12,15 +11,12 @@ import {
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import type { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';
-import { eccLib } from '../ecc/backend.js';
 import {
     getMLDSAConfig,
     MLDSASecurityLevel,
     QuantumBIP32Factory,
     type QuantumBIP32Interface,
 } from '@btc-vision/bip32';
-
-initEccLib(eccLib);
 
 /**
  * Wallet class for managing both classical and quantum-resistant keys

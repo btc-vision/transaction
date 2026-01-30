@@ -101,9 +101,9 @@ export class OPNetLimitedProvider {
             }
 
             const rawIndex = Number(utxo.raw);
-            if (rawIndex === undefined || rawIndex === null) {
+            if (!Number.isInteger(rawIndex) || rawIndex < 0 || rawIndex >= rawTransactions.length) {
                 throw new Error(
-                    `Missing raw index for UTXO ${utxo.transactionId}:${utxo.outputIndex}`,
+                    `Invalid raw index for UTXO ${utxo.transactionId}:${utxo.outputIndex}`,
                 );
             }
 

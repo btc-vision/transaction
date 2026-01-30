@@ -1,4 +1,4 @@
-import type { PsbtParallelKeyPair } from '@btc-vision/bitcoin/workers';
+import type { PsbtParallelKeyPair } from '@btc-vision/bitcoin';
 import type { UniversalSigner } from '@btc-vision/ecpair';
 import { createPrivateKey, createPublicKey } from '@btc-vision/ecpair';
 

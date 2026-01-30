@@ -54,7 +54,7 @@ import {
     type ParallelSigningResult,
     WorkerSigningPool,
     type WorkerPoolConfig,
-} from '@btc-vision/bitcoin/workers';
+} from '@btc-vision/bitcoin';
 import { toTweakedParallelKeyPair } from '../../signer/ParallelSignerAdapter.js';
 
 /**

@@ -1,5 +1,5 @@
 import type { Network, Signer } from '@btc-vision/bitcoin';
-import type { WorkerSigningPool, WorkerPoolConfig } from '@btc-vision/bitcoin/workers';
+import type { WorkerSigningPool, WorkerPoolConfig } from '@btc-vision/bitcoin';
 import type { UniversalSigner } from '@btc-vision/ecpair';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
 import type { ChainId } from '../../network/ChainId.js';
