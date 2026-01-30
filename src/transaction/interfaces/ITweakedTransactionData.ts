@@ -1,5 +1,5 @@
 import type { Network, Signer } from '@btc-vision/bitcoin';
-import type { WorkerSigningPool, WorkerPoolConfig } from '@btc-vision/bitcoin';
+import type { SigningPoolLike, WorkerPoolConfig } from '@btc-vision/bitcoin';
 import type { UniversalSigner } from '@btc-vision/ecpair';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
 import type { ChainId } from '../../network/ChainId.js';
@@ -29,5 +29,5 @@ export interface ITweakedTransactionData {
      * When provided, key-path taproot inputs are signed in parallel.
      * Falls back to sequential for address rotation, browser, or non-taproot inputs.
      */
-    readonly parallelSigning?: WorkerSigningPool | WorkerPoolConfig;
+    readonly parallelSigning?: SigningPoolLike | WorkerPoolConfig;
 }

@@ -1,7 +1,7 @@
 {
     "name": "@btc-vision/transaction",
     "type": "module",
-    "version": "1.8.0-beta.7",
+    "version": "1.8.0-beta.8",
     "author": "BlobMaster41",
     "description": "OPNet transaction library allows you to create and sign transactions for the OPNet network.",
     "engines": {
@@ -164,7 +164,7 @@
     },
     "dependencies": {
         "@btc-vision/bip32": "^7.0.2",
-        "@btc-vision/bitcoin": "^7.0.0-alpha.8",
+        "@btc-vision/bitcoin": "^7.0.0-alpha.9",
         "@btc-vision/bitcoin-rpc": "^1.0.6",
         "@btc-vision/ecpair": "^4.0.2",
         "@btc-vision/logger": "^1.0.8",

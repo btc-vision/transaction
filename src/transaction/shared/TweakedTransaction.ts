@@ -52,6 +52,7 @@ import {
     prepareSigningTasks,
     applySignaturesToPsbt,
     type ParallelSigningResult,
+    type SigningPoolLike,
     WorkerSigningPool,
     type WorkerPoolConfig,
 } from '@btc-vision/bitcoin';
@@ -191,7 +192,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      * Parallel signing configuration using worker threads.
      * When set, key-path taproot inputs are signed in parallel via workers.
      */
-    protected parallelSigningConfig?: WorkerSigningPool | WorkerPoolConfig;
+    protected parallelSigningConfig?: SigningPoolLike | WorkerPoolConfig;
 
     protected constructor(data: ITweakedTransactionData) {
         super();
@@ -910,10 +911,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         // Get or create pool
-        let pool: WorkerSigningPool;
+        let pool: SigningPoolLike;
         let shouldShutdown = false;
 
-        if (this.parallelSigningConfig instanceof WorkerSigningPool) {
+        if (this.parallelSigningConfig && 'signBatch' in this.parallelSigningConfig) {
             pool = this.parallelSigningConfig;
         } else {
             pool = WorkerSigningPool.getInstance(this.parallelSigningConfig);
