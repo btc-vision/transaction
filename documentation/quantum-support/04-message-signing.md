@@ -16,7 +16,7 @@ Sign messages with quantum-resistant ML-DSA signatures:
 
 ```typescript
 import { Mnemonic, MessageSigner, MLDSASecurityLevel } from '@btc-vision/transaction';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 // Generate wallet
 const mnemonic = Mnemonic.generate(undefined, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
@@ -27,8 +27,8 @@ const message = 'Hello, Quantum World!';
 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
 console.log('Message:', signed.message);
-console.log('Signature:', Buffer.from(signed.signature).toString('hex'));
-console.log('Public Key:', Buffer.from(signed.publicKey).toString('hex'));
+console.log('Signature:', toHex(signed.signature));
+console.log('Public Key:', toHex(signed.publicKey));
 console.log('Security Level:', signed.securityLevel);
 ```
 
@@ -118,7 +118,7 @@ Parameters for `QuantumBIP32Factory.fromPublicKey()`:
 ```typescript
 const keypair = QuantumBIP32Factory.fromPublicKey(
     publicKey,      // Uint8Array - ML-DSA public key (1312-2592 bytes)
-    chainCode,      // Buffer - Chain code (32 bytes)
+    chainCode,      // Uint8Array - Chain code (32 bytes)
     network,        // Network - networks.bitcoin, networks.testnet, or networks.regtest
     securityLevel   // MLDSASecurityLevel - LEVEL2, LEVEL3, or LEVEL5
 );
@@ -158,11 +158,13 @@ console.log('Valid:', valid);  // true
 **Scenario 2: Verifying a signature from someone else**
 
 ```typescript
+import { fromHex } from '@btc-vision/bitcoin';
+
 // You receive these from the network/API:
-const receivedPublicKey = Buffer.from(/* hex string from network */);
+const receivedPublicKey = fromHex(/* hex string from network */);
 const receivedMessage = 'Message from sender';
-const receivedSignature = Buffer.from(/* hex string from network */);
-const receivedChainCode = Buffer.from(/* hex string from network */);
+const receivedSignature = fromHex(/* hex string from network */);
+const receivedChainCode = fromHex(/* hex string from network */);
 const receivedSecurityLevel = MLDSASecurityLevel.LEVEL2;
 
 // Reconstruct keypair from public key
@@ -186,6 +188,8 @@ console.log('Signature from other party valid:', valid);
 **Scenario 3: Verifying stored signatures**
 
 ```typescript
+import { fromHex } from '@btc-vision/bitcoin';
+
 // Load public key and signature from database
 const storedPublicKey = await db.getPublicKey(userId);
 const storedChainCode = await db.getChainCode(userId);
@@ -195,8 +199,8 @@ const message = await db.getMessage(messageId);
 
 // Reconstruct keypair
 const keypair = QuantumBIP32Factory.fromPublicKey(
-    Buffer.from(storedPublicKey, 'hex'),
-    Buffer.from(storedChainCode, 'hex'),
+    fromHex(storedPublicKey),
+    fromHex(storedChainCode),
     networks.bitcoin,
     storedSecurityLevel
 );
@@ -205,7 +209,7 @@ const keypair = QuantumBIP32Factory.fromPublicKey(
 const valid = MessageSigner.verifyMLDSASignature(
     keypair,
     message,
-    Buffer.from(signature, 'hex')
+    fromHex(signature)
 );
 
 console.log('Stored signature valid:', valid);
@@ -247,8 +251,8 @@ const message = 'Hello, Bitcoin!';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
 console.log('Message:', signed.message);
-console.log('Signature:', Buffer.from(signed.signature).toString('hex'));
-console.log('Public Key:', Buffer.from(signed.publicKey).toString('hex'));
+console.log('Signature:', toHex(signed.signature));
+console.log('Public Key:', toHex(signed.publicKey));
 console.log('Signature Size:', signed.signature.length);  // 64 bytes (Schnorr)
 ```
 
@@ -286,19 +290,20 @@ const signed2 = MessageSigner.signMLDSAMessage(
 );
 ```
 
-### Buffer Messages
+### Uint8Array Messages
 
 ```typescript
 // From UTF-8 string
-const message1 = Buffer.from('Hello, Buffer!', 'utf-8');
+const message1 = new TextEncoder().encode('Hello, Uint8Array!');
 const signed1 = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message1);
 
 // Binary data
-const message2 = Buffer.from([0x01, 0x02, 0x03, 0x04]);
+const message2 = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
 const signed2 = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message2);
 
 // From hex
-const message3 = Buffer.from('abcdef1234567890', 'hex');
+import { fromHex } from '@btc-vision/bitcoin';
+const message3 = fromHex('abcdef1234567890');
 const signed3 = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message3);
 ```
 
@@ -344,19 +349,18 @@ const publicKeyPair = QuantumBIP32Factory.fromPublicKey(
     securityLevel
 );
 
-// Verify with Buffer
-const messageBuffer = Buffer.from(message, 'utf-8');
+// Verify with Uint8Array
+const messageBytes = new TextEncoder().encode(message);
 const valid1 = MessageSigner.verifyMLDSASignature(
     publicKeyPair,
-    messageBuffer,
+    messageBytes,
     signed.signature
 );
 
-// Verify with Uint8Array
-const messageArray = new Uint8Array(Buffer.from(message, 'utf-8'));
+// Verify with string directly
 const valid2 = MessageSigner.verifyMLDSASignature(
     publicKeyPair,
-    messageArray,
+    message,
     signed.signature
 );
 
@@ -378,8 +382,8 @@ const wallet = mnemonic.derive(0);
 const message = 'Taproot message';
 const signed = MessageSigner.tweakAndSignMessage(wallet.keypair, message);
 
-console.log('Tweaked Signature:', Buffer.from(signed.signature).toString('hex'));
-console.log('Tweaked Public Key:', Buffer.from(signed.publicKey).toString('hex'));
+console.log('Tweaked Signature:', toHex(signed.signature));
+console.log('Tweaked Public Key:', toHex(signed.publicKey));
 ```
 
 ### Verifying Tweaked Signatures
@@ -413,7 +417,7 @@ const longMessage = 'This is a very long message that will be hashed before sign
 
 // Automatically hashed to 32 bytes before signing
 const hash = MessageSigner.sha256(longMessage);
-console.log('Message hash:', Buffer.from(hash).toString('hex'));
+console.log('Message hash:', toHex(hash));
 console.log('Hash length:', hash.length);  // 32 bytes
 
 // Then signed
@@ -465,8 +469,8 @@ if (!isValid) {
 // Store signatures with metadata
 const signatureData = {
     message: signed.message,
-    signature: Buffer.from(signed.signature).toString('hex'),
-    publicKey: Buffer.from(signed.publicKey).toString('hex'),
+    signature: toHex(signed.signature),
+    publicKey: toHex(signed.publicKey),
     securityLevel: signed.securityLevel,
     timestamp: Date.now()
 };
@@ -525,7 +529,7 @@ import {
     Mnemonic,
     QuantumBIP32Factory,
 } from '@btc-vision/transaction';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 const network = networks.regtest;
 const securityLevel = MLDSASecurityLevel.LEVEL2;
@@ -585,13 +589,10 @@ const testMessage = 'Format test';
 // String
 const sig1 = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, testMessage);
 
-// Buffer
-const sig2 = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, Buffer.from(testMessage, 'utf-8'));
-
 // Uint8Array
-const sig3 = MessageSigner.signMLDSAMessage(
+const sig2 = MessageSigner.signMLDSAMessage(
     wallet.mldsaKeypair,
-    new Uint8Array(Buffer.from(testMessage, 'utf-8')),
+    new TextEncoder().encode(testMessage),
 );
 
 // All verify successfully
@@ -600,19 +601,11 @@ console.log(
     MessageSigner.verifyMLDSASignature(wallet.mldsaKeypair, testMessage, sig1.signature),
 );
 console.log(
-    'Buffer format valid:',
-    MessageSigner.verifyMLDSASignature(
-        wallet.mldsaKeypair,
-        Buffer.from(testMessage),
-        sig2.signature,
-    ),
-);
-console.log(
     'Uint8Array format valid:',
     MessageSigner.verifyMLDSASignature(
         wallet.mldsaKeypair,
-        new Uint8Array(Buffer.from(testMessage)),
-        sig3.signature,
+        new TextEncoder().encode(testMessage),
+        sig2.signature,
     ),
 );
 ```

@@ -1,5 +1,5 @@
 import { Consensus } from './Consensus.js';
-import { ConsensusConfig } from './IConsensusConfig.js';
+import type { ConsensusConfig } from './IConsensusConfig.js';
 import { RoswellConsensus } from './metadata/RoswellConsensus.js';
 
 export const OPNetConsensusConfig: { [key in Consensus]?: ConsensusConfig<key> } = {

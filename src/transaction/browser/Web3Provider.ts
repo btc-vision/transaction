@@ -1,10 +1,10 @@
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import {
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type {
     CancelledTransaction,
     DeploymentResult,
     InteractionResponse,
 } from '../interfaces/ITransactionResponses.js';
-import {
+import type {
     BroadcastedTransaction,
     BroadcastTransactionOptions,
     ICancelTransactionParametersWithoutSigner,

@@ -1,4 +1,10 @@
-import { Network, Psbt, Signer } from '@btc-vision/bitcoin';
+import { type Network, Psbt, type Signer } from '@btc-vision/bitcoin';
+import {
+    type MessageHash,
+    type PublicKey,
+    type SchnorrSignature,
+    type Signature,
+} from '@btc-vision/ecpair';
 
 /**
  * Create a custom keypair.
@@ -7,7 +13,7 @@ import { Network, Psbt, Signer } from '@btc-vision/bitcoin';
 export abstract class CustomKeypair implements Signer {
     public abstract network: Network;
 
-    public abstract publicKey: Buffer;
+    public abstract publicKey: PublicKey;
 
     public abstract addresses: string[];
 
@@ -24,13 +30,13 @@ export abstract class CustomKeypair implements Signer {
 
     public abstract signInput(transaction: Psbt, i: number, sighashTypes: number[]): Promise<void>;
 
-    public abstract getPublicKey(): Buffer;
+    public abstract getPublicKey(): PublicKey;
 
-    public abstract sign(hash: Buffer, lowR?: boolean): Buffer;
+    public abstract sign(hash: MessageHash, lowR?: boolean): Signature;
 
-    public abstract signSchnorr(hash: Buffer): Buffer;
+    public abstract signSchnorr(hash: MessageHash): SchnorrSignature;
 
-    public abstract verify(hash: Buffer, signature: Buffer): boolean | Buffer;
+    public abstract verify(hash: MessageHash, signature: Signature): boolean;
 
     public abstract init(): Promise<void>;
 }

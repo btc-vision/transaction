@@ -1,9 +1,9 @@
-import { Network } from '@btc-vision/bitcoin';
-import { IFundingTransactionParameters } from '../transaction/interfaces/ITransactionParameters.js';
+import type { Network } from '@btc-vision/bitcoin';
+import type { IFundingTransactionParameters } from '../transaction/interfaces/ITransactionParameters.js';
 import { TransactionFactory } from '../transaction/TransactionFactory.js';
 import { Wallet } from '../keypair/Wallet.js';
-import { BroadcastResponse } from './interfaces/BroadcastResponse.js';
-import {
+import type { BroadcastResponse } from './interfaces/BroadcastResponse.js';
+import type {
     FetchUTXOParams,
     FetchUTXOParamsMultiAddress,
     RawUTXOResponse,
@@ -100,10 +100,10 @@ export class OPNetLimitedProvider {
                 continue;
             }
 
-            const rawIndex = utxo.raw as unknown as number;
-            if (rawIndex === undefined || rawIndex === null) {
+            const rawIndex = Number(utxo.raw);
+            if (!Number.isInteger(rawIndex) || rawIndex < 0 || rawIndex >= rawTransactions.length) {
                 throw new Error(
-                    `Missing raw index for UTXO ${utxo.transactionId}:${utxo.outputIndex}`,
+                    `Invalid raw index for UTXO ${utxo.transactionId}:${utxo.outputIndex}`,
                 );
             }
 
@@ -168,8 +168,8 @@ export class OPNetLimitedProvider {
                 break;
             }
 
-            currentAmount += utxo.value;
-            finalUTXOs.push(utxo);
+            currentAmount += (utxo as UTXO).value;
+            finalUTXOs.push(utxo as UTXO);
         }
 
         return finalUTXOs;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FastBigIntMap } from './old/FastBigIntMap.js';
-import { FastMap } from '../src';
+import { FastMap } from '../src/index.js';
 
 describe('setAll bug', () => {
     describe('FastBigIntMap (original - correct behavior)', () => {

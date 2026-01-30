@@ -1,5 +1,5 @@
-import { Unisat } from './Unisat.js';
-import { Web3Provider } from '../Web3Provider.js';
+import type { Unisat } from './Unisat.js';
+import type { Web3Provider } from '../Web3Provider.js';
 
 /**
  * OPWallet interface extending Unisat with ML-DSA (FIPS 204) support

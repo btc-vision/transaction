@@ -52,7 +52,7 @@ OPNet uses a **dual-key system** for maximum compatibility and security:
 
 ```typescript
 import { Mnemonic, MessageSigner, MLDSASecurityLevel } from '@btc-vision/transaction';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 // Generate a new quantum-resistant wallet
 const mnemonic = Mnemonic.generate(undefined, '', networks.bitcoin, MLDSASecurityLevel.LEVEL2);
@@ -67,7 +67,7 @@ console.log('Quantum Address:', quantumAddress);
 // Sign a message with ML-DSA
 const message = 'Hello, Quantum World!';
 const signature = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
-console.log('ML-DSA Signature:', Buffer.from(signature.signature).toString('hex'));
+console.log('ML-DSA Signature:', toHex(signature.signature));
 ```
 
 ## What's New

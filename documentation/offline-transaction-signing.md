@@ -195,7 +195,7 @@ Options for reconstructing a transaction from serialized state:
 ```typescript
 interface ReconstructionOptions {
     // Primary signer (required)
-    signer: Signer | ECPairInterface;
+    signer: Signer | UniversalSigner;
 
     // Optional: Override fee rate for fee bumping
     newFeeRate?: number;
@@ -274,9 +274,9 @@ const exported = OfflineTransactionManager.exportFunding(params);
 
 // Phase 2: Provide signers for each address
 const offlineSignerMap = createSignerMap([
-    { address: 'bc1p...address1', signer: offlineSigner1 },
-    { address: 'bc1p...address2', signer: offlineSigner2 },
-], network);
+    ['bc1p...address1', offlineSigner1],
+    ['bc1p...address2', offlineSigner2],
+]);
 
 const signedTx = await OfflineTransactionManager.importSignAndExport(
     exported,
@@ -373,7 +373,7 @@ flowchart LR
 // Add a signature from one signer
 static async multiSigAddSignature(
     serializedState: string,
-    signer: Signer | ECPairInterface
+    signer: Signer | UniversalSigner
 ): Promise<{
     state: string;      // Updated state with new signature
     signed: boolean;    // Whether signing succeeded
@@ -384,7 +384,7 @@ static async multiSigAddSignature(
 // Check if a public key has already signed
 static multiSigHasSigned(
     serializedState: string,
-    signerPubKey: Buffer | string
+    signerPubKey: Uint8Array | string
 ): boolean;
 
 // Get current signature status
@@ -508,9 +508,11 @@ interface PrecomputedData {
 For Deployment and Interaction transactions, `randomBytes` and `compiledTargetScript` are required:
 
 ```typescript
+import { toHex } from '@btc-vision/bitcoin';
+
 const exported = OfflineTransactionManager.exportDeployment(params, {
-    randomBytes: builder.getRandomBytes().toString('hex'),
-    compiledTargetScript: builder.getCompiledScript().toString('hex'),
+    randomBytes: toHex(builder.getRandomBytes()),
+    compiledTargetScript: toHex(builder.getCompiledScript()),
 });
 ```
 

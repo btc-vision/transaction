@@ -95,12 +95,12 @@ interface UTXO {
     };
 
     // Optional fields (for specific script types)
-    redeemScript?: string | Buffer;     // P2SH redeem script
-    witnessScript?: string | Buffer;    // P2WSH witness script
-    nonWitnessUtxo?: string | Buffer;   // Full previous tx (legacy)
+    redeemScript?: string | Uint8Array;     // P2SH redeem script
+    witnessScript?: string | Uint8Array;    // P2WSH witness script
+    nonWitnessUtxo?: string | Uint8Array;   // Full previous tx (legacy)
 
     // Address rotation support
-    signer?: RotationSigner;            // Per-UTXO signer
+    signer?: RotationSignerBase;            // Per-UTXO signer
 }
 ```
 
@@ -198,8 +198,8 @@ const deployResult = await factory.signDeployment({
     feeRate: 10,
     priorityFee: 1000n,
     gasSatFee: 500n,
-    bytecode: contractBytecode,     // Contract bytecode (Buffer)
-    calldata: constructorData,       // Constructor params (Buffer, optional)
+    bytecode: contractBytecode,     // Contract bytecode (Uint8Array)
+    calldata: constructorData,       // Constructor params (Uint8Array, optional)
     challenge: epochChallenge,       // ChallengeSolution
     randomBytes: crypto.randomBytes(32),
 });
@@ -222,7 +222,7 @@ const interactResult = await factory.signInteraction({
     feeRate: 10,
     priorityFee: 1000n,
     gasSatFee: 500n,
-    calldata: functionCalldata,      // Encoded function call (Buffer)
+    calldata: functionCalldata,      // Encoded function call (Uint8Array)
     challenge: epochChallenge,
     randomBytes: crypto.randomBytes(32),
 });
@@ -444,11 +444,11 @@ const customTx = new CustomScriptTransaction({
     priorityFee: 1000n,
     gasSatFee: 500n,
     script: [
-        Buffer.from('hello'),
+        new TextEncoder().encode('hello'),
         opcodes.OP_DROP,
         opcodes.OP_TRUE,
     ],
-    witnesses: [Buffer.from('witness data')],
+    witnesses: [new TextEncoder().encode('witness data')],
 });
 ```
 

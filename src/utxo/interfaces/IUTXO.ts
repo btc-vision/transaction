@@ -1,5 +1,5 @@
-import { ScriptPubKey } from '@btc-vision/bitcoin-rpc';
-import { RotationSignerBase } from '../../signer/IRotationSigner.js';
+import type { ScriptPubKey } from '@btc-vision/bitcoin-rpc';
+import type { RotationSignerBase } from '../../signer/IRotationSigner.js';
 
 export interface UTXO {
     readonly transactionId: string;
@@ -7,9 +7,9 @@ export interface UTXO {
     readonly value: bigint;
     readonly scriptPubKey: ScriptPubKey;
 
-    redeemScript?: string | Buffer;
-    witnessScript?: string | Buffer;
-    nonWitnessUtxo?: string | Buffer;
+    redeemScript?: string | Uint8Array;
+    witnessScript?: string | Uint8Array;
+    nonWitnessUtxo?: string | Uint8Array;
 
     /**
      * Optional signer for this specific UTXO.
@@ -23,8 +23,8 @@ export interface FetchUTXOParams {
     readonly address: string;
     readonly minAmount: bigint;
     readonly requestedAmount: bigint;
-    optimized?: boolean;
-    usePendingUTXO?: boolean;
+    optimized?: boolean | undefined;
+    usePendingUTXO?: boolean | undefined;
 }
 
 export interface FetchUTXOParamsMultiAddress {

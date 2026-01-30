@@ -44,7 +44,7 @@ Sign and verify messages using ML-DSA (quantum) and Schnorr (classical) signatur
 **Topics covered:**
 - ML-DSA message signing and verification
 - Schnorr message signing
-- Multiple input formats (string, Buffer, Uint8Array, hex)
+- Multiple input formats (string, Uint8Array, hex)
 - Cross-format verification
 - Tweaked signatures for Taproot
 - Message hashing (SHA-256)

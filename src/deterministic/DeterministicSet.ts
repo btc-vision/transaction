@@ -1,4 +1,4 @@
-export class DeterministicSet<T> {
+export class DeterministicSet<T> implements Disposable {
     private elements: T[];
 
     constructor(private compareFn: (a: T, b: T) => number) {
@@ -44,6 +44,10 @@ export class DeterministicSet<T> {
         this.elements = [];
     }
 
+    public [Symbol.dispose](): void {
+        this.clear();
+    }
+
     public forEach(callback: (value: T, set: DeterministicSet<T>) => void): void {
         for (const value of this.elements) {
             callback(value, this);
@@ -64,7 +68,7 @@ export class DeterministicSet<T> {
 
         while (left < right) {
             const mid = Math.floor((left + right) / 2);
-            const cmp = this.compareFn(this.elements[mid], value);
+            const cmp = this.compareFn(this.elements[mid] as T, value);
 
             if (cmp === 0) {
                 return { found: true, index: mid };
