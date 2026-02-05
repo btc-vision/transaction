@@ -1,4 +1,11 @@
-import { type PsbtOutputExtended, type Script, toHex, toSatoshi, Transaction, type TxOutput } from '@btc-vision/bitcoin';
+import {
+    type PsbtOutputExtended,
+    type Script,
+    toHex,
+    toSatoshi,
+    Transaction,
+    type TxOutput,
+} from '@btc-vision/bitcoin';
 import type { UTXO } from '../utxo/interfaces/IUTXO.js';
 import { CustomScriptTransaction } from './builders/CustomScriptTransaction.js';
 import { DeploymentTransaction } from './builders/DeploymentTransaction.js';
@@ -785,11 +792,11 @@ export class TransactionFactory {
      * This method iteratively estimates the required funding amount by simulating
      * transactions until the amount converges or max iterations is reached.
      *
-     * @param {P} params - The transaction parameters
+     * @param {P extends IInteractionParameters | IDeploymentParameters | ICustomTransactionParameters} params - The transaction parameters
      * @param {new (params: P) => T} TransactionClass - The transaction class constructor
-     * @param {(tx: T) => Promise<bigint>} calculateAmount - Function to calculate required amount
+     * @param {(tx: T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction) => Promise<bigint>} calculateAmount - Function to calculate required amount
      * @param {string} debugPrefix - Prefix for debug logging
-     * @returns {Promise<{finalTransaction: T, estimatedAmount: bigint, challenge: IChallengeSolution | null}>} - The final transaction and estimated amount
+     * @returns {Promise<{finalTransaction: T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction, estimatedAmount: bigint, challenge: IChallengeSolution | null}>} - The final transaction and estimated amount
      */
     private async iterateFundingAmount<
         T extends InteractionTransaction | DeploymentTransaction | CustomScriptTransaction,
