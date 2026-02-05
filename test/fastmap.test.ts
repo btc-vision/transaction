@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FastMap } from '../src';
+import { FastMap } from '../src/index.js';
 
 describe('FastMap<bigint, bigint> - Comprehensive Tests', () => {
     describe('Constructor', () => {
@@ -634,7 +634,7 @@ describe('FastMap<bigint, bigint> - Comprehensive Tests', () => {
             map.set(2n, 200n);
 
             const order: bigint[] = [];
-            map.forEach((value, key) => {
+            map.forEach((_value, key) => {
                 order.push(key);
             });
 
@@ -668,7 +668,7 @@ describe('FastMap<bigint, bigint> - Comprehensive Tests', () => {
             const map = new FastMap<bigint, bigint>([[1n, 100n]]);
             let receivedMap: FastMap<bigint, bigint> | null = null;
 
-            map.forEach((value, key, m) => {
+            map.forEach((_value, _key, m) => {
                 receivedMap = m;
             });
 

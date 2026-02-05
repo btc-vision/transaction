@@ -1,9 +1,9 @@
-import { UTXO } from '../../utxo/interfaces/IUTXO.js';
-import { ITweakedTransactionData } from './ITweakedTransactionData.js';
-import { ChainId } from '../../network/ChainId.js';
-import { PsbtOutputExtended } from '@btc-vision/bitcoin';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
+import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
+import type { ITweakedTransactionData } from './ITweakedTransactionData.js';
+import type { ChainId } from '../../network/ChainId.js';
+import type { PsbtOutputExtended } from '@btc-vision/bitcoin';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { AddressRotationConfigBase } from '../../signer/IRotationSigner.js';
 
 export interface LoadedStorage {
     [key: string]: string[];
@@ -26,7 +26,7 @@ export interface ITransactionParameters extends ITweakedTransactionData {
 
     utxos: UTXO[];
 
-    nonWitnessUtxo?: Buffer;
+    nonWitnessUtxo?: Uint8Array;
     estimatedFees?: bigint;
 
     optionalInputs?: UTXO[];
@@ -35,14 +35,14 @@ export interface ITransactionParameters extends ITweakedTransactionData {
     chainId?: ChainId;
     noSignatures?: boolean;
 
-    readonly note?: string | Buffer;
+    readonly note?: string | Uint8Array;
     readonly anchor?: boolean;
 
     readonly feeRate: number;
     readonly priorityFee: bigint;
     readonly gasSatFee: bigint;
 
-    readonly compiledTargetScript?: Buffer | string;
+    readonly compiledTargetScript?: Uint8Array | string;
 
     /**
      * Address rotation configuration.
@@ -56,30 +56,43 @@ export interface IFundingTransactionParameters extends ITransactionParameters {
     amount: bigint;
 
     splitInputsInto?: number;
+
+    /**
+     * When true, fees are deducted from the output amount automatically.
+     * Useful for consolidation / send-max use cases where amount equals total UTXO value.
+     */
+    autoAdjustAmount?: boolean;
+
+    /**
+     * Extra UTXOs used exclusively to cover transaction fees.
+     * When provided, the output amount stays exact and fees are paid from these UTXOs.
+     * Any leftover becomes the change output as normal.
+     */
+    feeUtxos?: UTXO[];
 }
 
 export interface SharedInteractionParameters extends ITransactionParameters {
-    calldata?: Buffer;
+    calldata?: Uint8Array;
     disableAutoRefund?: boolean;
 
     readonly challenge: IChallengeSolution;
-    readonly randomBytes?: Buffer;
+    readonly randomBytes?: Uint8Array;
 
     readonly loadedStorage?: LoadedStorage;
     readonly isCancellation?: boolean;
 }
 
 export interface IInteractionParameters extends SharedInteractionParameters {
-    readonly calldata: Buffer;
+    readonly calldata: Uint8Array;
 
     readonly to: string;
     readonly contract?: string;
 }
 
 export interface IDeploymentParameters extends Omit<ITransactionParameters, 'to'> {
-    readonly bytecode: Buffer;
-    readonly calldata?: Buffer;
+    readonly bytecode: Uint8Array;
+    readonly calldata?: Uint8Array;
 
-    readonly randomBytes?: Buffer;
+    readonly randomBytes?: Uint8Array;
     readonly challenge: IChallengeSolution;
 }

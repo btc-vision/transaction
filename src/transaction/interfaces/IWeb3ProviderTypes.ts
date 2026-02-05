@@ -1,6 +1,6 @@
-import { IDeploymentParameters, IInteractionParameters } from './ITransactionParameters.js';
-import { ICustomTransactionParameters } from './ICustomTransactionParameters.js';
-import { ICancelTransactionParameters } from './ICancelTransactionParameters.js';
+import type { IDeploymentParameters, IInteractionParameters } from './ITransactionParameters.js';
+import type { ICustomTransactionParameters } from './ICustomTransactionParameters.js';
+import type { ICancelTransactionParameters } from './ICancelTransactionParameters.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
 
 export type InteractionParametersWithoutSigner = Omit<

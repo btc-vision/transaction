@@ -1,17 +1,23 @@
 import { TransactionType } from '../enums/TransactionType.js';
-import { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
+import type { IDeploymentParameters } from '../interfaces/ITransactionParameters.js';
 import {
+    concat,
     crypto as bitCrypto,
-    P2TRPayment,
+    type FinalScriptsFunc,
+    fromHex,
+    type P2TRPayment,
     PaymentType,
     Psbt,
-    PsbtInput,
-    Signer,
-    Taptree,
+    type PsbtInput,
+    type Script,
+    type Signer,
+    type TapScriptSig,
+    type Taptree,
+    toHex,
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
 import {
     DeploymentGenerator,
     versionBuffer,
@@ -20,13 +26,14 @@ import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { ECPairInterface } from 'ecpair';
+import { type UniversalSigner } from '@btc-vision/ecpair';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 import { Address } from '../../keypair/Address.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
     public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
@@ -45,7 +52,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The tap leaf script
      * @private
      */
-    protected tapLeafScript: TapLeafScript | null = null;
+    protected override tapLeafScript: TapLeafScript | null = null;
     private readonly deploymentVersion: number = 0x00;
     /**
      * The target script redeem
@@ -61,7 +68,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The compiled target script
      * @private
      */
-    private readonly compiledTargetScript: Buffer;
+    private readonly compiledTargetScript: Uint8Array;
     /**
      * The script tree
      * @private
@@ -77,25 +84,25 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract seed
      * @private
      */
-    private readonly contractSeed: Buffer;
+    private readonly contractSeed: Uint8Array;
 
     /**
      * The contract bytecode
      * @private
      */
-    private readonly bytecode: Buffer;
+    private readonly bytecode: Uint8Array;
 
     /**
      * Constructor calldata
      * @private
      */
-    private readonly calldata?: Buffer;
+    private readonly calldata?: Uint8Array;
 
     /**
      * The contract signer
      * @private
      */
-    private readonly contractSigner: Signer | ECPairInterface;
+    private readonly contractSigner: Signer | UniversalSigner;
 
     /**
      * The contract public key
@@ -107,7 +114,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * The contract salt random bytes
      * @private
      */
-    private readonly randomBytes: Buffer;
+    private readonly randomBytes: Uint8Array;
     private _computedAddress: string | undefined;
 
     public constructor(parameters: IDeploymentParameters) {
@@ -117,7 +124,9 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             throw new Error('MLDSA signer must be defined to deploy a contract.');
         }
 
-        this.bytecode = Compressor.compress(Buffer.concat([versionBuffer, parameters.bytecode]));
+        this.bytecode = Compressor.compress(
+            new Uint8Array([...versionBuffer, ...parameters.bytecode]),
+        );
 
         this.verifyBytecode();
 
@@ -141,16 +150,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.contractSigner = EcKeyPair.fromSeedKeyPair(this.contractSeed, this.network);
 
         this.deploymentGenerator = new DeploymentGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.contractSignerXOnlyPubKey(),
             this.network,
         );
 
         if (parameters.compiledTargetScript) {
-            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+            if (parameters.compiledTargetScript instanceof Uint8Array) {
                 this.compiledTargetScript = parameters.compiledTargetScript;
             } else if (typeof parameters.compiledTargetScript === 'string') {
-                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+                this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
             } else {
                 throw new Error('Invalid compiled target script format.');
             }
@@ -169,7 +178,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         this.internalInit();
 
-        this._contractPubKey = '0x' + this.contractSeed.toString('hex');
+        this._contractPubKey = '0x' + toHex(this.contractSeed);
         this._contractAddress = new Address(this.contractSeed);
     }
 
@@ -194,7 +203,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         return this.to || this.getScriptAddress();
     }
 
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
@@ -202,7 +211,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -232,8 +241,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the contract signer public key
      * @protected
      */
-    protected contractSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.contractSigner.publicKey));
+    protected contractSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.contractSigner.publicKey);
     }
 
     /**
@@ -279,7 +288,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         const signer: UnisatSigner = this.signer as UnisatSigner;
 
         // first, we sign the first input with the script signer.
-        await this.signInput(transaction, transaction.data.inputs[0], 0, this.contractSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.contractSigner);
 
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
@@ -303,7 +312,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * @param {Psbt} transaction The transaction to sign
      * @protected
      */
-    protected async signInputs(transaction: Psbt): Promise<void> {
+    protected override async signInputs(transaction: Psbt): Promise<void> {
         if (!this.contractSigner) {
             await super.signInputs(transaction);
 
@@ -315,21 +324,45 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
             return;
         }
 
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                // multi sig input
-                transaction.signInput(0, this.contractSigner);
-                transaction.signInput(0, this.getSignerKey());
+        // Input 0: sequential (contractSigner + main signer, custom finalizer)
+        transaction.signInput(0, this.contractSigner);
+        transaction.signInput(0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
-                transaction.finalizeInput(0, this.customFinalizer.bind(this));
-            } else {
-                transaction.signInput(i, this.getSignerKey());
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        const signedIndices = new Set<number>([0]);
 
-                try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
-                } catch (e) {
-                    transaction.finalizeInput(i);
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            try {
+                const result = await this.signKeyPathInputsParallel(
+                    transaction,
+                    new Set([0]),
+                );
+                if (result.success) {
+                    for (const idx of result.signatures.keys()) signedIndices.add(idx);
                 }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed: ${(e as Error).message}`,
+                );
+            }
+        }
+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            if (!signedIndices.has(i)) {
+                transaction.signInput(i, this.getSignerKey());
+            }
+        }
+
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
+                transaction.finalizeInput(i);
             }
         }
     }
@@ -419,16 +452,16 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Generate the contract seed for the deployment
      * @private
      */
-    private getContractSeed(): Buffer {
+    private getContractSeed(): Uint8Array {
         if (!this.bytecode) {
             throw new Error('Bytecode is required');
         }
 
         // Concatenate deployer pubkey, salt, and sha256(bytecode)
-        const deployerPubKey: Buffer = this.internalPubKeyToXOnly();
-        const salt: Buffer = bitCrypto.hash256(this.randomBytes);
-        const sha256OfBytecode: Buffer = bitCrypto.hash256(this.bytecode);
-        const buf: Buffer = Buffer.concat([deployerPubKey, salt, sha256OfBytecode]);
+        const deployerPubKey = this.internalPubKeyToXOnly();
+        const salt = bitCrypto.hash256(this.randomBytes);
+        const sha256OfBytecode = bitCrypto.hash256(this.bytecode);
+        const buf = concat([deployerPubKey, salt, sha256OfBytecode]);
 
         return bitCrypto.hash256(buf);
     }
@@ -449,8 +482,8 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         const scriptSolution = [
             this.randomBytes,
-            input.tapScriptSig[0].signature,
-            input.tapScriptSig[1].signature,
+            (input.tapScriptSig[0] as TapScriptSig).signature,
+            (input.tapScriptSig[1] as TapScriptSig).signature,
         ];
 
         const witness = scriptSolution
@@ -463,20 +496,6 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
     };
 
     /**
-     * Get the public keys for the redeem scripts
-     * @private
-     */
-    private getPubKeys(): Buffer[] {
-        const pubkeys = [Buffer.from(this.signer.publicKey)];
-
-        if (this.contractSigner) {
-            pubkeys.push(Buffer.from(this.contractSigner.publicKey));
-        }
-
-        return pubkeys;
-    }
-
-    /**
      * Generate the redeem scripts
      * @private
      */
@@ -484,7 +503,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
         this.targetScriptRedeem = {
             name: PaymentType.P2TR,
             //pubkeys: this.getPubKeys(),
-            output: this.compiledTargetScript,
+            output: this.compiledTargetScript as Script,
             redeemVersion: 192,
         };
 
@@ -500,7 +519,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the second leaf script
      * @private
      */
-    private getLeafScript(): Buffer {
+    private getLeafScript(): Script {
         return this.LOCK_LEAF_SCRIPT;
     }
 

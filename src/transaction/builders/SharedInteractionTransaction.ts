@@ -1,16 +1,28 @@
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, Signer, Taptree, toXOnly, } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import {
+    type FinalScriptsFunc,
+    type P2TRPayment,
+    PaymentType,
+    Psbt,
+    type PsbtInput,
+    type Script,
+    type Signer,
+    type TapScriptSig,
+    type Taptree,
+    toXOnly,
+} from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
-import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import type { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 /**
  * Shared interaction transaction
@@ -25,12 +37,12 @@ export abstract class SharedInteractionTransaction<
      * Random salt for the interaction
      * @type {Buffer}
      */
-    public readonly randomBytes: Buffer;
+    public readonly randomBytes: Uint8Array;
 
     protected targetScriptRedeem: P2TRPayment | null = null;
     protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
-    protected abstract readonly compiledTargetScript: Buffer;
+    protected abstract readonly compiledTargetScript: Uint8Array;
     protected abstract readonly scriptTree: Taptree;
 
     protected readonly challenge: IChallengeSolution;
@@ -42,19 +54,19 @@ export abstract class SharedInteractionTransaction<
      * Calldata for the interaction
      * @protected
      */
-    protected readonly calldata: Buffer;
+    protected readonly calldata: Uint8Array;
 
     /**
      * Contract secret for the interaction
      * @protected
      */
-    protected abstract readonly contractSecret: Buffer;
+    protected abstract readonly contractSecret: Uint8Array;
 
     /**
      * Script signer for the interaction
      * @protected
      */
-    protected readonly scriptSigner: Signer | ECPairInterface;
+    protected readonly scriptSigner: Signer | UniversalSigner;
 
     /**
      * Disable auto refund
@@ -89,13 +101,13 @@ export abstract class SharedInteractionTransaction<
         this.scriptSigner = this.generateKeyPairFromSeed();
 
         this.calldataGenerator = new CalldataGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.scriptSignerXOnlyPubKey(),
             this.network,
         );
     }
 
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
@@ -103,7 +115,7 @@ export abstract class SharedInteractionTransaction<
      * Get the contract secret
      * @returns {Buffer} The contract secret
      */
-    public getContractSecret(): Buffer {
+    public getContractSecret(): Uint8Array {
         return this.contractSecret;
     }
 
@@ -111,7 +123,7 @@ export abstract class SharedInteractionTransaction<
      * Get the random bytes used for the interaction
      * @returns {Buffer} The random bytes
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -127,17 +139,17 @@ export abstract class SharedInteractionTransaction<
      * @protected
      * @returns {Buffer} The internal pubkey as an x-only key
      */
-    protected scriptSignerXOnlyPubKey(): Buffer {
-        return toXOnly(Buffer.from(this.scriptSigner.publicKey));
+    protected scriptSignerXOnlyPubKey(): Uint8Array {
+        return toXOnly(this.scriptSigner.publicKey);
     }
 
     /**
      * Generate a key pair from the seed
      * @protected
      *
-     * @returns {ECPairInterface} The key pair
+     * @returns {UniversalSigner} The key pair
      */
-    protected generateKeyPairFromSeed(): ECPairInterface {
+    protected generateKeyPairFromSeed(): UniversalSigner {
         return EcKeyPair.fromSeedKeyPair(this.randomBytes, this.network);
     }
 
@@ -237,16 +249,16 @@ export abstract class SharedInteractionTransaction<
      *
      * @returns {Buffer[]} The script solution
      */
-    protected getScriptSolution(input: PsbtInput): Buffer[] {
+    protected getScriptSolution(input: PsbtInput): Uint8Array[] {
         if (!input.tapScriptSig) {
             throw new Error('Tap script signature is required');
         }
 
         return [
             this.contractSecret,
-            input.tapScriptSig[0].signature,
-            input.tapScriptSig[1].signature,
-        ] as Buffer[];
+            (input.tapScriptSig[0] as TapScriptSig).signature,
+            (input.tapScriptSig[1] as TapScriptSig).signature,
+        ] as Uint8Array[];
     }
 
     /**
@@ -303,7 +315,7 @@ export abstract class SharedInteractionTransaction<
         const signer: UnisatSigner = this.signer as UnisatSigner;
 
         // first, we sign the first input with the script signer.
-        await this.signInput(transaction, transaction.data.inputs[0], 0, this.scriptSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
 
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
@@ -323,28 +335,56 @@ export abstract class SharedInteractionTransaction<
     }
 
     protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.scriptSigner);
+        // Input 0: always sequential (needs scriptSigner + main signer, custom finalizer)
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
-                await this.signInput(
-                    transaction,
-                    transaction.data.inputs[i],
-                    i,
-                    this.getSignerKey(),
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            let parallelSignedIndices = new Set<number>();
+
+            try {
+                const result = await this.signKeyPathInputsParallel(transaction, new Set([0]));
+                if (result.success) {
+                    parallelSignedIndices = new Set(result.signatures.keys());
+                }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed, falling back to sequential: ${(e as Error).message}`,
                 );
+            }
 
-                transaction.finalizeInput(0, this.customFinalizer.bind(this));
-            } else {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
-
-                try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
-                } catch (e) {
-                    transaction.finalizeInput(i);
+            // Sign remaining inputs 1+ that weren't handled by parallel signing
+            for (let i = 1; i < transaction.data.inputs.length; i++) {
+                if (!parallelSignedIndices.has(i)) {
+                    await this.signInput(
+                        transaction,
+                        transaction.data.inputs[i] as PsbtInput,
+                        i,
+                        this.signer,
+                    );
                 }
             }
+        } else {
+            for (let i = 1; i < transaction.data.inputs.length; i++) {
+                await this.signInput(transaction, transaction.data.inputs[i] as PsbtInput, i, this.signer);
+            }
         }
+
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
+                transaction.finalizeInput(i);
+            }
+        }
+
+        this.finalized = true;
     }
 
     protected async createMineableRewardOutputs(): Promise<void> {
@@ -368,22 +408,6 @@ export abstract class SharedInteractionTransaction<
     }
 
     /**
-     * Get the public keys
-     * @private
-     *
-     * @returns {Buffer[]} The public keys
-     */
-    private getPubKeys(): Buffer[] {
-        const pubKeys = [Buffer.from(this.signer.publicKey)];
-
-        if (this.scriptSigner) {
-            pubKeys.push(Buffer.from(this.scriptSigner.publicKey));
-        }
-
-        return pubKeys;
-    }
-
-    /**
      * Generate the redeem scripts
      * @private
      *
@@ -396,7 +420,7 @@ export abstract class SharedInteractionTransaction<
     private generateRedeemScripts(): void {
         this.targetScriptRedeem = {
             name: PaymentType.P2TR,
-            output: this.compiledTargetScript,
+            output: this.compiledTargetScript as Script,
             redeemVersion: 192,
         };
 

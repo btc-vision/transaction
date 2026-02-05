@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MessageSigner, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 describe('MessageSigner Schnorr', () => {
     const testMnemonic =
@@ -11,7 +11,7 @@ describe('MessageSigner Schnorr', () => {
             const message = 'Hello, OPNet!';
             const hash = MessageSigner.sha256(Buffer.from(message, 'utf-8'));
 
-            expect(hash).toBeInstanceOf(Buffer);
+            expect(hash).toBeInstanceOf(Uint8Array);
             expect(hash.length).toBe(32);
         });
 
@@ -19,7 +19,7 @@ describe('MessageSigner Schnorr', () => {
             const message = Buffer.from('Hello, Buffer!', 'utf-8');
             const hash = MessageSigner.sha256(message);
 
-            expect(hash).toBeInstanceOf(Buffer);
+            expect(hash).toBeInstanceOf(Uint8Array);
             expect(hash.length).toBe(32);
         });
 
@@ -27,7 +27,7 @@ describe('MessageSigner Schnorr', () => {
             const message = new Uint8Array([1, 2, 3, 4, 5]);
             const hash = MessageSigner.sha256(message);
 
-            expect(hash).toBeInstanceOf(Buffer);
+            expect(hash).toBeInstanceOf(Uint8Array);
             expect(hash.length).toBe(32);
         });
 
@@ -36,7 +36,7 @@ describe('MessageSigner Schnorr', () => {
             const hash1 = MessageSigner.sha256(Buffer.from(message, 'utf-8'));
             const hash2 = MessageSigner.sha256(Buffer.from(message, 'utf-8'));
 
-            expect(hash1.toString('hex')).toBe(hash2.toString('hex'));
+            expect(toHex(hash1)).toBe(toHex(hash2));
         });
 
         it('should produce different hashes for different inputs', () => {
@@ -45,14 +45,14 @@ describe('MessageSigner Schnorr', () => {
             const hash1 = MessageSigner.sha256(Buffer.from(message1, 'utf-8'));
             const hash2 = MessageSigner.sha256(Buffer.from(message2, 'utf-8'));
 
-            expect(hash1.toString('hex')).not.toBe(hash2.toString('hex'));
+            expect(toHex(hash1)).not.toBe(toHex(hash2));
         });
 
         it('should hash empty message', () => {
             const message = Buffer.alloc(0);
             const hash = MessageSigner.sha256(message);
 
-            expect(hash).toBeInstanceOf(Buffer);
+            expect(hash).toBeInstanceOf(Uint8Array);
             expect(hash.length).toBe(32);
         });
     });
@@ -318,7 +318,7 @@ describe('MessageSigner Schnorr', () => {
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const expectedHash = MessageSigner.sha256(Buffer.from(message, 'utf-8'));
-            expect(Buffer.from(signed.message).toString('hex')).toBe(expectedHash.toString('hex'));
+            expect(toHex(signed.message)).toBe(toHex(expectedHash));
         });
     });
 
@@ -530,7 +530,7 @@ describe('MessageSigner Schnorr', () => {
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             const corruptedSignature = Buffer.from(signed.signature);
-            corruptedSignature[0] ^= 0xff;
+            corruptedSignature[0] = (corruptedSignature[0] as number) ^ 0xff;
 
             const isValidLegacyPublicKey = MessageSigner.verifySignature(
                 wallet.keypair.publicKey,

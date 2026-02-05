@@ -1,7 +1,7 @@
 import { Address } from '../keypair/Address.js';
 import { FastMap } from './FastMap.js';
 
-export class AddressMap<V> {
+export class AddressMap<V> implements Disposable {
     private items: FastMap<bigint, V>;
 
     constructor(iterable?: ReadonlyArray<readonly [Address, V]> | null) {
@@ -40,6 +40,10 @@ export class AddressMap<V> {
 
     public clear(): void {
         this.items.clear();
+    }
+
+    public [Symbol.dispose](): void {
+        this.clear();
     }
 
     public indexOf(address: Address): number {

@@ -1,4 +1,4 @@
-import {
+import type {
     PsbtInput as _PsbtInput,
     PsbtInputUpdate as _PsbtInputUpdate,
     PsbtOutput as _PsbtOutput,
@@ -14,8 +14,8 @@ import {
 
 export interface TapLeafScript {
     readonly leafVersion: number;
-    readonly controlBlock: Buffer;
-    readonly script: Buffer;
+    readonly controlBlock: Uint8Array;
+    readonly script: Uint8Array;
 }
 
 export interface UpdateInput {

@@ -1,6 +1,6 @@
-import { LoadedStorage } from '../transaction/interfaces/ITransactionParameters.js';
-import { ChallengeSubmission } from '../epoch/ChallengeSolution.js';
-import { MLDSARequestData } from './MLDSAData.js';
+import type { LoadedStorage } from '../transaction/interfaces/ITransactionParameters.js';
+import type { ChallengeSubmission } from '../epoch/ChallengeSolution.js';
+import type { MLDSARequestData } from './MLDSAData.js';
 
 export enum Features {
     ACCESS_LIST = 0b1,

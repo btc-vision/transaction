@@ -1,6 +1,6 @@
-import { Network, networks } from '@btc-vision/bitcoin';
+import { type Network, networks } from '@btc-vision/bitcoin';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
-import { MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
+import { type MultiSignParameters, MultiSignTransaction } from '../builders/MultiSignTransaction.js';
 
 export class P2TR_MS {
     /**
@@ -12,11 +12,11 @@ export class P2TR_MS {
      * @throws {Error} - If the address cannot be generated
      */
     public static generateMultiSigAddress(
-        pubKeys: Buffer[],
+        pubKeys: Uint8Array[],
         minimumSignatureRequired: number,
         network: Network = networks.bitcoin,
     ): string {
-        const publicKeys: Buffer[] = EcKeyPair.verifyPubKeys(pubKeys, network);
+        const publicKeys: Uint8Array[] = EcKeyPair.verifyPubKeys(pubKeys, network);
         if (publicKeys.length !== pubKeys.length) throw new Error(`Contains invalid public keys`);
 
         // fake params

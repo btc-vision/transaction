@@ -1,5 +1,8 @@
-import { Unisat } from './transaction/browser/types/Unisat.js';
-import { OPWallet } from './transaction/browser/types/OPWallet.js';
+/** Polyfill Symbol.dispose / Symbol.asyncDispose for Safari & Android WebView */
+import './polyfill/disposable.js';
+
+import type { Unisat } from './transaction/browser/types/Unisat.js';
+import type { OPWallet } from './transaction/browser/types/OPWallet.js';
 
 export { version } from './_version.js';
 
@@ -40,10 +43,10 @@ export * from './mnemonic/BIPStandard.js';
 /** Quantum (ML-DSA) */
 export {
     MLDSASecurityLevel,
-    MLDSAKeyPair,
-    QuantumBIP32Interface,
-    QuantumBIP32API,
-    QuantumSigner,
+    type MLDSAKeyPair,
+    type QuantumBIP32Interface,
+    type QuantumBIP32API,
+    type QuantumSigner,
     QuantumBIP32Factory,
     QuantumDerivationPath,
 } from '@btc-vision/bip32';
@@ -58,6 +61,9 @@ export * from './network/ChainId.js';
 export * from './signer/TweakedSigner.js';
 export * from './signer/IRotationSigner.js';
 export * from './signer/AddressRotation.js';
+
+/** Parallel Signing */
+export * from './signer/ParallelSignerAdapter.js';
 
 /** Transaction */
 export * from './transaction/enums/TransactionType.js';
@@ -122,6 +128,9 @@ export * from './consensus/metadata/RoswellConsensus.js';
 
 /** Binary */
 export * from './abi/ABICoder.js';
+export * from './abi/ABIDataTypes.js';
+export * from './abi/AbiTypes.js';
+export * from './abi/TupleUtils.js';
 export * from './buffer/BinaryReader.js';
 export * from './buffer/BinaryWriter.js';
 export * from './deterministic/AddressMap.js';

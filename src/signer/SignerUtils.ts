@@ -1,5 +1,5 @@
 // Helper functions
-import { isP2TR, PsbtInput, pubkeyPositionInScript } from '@btc-vision/bitcoin';
+import { isP2TR, type PsbtInput, pubkeyPositionInScript } from '@btc-vision/bitcoin';
 
 export function isTaprootInput(input: PsbtInput): boolean {
     return (
@@ -14,7 +14,7 @@ export function isTaprootInput(input: PsbtInput): boolean {
     );
 }
 
-export function getInputRelevantScript(input: PsbtInput): Buffer | null {
+export function getInputRelevantScript(input: PsbtInput): Uint8Array | null {
     if (input.redeemScript) {
         return input.redeemScript;
     }
@@ -37,7 +37,7 @@ export function getInputRelevantScript(input: PsbtInput): Buffer | null {
     return null;
 }
 
-export function canSignNonTaprootInput(input: PsbtInput, publicKey: Buffer): boolean {
+export function canSignNonTaprootInput(input: PsbtInput, publicKey: Uint8Array): boolean {
     if (
         (input.nonWitnessUtxo &&
             !input.redeemScript &&
@@ -61,6 +61,6 @@ export function canSignNonTaprootInput(input: PsbtInput, publicKey: Buffer): boo
  * @param script The script to search in.
  * @returns A boolean indicating whether the public key is present in the script.
  */
-export function pubkeyInScript(pubkey: Buffer, script: Buffer): boolean {
+export function pubkeyInScript(pubkey: Uint8Array, script: Uint8Array): boolean {
     return pubkeyPositionInScript(pubkey, script) !== -1;
 }

@@ -1,10 +1,18 @@
-import bitcoin, { Network, networks, opcodes, script } from '@btc-vision/bitcoin';
-import { IP2WSHAddress } from './IP2WSHAddress.js';
+import bitcoin, {
+    fromHex,
+    type Network,
+    networks,
+    opcodes,
+    type PublicKey,
+    type Script,
+    script,
+    type XOnlyPublicKey,
+} from '@btc-vision/bitcoin';
+import type { IP2WSHAddress } from './IP2WSHAddress.js';
 
 export class TimeLockGenerator {
-    private static readonly UNSPENDABLE_INTERNAL_KEY = Buffer.from(
+    private static readonly UNSPENDABLE_INTERNAL_KEY = fromHex(
         '50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0',
-        'hex',
     );
 
     private static readonly CSV_BLOCKS = 75;
@@ -14,11 +22,11 @@ export class TimeLockGenerator {
      * Note: This uses ECDSA, not Schnorr (Schnorr only available in Taproot)
      */
     public static generateTimeLockAddress(
-        publicKey: Buffer,
+        publicKey: PublicKey,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): IP2WSHAddress {
-        const witnessScript = this.generateTimeLockScript(publicKey, csvBlocks);
+        const witnessScript: Script = this.generateTimeLockScript(publicKey, csvBlocks);
 
         const p2wsh = bitcoin.payments.p2wsh({
             redeem: { output: witnessScript },
@@ -40,7 +48,7 @@ export class TimeLockGenerator {
      * Note: This uses Schnorr signatures
      */
     public static generateTimeLockAddressP2TR(
-        publicKey: Buffer,
+        publicKey: XOnlyPublicKey,
         network: Network = networks.bitcoin,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
     ): string {
@@ -48,12 +56,11 @@ export class TimeLockGenerator {
             throw new Error('Public key must be 32 bytes for Taproot');
         }
 
-        const witnessScript = this.generateTimeLockScript(publicKey, csvBlocks);
-
+        const witnessScript: Script = this.generateTimeLockScript(publicKey, csvBlocks);
         const taproot = bitcoin.payments.p2tr({
             redeem: { output: witnessScript },
             network,
-            internalPubkey: TimeLockGenerator.UNSPENDABLE_INTERNAL_KEY,
+            internalPubkey: TimeLockGenerator.UNSPENDABLE_INTERNAL_KEY as XOnlyPublicKey,
         });
 
         if (!taproot.address) {
@@ -64,9 +71,9 @@ export class TimeLockGenerator {
     }
 
     private static generateTimeLockScript(
-        publicKey: Buffer,
+        publicKey: PublicKey | XOnlyPublicKey,
         csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
-    ): Buffer {
+    ): Script {
         return script.compile([
             script.number.encode(csvBlocks),
             opcodes.OP_CHECKSEQUENCEVERIFY,

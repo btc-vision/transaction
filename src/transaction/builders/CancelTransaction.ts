@@ -1,10 +1,20 @@
 import { TransactionType } from '../enums/TransactionType.js';
-import { P2TRPayment, PaymentType, Psbt, PsbtInput, Taptree } from '@btc-vision/bitcoin';
+import {
+    type FinalScriptsFunc,
+    fromHex,
+    type P2TRPayment,
+    PaymentType,
+    Psbt,
+    type PsbtInput,
+    type TapScriptSig,
+    type Taptree,
+} from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
-import { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
-import { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
+import type { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
+import type { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 
 export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL> {
     public type: TransactionType.CANCEL = TransactionType.CANCEL;
@@ -12,12 +22,12 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
     /**
      * The tap leaf script for spending
      */
-    protected tapLeafScript: TapLeafScript | null = null;
+    protected override tapLeafScript: TapLeafScript | null = null;
 
-    protected readonly compiledTargetScript: Buffer;
+    protected readonly compiledTargetScript: Uint8Array;
     protected readonly scriptTree: Taptree;
 
-    protected readonly contractSecret: Buffer;
+    protected readonly contractSecret: Uint8Array;
     protected leftOverFundsScriptRedeem: P2TRPayment | null = null;
 
     public constructor(parameters: ICancelTransactionParameters) {
@@ -29,12 +39,12 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
             calldata: Buffer.alloc(0),
         } as unknown as SharedInteractionParameters);
 
-        this.contractSecret = Buffer.alloc(0);
+        this.contractSecret = new Uint8Array(0);
 
-        if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+        if (parameters.compiledTargetScript instanceof Uint8Array) {
             this.compiledTargetScript = parameters.compiledTargetScript;
         } else {
-            this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+            this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
         }
 
         // Generate the minimal script tree needed for recovery
@@ -163,7 +173,7 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
         }
 
         // For the simple lock script, we only need the signature
-        const scriptSolution = [input.tapScriptSig[0].signature];
+        const scriptSolution = [(input.tapScriptSig[0] as TapScriptSig).signature];
 
         const witness = scriptSolution
             .concat(this.tapLeafScript.script)
@@ -203,24 +213,49 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
     }
 
     protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
-        for (let i = 0; i < transaction.data.inputs.length; i++) {
-            if (i === 0) {
+        // Input 0: always sequential (script-path with custom finalizer)
+        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.getSignerKey());
+        transaction.finalizeInput(0, this.customFinalizer.bind(this));
+
+        // Inputs 1+: parallel key-path if available, then sequential for remaining
+        let parallelSignedIndices = new Set<number>();
+
+        if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
+            try {
+                const result = await this.signKeyPathInputsParallel(
+                    transaction,
+                    new Set([0]),
+                );
+                if (result.success) {
+                    parallelSignedIndices = new Set(result.signatures.keys());
+                }
+            } catch (e) {
+                this.error(
+                    `Parallel signing failed, falling back to sequential: ${(e as Error).message}`,
+                );
+            }
+        }
+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            if (!parallelSignedIndices.has(i)) {
                 await this.signInput(
                     transaction,
-                    transaction.data.inputs[i],
+                    transaction.data.inputs[i] as PsbtInput,
                     i,
-                    this.getSignerKey(),
+                    this.signer,
                 );
+            }
+        }
 
-                transaction.finalizeInput(0, this.customFinalizer.bind(this));
-            } else {
-                await this.signInput(transaction, transaction.data.inputs[i], i, this.signer);
-
-                try {
-                    transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this));
-                } catch (e) {
-                    transaction.finalizeInput(i);
-                }
+        // Finalize inputs 1+
+        for (let i = 1; i < transaction.data.inputs.length; i++) {
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch {
+                transaction.finalizeInput(i);
             }
         }
     }

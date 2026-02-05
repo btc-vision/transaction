@@ -1,24 +1,31 @@
-import { Buffer } from 'buffer';
-import { Psbt, PsbtInput, toXOnly, Transaction } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
+import {
+    fromHex,
+    Psbt,
+    type PsbtInput,
+    type Script,
+    toSatoshi,
+    toXOnly,
+    Transaction,
+} from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
 import { HashCommitmentGenerator } from '../../generators/builders/HashCommitmentGenerator.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
-import {
+import type {
     IConsolidatedInteractionParameters,
     IConsolidatedInteractionResult,
     IHashCommittedP2WSH,
     IRevealTransactionResult,
     ISetupTransactionResult,
 } from '../interfaces/IConsolidatedTransactionParameters.js';
-import { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { TimeLockGenerator } from '../mineable/TimelockGenerator.js';
-import { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
+import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
 import { AddressGenerator } from '../../generators/AddressGenerator.js';
 
 /**
@@ -69,19 +76,19 @@ import { AddressGenerator } from '../../generators/AddressGenerator.js';
 export class ConsolidatedInteractionTransaction extends TransactionBuilder<TransactionType.INTERACTION> {
     public readonly type: TransactionType.INTERACTION = TransactionType.INTERACTION;
     /** Random bytes for interaction (same as InteractionTransaction) */
-    public readonly randomBytes: Buffer;
+    public readonly randomBytes: Uint8Array;
     /** The contract address (same as InteractionTransaction.to) */
     protected readonly contractAddress: string;
     /** The contract secret - 32 bytes (same as InteractionTransaction) */
-    protected readonly contractSecret: Buffer;
+    protected readonly contractSecret: Uint8Array;
     /** The compressed calldata (same as InteractionTransaction) */
-    protected readonly calldata: Buffer;
+    protected readonly calldata: Uint8Array;
     /** Challenge solution for epoch (same as InteractionTransaction) */
     protected readonly challenge: IChallengeSolution;
     /** Epoch challenge P2WSH address (same as InteractionTransaction) */
     protected readonly epochChallenge: IP2WSHAddress;
     /** Script signer for interaction (same as InteractionTransaction) */
-    protected readonly scriptSigner: ECPairInterface;
+    protected readonly scriptSigner: UniversalSigner;
 
     /** Calldata generator - produces same output as InteractionTransaction */
     protected readonly calldataGenerator: CalldataGenerator;
@@ -90,7 +97,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
     protected readonly hashCommitmentGenerator: HashCommitmentGenerator;
 
     /** The compiled operation data - SAME as InteractionTransaction's compiledTargetScript */
-    protected readonly compiledTargetScript: Buffer;
+    protected readonly compiledTargetScript: Uint8Array;
 
     /** Generated hash-committed P2WSH outputs */
     protected readonly commitmentOutputs: IHashCommittedP2WSH[];
@@ -125,7 +132,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         }
 
         this.contractAddress = parameters.to;
-        this.contractSecret = Buffer.from(parameters.contract.replace('0x', ''), 'hex');
+        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.maxChunkSize = parameters.maxChunkSize ?? HashCommitmentGenerator.MAX_CHUNK_SIZE;
 
@@ -150,17 +157,17 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Create calldata generator (same as SharedInteractionTransaction)
         this.calldataGenerator = new CalldataGenerator(
-            Buffer.from(this.signer.publicKey),
-            toXOnly(Buffer.from(this.scriptSigner.publicKey)),
+            this.signer.publicKey,
+            toXOnly(this.scriptSigner.publicKey),
             this.network,
         );
 
         // Compile the target script - SAME as InteractionTransaction
         if (parameters.compiledTargetScript) {
-            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+            if (parameters.compiledTargetScript instanceof Uint8Array) {
                 this.compiledTargetScript = parameters.compiledTargetScript;
             } else if (typeof parameters.compiledTargetScript === 'string') {
-                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+                this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
             } else {
                 throw new Error('Invalid compiled target script format.');
             }
@@ -176,7 +183,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Create hash commitment generator
         this.hashCommitmentGenerator = new HashCommitmentGenerator(
-            Buffer.from(this.signer.publicKey),
+            this.signer.publicKey,
             this.network,
         );
 
@@ -204,21 +211,21 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
     /**
      * Get the compiled target script (same as InteractionTransaction).
      */
-    public exportCompiledTargetScript(): Buffer {
+    public exportCompiledTargetScript(): Uint8Array {
         return this.compiledTargetScript;
     }
 
     /**
      * Get the contract secret (same as InteractionTransaction).
      */
-    public getContractSecret(): Buffer {
+    public getContractSecret(): Uint8Array {
         return this.contractSecret;
     }
 
     /**
      * Get the random bytes (same as InteractionTransaction).
      */
-    public getRndBytes(): Buffer {
+    public getRndBytes(): Uint8Array {
         return this.randomBytes;
     }
 
@@ -299,14 +306,14 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Add commitment outputs as inputs (from setup tx)
         for (let i = 0; i < this.commitmentOutputs.length; i++) {
-            const commitment = this.commitmentOutputs[i];
+            const commitment = this.commitmentOutputs[i] as IHashCommittedP2WSH;
 
             revealPsbt.addInput({
                 hash: setupTxId,
                 index: i,
                 witnessUtxo: {
-                    script: commitment.scriptPubKey,
-                    value: Number(valuePerOutput),
+                    script: commitment.scriptPubKey as Script,
+                    value: toSatoshi(valuePerOutput),
                 },
                 witnessScript: commitment.witnessScript,
             });
@@ -322,7 +329,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         // Add output to epoch challenge address (same as InteractionTransaction)
         revealPsbt.addOutput({
             address: this.epochChallenge.address,
-            value: Number(feeAmount),
+            value: toSatoshi(feeAmount),
         });
 
         // Estimate reveal transaction fee
@@ -335,7 +342,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
             const refundAddress = this.getRefundAddress();
             revealPsbt.addOutput({
                 address: refundAddress,
-                value: Number(changeValue),
+                value: toSatoshi(changeValue),
             });
         }
 
@@ -346,7 +353,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Finalize all inputs with hash-commitment finalizer
         for (let i = 0; i < this.commitmentOutputs.length; i++) {
-            const commitment = this.commitmentOutputs[i];
+            const commitment = this.commitmentOutputs[i] as IHashCommittedP2WSH;
             revealPsbt.finalizeInput(i, (_inputIndex: number, input: PsbtInput) => {
                 return this.finalizeCommitmentInput(input, commitment);
             });
@@ -389,7 +396,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         // Add each hash-committed P2WSH as an output
         for (const commitment of this.commitmentOutputs) {
             this.addOutput({
-                value: Number(valuePerOutput),
+                value: toSatoshi(valuePerOutput),
                 address: commitment.address,
             });
         }
@@ -416,8 +423,8 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         input: PsbtInput,
         commitment: IHashCommittedP2WSH,
     ): {
-        finalScriptSig: Buffer | undefined;
-        finalScriptWitness: Buffer | undefined;
+        finalScriptSig: Uint8Array | undefined;
+        finalScriptWitness: Uint8Array | undefined;
     } {
         if (!input.partialSig || input.partialSig.length === 0) {
             throw new Error('No signature for commitment input');
@@ -429,8 +436,8 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
 
         // Witness stack for hash-committed P2WSH with multiple chunks
         // Order: [signature, data_1, data_2, ..., data_N, witnessScript]
-        const witnessStack: Buffer[] = [
-            input.partialSig[0].signature, // Signature for OP_CHECKSIG
+        const witnessStack: Uint8Array[] = [
+            (input.partialSig[0] as { signature: Uint8Array }).signature, // Signature for OP_CHECKSIG
             ...commitment.dataChunks, // All data chunks for OP_HASH160 verification
             input.witnessScript, // The witness script
         ];
@@ -445,8 +452,6 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
      * Estimate reveal transaction vBytes.
      */
     private estimateRevealVBytes(): number {
-        const inputCount = this.commitmentOutputs.length;
-
         // Calculate actual witness weight based on chunks per output
         let witnessWeight = 0;
         for (const commitment of this.commitmentOutputs) {

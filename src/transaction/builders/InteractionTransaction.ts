@@ -1,9 +1,9 @@
-import { Taptree } from '@btc-vision/bitcoin';
+import { fromHex, type Taptree } from '@btc-vision/bitcoin';
 import { TransactionType } from '../enums/TransactionType.js';
-import { TapLeafScript } from '../interfaces/Tap.js';
-import { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
+import type { TapLeafScript } from '../interfaces/Tap.js';
+import type { IInteractionParameters } from '../interfaces/ITransactionParameters.js';
 import { SharedInteractionTransaction } from './SharedInteractionTransaction.js';
-import { Feature, FeaturePriority, Features } from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features } from '../../generators/Features.js';
 
 /**
  * Class for interaction transactions
@@ -12,16 +12,16 @@ import { Feature, FeaturePriority, Features } from '../../generators/Features.js
 export class InteractionTransaction extends SharedInteractionTransaction<TransactionType.INTERACTION> {
     public type: TransactionType.INTERACTION = TransactionType.INTERACTION;
 
-    protected readonly compiledTargetScript: Buffer;
+    protected readonly compiledTargetScript: Uint8Array;
     protected readonly scriptTree: Taptree;
 
-    protected tapLeafScript: TapLeafScript | null = null;
+    protected override tapLeafScript: TapLeafScript | null = null;
 
     /**
      * Contract secret for the interaction
      * @protected
      */
-    protected readonly contractSecret: Buffer;
+    protected readonly contractSecret: Uint8Array;
 
     public constructor(parameters: IInteractionParameters) {
         super(parameters);
@@ -30,17 +30,17 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             throw new Error('parameters.contract is required for interaction transaction.');
         }
 
-        this.contractSecret = Buffer.from(parameters.contract.replace('0x', ''), 'hex');
+        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
 
         if (this.contractSecret.length !== 32) {
             throw new Error('Invalid contract secret length. Expected 32 bytes.');
         }
 
         if (parameters.compiledTargetScript) {
-            if (Buffer.isBuffer(parameters.compiledTargetScript)) {
+            if (parameters.compiledTargetScript instanceof Uint8Array) {
                 this.compiledTargetScript = parameters.compiledTargetScript;
             } else if (typeof parameters.compiledTargetScript === 'string') {
-                this.compiledTargetScript = Buffer.from(parameters.compiledTargetScript, 'hex');
+                this.compiledTargetScript = fromHex(parameters.compiledTargetScript);
             } else {
                 throw new Error('Invalid compiled target script format.');
             }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FastBigIntMap } from './old/FastBigIntMap';
+import { FastBigIntMap } from './old/FastBigIntMap.js';
 
 describe('FastBigIntMap - Comprehensive Tests', () => {
     describe('Constructor', () => {
@@ -634,7 +634,7 @@ describe('FastBigIntMap - Comprehensive Tests', () => {
             map.set(2n, 200n);
 
             const order: bigint[] = [];
-            map.forEach((value, key) => {
+            map.forEach((_value: bigint, key: bigint) => {
                 order.push(key);
             });
 
@@ -646,7 +646,7 @@ describe('FastBigIntMap - Comprehensive Tests', () => {
             const context = { multiplier: 2n };
 
             let result: bigint = 0n;
-            map.forEach(function (this: { multiplier: bigint }, value) {
+            map.forEach(function (this: { multiplier: bigint }, value: bigint) {
                 result = value * this.multiplier;
             }, context);
 
@@ -657,7 +657,7 @@ describe('FastBigIntMap - Comprehensive Tests', () => {
             const map = new FastBigIntMap([[1n, 100n]]);
             let sum = 0n;
 
-            map.forEach((value) => {
+            map.forEach((value: bigint) => {
                 sum += value;
             });
 
@@ -668,7 +668,7 @@ describe('FastBigIntMap - Comprehensive Tests', () => {
             const map = new FastBigIntMap([[1n, 100n]]);
             let receivedMap: FastBigIntMap | null = null;
 
-            map.forEach((value, key, m) => {
+            map.forEach((_value: bigint, _key: bigint, m: FastBigIntMap) => {
                 receivedMap = m;
             });
 
@@ -763,7 +763,7 @@ describe('FastBigIntMap - Comprehensive Tests', () => {
             const keysFromKeys = [...map.keys()];
             const keysFromEntries = [...map.entries()].map(([k]) => k);
             const keysFromForEach: bigint[] = [];
-            map.forEach((_, key) => keysFromForEach.push(key));
+            map.forEach((_: bigint, key: bigint) => keysFromForEach.push(key));
             const keysFromIterator = [...map].map(([k]) => k);
 
             const expectedOrder = [5n, 1n, 3n, 2n, 4n];

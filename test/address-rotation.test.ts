@@ -5,22 +5,19 @@ import {
     disabledAddressRotation,
     EcKeyPair,
     FundingTransaction,
-    SignerMap,
-    RotationSigner,
-    AddressRotationConfig,
 } from '../build/opnet.js';
-import { networks, payments, toXOnly } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
-import { UTXO } from '../build/opnet.js';
+import type { SignerMap, RotationSigner, AddressRotationConfig, UTXO } from '../build/opnet.js';
+import { networks, payments, toXOnly, toHex, equals } from '@btc-vision/bitcoin';
+import type { UniversalSigner } from '@btc-vision/ecpair';
 
 describe('Address Rotation', () => {
     const network = networks.regtest;
 
     // Generate test keypairs
-    let signer1: ECPairInterface;
-    let signer2: ECPairInterface;
-    let signer3: ECPairInterface;
-    let defaultSigner: ECPairInterface;
+    let signer1: UniversalSigner;
+    let signer2: UniversalSigner;
+    let signer3: UniversalSigner;
+    let defaultSigner: UniversalSigner;
 
     let address1: string;
     let address2: string;
@@ -56,7 +53,7 @@ describe('Address Rotation', () => {
             outputIndex: index,
             value,
             scriptPubKey: {
-                hex: p2tr.output!.toString('hex'),
+                hex: toHex(p2tr.output as Uint8Array),
                 address,
             },
         };
@@ -400,7 +397,7 @@ describe('Address Rotation', () => {
         });
 
         it('should handle many UTXOs from different addresses', async () => {
-            const signers: ECPairInterface[] = [];
+            const signers: UniversalSigner[] = [];
             const addresses: string[] = [];
             const utxos: UTXO[] = [];
 
@@ -413,9 +410,9 @@ describe('Address Rotation', () => {
                 utxos.push(createTaprootUtxo(addr, 20000n, i.toString().repeat(64), 0));
             }
 
-            const pairs: [string, ECPairInterface][] = addresses.map((addr, i) => [
+            const pairs: [string, UniversalSigner][] = addresses.map((addr, i) => [
                 addr,
-                signers[i],
+                signers[i] as UniversalSigner,
             ]);
 
             const tx = new FundingTransaction({
@@ -515,13 +512,15 @@ describe('Address Rotation', () => {
             const inputs = tx.getInputs();
 
             // Verify each input has the correct tapInternalKey
-            const expectedKey1 = toXOnly(Buffer.from(signer1.publicKey));
-            const expectedKey2 = toXOnly(Buffer.from(signer2.publicKey));
+            const expectedKey1 = toXOnly(signer1.publicKey);
+            const expectedKey2 = toXOnly(signer2.publicKey);
 
-            expect(inputs[0].tapInternalKey).toBeDefined();
-            expect(inputs[1].tapInternalKey).toBeDefined();
-            expect(inputs[0].tapInternalKey!.equals(expectedKey1)).toBe(true);
-            expect(inputs[1].tapInternalKey!.equals(expectedKey2)).toBe(true);
+            const input0 = inputs[0] as (typeof inputs)[0];
+            const input1 = inputs[1] as (typeof inputs)[0];
+            expect(input0.tapInternalKey).toBeDefined();
+            expect(input1.tapInternalKey).toBeDefined();
+            expect(equals(input0.tapInternalKey as Uint8Array, expectedKey1)).toBe(true);
+            expect(equals(input1.tapInternalKey as Uint8Array, expectedKey2)).toBe(true);
         });
 
         it('should use default signer tapInternalKey when rotation disabled', async () => {
@@ -544,10 +543,11 @@ describe('Address Rotation', () => {
             await tx.generateTransactionMinimalSignatures();
 
             const inputs = tx.getInputs();
-            const expectedKey = toXOnly(Buffer.from(defaultSigner.publicKey));
+            const expectedKey = toXOnly(defaultSigner.publicKey);
 
-            expect(inputs[0].tapInternalKey).toBeDefined();
-            expect(inputs[0].tapInternalKey!.equals(expectedKey)).toBe(true);
+            const input0 = inputs[0] as (typeof inputs)[0];
+            expect(input0.tapInternalKey).toBeDefined();
+            expect(equals(input0.tapInternalKey as Uint8Array, expectedKey)).toBe(true);
         });
     });
 });

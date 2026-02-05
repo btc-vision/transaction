@@ -273,7 +273,7 @@ console.log('Uncompressed:', wallet.toUncompressedPublicKey()); // 65 bytes
 console.log('Private key:', wallet.privateKey);            // 32 bytes hex
 
 // Key pair
-console.log('EC Keypair:', wallet.keypair);                // ECPairInterface
+console.log('EC Keypair:', wallet.keypair);                // UniversalSigner
 ```
 
 ### Quantum Keys
@@ -383,9 +383,11 @@ console.log('Quantum key size:', quantumRoot.publicKey.length);
 const mnemonic = Mnemonic.generate();
 const wallet = mnemonic.derive(0);
 
+import { toHex } from '@btc-vision/bitcoin';
+
 // Chain codes for key derivation
-console.log('Classical chain code:', wallet.keypair.chainCode?.toString('hex'));
-console.log('Quantum chain code:', wallet.mldsaKeypair.chainCode.toString('hex'));
+console.log('Classical chain code:', wallet.keypair.chainCode ? toHex(wallet.keypair.chainCode) : undefined);
+console.log('Quantum chain code:', toHex(wallet.mldsaKeypair.chainCode));
 ```
 
 ### Deterministic Derivation

@@ -5,9 +5,10 @@ import { FastMap } from './FastMap.js';
  * A map implementation using Address with both MLDSA and tweaked keys.
  * Uses the tweaked public key for lookup/indexing, but stores the full Address.
  */
-export class ExtendedAddressMap<V> {
+export class ExtendedAddressMap<V> implements Disposable {
     // Store tweaked bigint -> index mapping for fast lookup
     private indexMap: FastMap<bigint, number>;
+
     // Store actual addresses and values
     private _keys: Address[] = [];
     private _values: V[] = [];
@@ -72,7 +73,7 @@ export class ExtendedAddressMap<V> {
         // Rebuild index map (indices shifted after splice)
         this.indexMap.clear();
         for (let i = 0; i < this._keys.length; i++) {
-            this.indexMap.set(this._keys[i].tweakedToBigInt(), i);
+            this.indexMap.set((this._keys[i] as Address).tweakedToBigInt(), i);
         }
 
         return true;
@@ -84,6 +85,10 @@ export class ExtendedAddressMap<V> {
         this._values = [];
     }
 
+    public [Symbol.dispose](): void {
+        this.clear();
+    }
+
     public indexOf(address: Address): number {
         const index = this.indexMap.get(address.tweakedToBigInt());
         return index !== undefined ? index : -1;
@@ -91,7 +96,7 @@ export class ExtendedAddressMap<V> {
 
     *entries(): IterableIterator<[Address, V]> {
         for (let i = 0; i < this._keys.length; i++) {
-            yield [this._keys[i], this._values[i]];
+            yield [this._keys[i] as Address, this._values[i] as V];
         }
     }
 
@@ -112,7 +117,7 @@ export class ExtendedAddressMap<V> {
         thisArg?: unknown,
     ): void {
         for (let i = 0; i < this._keys.length; i++) {
-            callback.call(thisArg, this._values[i], this._keys[i], this);
+            callback.call(thisArg, this._values[i] as V, this._keys[i] as Address, this);
         }
     }
 

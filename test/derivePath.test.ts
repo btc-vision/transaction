@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AddressTypes, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
+import type { Wallet } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('Wallet.derivePath', () => {
@@ -431,8 +432,8 @@ describe('Mnemonic.deriveOPWallet', () => {
             const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 5);
 
             expect(wallets.length).toBe(5);
-            expect(wallets[0].p2tr).toBeDefined();
-            expect(wallets[4].p2tr).toBeDefined();
+            expect((wallets[0] as Wallet).p2tr).toBeDefined();
+            expect((wallets[4] as Wallet).p2tr).toBeDefined();
         });
 
         it('should derive unique addresses for each wallet', () => {
@@ -462,7 +463,7 @@ describe('Mnemonic.deriveOPWallet', () => {
             const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 2, 5);
             const wallet5 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 5);
 
-            expect(wallets[0].p2tr).toBe(wallet5.p2tr);
+            expect((wallets[0] as Wallet).p2tr).toBe(wallet5.p2tr);
         });
     });
 

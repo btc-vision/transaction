@@ -1,159 +1,17 @@
 import shajs from 'sha.js';
 
 import { BinaryReader } from '../buffer/BinaryReader.js';
-import { BufferHelper } from '../utils/BufferHelper.js';
-
-export enum ABIDataTypes {
-    // Unsigned integers
-    UINT8 = 'UINT8',
-    UINT16 = 'UINT16',
-    UINT32 = 'UINT32',
-    UINT64 = 'UINT64',
-    UINT128 = 'UINT128',
-    UINT256 = 'UINT256',
-
-    // Signed integers
-    INT8 = 'INT8',
-    INT16 = 'INT16',
-    INT32 = 'INT32',
-    INT64 = 'INT64',
-    INT128 = 'INT128',
-
-    // Basic types
-    BOOL = 'BOOL',
-    ADDRESS = 'ADDRESS',
-    EXTENDED_ADDRESS = 'EXTENDED_ADDRESS',
-    STRING = 'STRING',
-    BYTES4 = 'BYTES4',
-    BYTES32 = 'BYTES32',
-    BYTES = 'BYTES',
-
-    // Tuples/Maps
-    ADDRESS_UINT256_TUPLE = 'ADDRESS_UINT256_TUPLE',
-    EXTENDED_ADDRESS_UINT256_TUPLE = 'EXTENDED_ADDRESS_UINT256_TUPLE',
-
-    // Signatures
-    SCHNORR_SIGNATURE = 'SCHNORR_SIGNATURE',
-
-    // Arrays
-    ARRAY_OF_ADDRESSES = 'ARRAY_OF_ADDRESSES',
-    ARRAY_OF_EXTENDED_ADDRESSES = 'ARRAY_OF_EXTENDED_ADDRESSES',
-    ARRAY_OF_UINT256 = 'ARRAY_OF_UINT256',
-    ARRAY_OF_UINT128 = 'ARRAY_OF_UINT128',
-    ARRAY_OF_UINT64 = 'ARRAY_OF_UINT64',
-    ARRAY_OF_UINT32 = 'ARRAY_OF_UINT32',
-    ARRAY_OF_UINT16 = 'ARRAY_OF_UINT16',
-    ARRAY_OF_UINT8 = 'ARRAY_OF_UINT8',
-    ARRAY_OF_STRING = 'ARRAY_OF_STRING',
-    ARRAY_OF_BYTES = 'ARRAY_OF_BYTES',
-    ARRAY_OF_BUFFERS = 'ARRAY_OF_BUFFERS',
-}
+import { ABIDataTypes } from './ABIDataTypes.js';
+import type { AbiType } from './AbiTypes.js';
+import { isAbiStruct, isAbiTuple } from './TupleUtils.js';
 
 export class ABICoder {
-    public decodeData(data: Uint8Array, types: ABIDataTypes[]): unknown[] {
+    public decodeData(data: Uint8Array, types: AbiType[]): unknown[] {
         const byteReader = new BinaryReader(data);
         const result: unknown[] = [];
 
-        for (let i = 0; i < types.length; i++) {
-            const type = types[i];
-            switch (type) {
-                case ABIDataTypes.UINT8:
-                    result.push(byteReader.readU8());
-                    break;
-                case ABIDataTypes.UINT16:
-                    result.push(byteReader.readU16());
-                    break;
-                case ABIDataTypes.UINT32:
-                    result.push(byteReader.readU32());
-                    break;
-                case ABIDataTypes.BYTES4:
-                    result.push(byteReader.readBytes(4));
-                    break;
-                case ABIDataTypes.BYTES32:
-                    result.push(byteReader.readBytes(32));
-                    break;
-                case ABIDataTypes.BOOL:
-                    result.push(byteReader.readBoolean());
-                    break;
-                case ABIDataTypes.ADDRESS:
-                    result.push(byteReader.readAddress());
-                    break;
-                case ABIDataTypes.STRING:
-                    result.push(byteReader.readStringWithLength());
-                    break;
-                case ABIDataTypes.UINT128:
-                    result.push(byteReader.readU128());
-                    break;
-                case ABIDataTypes.UINT256:
-                    result.push(byteReader.readU256());
-                    break;
-                case ABIDataTypes.INT8:
-                    result.push(byteReader.readI8());
-                    break;
-                case ABIDataTypes.INT16:
-                    result.push(byteReader.readI16());
-                    break;
-                case ABIDataTypes.INT32:
-                    result.push(byteReader.readI32());
-                    break;
-                case ABIDataTypes.INT64:
-                    result.push(byteReader.readI64());
-                    break;
-                case ABIDataTypes.INT128:
-                    result.push(byteReader.readI128());
-                    break;
-                case ABIDataTypes.EXTENDED_ADDRESS:
-                    result.push(byteReader.readExtendedAddress());
-                    break;
-                case ABIDataTypes.ADDRESS_UINT256_TUPLE:
-                    result.push(byteReader.readAddressValueTuple());
-                    break;
-                case ABIDataTypes.EXTENDED_ADDRESS_UINT256_TUPLE:
-                    result.push(byteReader.readExtendedAddressMapU256());
-                    break;
-                case ABIDataTypes.SCHNORR_SIGNATURE:
-                    result.push(byteReader.readSchnorrSignature());
-                    break;
-                case ABIDataTypes.BYTES:
-                    result.push(byteReader.readBytesWithLength());
-                    break;
-                case ABIDataTypes.UINT64:
-                    result.push(byteReader.readU64());
-                    break;
-                case ABIDataTypes.ARRAY_OF_ADDRESSES:
-                    result.push(byteReader.readAddressArray());
-                    break;
-                case ABIDataTypes.ARRAY_OF_EXTENDED_ADDRESSES:
-                    result.push(byteReader.readExtendedAddressArray());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT256:
-                    result.push(byteReader.readU256Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT128:
-                    result.push(byteReader.readU128Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT64:
-                    result.push(byteReader.readU64Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT32:
-                    result.push(byteReader.readU32Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT16:
-                    result.push(byteReader.readU16Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_UINT8:
-                    result.push(byteReader.readU8Array());
-                    break;
-                case ABIDataTypes.ARRAY_OF_STRING:
-                    result.push(byteReader.readStringArray());
-                    break;
-                case ABIDataTypes.ARRAY_OF_BYTES:
-                    result.push(byteReader.readBytesArray());
-                    break;
-                case ABIDataTypes.ARRAY_OF_BUFFERS:
-                    result.push(byteReader.readArrayOfBuffer());
-                    break;
-            }
+        for (const type of types) {
+            result.push(this.decodeSingleValue(byteReader, type));
         }
 
         return result;
@@ -171,15 +29,134 @@ export class ABICoder {
         return selector.toString(16);
     }
 
-    private bigIntToUint8Array(bigIntValue: bigint, length: number): Uint8Array {
-        const byteArray = new Uint8Array(length);
-        const buf = BufferHelper.valueToUint8Array(bigIntValue);
-
-        for (let i = 0; i < length; i++) {
-            byteArray[i] = buf[i] || 0;
+    /**
+     * Decodes a single value from the reader based on the ABI type.
+     * Supports ABIDataTypes enum values, tuple arrays, and struct objects.
+     */
+    public decodeSingleValue(reader: BinaryReader, type: AbiType): unknown {
+        if (isAbiTuple(type)) {
+            // Single-element tuple: unwrap to flat array
+            const firstType = type[0];
+            if (type.length === 1 && firstType !== undefined) {
+                return this.decodeArray(reader, firstType);
+            }
+            return this.decodeTuple(reader, type);
         }
 
-        return byteArray;
+        if (isAbiStruct(type)) {
+            return this.decodeStruct(reader, type);
+        }
+
+        switch (type) {
+            case ABIDataTypes.UINT8:
+                return reader.readU8();
+            case ABIDataTypes.UINT16:
+                return reader.readU16();
+            case ABIDataTypes.UINT32:
+                return reader.readU32();
+            case ABIDataTypes.BYTES4:
+                return reader.readBytes(4);
+            case ABIDataTypes.BYTES32:
+                return reader.readBytes(32);
+            case ABIDataTypes.BOOL:
+                return reader.readBoolean();
+            case ABIDataTypes.ADDRESS:
+                return reader.readAddress();
+            case ABIDataTypes.STRING:
+                return reader.readStringWithLength();
+            case ABIDataTypes.UINT128:
+                return reader.readU128();
+            case ABIDataTypes.UINT256:
+                return reader.readU256();
+            case ABIDataTypes.INT8:
+                return reader.readI8();
+            case ABIDataTypes.INT16:
+                return reader.readI16();
+            case ABIDataTypes.INT32:
+                return reader.readI32();
+            case ABIDataTypes.INT64:
+                return reader.readI64();
+            case ABIDataTypes.INT128:
+                return reader.readI128();
+            case ABIDataTypes.EXTENDED_ADDRESS:
+                return reader.readExtendedAddress();
+            case ABIDataTypes.ADDRESS_UINT256_TUPLE:
+                return reader.readAddressValueTuple();
+            case ABIDataTypes.EXTENDED_ADDRESS_UINT256_TUPLE:
+                return reader.readExtendedAddressMapU256();
+            case ABIDataTypes.SCHNORR_SIGNATURE:
+                return reader.readSchnorrSignature();
+            case ABIDataTypes.BYTES:
+                return reader.readBytesWithLength();
+            case ABIDataTypes.UINT64:
+                return reader.readU64();
+            case ABIDataTypes.ARRAY_OF_ADDRESSES:
+                return reader.readAddressArray();
+            case ABIDataTypes.ARRAY_OF_EXTENDED_ADDRESSES:
+                return reader.readExtendedAddressArray();
+            case ABIDataTypes.ARRAY_OF_UINT256:
+                return reader.readU256Array();
+            case ABIDataTypes.ARRAY_OF_UINT128:
+                return reader.readU128Array();
+            case ABIDataTypes.ARRAY_OF_UINT64:
+                return reader.readU64Array();
+            case ABIDataTypes.ARRAY_OF_UINT32:
+                return reader.readU32Array();
+            case ABIDataTypes.ARRAY_OF_UINT16:
+                return reader.readU16Array();
+            case ABIDataTypes.ARRAY_OF_UINT8:
+                return reader.readU8Array();
+            case ABIDataTypes.ARRAY_OF_STRING:
+                return reader.readStringArray();
+            case ABIDataTypes.ARRAY_OF_BYTES:
+                return reader.readBytesArray();
+            case ABIDataTypes.ARRAY_OF_BUFFERS:
+                return reader.readArrayOfBuffer();
+            default:
+                throw new Error(`Unsupported ABI type: ${type}`);
+        }
+    }
+
+    /** Decodes a single-element tuple as a flat typed array (u16 count + values). */
+    private decodeArray(reader: BinaryReader, elementType: AbiType): unknown[] {
+        const count = reader.readU16();
+        const result: unknown[] = [];
+
+        for (let i = 0; i < count; i++) {
+            result.push(this.decodeSingleValue(reader, elementType));
+        }
+
+        return result;
+    }
+
+    /** Decodes a multi-element tuple as array of tuple entries (u16 count + entries). */
+    private decodeTuple(reader: BinaryReader, types: AbiType[]): unknown[][] {
+        const count = reader.readU16();
+        const result: unknown[][] = [];
+
+        for (let i = 0; i < count; i++) {
+            const entry: unknown[] = [];
+            for (const fieldType of types) {
+                entry.push(this.decodeSingleValue(reader, fieldType));
+            }
+            result.push(entry);
+        }
+
+        return result;
+    }
+
+    /** Decodes a struct as a single object with named fields (inline, no count prefix). */
+    private decodeStruct(
+        reader: BinaryReader,
+        struct: { [field: string]: AbiType },
+    ): Record<string, unknown> {
+        const entry: Record<string, unknown> = {};
+
+        for (const [name, fieldType] of Object.entries(struct)) {
+            entry[name] = this.decodeSingleValue(reader, fieldType);
+        }
+
+        return entry;
     }
 
     private sha256(buffer: Buffer | string | Uint8Array): Buffer {

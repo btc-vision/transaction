@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Address, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
-import { networks } from '@btc-vision/bitcoin';
+import { networks, toHex } from '@btc-vision/bitcoin';
 
 describe('Address - Comprehensive Tests', () => {
     const testMnemonic =
@@ -283,9 +283,9 @@ describe('Address - Comprehensive Tests', () => {
             const address = new Address(bytes);
 
             const buffer = address.toBuffer();
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
             expect(buffer.length).toBe(32);
-            expect(buffer.toString('hex')).toContain('aaaa');
+            expect(toHex(buffer)).toContain('aaaa');
         });
 
         it('should toString return same as toHex', () => {
@@ -318,7 +318,7 @@ describe('Address - Comprehensive Tests', () => {
             const addr = getValidAddress();
             const buffer = addr.tweakedPublicKeyToBuffer();
 
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
             expect(buffer.length).toBe(32);
         });
 
@@ -349,7 +349,7 @@ describe('Address - Comprehensive Tests', () => {
             const addr = getValidAddress();
             const buffer = addr.toTweakedHybridPublicKeyBuffer();
 
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
         });
 
         it('should throw error for toTweakedHybridPublicKeyBuffer without key', () => {
@@ -381,7 +381,7 @@ describe('Address - Comprehensive Tests', () => {
             const addr = getValidAddress();
             const buffer = addr.toUncompressedBuffer();
 
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
             expect(buffer.length).toBe(65);
         });
 
@@ -410,7 +410,7 @@ describe('Address - Comprehensive Tests', () => {
             const addr = getValidAddress();
             const buffer = addr.toHybridPublicKeyBuffer();
 
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
         });
 
         it('should throw error for toHybridPublicKeyBuffer without key', () => {
@@ -424,7 +424,7 @@ describe('Address - Comprehensive Tests', () => {
             const addr = getValidAddress();
             const buffer = addr.originalPublicKeyBuffer();
 
-            expect(buffer).toBeInstanceOf(Buffer);
+            expect(buffer).toBeInstanceOf(Uint8Array);
             expect(buffer.length).toBe(33);
         });
 
@@ -813,7 +813,7 @@ describe('Address - Comprehensive Tests', () => {
             const p2wda = addr.p2wda(networks.bitcoin);
 
             expect(p2wda.address).toMatch(/^bc1q/);
-            expect(p2wda.witnessScript).toBeInstanceOf(Buffer);
+            expect(p2wda.witnessScript).toBeInstanceOf(Uint8Array);
         });
 
         it('should cache p2wda for same network', () => {
@@ -851,7 +851,7 @@ describe('Address - Comprehensive Tests', () => {
             const csv = addr.toCSV(100, networks.bitcoin);
 
             expect(csv.address).toMatch(/^bc1q/);
-            expect(csv.witnessScript).toBeInstanceOf(Buffer);
+            expect(csv.witnessScript).toBeInstanceOf(Uint8Array);
         });
 
         it('should generate CSV address with valid duration (bigint)', () => {
@@ -1029,8 +1029,8 @@ describe('Address - Comprehensive Tests', () => {
             }
 
             for (let i = 0; i < addresses.length - 1; i++) {
-                expect(addresses[i].lessThan(addresses[i + 1])).toBe(true);
-                expect(addresses[i + 1].greaterThan(addresses[i])).toBe(true);
+                expect((addresses[i] as Address).lessThan(addresses[i + 1] as Address)).toBe(true);
+                expect((addresses[i + 1] as Address).greaterThan(addresses[i] as Address)).toBe(true);
             }
         });
     });

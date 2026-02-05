@@ -1,53 +1,51 @@
-import { describe, expect, it, beforeAll } from 'vitest';
-import { networks, payments } from '@btc-vision/bitcoin';
-import { ECPairInterface } from 'ecpair';
-import {
-    // Core offline signing exports
-    TransactionSerializer,
-    TransactionStateCapture,
-    TransactionReconstructor,
-    OfflineTransactionManager,
-    ReconstructionOptions,
-    // Interfaces
-    ISerializableTransactionState,
-    SerializedUTXO,
-    SerializedOutput,
-    SerializedBaseParams,
-    PrecomputedData,
-    SERIALIZATION_FORMAT_VERSION,
-    // Type-specific data
-    FundingSpecificData,
-    DeploymentSpecificData,
-    InteractionSpecificData,
-    MultiSigSpecificData,
-    CustomScriptSpecificData,
+import { beforeAll, describe, expect, it } from 'vitest';
+import { createHash } from 'crypto';
+import { networks, payments, toHex } from '@btc-vision/bitcoin';
+import { type UniversalSigner } from '@btc-vision/ecpair';
+import type {
     CancelSpecificData,
-    isFundingSpecificData,
+    CustomScriptSpecificData,
+    DeploymentSpecificData,
+    FundingSpecificData,
+    InteractionSpecificData,
+    ISerializableTransactionState,
+    MultiSigSpecificData,
+    PrecomputedData,
+    ReconstructionOptions,
+    SerializedBaseParams,
+    SerializedOutput,
+    SerializedUTXO,
+    UTXO,
+} from '../build/opnet.js';
+import {
+    ChainId,
+    createAddressRotation,
+    createSignerMap,
+    currentConsensus,
+    EcKeyPair,
+    FundingTransaction,
+    isCancelSpecificData,
+    isCustomScriptSpecificData,
     isDeploymentSpecificData,
+    isFundingSpecificData,
     isInteractionSpecificData,
     isMultiSigSpecificData,
-    isCustomScriptSpecificData,
-    isCancelSpecificData,
-    // Transaction types
+    OfflineTransactionManager,
+    SERIALIZATION_FORMAT_VERSION,
+    TransactionReconstructor,
+    TransactionSerializer,
+    TransactionStateCapture,
     TransactionType,
-    FundingTransaction,
-    // Utilities
-    EcKeyPair,
-    createSignerMap,
-    createAddressRotation,
-    UTXO,
-    ChainId,
 } from '../build/opnet.js';
-import { currentConsensus } from '../build/opnet.js';
 
 describe('Offline Transaction Signing', () => {
     const network = networks.regtest;
 
     // Test keypairs
-    let signer1: ECPairInterface;
-    let signer2: ECPairInterface;
-    let signer3: ECPairInterface;
-    let defaultSigner: ECPairInterface;
+    let signer1: UniversalSigner;
+    let signer2: UniversalSigner;
+    let signer3: UniversalSigner;
+    let defaultSigner: UniversalSigner;
 
     let address1: string;
     let address2: string;
@@ -79,7 +77,7 @@ describe('Offline Transaction Signing', () => {
             outputIndex: index,
             value,
             scriptPubKey: {
-                hex: p2tr.output!.toString('hex'),
+                hex: toHex(p2tr.output as Uint8Array),
                 address,
             },
         };
@@ -113,7 +111,9 @@ describe('Offline Transaction Signing', () => {
                     transactionId: '0'.repeat(64),
                     outputIndex: 0,
                     value: '100000',
-                    scriptPubKeyHex: payments.p2tr({ address: address1, network }).output!.toString('hex'),
+                    scriptPubKeyHex: toHex(
+                        payments.p2tr({ address: address1, network }).output as Uint8Array,
+                    ),
                     scriptPubKeyAddress: address1,
                 },
             ],
@@ -138,7 +138,7 @@ describe('Offline Transaction Signing', () => {
                 const state = createMockSerializedState(TransactionType.FUNDING);
 
                 const serialized = TransactionSerializer.serialize(state);
-                expect(serialized).toBeInstanceOf(Buffer);
+                expect(serialized).toBeInstanceOf(Uint8Array);
                 expect(serialized.length).toBeGreaterThan(32); // At least checksum size
 
                 const deserialized = TransactionSerializer.deserialize(serialized);
@@ -148,8 +148,15 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should preserve all header fields', () => {
-                const state = createMockSerializedState();
-                state.header.timestamp = 1234567890123;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.FUNDING,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: 1234567890123,
+                    },
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -163,7 +170,6 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should preserve all base params fields', () => {
-                const state = createMockSerializedState();
                 const baseParams: SerializedBaseParams = {
                     from: address1,
                     to: address2,
@@ -176,7 +182,9 @@ describe('Offline Transaction Signing', () => {
                     anchor: true,
                     debugFees: true,
                 };
-                state.baseParams = baseParams;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -195,8 +203,11 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should handle optional "to" field being undefined', () => {
-                const state = createMockSerializedState();
-                state.baseParams.to = undefined;
+                const base = createMockSerializedState();
+                const { to: _to, ...baseParamsWithoutTo } = base.baseParams;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: baseParamsWithoutTo as SerializedBaseParams,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -217,77 +228,87 @@ describe('Offline Transaction Signing', () => {
                     nonWitnessUtxo: 'feed0003',
                 };
 
-                const state = createMockSerializedState();
-                state.utxos = [utxo];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    utxos: [utxo],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
                 expect(deserialized.utxos).toHaveLength(1);
-                expect(deserialized.utxos[0].transactionId).toBe(utxo.transactionId);
-                expect(deserialized.utxos[0].outputIndex).toBe(utxo.outputIndex);
-                expect(deserialized.utxos[0].value).toBe(utxo.value);
-                expect(deserialized.utxos[0].scriptPubKeyHex).toBe(utxo.scriptPubKeyHex);
-                expect(deserialized.utxos[0].scriptPubKeyAddress).toBe(utxo.scriptPubKeyAddress);
-                expect(deserialized.utxos[0].redeemScript).toBe(utxo.redeemScript);
-                expect(deserialized.utxos[0].witnessScript).toBe(utxo.witnessScript);
-                expect(deserialized.utxos[0].nonWitnessUtxo).toBe(utxo.nonWitnessUtxo);
+                const utxo0 = deserialized.utxos[0] as SerializedUTXO;
+                expect(utxo0.transactionId).toBe(utxo.transactionId);
+                expect(utxo0.outputIndex).toBe(utxo.outputIndex);
+                expect(utxo0.value).toBe(utxo.value);
+                expect(utxo0.scriptPubKeyHex).toBe(utxo.scriptPubKeyHex);
+                expect(utxo0.scriptPubKeyAddress).toBe(utxo.scriptPubKeyAddress);
+                expect(utxo0.redeemScript).toBe(utxo.redeemScript);
+                expect(utxo0.witnessScript).toBe(utxo.witnessScript);
+                expect(utxo0.nonWitnessUtxo).toBe(utxo.nonWitnessUtxo);
             });
 
             it('should handle multiple UTXOs', () => {
-                const state = createMockSerializedState();
-                state.utxos = [
-                    {
-                        transactionId: '1'.repeat(64),
-                        outputIndex: 0,
-                        value: '10000',
-                        scriptPubKeyHex: 'aa',
-                        scriptPubKeyAddress: address1,
-                    },
-                    {
-                        transactionId: '2'.repeat(64),
-                        outputIndex: 1,
-                        value: '20000',
-                        scriptPubKeyHex: 'bb',
-                        scriptPubKeyAddress: address2,
-                    },
-                    {
-                        transactionId: '3'.repeat(64),
-                        outputIndex: 2,
-                        value: '30000',
-                        scriptPubKeyHex: 'cc',
-                        scriptPubKeyAddress: address3,
-                    },
-                ];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    utxos: [
+                        {
+                            transactionId: '1'.repeat(64),
+                            outputIndex: 0,
+                            value: '10000',
+                            scriptPubKeyHex: 'aa',
+                            scriptPubKeyAddress: address1,
+                        },
+                        {
+                            transactionId: '2'.repeat(64),
+                            outputIndex: 1,
+                            value: '20000',
+                            scriptPubKeyHex: 'bb',
+                            scriptPubKeyAddress: address2,
+                        },
+                        {
+                            transactionId: '3'.repeat(64),
+                            outputIndex: 2,
+                            value: '30000',
+                            scriptPubKeyHex: 'cc',
+                            scriptPubKeyAddress: address3,
+                        },
+                    ],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
                 expect(deserialized.utxos).toHaveLength(3);
-                expect(deserialized.utxos[0].transactionId).toBe('1'.repeat(64));
-                expect(deserialized.utxos[1].transactionId).toBe('2'.repeat(64));
-                expect(deserialized.utxos[2].transactionId).toBe('3'.repeat(64));
+                expect((deserialized.utxos[0] as SerializedUTXO).transactionId).toBe(
+                    '1'.repeat(64),
+                );
+                expect((deserialized.utxos[1] as SerializedUTXO).transactionId).toBe(
+                    '2'.repeat(64),
+                );
+                expect((deserialized.utxos[2] as SerializedUTXO).transactionId).toBe(
+                    '3'.repeat(64),
+                );
             });
 
             it('should preserve optional inputs', () => {
-                const state = createMockSerializedState();
-                state.optionalInputs = [
-                    {
-                        transactionId: 'f'.repeat(64),
-                        outputIndex: 99,
-                        value: '12345',
-                        scriptPubKeyHex: 'ff',
-                    },
-                ];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    optionalInputs: [
+                        {
+                            transactionId: 'f'.repeat(64),
+                            outputIndex: 99,
+                            value: '12345',
+                            scriptPubKeyHex: 'ff',
+                        },
+                    ],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
                 expect(deserialized.optionalInputs).toHaveLength(1);
-                expect(deserialized.optionalInputs[0].outputIndex).toBe(99);
+                expect((deserialized.optionalInputs[0] as SerializedUTXO).outputIndex).toBe(99);
             });
 
             it('should preserve optional outputs', () => {
@@ -297,17 +318,19 @@ describe('Offline Transaction Signing', () => {
                     tapInternalKey: 'abcd1234',
                 };
 
-                const state = createMockSerializedState();
-                state.optionalOutputs = [output];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    optionalOutputs: [output],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
                 expect(deserialized.optionalOutputs).toHaveLength(1);
-                expect(deserialized.optionalOutputs[0].value).toBe(output.value);
-                expect(deserialized.optionalOutputs[0].address).toBe(output.address);
-                expect(deserialized.optionalOutputs[0].tapInternalKey).toBe(output.tapInternalKey);
+                const output0 = deserialized.optionalOutputs[0] as SerializedOutput;
+                expect(output0.value).toBe(output.value);
+                expect(output0.address).toBe(output.address);
+                expect(output0.tapInternalKey).toBe(output.tapInternalKey);
             });
 
             it('should preserve script-based outputs', () => {
@@ -316,25 +339,28 @@ describe('Offline Transaction Signing', () => {
                     script: 'deadbeefcafe',
                 };
 
-                const state = createMockSerializedState();
-                state.optionalOutputs = [output];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    optionalOutputs: [output],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
                 expect(deserialized.optionalOutputs).toHaveLength(1);
-                expect(deserialized.optionalOutputs[0].script).toBe(output.script);
-                expect(deserialized.optionalOutputs[0].address).toBeUndefined();
+                const scriptOutput0 = deserialized.optionalOutputs[0] as SerializedOutput;
+                expect(scriptOutput0.script).toBe(output.script);
+                expect(scriptOutput0.address).toBeUndefined();
             });
 
             it('should preserve signer mappings for address rotation', () => {
-                const state = createMockSerializedState();
-                state.addressRotationEnabled = true;
-                state.signerMappings = [
-                    { address: address1, inputIndices: [0, 2, 4] },
-                    { address: address2, inputIndices: [1, 3] },
-                ];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    addressRotationEnabled: true,
+                    signerMappings: [
+                        { address: address1, inputIndices: [0, 2, 4] },
+                        { address: address2, inputIndices: [1, 3] },
+                    ],
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -342,10 +368,14 @@ describe('Offline Transaction Signing', () => {
 
                 expect(deserialized.addressRotationEnabled).toBe(true);
                 expect(deserialized.signerMappings).toHaveLength(2);
-                expect(deserialized.signerMappings[0].address).toBe(address1);
-                expect(deserialized.signerMappings[0].inputIndices).toEqual([0, 2, 4]);
-                expect(deserialized.signerMappings[1].address).toBe(address2);
-                expect(deserialized.signerMappings[1].inputIndices).toEqual([1, 3]);
+                const mapping0 = deserialized
+                    .signerMappings[0] as (typeof deserialized.signerMappings)[0];
+                const mapping1 = deserialized
+                    .signerMappings[1] as (typeof deserialized.signerMappings)[0];
+                expect(mapping0.address).toBe(address1);
+                expect(mapping0.inputIndices).toEqual([0, 2, 4]);
+                expect(mapping1.address).toBe(address2);
+                expect(mapping1.inputIndices).toEqual([1, 3]);
             });
 
             it('should preserve precomputed data', () => {
@@ -357,18 +387,23 @@ describe('Offline Transaction Signing', () => {
                     contractAddress: address3,
                 };
 
-                const state = createMockSerializedState();
-                state.precomputedData = precomputed;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    precomputedData: precomputed,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
                 );
 
-                expect(deserialized.precomputedData.compiledTargetScript).toBe(precomputed.compiledTargetScript);
+                expect(deserialized.precomputedData.compiledTargetScript).toBe(
+                    precomputed.compiledTargetScript,
+                );
                 expect(deserialized.precomputedData.randomBytes).toBe(precomputed.randomBytes);
                 expect(deserialized.precomputedData.estimatedFees).toBe(precomputed.estimatedFees);
                 expect(deserialized.precomputedData.contractSeed).toBe(precomputed.contractSeed);
-                expect(deserialized.precomputedData.contractAddress).toBe(precomputed.contractAddress);
+                expect(deserialized.precomputedData.contractAddress).toBe(
+                    precomputed.contractAddress,
+                );
             });
         });
 
@@ -380,8 +415,9 @@ describe('Offline Transaction Signing', () => {
                     splitInputsInto: 5,
                 };
 
-                const state = createMockSerializedState(TransactionType.FUNDING);
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -404,9 +440,16 @@ describe('Offline Transaction Signing', () => {
                     hashedPublicKey: 'abcd'.repeat(16),
                 };
 
-                const state = createMockSerializedState(TransactionType.DEPLOYMENT);
-                state.header.transactionType = TransactionType.DEPLOYMENT;
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.DEPLOYMENT, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.DEPLOYMENT,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now(),
+                    },
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -428,17 +471,24 @@ describe('Offline Transaction Signing', () => {
                     contract: 'bcrt1qtest',
                     challenge: createMockChallenge(),
                     loadedStorage: {
-                        'key1': ['value1', 'value2'],
-                        'key2': ['value3'],
+                        key1: ['value1', 'value2'],
+                        key2: ['value3'],
                     },
                     isCancellation: true,
                     disableAutoRefund: true,
                     revealMLDSAPublicKey: false,
                 };
 
-                const state = createMockSerializedState(TransactionType.INTERACTION);
-                state.header.transactionType = TransactionType.INTERACTION;
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.INTERACTION, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.INTERACTION,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now(),
+                    },
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -465,9 +515,16 @@ describe('Offline Transaction Signing', () => {
                     existingPsbtBase64: 'cHNidP8BAH...',
                 };
 
-                const state = createMockSerializedState(TransactionType.MULTI_SIG);
-                state.header.transactionType = TransactionType.MULTI_SIG;
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.MULTI_SIG, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.MULTI_SIG,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now(),
+                    },
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -496,9 +553,16 @@ describe('Offline Transaction Signing', () => {
                     annex: 'aabbccdd',
                 };
 
-                const state = createMockSerializedState(TransactionType.CUSTOM_CODE);
-                state.header.transactionType = TransactionType.CUSTOM_CODE;
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.CUSTOM_CODE, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.CUSTOM_CODE,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now(),
+                    },
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -507,7 +571,10 @@ describe('Offline Transaction Signing', () => {
                 expect(isCustomScriptSpecificData(deserialized.typeSpecificData)).toBe(true);
                 const data = deserialized.typeSpecificData as CustomScriptSpecificData;
                 expect(data.scriptElements).toHaveLength(3);
-                expect(data.scriptElements[0]).toEqual({ elementType: 'buffer', value: 'deadbeef' });
+                expect(data.scriptElements[0]).toEqual({
+                    elementType: 'buffer',
+                    value: 'deadbeef',
+                });
                 expect(data.scriptElements[1]).toEqual({ elementType: 'opcode', value: 118 });
                 expect(data.witnesses).toEqual(typeData.witnesses);
                 expect(data.annex).toBe(typeData.annex);
@@ -519,9 +586,16 @@ describe('Offline Transaction Signing', () => {
                     compiledTargetScript: 'deadbeefcafe1234',
                 };
 
-                const state = createMockSerializedState(TransactionType.CANCEL);
-                state.header.transactionType = TransactionType.CANCEL;
-                state.typeSpecificData = typeData;
+                const state = createMockSerializedState(TransactionType.CANCEL, {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.CANCEL,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now(),
+                    },
+                    typeSpecificData: typeData,
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -568,12 +642,13 @@ describe('Offline Transaction Signing', () => {
 
                 // Recalculate checksum to bypass checksum error
                 const payload = serialized.subarray(0, -32);
-                const crypto = require('crypto');
-                const hash1 = crypto.createHash('sha256').update(payload).digest();
-                const newChecksum = crypto.createHash('sha256').update(hash1).digest();
+                const hash1 = createHash('sha256').update(payload).digest();
+                const newChecksum = createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid magic byte/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Invalid magic byte/,
+                );
             });
 
             it('should throw on invalid checksum', () => {
@@ -581,9 +656,12 @@ describe('Offline Transaction Signing', () => {
                 const serialized = TransactionSerializer.serialize(state);
 
                 // Corrupt checksum
-                serialized[serialized.length - 1] ^= 0xff;
+                serialized[serialized.length - 1] =
+                    (serialized[serialized.length - 1] as number) ^ 0xff;
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Invalid checksum/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Invalid checksum/,
+                );
             });
 
             it('should throw on data too short', () => {
@@ -601,19 +679,22 @@ describe('Offline Transaction Signing', () => {
 
                 // Recalculate checksum
                 const payload = serialized.subarray(0, -32);
-                const crypto = require('crypto');
-                const hash1 = crypto.createHash('sha256').update(payload).digest();
-                const newChecksum = crypto.createHash('sha256').update(hash1).digest();
+                const hash1 = createHash('sha256').update(payload).digest();
+                const newChecksum = createHash('sha256').update(hash1).digest();
                 newChecksum.copy(serialized, serialized.length - 32);
 
-                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(/Unsupported format version/);
+                expect(() => TransactionSerializer.deserialize(serialized)).toThrow(
+                    /Unsupported format version/,
+                );
             });
         });
 
         describe('network serialization', () => {
             it('should serialize mainnet correctly', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'mainnet';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'mainnet' },
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -623,8 +704,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should serialize testnet correctly', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'testnet';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'testnet' },
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -634,8 +717,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should serialize regtest correctly', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'regtest';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'regtest' },
+                });
 
                 const deserialized = TransactionSerializer.deserialize(
                     TransactionSerializer.serialize(state),
@@ -759,10 +844,11 @@ describe('Offline Transaction Signing', () => {
 
                 const state = TransactionStateCapture.fromFunding(params);
 
-                expect(state.utxos[0].transactionId).toBe(utxo.transactionId);
-                expect(state.utxos[0].redeemScript).toBe('cafe');
-                expect(state.utxos[0].witnessScript).toBe('babe');
-                expect(state.utxos[0].nonWitnessUtxo).toBe('feed');
+                const stateUtxo0 = state.utxos[0] as SerializedUTXO;
+                expect(stateUtxo0.transactionId).toBe(utxo.transactionId);
+                expect(stateUtxo0.redeemScript).toBe('cafe');
+                expect(stateUtxo0.witnessScript).toBe('babe');
+                expect(stateUtxo0.nonWitnessUtxo).toBe('feed');
             });
 
             it('should handle UTXOs with string scripts', () => {
@@ -792,7 +878,7 @@ describe('Offline Transaction Signing', () => {
 
                 const state = TransactionStateCapture.fromFunding(params);
 
-                expect(state.utxos[0].redeemScript).toBe('ddeeff');
+                expect((state.utxos[0] as SerializedUTXO).redeemScript).toBe('ddeeff');
             });
         });
     });
@@ -813,8 +899,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should apply fee rate override', () => {
-                const state = createMockSerializedState(TransactionType.FUNDING);
-                state.baseParams.feeRate = 10;
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, feeRate: 10 },
+                });
 
                 const options: ReconstructionOptions = {
                     signer: defaultSigner,
@@ -852,8 +940,9 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should throw when address rotation enabled but no signerMap provided', () => {
-                const state = createMockSerializedState(TransactionType.FUNDING);
-                state.addressRotationEnabled = true;
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    addressRotationEnabled: true,
+                });
 
                 const options: ReconstructionOptions = {
                     signer: defaultSigner,
@@ -866,9 +955,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should reconstruct with address rotation when signerMap provided', () => {
-                const state = createMockSerializedState(TransactionType.FUNDING);
-                state.addressRotationEnabled = true;
-                state.signerMappings = [{ address: address1, inputIndices: [0] }];
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    addressRotationEnabled: true,
+                    signerMappings: [{ address: address1, inputIndices: [0] }],
+                });
 
                 const signerMap = createSignerMap([[address1, signer1]]);
 
@@ -884,8 +974,10 @@ describe('Offline Transaction Signing', () => {
 
         describe('network conversion', () => {
             it('should convert mainnet name to network', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'mainnet';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'mainnet' },
+                });
 
                 const options: ReconstructionOptions = {
                     signer: defaultSigner,
@@ -896,8 +988,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should convert testnet name to network', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'testnet';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'testnet' },
+                });
 
                 const options: ReconstructionOptions = {
                     signer: defaultSigner,
@@ -908,8 +1002,10 @@ describe('Offline Transaction Signing', () => {
             });
 
             it('should convert regtest name to network', () => {
-                const state = createMockSerializedState();
-                state.baseParams.networkName = 'regtest';
+                const base = createMockSerializedState();
+                const state = createMockSerializedState(TransactionType.FUNDING, {
+                    baseParams: { ...base.baseParams, networkName: 'regtest' },
+                });
 
                 const options: ReconstructionOptions = {
                     signer: defaultSigner,
@@ -1166,7 +1262,13 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isDeploymentSpecificData(deploymentData)).toBe(true);
-            expect(isDeploymentSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+
+            const nonDeploymentData: FundingSpecificData = {
+                type: TransactionType.FUNDING,
+                amount: '0',
+                splitInputsInto: 1,
+            };
+            expect(isDeploymentSpecificData(nonDeploymentData)).toBe(false);
         });
 
         it('isInteractionSpecificData should correctly identify interaction data', () => {
@@ -1177,7 +1279,13 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isInteractionSpecificData(interactionData)).toBe(true);
-            expect(isInteractionSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+
+            const nonInteractionData: FundingSpecificData = {
+                type: TransactionType.FUNDING,
+                amount: '0',
+                splitInputsInto: 1,
+            };
+            expect(isInteractionSpecificData(nonInteractionData)).toBe(false);
         });
 
         it('isMultiSigSpecificData should correctly identify multisig data', () => {
@@ -1192,7 +1300,13 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isMultiSigSpecificData(multiSigData)).toBe(true);
-            expect(isMultiSigSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+
+            const nonMultiSigData: FundingSpecificData = {
+                type: TransactionType.FUNDING,
+                amount: '0',
+                splitInputsInto: 1,
+            };
+            expect(isMultiSigSpecificData(nonMultiSigData)).toBe(false);
         });
 
         it('isCustomScriptSpecificData should correctly identify custom script data', () => {
@@ -1203,7 +1317,13 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isCustomScriptSpecificData(customData)).toBe(true);
-            expect(isCustomScriptSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+
+            const nonCustomData: FundingSpecificData = {
+                type: TransactionType.FUNDING,
+                amount: '0',
+                splitInputsInto: 1,
+            };
+            expect(isCustomScriptSpecificData(nonCustomData)).toBe(false);
         });
 
         it('isCancelSpecificData should correctly identify cancel data', () => {
@@ -1213,14 +1333,21 @@ describe('Offline Transaction Signing', () => {
             };
 
             expect(isCancelSpecificData(cancelData)).toBe(true);
-            expect(isCancelSpecificData({ type: TransactionType.FUNDING } as any)).toBe(false);
+
+            const nonCancelData: FundingSpecificData = {
+                type: TransactionType.FUNDING,
+                amount: '0',
+                splitInputsInto: 1,
+            };
+            expect(isCancelSpecificData(nonCancelData)).toBe(false);
         });
     });
 
     describe('Edge Cases', () => {
         it('should handle empty UTXOs array', () => {
-            const state = createMockSerializedState();
-            state.utxos = [];
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                utxos: [],
+            });
 
             const serialized = TransactionSerializer.serialize(state);
             const deserialized = TransactionSerializer.deserialize(serialized);
@@ -1229,27 +1356,29 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should handle very large values', () => {
-            const state = createMockSerializedState();
-            state.utxos = [
-                {
-                    transactionId: '0'.repeat(64),
-                    outputIndex: 0,
-                    value: '9999999999999999', // Large value
-                    scriptPubKeyHex: 'aa',
-                },
-            ];
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                utxos: [
+                    {
+                        transactionId: '0'.repeat(64),
+                        outputIndex: 0,
+                        value: '9999999999999999', // Large value
+                        scriptPubKeyHex: 'aa',
+                    },
+                ],
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
             );
 
-            expect(deserialized.utxos[0].value).toBe('9999999999999999');
+            expect((deserialized.utxos[0] as SerializedUTXO).value).toBe('9999999999999999');
         });
 
         it('should handle empty strings', () => {
-            const state = createMockSerializedState();
-            state.baseParams.from = '';
-            state.baseParams.to = '';
+            const base = createMockSerializedState();
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                baseParams: { ...base.baseParams, from: '', to: '' },
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
@@ -1259,9 +1388,11 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should handle special characters in note', () => {
-            const state = createMockSerializedState();
+            const base = createMockSerializedState();
             const specialNote = Buffer.from('Hello\x00World\n\t\r').toString('hex');
-            state.baseParams.note = specialNote;
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                baseParams: { ...base.baseParams, note: specialNote },
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
@@ -1271,8 +1402,10 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should handle zero fee rate', () => {
-            const state = createMockSerializedState();
-            state.baseParams.feeRate = 0;
+            const base = createMockSerializedState();
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                baseParams: { ...base.baseParams, feeRate: 0 },
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
@@ -1282,34 +1415,44 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should handle maximum input indices in signer mappings', () => {
-            const state = createMockSerializedState();
-            state.addressRotationEnabled = true;
-            state.signerMappings = [
-                { address: address1, inputIndices: Array.from({ length: 100 }, (_, i) => i) },
-            ];
+            const state = createMockSerializedState(TransactionType.FUNDING, {
+                addressRotationEnabled: true,
+                signerMappings: [
+                    { address: address1, inputIndices: Array.from({ length: 100 }, (_, i) => i) },
+                ],
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
             );
 
-            expect(deserialized.signerMappings[0].inputIndices).toHaveLength(100);
+            expect(
+                (deserialized.signerMappings[0] as (typeof deserialized.signerMappings)[0])
+                    .inputIndices,
+            ).toHaveLength(100);
         });
 
         it('should handle loaded storage with many keys', () => {
-            const state = createMockSerializedState(TransactionType.INTERACTION);
-            state.header.transactionType = TransactionType.INTERACTION;
-
             const loadedStorage: { [key: string]: string[] } = {};
             for (let i = 0; i < 50; i++) {
                 loadedStorage[`key${i}`] = [`value${i}a`, `value${i}b`];
             }
 
-            state.typeSpecificData = {
-                type: TransactionType.INTERACTION,
-                calldata: 'abc',
-                challenge: createMockChallenge(),
-                loadedStorage,
-            } as InteractionSpecificData;
+            const state = createMockSerializedState(TransactionType.INTERACTION, {
+                header: {
+                    formatVersion: SERIALIZATION_FORMAT_VERSION,
+                    consensusVersion: currentConsensus,
+                    transactionType: TransactionType.INTERACTION,
+                    chainId: ChainId.Bitcoin,
+                    timestamp: Date.now(),
+                },
+                typeSpecificData: {
+                    type: TransactionType.INTERACTION,
+                    calldata: 'abcd',
+                    challenge: createMockChallenge(),
+                    loadedStorage,
+                } as InteractionSpecificData,
+            });
 
             const deserialized = TransactionSerializer.deserialize(
                 TransactionSerializer.serialize(state),
@@ -1393,7 +1536,9 @@ describe('Offline Transaction Signing', () => {
 
             // Verify header
             expect(deserialized.header.formatVersion).toBe(originalState.header.formatVersion);
-            expect(deserialized.header.consensusVersion).toBe(originalState.header.consensusVersion);
+            expect(deserialized.header.consensusVersion).toBe(
+                originalState.header.consensusVersion,
+            );
             expect(deserialized.header.transactionType).toBe(originalState.header.transactionType);
             expect(deserialized.header.chainId).toBe(originalState.header.chainId);
             expect(deserialized.header.timestamp).toBe(originalState.header.timestamp);
@@ -1401,7 +1546,10 @@ describe('Offline Transaction Signing', () => {
             // Verify base params
             expect(deserialized.baseParams.from).toBe(originalState.baseParams.from);
             expect(deserialized.baseParams.to).toBe(originalState.baseParams.to);
-            expect(deserialized.baseParams.feeRate).toBeCloseTo(originalState.baseParams.feeRate, 3);
+            expect(deserialized.baseParams.feeRate).toBeCloseTo(
+                originalState.baseParams.feeRate,
+                3,
+            );
             expect(deserialized.baseParams.priorityFee).toBe(originalState.baseParams.priorityFee);
             expect(deserialized.baseParams.gasSatFee).toBe(originalState.baseParams.gasSatFee);
             expect(deserialized.baseParams.networkName).toBe(originalState.baseParams.networkName);
@@ -1486,10 +1634,9 @@ describe('Offline Transaction Signing', () => {
             expect(OfflineTransactionManager.validate(exportedState)).toBe(true);
 
             // Phase 2: Offline - Import, sign, export
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             // Verify we got a valid hex transaction
             expect(signedTxHex).toBeDefined();
@@ -1550,20 +1697,16 @@ describe('Offline Transaction Signing', () => {
             expect(originalInspected.baseParams.feeRate).toBeCloseTo(5, 3);
 
             // Bump fee to 25 sat/vB
-            const bumpedState = OfflineTransactionManager.rebuildWithNewFees(
-                originalState,
-                25,
-            );
+            const bumpedState = OfflineTransactionManager.rebuildWithNewFees(originalState, 25);
 
             // Verify bumped fee rate
             const bumpedInspected = OfflineTransactionManager.inspect(bumpedState);
             expect(bumpedInspected.baseParams.feeRate).toBeCloseTo(25, 3);
 
             // Sign the bumped transaction
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                bumpedState,
-                { signer: signer2 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(bumpedState, {
+                signer: signer2,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1621,10 +1764,9 @@ describe('Offline Transaction Signing', () => {
             expect(inspected.utxos).toHaveLength(3);
 
             // Sign
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1633,9 +1775,7 @@ describe('Offline Transaction Signing', () => {
         it('should sign with address rotation using multiple signers', async () => {
             // For address rotation, UTXOs must use addresses that match the signers
             // Use all UTXOs from defaultAddress with defaultSigner for simplicity
-            const signerMap = createSignerMap([
-                [defaultAddress, defaultSigner],
-            ]);
+            const signerMap = createSignerMap([[defaultAddress, defaultSigner]]);
 
             const params = {
                 signer: defaultSigner,
@@ -1662,13 +1802,10 @@ describe('Offline Transaction Signing', () => {
             expect(inspected.signerMappings.length).toBeGreaterThan(0);
 
             // Sign with address rotation
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                {
-                    signer: defaultSigner,
-                    signerMap,
-                },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+                signerMap,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1692,10 +1829,9 @@ describe('Offline Transaction Signing', () => {
             const exportedState = OfflineTransactionManager.exportFunding(params);
 
             // Sign with signer1
-            const signedTx1 = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: signer1 },
-            );
+            const signedTx1 = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: signer1,
+            });
 
             // Sign again with signer1 (should produce same structure, potentially different due to nonce)
             const signedTx1Again = await OfflineTransactionManager.importSignAndExport(
@@ -1736,10 +1872,9 @@ describe('Offline Transaction Signing', () => {
             expect(fundingData.splitInputsInto).toBe(3);
 
             // Sign
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1774,10 +1909,9 @@ describe('Offline Transaction Signing', () => {
             expect(OfflineTransactionManager.validate(backToBase64)).toBe(true);
 
             // Sign from the converted state
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                backToBase64,
-                { signer: signer1 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(backToBase64, {
+                signer: signer1,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -1786,17 +1920,20 @@ describe('Offline Transaction Signing', () => {
 
     describe('MultiSig Offline Signing', () => {
         it('should export and validate multisig state', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-                signer3.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
+                Buffer.from(signer3.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, 'a'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1814,16 +1951,19 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should serialize and deserialize multisig specific data', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 80000n, 'b'.repeat(64), 0)],
                 feeRate: 15,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1846,16 +1986,19 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should report no signatures initially', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, 'c'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1873,16 +2016,19 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should return null for PSBT before signing', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, 'd'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1897,16 +2043,19 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should report signer has not signed before signing', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, 'e'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1916,8 +2065,12 @@ describe('Offline Transaction Signing', () => {
 
             const state = OfflineTransactionManager.exportMultiSig(params);
 
-            expect(OfflineTransactionManager.multiSigHasSigned(state, signer1.publicKey)).toBe(false);
-            expect(OfflineTransactionManager.multiSigHasSigned(state, signer2.publicKey)).toBe(false);
+            expect(
+                OfflineTransactionManager.multiSigHasSigned(state, Buffer.from(signer1.publicKey)),
+            ).toBe(false);
+            expect(
+                OfflineTransactionManager.multiSigHasSigned(state, Buffer.from(signer2.publicKey)),
+            ).toBe(false);
         });
 
         it('should throw error for non-multisig state in multisig methods', () => {
@@ -1936,30 +2089,40 @@ describe('Offline Transaction Signing', () => {
 
             const fundingState = OfflineTransactionManager.exportFunding(fundingParams);
 
-            expect(() => OfflineTransactionManager.multiSigGetSignatureStatus(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() =>
+                OfflineTransactionManager.multiSigGetSignatureStatus(fundingState),
+            ).toThrow('State is not a multisig transaction');
 
-            expect(() => OfflineTransactionManager.multiSigHasSigned(fundingState, signer1.publicKey))
-                .toThrow('State is not a multisig transaction');
+            expect(() =>
+                OfflineTransactionManager.multiSigHasSigned(
+                    fundingState,
+                    Buffer.from(signer1.publicKey),
+                ),
+            ).toThrow('State is not a multisig transaction');
 
-            expect(() => OfflineTransactionManager.multiSigGetPsbt(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() => OfflineTransactionManager.multiSigGetPsbt(fundingState)).toThrow(
+                'State is not a multisig transaction',
+            );
 
-            expect(() => OfflineTransactionManager.multiSigFinalize(fundingState))
-                .toThrow('State is not a multisig transaction');
+            expect(() => OfflineTransactionManager.multiSigFinalize(fundingState)).toThrow(
+                'State is not a multisig transaction',
+            );
         });
 
         it('should throw error when finalizing without signatures', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, '1'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1969,21 +2132,25 @@ describe('Offline Transaction Signing', () => {
 
             const state = OfflineTransactionManager.exportMultiSig(params);
 
-            expect(() => OfflineTransactionManager.multiSigFinalize(state))
-                .toThrow('No PSBT found in state');
+            expect(() => OfflineTransactionManager.multiSigFinalize(state)).toThrow(
+                'No PSBT found in state',
+            );
         });
 
         it('should update PSBT in state', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [createTaprootUtxo(defaultAddress, 100000n, '2'.repeat(64), 0)],
                 feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,
@@ -1995,7 +2162,10 @@ describe('Offline Transaction Signing', () => {
 
             // Update with a mock PSBT
             const mockPsbtBase64 = 'cHNidP8BAH0CAAAAAb=='; // Minimal valid base64
-            const updatedState = OfflineTransactionManager.multiSigUpdatePsbt(state, mockPsbtBase64);
+            const updatedState = OfflineTransactionManager.multiSigUpdatePsbt(
+                state,
+                mockPsbtBase64,
+            );
 
             const inspected = OfflineTransactionManager.inspect(updatedState);
             if (isMultiSigSpecificData(inspected.typeSpecificData)) {
@@ -2004,13 +2174,14 @@ describe('Offline Transaction Signing', () => {
         });
 
         it('should preserve multisig data through serialization round-trip', () => {
-            const pubkeys = [
-                signer1.publicKey,
-                signer2.publicKey,
-                signer3.publicKey,
+            const pubkeys: Buffer[] = [
+                Buffer.from(signer1.publicKey),
+                Buffer.from(signer2.publicKey),
+                Buffer.from(signer3.publicKey),
             ];
 
             const params = {
+                signer: defaultSigner,
                 network,
                 mldsaSigner: null,
                 utxos: [
@@ -2018,6 +2189,8 @@ describe('Offline Transaction Signing', () => {
                     createTaprootUtxo(defaultAddress, 60000n, '4'.repeat(64), 1),
                 ],
                 feeRate: 20,
+                priorityFee: 0n,
+                gasSatFee: 0n,
                 pubkeys,
                 minimumSignatures: 2,
                 receiver: address1,

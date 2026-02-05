@@ -41,15 +41,13 @@ export default defineConfig({
                 chunkFileNames: '[name].js',
                 manualChunks: (id) => {
                     // BTC Vision packages - keep bitcoin separate as it's large and isolated
-                    if (id.includes('@btc-vision/bitcoin') || id.includes('/bitcoin/build/') || id.includes('/bitcoin/src/')) {
+                    if (id.includes('@btc-vision/bitcoin') || id.includes('/bitcoin/build/') || id.includes('/bitcoin/browser/') || id.includes('/bitcoin/src/')) {
                         return 'btc-vision-bitcoin';
                     }
                     if (id.includes('node_modules')) {
                         // Noble crypto - isolated, no circular deps
                         if (id.includes('@noble/curves')) return 'noble-curves';
                         if (id.includes('@noble/hashes')) return 'noble-hashes';
-                        // Validation - isolated
-                        if (id.includes('valibot')) return 'valibot';
                         // Everything else in vendors to avoid circular deps
                         return 'vendors';
                     }
@@ -64,8 +62,8 @@ export default defineConfig({
             vm: resolve(__dirname, 'src/shims/vm-browser.js'),
             stream: 'stream-browserify',
             buffer: 'buffer',
-            // Use source versions for proper tree-shaking (not browser bundles)
-            '@btc-vision/bitcoin': resolve(__dirname, 'node_modules/@btc-vision/bitcoin/build/index.js'),
+            '@btc-vision/bitcoin/workers': resolve(__dirname, 'node_modules/@btc-vision/bitcoin/browser/workers/index.js'),
+            '@btc-vision/bitcoin': resolve(__dirname, 'node_modules/@btc-vision/bitcoin/browser/index.js'),
             '@btc-vision/bip32': resolve(__dirname, 'node_modules/@btc-vision/bip32/src/cjs/index.cjs'),
         },
         mainFields: ['module', 'main'],
@@ -86,6 +84,7 @@ export default defineConfig({
             exclude: ['crypto', 'fs', 'path', 'os', 'http', 'https', 'net', 'tls', 'dns', 'child_process', 'cluster', 'dgram', 'readline', 'repl', 'tty', 'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi', 'zlib', 'vm'],
         }),
         dts({
+            tsconfigPath: resolve(__dirname, 'tsconfig.browser.json'),
             outDir: 'browser',
             include: ['src/**/*.ts'],
             exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts'],

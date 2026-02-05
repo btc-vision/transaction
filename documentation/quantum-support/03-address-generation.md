@@ -120,9 +120,11 @@ console.log('P2WDA:', p2wdaAddress);
 import { Address } from '@btc-vision/transaction';
 import { networks } from '@btc-vision/bitcoin';
 
+import { fromHex } from '@btc-vision/bitcoin';
+
 // From ML-DSA public key hash and classical public key
-const mldsaHash = Buffer.alloc(32, 0x01);  // SHA256 of ML-DSA public key
-const classicalKey = Buffer.from('02...', 'hex');  // 33-byte compressed key
+const mldsaHash = new Uint8Array(32).fill(0x01);  // SHA256 of ML-DSA public key
+const classicalKey = fromHex('02...');  // 33-byte compressed key
 
 const address = new Address(mldsaHash, classicalKey);
 
@@ -157,11 +159,11 @@ const address = wallet.address;
 
 // Quantum address (SHA256 hash of ML-DSA public key) - Universal public key
 console.log('Quantum address:', address.toHex());
-console.log('Quantum address buffer:', address.toBuffer());
+console.log('Quantum address bytes:', address.toBuffer());
 
 // Classical public key
 console.log('Classical key (hex):', address.tweakedToHex());
-console.log('Classical key (buffer):', address.tweakedPublicKeyToBuffer());
+console.log('Classical key (bytes):', address.tweakedPublicKeyToBuffer());
 
 // Original keys
 console.log('Full ML-DSA public key:', address.mldsaPublicKey);  // 1312-2592 bytes

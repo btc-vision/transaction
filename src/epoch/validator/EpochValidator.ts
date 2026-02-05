@@ -1,5 +1,5 @@
-import { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
-import { crypto } from '@btc-vision/bitcoin';
+import type { IChallengeSolution, RawChallenge } from '../interfaces/IChallengeSolution.js';
+import { crypto, equals } from '@btc-vision/bitcoin';
 import { Address } from '../../keypair/Address.js';
 import { stringToBuffer } from '../../utils/StringToBuffer.js';
 
@@ -7,38 +7,28 @@ export class EpochValidator {
     private static readonly BLOCKS_PER_EPOCH: bigint = 5n;
 
     /**
-     * Convert Buffer to Uint8Array
-     */
-    public static bufferToUint8Array(buffer: Buffer): Uint8Array {
-        return new Uint8Array(buffer);
-    }
-
-    /**
-     * Convert Uint8Array to Buffer
-     */
-    public static uint8ArrayToBuffer(array: Uint8Array): Buffer {
-        return Buffer.from(array);
-    }
-
-    /**
      * Calculate SHA-1 hash
      */
-    public static sha1(data: Uint8Array | Buffer): Buffer {
-        return crypto.sha1(Buffer.isBuffer(data) ? data : Buffer.from(data));
+    public static sha1(data: Uint8Array): Uint8Array {
+        return crypto.sha1(data);
     }
 
     /**
      * Calculate mining preimage
      */
-    public static calculatePreimage(checksumRoot: Buffer, publicKey: Buffer, salt: Buffer): Buffer {
+    public static calculatePreimage(
+        checksumRoot: Uint8Array,
+        publicKey: Uint8Array,
+        salt: Uint8Array,
+    ): Uint8Array {
         // Ensure all are 32 bytes
         if (checksumRoot.length !== 32 || publicKey.length !== 32 || salt.length !== 32) {
             throw new Error('All inputs must be 32 bytes');
         }
 
-        const preimage = Buffer.alloc(32);
+        const preimage = new Uint8Array(32);
         for (let i = 0; i < 32; i++) {
-            preimage[i] = checksumRoot[i] ^ publicKey[i] ^ salt[i];
+            preimage[i] = (checksumRoot[i] as number) ^ (publicKey[i] as number) ^ (salt[i] as number);
         }
 
         return preimage;
@@ -47,7 +37,7 @@ export class EpochValidator {
     /**
      * Count matching bits between two hashes
      */
-    public static countMatchingBits(hash1: Buffer, hash2: Buffer): number {
+    public static countMatchingBits(hash1: Uint8Array, hash2: Uint8Array): number {
         let matchingBits = 0;
         if (hash1.length !== hash2.length) {
             throw new Error('Hashes must be of the same length');
@@ -63,7 +53,7 @@ export class EpochValidator {
             } else {
                 // Check individual bits
                 for (let bit = 7; bit >= 0; bit--) {
-                    if (((byte1 >> bit) & 1) === ((byte2 >> bit) & 1)) {
+                    if ((((byte1 as number) >> bit) & 1) === (((byte2 as number) >> bit) & 1)) {
                         matchingBits++;
                     } else {
                         return matchingBits;
@@ -88,16 +78,12 @@ export class EpochValidator {
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
-            const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
 
-            if (!computedSolutionBuffer.equals(challenge.solution)) {
+            if (!equals(computedSolution, challenge.solution)) {
                 return false;
             }
 
-            const matchingBits = this.countMatchingBits(
-                computedSolutionBuffer,
-                verification.targetHash,
-            );
+            const matchingBits = this.countMatchingBits(computedSolution, verification.targetHash);
 
             if (matchingBits !== challenge.difficulty) {
                 return false;
@@ -159,16 +145,12 @@ export class EpochValidator {
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
-            const computedSolutionBuffer = this.uint8ArrayToBuffer(computedSolution);
 
-            if (!computedSolutionBuffer.equals(solution)) {
+            if (!equals(computedSolution, solution)) {
                 return false;
             }
 
-            const matchingBits = this.countMatchingBits(
-                computedSolutionBuffer,
-                verification.targetHash,
-            );
+            const matchingBits = this.countMatchingBits(computedSolution, verification.targetHash);
 
             if (matchingBits !== difficulty) {
                 return false;
@@ -201,21 +183,20 @@ export class EpochValidator {
      * @returns The SHA-1 hash of the preimage
      */
     public static calculateSolution(
-        targetChecksum: Buffer,
-        publicKey: Buffer,
-        salt: Buffer,
-    ): Buffer {
+        targetChecksum: Uint8Array,
+        publicKey: Uint8Array,
+        salt: Uint8Array,
+    ): Uint8Array {
         const preimage = this.calculatePreimage(targetChecksum, publicKey, salt);
-        const hash = this.sha1(this.bufferToUint8Array(preimage));
-        return this.uint8ArrayToBuffer(hash);
+        return this.sha1(preimage);
     }
 
     /**
      * Check if a solution meets the minimum difficulty requirement
      */
     public static checkDifficulty(
-        solution: Buffer,
-        targetHash: Buffer,
+        solution: Uint8Array,
+        targetHash: Uint8Array,
         minDifficulty: number,
     ): { valid: boolean; difficulty: number } {
         const difficulty = this.countMatchingBits(solution, targetHash);
