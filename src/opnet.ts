@@ -128,6 +128,9 @@ export * from './consensus/metadata/RoswellConsensus.js';
 
 /** Binary */
 export * from './abi/ABICoder.js';
+export * from './abi/ABIDataTypes.js';
+export * from './abi/AbiTypes.js';
+export * from './abi/TupleUtils.js';
 export * from './buffer/BinaryReader.js';
 export * from './buffer/BinaryWriter.js';
 export * from './deterministic/AddressMap.js';
