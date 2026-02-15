@@ -27,9 +27,9 @@
             "default": "./build/index.js"
         },
         "./browser": {
+            "types": "./browser/index.d.ts",
             "import": "./browser/index.js",
             "require": "./browser/index.js",
-            "types": "./browser/index.d.ts",
             "default": "./browser/index.js"
         },
         "./browser/noble-curves": {
