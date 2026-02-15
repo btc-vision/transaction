@@ -17,10 +17,7 @@ import bitcoin, {
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import type { UpdateInput } from '../interfaces/Tap.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import type {
-    IFundingTransactionParameters,
-    ITransactionParameters,
-} from '../interfaces/ITransactionParameters.js';
+import type { IFundingTransactionParameters, ITransactionParameters, } from '../interfaces/ITransactionParameters.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import { type UniversalSigner } from '@btc-vision/ecpair';
@@ -29,12 +26,7 @@ import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
-import {
-    type Feature,
-    FeaturePriority,
-    Features,
-    type MLDSALinkRequest,
-} from '../../generators/Features.js';
+import { type Feature, FeaturePriority, Features, type MLDSALinkRequest, } from '../../generators/Features.js';
 import { BITCOIN_PROTOCOL_ID, getChainId } from '../../chain/ChainData.js';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
@@ -469,6 +461,11 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     /**
      * Estimates the transaction fees with accurate size calculation.
+     *
+     * @note The P2TR estimation is made for a 2-leaf tree with both a tapScriptSig and a tapInternalKey input, which is a common case for many transactions.
+     * This provides a more accurate fee estimation for typical P2TR transactions, but may not be perfectly accurate for all possible script configurations.
+     * Adjustments may be needed for more complex scripts or different leaf structures.
+     *
      * @public
      * @returns {Promise<bigint>}
      */
