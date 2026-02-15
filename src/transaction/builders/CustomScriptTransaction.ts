@@ -216,17 +216,12 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
 
         if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
             try {
-                const result = await this.signKeyPathInputsParallel(
-                    transaction,
-                    new Set([0]),
-                );
+                const result = await this.signKeyPathInputsParallel(transaction, new Set([0]));
                 if (result.success) {
                     for (const idx of result.signatures.keys()) signedIndices.add(idx);
                 }
             } catch (e) {
-                this.error(
-                    `Parallel signing failed: ${(e as Error).message}`,
-                );
+                this.error(`Parallel signing failed: ${(e as Error).message}`);
             }
         }
 

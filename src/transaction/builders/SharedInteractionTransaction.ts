@@ -315,7 +315,12 @@ export abstract class SharedInteractionTransaction<
         const signer: UnisatSigner = this.signer as UnisatSigner;
 
         // first, we sign the first input with the script signer.
-        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
+        await this.signInput(
+            transaction,
+            transaction.data.inputs[0] as PsbtInput,
+            0,
+            this.scriptSigner,
+        );
 
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
@@ -336,8 +341,18 @@ export abstract class SharedInteractionTransaction<
 
     protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
         // Input 0: always sequential (needs scriptSigner + main signer, custom finalizer)
-        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.scriptSigner);
-        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.getSignerKey());
+        await this.signInput(
+            transaction,
+            transaction.data.inputs[0] as PsbtInput,
+            0,
+            this.scriptSigner,
+        );
+        await this.signInput(
+            transaction,
+            transaction.data.inputs[0] as PsbtInput,
+            0,
+            this.getSignerKey(),
+        );
         transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
         // Inputs 1+: parallel key-path if available, then sequential for remaining
@@ -368,7 +383,12 @@ export abstract class SharedInteractionTransaction<
             }
         } else {
             for (let i = 1; i < transaction.data.inputs.length; i++) {
-                await this.signInput(transaction, transaction.data.inputs[i] as PsbtInput, i, this.signer);
+                await this.signInput(
+                    transaction,
+                    transaction.data.inputs[i] as PsbtInput,
+                    i,
+                    this.signer,
+                );
             }
         }
 

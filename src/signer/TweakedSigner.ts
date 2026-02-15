@@ -1,12 +1,5 @@
 import { backend } from '../ecc/backend.js';
-import {
-    type Bytes32,
-    type Network,
-    type PrivateKey,
-    type Signer,
-    tapTweakHash,
-    toXOnly,
-} from '@btc-vision/bitcoin';
+import { type Bytes32, type Network, type PrivateKey, type Signer, tapTweakHash, toXOnly, } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from '../keypair/EcKeyPair.js';
 

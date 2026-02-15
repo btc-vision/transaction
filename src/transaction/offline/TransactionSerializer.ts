@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { toHex, fromHex } from '@btc-vision/bitcoin';
+import { fromHex, toHex } from '@btc-vision/bitcoin';
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { BinaryReader } from '../../buffer/BinaryReader.js';
 import type {
@@ -11,10 +11,7 @@ import type {
     SerializedSignerMapping,
     SerializedUTXO,
 } from './interfaces/ISerializableState.js';
-import {
-    SERIALIZATION_FORMAT_VERSION,
-    SERIALIZATION_MAGIC_BYTE,
-} from './interfaces/ISerializableState.js';
+import { SERIALIZATION_FORMAT_VERSION, SERIALIZATION_MAGIC_BYTE, } from './interfaces/ISerializableState.js';
 import type {
     CancelSpecificData,
     CustomScriptSpecificData,
@@ -27,10 +24,7 @@ import type {
     TypeSpecificData,
 } from './interfaces/ITypeSpecificData.js';
 import { TransactionType } from '../enums/TransactionType.js';
-import type {
-    RawChallenge,
-    RawChallengeVerification,
-} from '../../epoch/interfaces/IChallengeSolution.js';
+import type { RawChallenge, RawChallengeVerification, } from '../../epoch/interfaces/IChallengeSolution.js';
 
 /**
  * Serializes and deserializes transaction state for offline signing.
@@ -234,9 +228,7 @@ export class TransactionSerializer {
         const networkName = this.u8ToNetworkName(reader.readU8());
         const txVersion = reader.readU8();
         const hasNote = reader.readBoolean();
-        const note = hasNote
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const note = hasNote ? toHex(reader.readBytesWithLength()) : undefined;
         const anchor = reader.readBoolean();
         const debugFees = reader.readBoolean();
 
@@ -310,19 +302,13 @@ export class TransactionSerializer {
         const scriptPubKeyAddress = hasAddress ? reader.readStringWithLength() : undefined;
 
         const hasRedeemScript = reader.readBoolean();
-        const redeemScript = hasRedeemScript
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const redeemScript = hasRedeemScript ? toHex(reader.readBytesWithLength()) : undefined;
 
         const hasWitnessScript = reader.readBoolean();
-        const witnessScript = hasWitnessScript
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const witnessScript = hasWitnessScript ? toHex(reader.readBytesWithLength()) : undefined;
 
         const hasNonWitnessUtxo = reader.readBoolean();
-        const nonWitnessUtxo = hasNonWitnessUtxo
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const nonWitnessUtxo = hasNonWitnessUtxo ? toHex(reader.readBytesWithLength()) : undefined;
 
         return {
             transactionId,
@@ -378,14 +364,10 @@ export class TransactionSerializer {
         const address = hasAddress ? reader.readStringWithLength() : undefined;
 
         const hasScript = reader.readBoolean();
-        const script = hasScript
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const script = hasScript ? toHex(reader.readBytesWithLength()) : undefined;
 
         const hasTapInternalKey = reader.readBoolean();
-        const tapInternalKey = hasTapInternalKey
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const tapInternalKey = hasTapInternalKey ? toHex(reader.readBytesWithLength()) : undefined;
 
         return {
             value,
@@ -504,9 +486,7 @@ export class TransactionSerializer {
     private static readDeploymentData(reader: BinaryReader): DeploymentSpecificData {
         const bytecode = toHex(reader.readBytesWithLength());
         const hasCalldata = reader.readBoolean();
-        const calldata = hasCalldata
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const calldata = hasCalldata ? toHex(reader.readBytesWithLength()) : undefined;
         const challenge = this.readChallenge(reader);
         const revealMLDSAPublicKey = reader.readBoolean();
         const linkMLDSAPublicKeyToAddress = reader.readBoolean();
@@ -664,9 +644,7 @@ export class TransactionSerializer {
             witnesses.push(toHex(reader.readBytesWithLength()));
         }
         const hasAnnex = reader.readBoolean();
-        const annex = hasAnnex
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const annex = hasAnnex ? toHex(reader.readBytesWithLength()) : undefined;
 
         return {
             type: TransactionType.CUSTOM_CODE,
@@ -720,18 +698,14 @@ export class TransactionSerializer {
         if (challenge.submission !== undefined) {
             writer.writeStringWithLength(challenge.submission.mldsaPublicKey);
             writer.writeStringWithLength(challenge.submission.legacyPublicKey);
-            writer.writeBytesWithLength(
-                fromHex(challenge.submission.solution.replace('0x', '')),
-            );
+            writer.writeBytesWithLength(fromHex(challenge.submission.solution.replace('0x', '')));
             writer.writeBoolean(challenge.submission.graffiti !== undefined);
             if (challenge.submission.graffiti !== undefined) {
                 writer.writeBytesWithLength(
                     fromHex(challenge.submission.graffiti.replace('0x', '')),
                 );
             }
-            writer.writeBytesWithLength(
-                fromHex(challenge.submission.signature.replace('0x', '')),
-            );
+            writer.writeBytesWithLength(fromHex(challenge.submission.signature.replace('0x', '')));
         }
     }
 
@@ -742,9 +716,7 @@ export class TransactionSerializer {
         writer.writeBytesWithLength(fromHex(verification.epochHash.replace('0x', '')));
         writer.writeBytesWithLength(fromHex(verification.epochRoot.replace('0x', '')));
         writer.writeBytesWithLength(fromHex(verification.targetHash.replace('0x', '')));
-        writer.writeBytesWithLength(
-            fromHex(verification.targetChecksum.replace('0x', '')),
-        );
+        writer.writeBytesWithLength(fromHex(verification.targetChecksum.replace('0x', '')));
         writer.writeU64(BigInt(verification.startBlock));
         writer.writeU64(BigInt(verification.endBlock));
         writer.writeU16(verification.proofs.length);
@@ -878,9 +850,7 @@ export class TransactionSerializer {
             : undefined;
 
         const hasRandomBytes = reader.readBoolean();
-        const randomBytes = hasRandomBytes
-            ? toHex(reader.readBytesWithLength())
-            : undefined;
+        const randomBytes = hasRandomBytes ? toHex(reader.readBytesWithLength()) : undefined;
 
         const hasEstimatedFees = reader.readBoolean();
         const estimatedFees = hasEstimatedFees ? reader.readU64().toString() : undefined;

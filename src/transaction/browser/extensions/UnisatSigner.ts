@@ -265,7 +265,10 @@ export class UnisatSigner extends CustomKeypair {
             });
         }
 
-        const signed = await this.unisat.signPsbt(toSignPsbts[0] as string, options[0] as PsbtSignatureOptions);
+        const signed = await this.unisat.signPsbt(
+            toSignPsbts[0] as string,
+            options[0] as PsbtSignatureOptions,
+        );
         const signedPsbts = Psbt.fromHex(signed);
 
         (transactions[0] as Psbt).combine(signedPsbts);

@@ -214,7 +214,12 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
 
     protected override async signInputsNonWalletBased(transaction: Psbt): Promise<void> {
         // Input 0: always sequential (script-path with custom finalizer)
-        await this.signInput(transaction, transaction.data.inputs[0] as PsbtInput, 0, this.getSignerKey());
+        await this.signInput(
+            transaction,
+            transaction.data.inputs[0] as PsbtInput,
+            0,
+            this.getSignerKey(),
+        );
         transaction.finalizeInput(0, this.customFinalizer.bind(this));
 
         // Inputs 1+: parallel key-path if available, then sequential for remaining
@@ -222,10 +227,7 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
 
         if (this.canUseParallelSigning && isUniversalSigner(this.signer)) {
             try {
-                const result = await this.signKeyPathInputsParallel(
-                    transaction,
-                    new Set([0]),
-                );
+                const result = await this.signKeyPathInputsParallel(transaction, new Set([0]));
                 if (result.success) {
                     parallelSignedIndices = new Set(result.signatures.keys());
                 }

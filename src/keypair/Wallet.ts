@@ -1,13 +1,6 @@
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { EcKeyPair } from './EcKeyPair.js';
-import {
-    fromHex,
-    type Network,
-    networks,
-    type PublicKey,
-    toHex,
-    toXOnly,
-} from '@btc-vision/bitcoin';
+import { fromHex, type Network, networks, type PublicKey, toHex, toXOnly, } from '@btc-vision/bitcoin';
 import { Address } from './Address.js';
 import { BitcoinUtils } from '../utils/BitcoinUtils.js';
 import type { IP2WSHAddress } from '../transaction/mineable/IP2WSHAddress.js';

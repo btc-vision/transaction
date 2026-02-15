@@ -319,9 +319,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
         }
 
         const tapLeaf = input.tapLeafScript[0] as { script: Uint8Array; controlBlock: Uint8Array };
-        const witness = scriptSolution
-            .concat(tapLeaf.script)
-            .concat(tapLeaf.controlBlock);
+        const witness = scriptSolution.concat(tapLeaf.script).concat(tapLeaf.controlBlock);
 
         return {
             finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(witness),

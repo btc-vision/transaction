@@ -1,19 +1,19 @@
-import { describe, expect, it, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { networks, payments, toHex } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
+import type {
+    FundingSpecificData,
+    ISerializableTransactionState,
+    UTXO,
+} from '../../build/opnet.js';
 import {
-    TransactionSerializer,
-    OfflineTransactionManager,
-    SERIALIZATION_FORMAT_VERSION,
-    TransactionType,
-    EcKeyPair,
     ChainId,
     currentConsensus,
-} from '../../build/opnet.js';
-import type {
-    ISerializableTransactionState,
-    FundingSpecificData,
-    UTXO,
+    EcKeyPair,
+    OfflineTransactionManager,
+    SERIALIZATION_FORMAT_VERSION,
+    TransactionSerializer,
+    TransactionType,
 } from '../../build/opnet.js';
 
 describe('Browser Parallel Signing', () => {
@@ -79,7 +79,12 @@ describe('Browser Parallel Signing', () => {
 
     describe('Concurrent Signing (2 transactions)', () => {
         it('should sign two transactions concurrently', async () => {
-            const params1 = createFundingParams(defaultSigner, defaultAddress, address2, 'a'.repeat(64));
+            const params1 = createFundingParams(
+                defaultSigner,
+                defaultAddress,
+                address2,
+                'a'.repeat(64),
+            );
             const params2 = createFundingParams(signer1, address1, address3, 'b'.repeat(64));
 
             const state1 = OfflineTransactionManager.exportFunding(params1);
@@ -100,7 +105,12 @@ describe('Browser Parallel Signing', () => {
 
     describe('Concurrent Signing (3 transactions)', () => {
         it('should sign three transactions concurrently', async () => {
-            const params1 = createFundingParams(defaultSigner, defaultAddress, address1, 'c'.repeat(64));
+            const params1 = createFundingParams(
+                defaultSigner,
+                defaultAddress,
+                address1,
+                'c'.repeat(64),
+            );
             const params2 = createFundingParams(signer1, address1, address2, 'd'.repeat(64));
             const params3 = createFundingParams(signer2, address2, address3, 'e'.repeat(64));
 
@@ -125,7 +135,12 @@ describe('Browser Parallel Signing', () => {
 
     describe('Concurrent Fee Bumping', () => {
         it('should bump and sign multiple transactions concurrently', async () => {
-            const params1 = createFundingParams(defaultSigner, defaultAddress, address2, 'f'.repeat(64));
+            const params1 = createFundingParams(
+                defaultSigner,
+                defaultAddress,
+                address2,
+                'f'.repeat(64),
+            );
             const params2 = createFundingParams(signer1, address1, address3, '1'.repeat(64));
 
             const state1 = OfflineTransactionManager.exportFunding(params1);
@@ -166,13 +181,15 @@ describe('Browser Parallel Signing', () => {
                     txVersion: 2,
                     anchor: false,
                 },
-                utxos: [{
-                    transactionId: '0'.repeat(64),
-                    outputIndex: 0,
-                    value: '100000',
-                    scriptPubKeyHex: 'aa',
-                    scriptPubKeyAddress: from,
-                }],
+                utxos: [
+                    {
+                        transactionId: '0'.repeat(64),
+                        outputIndex: 0,
+                        value: '100000',
+                        scriptPubKeyHex: 'aa',
+                        scriptPubKeyAddress: from,
+                    },
+                ],
                 optionalInputs: [],
                 optionalOutputs: [],
                 addressRotationEnabled: false,
@@ -231,13 +248,15 @@ describe('Browser Parallel Signing', () => {
                             txVersion: 2,
                             anchor: false,
                         },
-                        utxos: [{
-                            transactionId: String(i).repeat(64).slice(0, 64),
-                            outputIndex: i,
-                            value: String(100000 + i),
-                            scriptPubKeyHex: 'aa',
-                            scriptPubKeyAddress: address1,
-                        }],
+                        utxos: [
+                            {
+                                transactionId: String(i).repeat(64).slice(0, 64),
+                                outputIndex: i,
+                                value: String(100000 + i),
+                                scriptPubKeyHex: 'aa',
+                                scriptPubKeyAddress: address1,
+                            },
+                        ],
                         optionalInputs: [],
                         optionalOutputs: [],
                         addressRotationEnabled: false,
@@ -272,8 +291,12 @@ describe('Browser Parallel Signing', () => {
             const state1 = OfflineTransactionManager.exportFunding(params1);
             const state2 = OfflineTransactionManager.exportFunding(params2);
 
-            const builder1 = OfflineTransactionManager.importForSigning(state1, { signer: signer1 });
-            const builder2 = OfflineTransactionManager.importForSigning(state2, { signer: signer2 });
+            const builder1 = OfflineTransactionManager.importForSigning(state1, {
+                signer: signer1,
+            });
+            const builder2 = OfflineTransactionManager.importForSigning(state2, {
+                signer: signer2,
+            });
 
             const [tx1, tx2] = await Promise.all([
                 OfflineTransactionManager.signAndExport(builder1),

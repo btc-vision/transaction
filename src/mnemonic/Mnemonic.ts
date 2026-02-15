@@ -74,22 +74,6 @@ export class Mnemonic implements Disposable {
         return new Uint8Array(this._seed);
     }
 
-    /**
-     * Best-effort zeroing of secret material held by this mnemonic.
-     *
-     * Zeros the seed buffer and root private keys in-place.
-     * The mnemonic phrase and passphrase are JS strings and cannot be zeroed.
-     */
-    public zeroize(): void {
-        this._seed.fill(0);
-        this._classicalRoot.privateKey?.fill(0);
-        this._quantumRoot.privateKey?.fill(0);
-    }
-
-    public [Symbol.dispose](): void {
-        this.zeroize();
-    }
-
     public static generatePhrase(strength: MnemonicStrength = MnemonicStrength.MAXIMUM): string {
         return bip39.generateMnemonic(strength);
     }
@@ -106,6 +90,22 @@ export class Mnemonic implements Disposable {
 
     public static validate(phrase: string): boolean {
         return bip39.validateMnemonic(phrase);
+    }
+
+    /**
+     * Best-effort zeroing of secret material held by this mnemonic.
+     *
+     * Zeros the seed buffer and root private keys in-place.
+     * The mnemonic phrase and passphrase are JS strings and cannot be zeroed.
+     */
+    public zeroize(): void {
+        this._seed.fill(0);
+        this._classicalRoot.privateKey?.fill(0);
+        this._quantumRoot.privateKey?.fill(0);
+    }
+
+    public [Symbol.dispose](): void {
+        this.zeroize();
     }
 
     public derive(

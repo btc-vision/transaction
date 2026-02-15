@@ -1,4 +1,4 @@
-import { concat, crypto, type Network, networks, opcodes, type PublicKey, script } from '@btc-vision/bitcoin';
+import { concat, crypto, type Network, networks, opcodes, type PublicKey, script, } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { Compressor } from '../../bytecode/Compressor.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';

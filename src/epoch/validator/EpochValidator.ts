@@ -28,7 +28,8 @@ export class EpochValidator {
 
         const preimage = new Uint8Array(32);
         for (let i = 0; i < 32; i++) {
-            preimage[i] = (checksumRoot[i] as number) ^ (publicKey[i] as number) ^ (salt[i] as number);
+            preimage[i] =
+                (checksumRoot[i] as number) ^ (publicKey[i] as number) ^ (salt[i] as number);
         }
 
         return preimage;

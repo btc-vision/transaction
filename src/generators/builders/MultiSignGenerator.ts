@@ -1,4 +1,13 @@
-import { alloc, compare, equals, opcodes, type PublicKey, script, toXOnly, type XOnlyPublicKey, } from '@btc-vision/bitcoin';
+import {
+    alloc,
+    compare,
+    equals,
+    opcodes,
+    type PublicKey,
+    script,
+    toXOnly,
+    type XOnlyPublicKey,
+} from '@btc-vision/bitcoin';
 
 /**
  * Generate a bitcoin script for a multisign interaction

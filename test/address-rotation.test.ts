@@ -1,4 +1,5 @@
-import { describe, expect, it, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { AddressRotationConfig, RotationSigner, SignerMap, UTXO } from '../build/opnet.js';
 import {
     createAddressRotation,
     createSignerMap,
@@ -6,8 +7,7 @@ import {
     EcKeyPair,
     FundingTransaction,
 } from '../build/opnet.js';
-import type { SignerMap, RotationSigner, AddressRotationConfig, UTXO } from '../build/opnet.js';
-import { networks, payments, toXOnly, toHex, equals } from '@btc-vision/bitcoin';
+import { equals, networks, payments, toHex, toXOnly } from '@btc-vision/bitcoin';
 import type { UniversalSigner } from '@btc-vision/ecpair';
 
 describe('Address Rotation', () => {

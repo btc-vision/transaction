@@ -211,31 +211,6 @@ export class Address extends Uint8Array implements Disposable {
         return compressed;
     }
 
-    public [Symbol.dispose](): void {
-        // Zero the base Uint8Array (hashed ML-DSA public key)
-        this.fill(0);
-
-        // Clear all cached / derived state
-        this.#p2tr = undefined;
-        this.#p2op = undefined;
-        this.#network = undefined;
-        this.#originalPublicKey = undefined;
-        this.#keyPair = undefined;
-        this.#uncompressed = undefined;
-        this.#tweakedUncompressed = undefined;
-        this.#p2wda = undefined;
-        this.#mldsaPublicKey?.fill(0);
-        this.#mldsaPublicKey = undefined;
-        this.#cachedBigInt = undefined;
-        this.#cachedBigIntTweaked = undefined;
-        this.#cachedUint64Array = undefined;
-        this.#originalMDLSAPublicKey?.fill(0);
-        this.#originalMDLSAPublicKey = undefined;
-        this.#mldsaLevel = undefined;
-        this.#legacyProcessed = false;
-        this.#tweakedPublicKey = undefined;
-    }
-
     /**
      * Creates an Address instance from a BigInt value.
      *
@@ -312,6 +287,31 @@ export class Address extends Uint8Array implements Disposable {
         view.setBigUint64(24, value & 0xffffffffffffffffn, false);
 
         return buffer;
+    }
+
+    public [Symbol.dispose](): void {
+        // Zero the base Uint8Array (hashed ML-DSA public key)
+        this.fill(0);
+
+        // Clear all cached / derived state
+        this.#p2tr = undefined;
+        this.#p2op = undefined;
+        this.#network = undefined;
+        this.#originalPublicKey = undefined;
+        this.#keyPair = undefined;
+        this.#uncompressed = undefined;
+        this.#tweakedUncompressed = undefined;
+        this.#p2wda = undefined;
+        this.#mldsaPublicKey?.fill(0);
+        this.#mldsaPublicKey = undefined;
+        this.#cachedBigInt = undefined;
+        this.#cachedBigIntTweaked = undefined;
+        this.#cachedUint64Array = undefined;
+        this.#originalMDLSAPublicKey?.fill(0);
+        this.#originalMDLSAPublicKey = undefined;
+        this.#mldsaLevel = undefined;
+        this.#legacyProcessed = false;
+        this.#tweakedPublicKey = undefined;
     }
 
     /**

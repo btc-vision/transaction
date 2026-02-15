@@ -117,12 +117,22 @@ export class TransactionReconstructor {
             anchor: state.baseParams.anchor,
             ...(state.header.chainId !== undefined ? { chainId: state.header.chainId } : {}),
             ...(state.baseParams.to !== undefined ? { to: state.baseParams.to } : {}),
-            ...(state.baseParams.txVersion !== undefined ? { txVersion: state.baseParams.txVersion as SupportedTransactionVersion } : {}),
-            ...(state.baseParams.note !== undefined ? { note: fromHex(state.baseParams.note) } : {}),
-            ...(state.baseParams.debugFees !== undefined ? { debugFees: state.baseParams.debugFees } : {}),
+            ...(state.baseParams.txVersion !== undefined
+                ? { txVersion: state.baseParams.txVersion as SupportedTransactionVersion }
+                : {}),
+            ...(state.baseParams.note !== undefined
+                ? { note: fromHex(state.baseParams.note) }
+                : {}),
+            ...(state.baseParams.debugFees !== undefined
+                ? { debugFees: state.baseParams.debugFees }
+                : {}),
             ...(addressRotation !== undefined ? { addressRotation } : {}),
-            ...(state.precomputedData.estimatedFees !== undefined ? { estimatedFees: BigInt(state.precomputedData.estimatedFees) } : {}),
-            ...(state.precomputedData.compiledTargetScript !== undefined ? { compiledTargetScript: fromHex(state.precomputedData.compiledTargetScript) } : {}),
+            ...(state.precomputedData.estimatedFees !== undefined
+                ? { estimatedFees: BigInt(state.precomputedData.estimatedFees) }
+                : {}),
+            ...(state.precomputedData.compiledTargetScript !== undefined
+                ? { compiledTargetScript: fromHex(state.precomputedData.compiledTargetScript) }
+                : {}),
         };
 
         // Dispatch based on transaction type
@@ -176,9 +186,15 @@ export class TransactionReconstructor {
             bytecode: fromHex(data.bytecode),
             challenge,
             ...(data.calldata !== undefined ? { calldata: fromHex(data.calldata) } : {}),
-            ...(state.precomputedData.randomBytes !== undefined ? { randomBytes: fromHex(state.precomputedData.randomBytes) } : {}),
-            ...(data.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: data.revealMLDSAPublicKey } : {}),
-            ...(data.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: data.linkMLDSAPublicKeyToAddress } : {}),
+            ...(state.precomputedData.randomBytes !== undefined
+                ? { randomBytes: fromHex(state.precomputedData.randomBytes) }
+                : {}),
+            ...(data.revealMLDSAPublicKey !== undefined
+                ? { revealMLDSAPublicKey: data.revealMLDSAPublicKey }
+                : {}),
+            ...(data.linkMLDSAPublicKeyToAddress !== undefined
+                ? { linkMLDSAPublicKeyToAddress: data.linkMLDSAPublicKeyToAddress }
+                : {}),
         };
 
         return new DeploymentTransaction(params);
@@ -204,12 +220,20 @@ export class TransactionReconstructor {
             calldata: fromHex(data.calldata),
             challenge,
             ...(data.contract !== undefined ? { contract: data.contract } : {}),
-            ...(state.precomputedData.randomBytes !== undefined ? { randomBytes: fromHex(state.precomputedData.randomBytes) } : {}),
+            ...(state.precomputedData.randomBytes !== undefined
+                ? { randomBytes: fromHex(state.precomputedData.randomBytes) }
+                : {}),
             ...(data.loadedStorage !== undefined ? { loadedStorage: data.loadedStorage } : {}),
             ...(data.isCancellation !== undefined ? { isCancellation: data.isCancellation } : {}),
-            ...(data.disableAutoRefund !== undefined ? { disableAutoRefund: data.disableAutoRefund } : {}),
-            ...(data.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: data.revealMLDSAPublicKey } : {}),
-            ...(data.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: data.linkMLDSAPublicKeyToAddress } : {}),
+            ...(data.disableAutoRefund !== undefined
+                ? { disableAutoRefund: data.disableAutoRefund }
+                : {}),
+            ...(data.revealMLDSAPublicKey !== undefined
+                ? { revealMLDSAPublicKey: data.revealMLDSAPublicKey }
+                : {}),
+            ...(data.linkMLDSAPublicKeyToAddress !== undefined
+                ? { linkMLDSAPublicKeyToAddress: data.linkMLDSAPublicKeyToAddress }
+                : {}),
         };
 
         return new InteractionTransaction(params);
@@ -238,8 +262,12 @@ export class TransactionReconstructor {
                 refundVault: data.refundVault,
                 psbt: data.existingPsbtBase64,
                 ...(baseParams.chainId !== undefined ? { chainId: baseParams.chainId } : {}),
-                ...(baseParams.optionalInputs !== undefined ? { optionalInputs: baseParams.optionalInputs } : {}),
-                ...(baseParams.optionalOutputs !== undefined ? { optionalOutputs: baseParams.optionalOutputs } : {}),
+                ...(baseParams.optionalInputs !== undefined
+                    ? { optionalInputs: baseParams.optionalInputs }
+                    : {}),
+                ...(baseParams.optionalOutputs !== undefined
+                    ? { optionalOutputs: baseParams.optionalOutputs }
+                    : {}),
             });
         }
 
@@ -255,8 +283,12 @@ export class TransactionReconstructor {
             requestedAmount: BigInt(data.requestedAmount),
             refundVault: data.refundVault,
             ...(baseParams.chainId !== undefined ? { chainId: baseParams.chainId } : {}),
-            ...(baseParams.optionalInputs !== undefined ? { optionalInputs: baseParams.optionalInputs } : {}),
-            ...(baseParams.optionalOutputs !== undefined ? { optionalOutputs: baseParams.optionalOutputs } : {}),
+            ...(baseParams.optionalInputs !== undefined
+                ? { optionalInputs: baseParams.optionalInputs }
+                : {}),
+            ...(baseParams.optionalOutputs !== undefined
+                ? { optionalOutputs: baseParams.optionalOutputs }
+                : {}),
         };
 
         return new MultiSignTransaction(params);
@@ -291,7 +323,9 @@ export class TransactionReconstructor {
             script: scriptElements,
             witnesses,
             ...(data.annex !== undefined ? { annex: fromHex(data.annex) } : {}),
-            ...(state.precomputedData.randomBytes !== undefined ? { randomBytes: fromHex(state.precomputedData.randomBytes) } : {}),
+            ...(state.precomputedData.randomBytes !== undefined
+                ? { randomBytes: fromHex(state.precomputedData.randomBytes) }
+                : {}),
         };
 
         return new CustomScriptTransaction(params);
@@ -346,7 +380,9 @@ export class TransactionReconstructor {
                 value: BigInt(s.value),
                 scriptPubKey: {
                     hex: s.scriptPubKeyHex,
-                    ...(s.scriptPubKeyAddress !== undefined ? { address: s.scriptPubKeyAddress } : {}),
+                    ...(s.scriptPubKeyAddress !== undefined
+                        ? { address: s.scriptPubKeyAddress }
+                        : {}),
                 },
             };
             if (s.redeemScript !== undefined) utxo.redeemScript = fromHex(s.redeemScript);
@@ -362,7 +398,8 @@ export class TransactionReconstructor {
     private static deserializeOutputs(serialized: SerializedOutput[]): PsbtOutputExtended[] {
         return serialized.map((s): PsbtOutputExtended => {
             const base = { value: toSatoshi(BigInt(s.value)) };
-            const tapKey = s.tapInternalKey !== undefined ? { tapInternalKey: fromHex(s.tapInternalKey) } : {};
+            const tapKey =
+                s.tapInternalKey !== undefined ? { tapInternalKey: fromHex(s.tapInternalKey) } : {};
 
             // PsbtOutputExtended is a union type - either has address OR script, not both
             if (s.address) {

@@ -612,8 +612,12 @@ describe('AddressMap', () => {
 
             expect(fromIterator.length).toBe(fromEntries.length);
             for (let i = 0; i < fromIterator.length; i++) {
-                expect((fromIterator[i] as [Address, string])[0].toBigInt()).toBe((fromEntries[i] as [Address, string])[0].toBigInt());
-                expect((fromIterator[i] as [Address, string])[1]).toBe((fromEntries[i] as [Address, string])[1]);
+                expect((fromIterator[i] as [Address, string])[0].toBigInt()).toBe(
+                    (fromEntries[i] as [Address, string])[0].toBigInt(),
+                );
+                expect((fromIterator[i] as [Address, string])[1]).toBe(
+                    (fromEntries[i] as [Address, string])[1],
+                );
             }
         });
     });

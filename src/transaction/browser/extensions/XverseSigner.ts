@@ -291,7 +291,9 @@ export class XverseSigner extends CustomKeypair {
         const toSignInputs: {
             [x: string]: number[];
         } = {
-            [this.p2wpkh]: (options[0] as PsbtSignatureOptions).toSignInputs?.map((input) => input.index) || [],
+            [this.p2wpkh]:
+                (options[0] as PsbtSignatureOptions).toSignInputs?.map((input) => input.index) ||
+                [],
         };
 
         const callSign = await this.BitcoinProvider.request('signPsbt', {

@@ -302,8 +302,12 @@ export class TransactionStateCapture {
             bytecode: toHex(params.bytecode),
             challenge: params.challenge.toRaw(),
             ...(params.calldata ? { calldata: toHex(params.calldata) } : {}),
-            ...(params.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey } : {}),
-            ...(params.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress } : {}),
+            ...(params.revealMLDSAPublicKey !== undefined
+                ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey }
+                : {}),
+            ...(params.linkMLDSAPublicKeyToAddress !== undefined
+                ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress }
+                : {}),
         };
     }
 
@@ -314,10 +318,18 @@ export class TransactionStateCapture {
             challenge: params.challenge.toRaw(),
             ...(params.contract !== undefined ? { contract: params.contract } : {}),
             ...(params.loadedStorage !== undefined ? { loadedStorage: params.loadedStorage } : {}),
-            ...(params.isCancellation !== undefined ? { isCancellation: params.isCancellation } : {}),
-            ...(params.disableAutoRefund !== undefined ? { disableAutoRefund: params.disableAutoRefund } : {}),
-            ...(params.revealMLDSAPublicKey !== undefined ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey } : {}),
-            ...(params.linkMLDSAPublicKeyToAddress !== undefined ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress } : {}),
+            ...(params.isCancellation !== undefined
+                ? { isCancellation: params.isCancellation }
+                : {}),
+            ...(params.disableAutoRefund !== undefined
+                ? { disableAutoRefund: params.disableAutoRefund }
+                : {}),
+            ...(params.revealMLDSAPublicKey !== undefined
+                ? { revealMLDSAPublicKey: params.revealMLDSAPublicKey }
+                : {}),
+            ...(params.linkMLDSAPublicKeyToAddress !== undefined
+                ? { linkMLDSAPublicKeyToAddress: params.linkMLDSAPublicKeyToAddress }
+                : {}),
         };
     }
 
@@ -340,7 +352,9 @@ export class TransactionStateCapture {
             requestedAmount: (params.requestedAmount || 0n).toString(),
             refundVault: params.refundVault || '',
             originalInputCount: params.originalInputCount || params.utxos.length,
-            ...(params.existingPsbtBase64 !== undefined ? { existingPsbtBase64: params.existingPsbtBase64 } : {}),
+            ...(params.existingPsbtBase64 !== undefined
+                ? { existingPsbtBase64: params.existingPsbtBase64 }
+                : {}),
         };
     }
 
@@ -394,11 +408,21 @@ export class TransactionStateCapture {
      */
     private static buildPrecomputedData(precomputed?: Partial<PrecomputedData>): PrecomputedData {
         return {
-            ...(precomputed?.compiledTargetScript !== undefined ? { compiledTargetScript: precomputed.compiledTargetScript } : {}),
-            ...(precomputed?.randomBytes !== undefined ? { randomBytes: precomputed.randomBytes } : {}),
-            ...(precomputed?.estimatedFees !== undefined ? { estimatedFees: precomputed.estimatedFees } : {}),
-            ...(precomputed?.contractSeed !== undefined ? { contractSeed: precomputed.contractSeed } : {}),
-            ...(precomputed?.contractAddress !== undefined ? { contractAddress: precomputed.contractAddress } : {}),
+            ...(precomputed?.compiledTargetScript !== undefined
+                ? { compiledTargetScript: precomputed.compiledTargetScript }
+                : {}),
+            ...(precomputed?.randomBytes !== undefined
+                ? { randomBytes: precomputed.randomBytes }
+                : {}),
+            ...(precomputed?.estimatedFees !== undefined
+                ? { estimatedFees: precomputed.estimatedFees }
+                : {}),
+            ...(precomputed?.contractSeed !== undefined
+                ? { contractSeed: precomputed.contractSeed }
+                : {}),
+            ...(precomputed?.contractAddress !== undefined
+                ? { contractAddress: precomputed.contractAddress }
+                : {}),
         };
     }
 
@@ -427,7 +451,9 @@ export class TransactionStateCapture {
                 outputIndex: utxo.outputIndex,
                 value: utxo.value.toString(),
                 scriptPubKeyHex: utxo.scriptPubKey.hex,
-                ...(utxo.scriptPubKey.address !== undefined ? { scriptPubKeyAddress: utxo.scriptPubKey.address } : {}),
+                ...(utxo.scriptPubKey.address !== undefined
+                    ? { scriptPubKeyAddress: utxo.scriptPubKey.address }
+                    : {}),
                 ...(redeemScript !== undefined ? { redeemScript } : {}),
                 ...(witnessScript !== undefined ? { witnessScript } : {}),
                 ...(nonWitnessUtxo !== undefined ? { nonWitnessUtxo } : {}),
@@ -443,7 +469,9 @@ export class TransactionStateCapture {
             const address = 'address' in output ? output.address : undefined;
             const script = 'script' in output ? output.script : undefined;
             const scriptHex = script ? toHex(script) : undefined;
-            const tapInternalKeyHex = output.tapInternalKey ? toHex(output.tapInternalKey) : undefined;
+            const tapInternalKeyHex = output.tapInternalKey
+                ? toHex(output.tapInternalKey)
+                : undefined;
 
             return {
                 value: Number(output.value),

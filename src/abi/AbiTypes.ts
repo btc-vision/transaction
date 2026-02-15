@@ -42,67 +42,63 @@ export type InferAbiType<T extends AbiType> =
                 | ABIDataTypes.UINT256
                 | ABIDataTypes.INT64
                 | ABIDataTypes.INT128
-            ? bigint
-            : T extends ABIDataTypes.BOOL
-              ? boolean
-              : T extends ABIDataTypes.STRING
-                ? string
-                : T extends ABIDataTypes.ADDRESS | ABIDataTypes.EXTENDED_ADDRESS
-                  ? Address
-                  : T extends ABIDataTypes.BYTES | ABIDataTypes.BYTES4 | ABIDataTypes.BYTES32
-                    ? Uint8Array
-                    : T extends ABIDataTypes.SCHNORR_SIGNATURE
-                      ? SchnorrSignature
-                      : T extends ABIDataTypes.ADDRESS_UINT256_TUPLE
-                        ? AddressMap<bigint>
-                        : T extends ABIDataTypes.EXTENDED_ADDRESS_UINT256_TUPLE
-                          ? ExtendedAddressMap<bigint>
-                          : // Built-in array types
-                            T extends
-                                  | ABIDataTypes.ARRAY_OF_ADDRESSES
-                                  | ABIDataTypes.ARRAY_OF_EXTENDED_ADDRESSES
-                              ? Address[]
-                              : T extends
-                                      | ABIDataTypes.ARRAY_OF_UINT256
-                                      | ABIDataTypes.ARRAY_OF_UINT128
-                                      | ABIDataTypes.ARRAY_OF_UINT64
-                                  ? bigint[]
-                                  : T extends
-                                          | ABIDataTypes.ARRAY_OF_UINT32
-                                          | ABIDataTypes.ARRAY_OF_UINT16
-                                          | ABIDataTypes.ARRAY_OF_UINT8
-                                      ? number[]
-                                      : T extends ABIDataTypes.ARRAY_OF_STRING
-                                        ? string[]
-                                        : T extends
-                                                | ABIDataTypes.ARRAY_OF_BYTES
-                                                | ABIDataTypes.ARRAY_OF_BUFFERS
-                                            ? Uint8Array[]
-                                            : // Struct: single object with mapped fields (no array wrapper)
-                                              T extends Record<string, AbiType>
-                                              ? {
-                                                    [K in keyof T]: T[K] extends AbiType
-                                                        ? InferAbiType<T[K]>
-                                                        : never;
-                                                }
-                                              : // Single-element tuple: unwrap to typed array
-                                                T extends readonly [infer Single extends AbiType]
-                                                ? InferAbiType<Single>[]
-                                                : // Multi-element tuple: array of mapped tuples
-                                                  T extends readonly [
-                                                        AbiType,
-                                                        AbiType,
-                                                        ...AbiType[],
-                                                    ]
-                                                    ? {
-                                                          [K in keyof T]: T[K] extends AbiType
-                                                              ? InferAbiType<T[K]>
-                                                              : T[K];
-                                                      }[]
-                                                    : // Generic array fallback
-                                                      T extends readonly AbiType[]
-                                                      ? unknown[]
-                                                      : never;
+          ? bigint
+          : T extends ABIDataTypes.BOOL
+            ? boolean
+            : T extends ABIDataTypes.STRING
+              ? string
+              : T extends ABIDataTypes.ADDRESS | ABIDataTypes.EXTENDED_ADDRESS
+                ? Address
+                : T extends ABIDataTypes.BYTES | ABIDataTypes.BYTES4 | ABIDataTypes.BYTES32
+                  ? Uint8Array
+                  : T extends ABIDataTypes.SCHNORR_SIGNATURE
+                    ? SchnorrSignature
+                    : T extends ABIDataTypes.ADDRESS_UINT256_TUPLE
+                      ? AddressMap<bigint>
+                      : T extends ABIDataTypes.EXTENDED_ADDRESS_UINT256_TUPLE
+                        ? ExtendedAddressMap<bigint>
+                        : // Built-in array types
+                          T extends
+                                | ABIDataTypes.ARRAY_OF_ADDRESSES
+                                | ABIDataTypes.ARRAY_OF_EXTENDED_ADDRESSES
+                          ? Address[]
+                          : T extends
+                                  | ABIDataTypes.ARRAY_OF_UINT256
+                                  | ABIDataTypes.ARRAY_OF_UINT128
+                                  | ABIDataTypes.ARRAY_OF_UINT64
+                            ? bigint[]
+                            : T extends
+                                    | ABIDataTypes.ARRAY_OF_UINT32
+                                    | ABIDataTypes.ARRAY_OF_UINT16
+                                    | ABIDataTypes.ARRAY_OF_UINT8
+                              ? number[]
+                              : T extends ABIDataTypes.ARRAY_OF_STRING
+                                ? string[]
+                                : T extends
+                                        | ABIDataTypes.ARRAY_OF_BYTES
+                                        | ABIDataTypes.ARRAY_OF_BUFFERS
+                                  ? Uint8Array[]
+                                  : // Struct: single object with mapped fields (no array wrapper)
+                                    T extends Record<string, AbiType>
+                                    ? {
+                                          [K in keyof T]: T[K] extends AbiType
+                                              ? InferAbiType<T[K]>
+                                              : never;
+                                      }
+                                    : // Single-element tuple: unwrap to typed array
+                                      T extends readonly [infer Single extends AbiType]
+                                      ? InferAbiType<Single>[]
+                                      : // Multi-element tuple: array of mapped tuples
+                                        T extends readonly [AbiType, AbiType, ...AbiType[]]
+                                        ? {
+                                              [K in keyof T]: T[K] extends AbiType
+                                                  ? InferAbiType<T[K]>
+                                                  : T[K];
+                                          }[]
+                                        : // Generic array fallback
+                                          T extends readonly AbiType[]
+                                          ? unknown[]
+                                          : never;
 
 /**
  * Canonical string → ABIDataTypes mapping.

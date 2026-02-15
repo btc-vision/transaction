@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { UTXO } from '../build/opnet.js';
 import {
     Address,
     AddressMap,
@@ -7,14 +8,13 @@ import {
     CustomMap,
     DeterministicMap,
     DeterministicSet,
+    EcKeyPair,
     ExtendedAddressMap,
     FastMap,
     FundingTransaction,
     MLDSASecurityLevel,
     Mnemonic,
-    EcKeyPair,
 } from '../build/opnet.js';
-import type { UTXO } from '../build/opnet.js';
 import { networks, payments, toHex } from '@btc-vision/bitcoin';
 
 const testMnemonic =
@@ -24,12 +24,7 @@ const network = networks.regtest;
 describe('Disposable - Symbol.dispose implementations', () => {
     describe('Security-critical: Wallet', () => {
         it('should zero private key material on dispose', () => {
-            const mnemonic = new Mnemonic(
-                testMnemonic,
-                '',
-                network,
-                MLDSASecurityLevel.LEVEL2,
-            );
+            const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
 
             // Verify keys exist before dispose
@@ -51,12 +46,7 @@ describe('Disposable - Symbol.dispose implementations', () => {
         });
 
         it('should zero chain code on dispose', () => {
-            const mnemonic = new Mnemonic(
-                testMnemonic,
-                '',
-                network,
-                MLDSASecurityLevel.LEVEL2,
-            );
+            const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
 
             const chainCode = wallet.chainCode;
@@ -68,12 +58,7 @@ describe('Disposable - Symbol.dispose implementations', () => {
 
     describe('Security-critical: Mnemonic', () => {
         it('should zero seed on dispose', () => {
-            const mnemonic = new Mnemonic(
-                testMnemonic,
-                '',
-                network,
-                MLDSASecurityLevel.LEVEL2,
-            );
+            const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
 
             // Access seed internally via the getter (returns a copy)
             // We need to check the internal buffer is zeroed
@@ -100,12 +85,7 @@ describe('Disposable - Symbol.dispose implementations', () => {
 
     describe('Security-critical: Address', () => {
         it('should zero base Uint8Array on dispose', () => {
-            const mnemonic = new Mnemonic(
-                testMnemonic,
-                '',
-                network,
-                MLDSASecurityLevel.LEVEL2,
-            );
+            const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
             const wallet = mnemonic.derive(0);
             const addr = wallet.address;
 
@@ -137,12 +117,7 @@ describe('Disposable - Symbol.dispose implementations', () => {
 
     describe('Collections: ExtendedAddressMap', () => {
         it('should clear all entries on dispose', () => {
-            const mnemonic = new Mnemonic(
-                testMnemonic,
-                '',
-                network,
-                MLDSASecurityLevel.LEVEL2,
-            );
+            const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);
 
             const wallet1 = mnemonic.derive(0);
             const wallet2 = mnemonic.derive(1);

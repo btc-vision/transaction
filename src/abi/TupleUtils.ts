@@ -41,7 +41,9 @@ export function abiTypeToSelectorString(type: AbiType): string {
 
     // Struct: inline tuple (no [] suffix)
     if (isAbiStruct(type)) {
-        const inner = Object.values(type).map((t) => abiTypeToSelectorString(t)).join(',');
+        const inner = Object.values(type)
+            .map((t) => abiTypeToSelectorString(t))
+            .join(',');
         return `tuple(${inner})`;
     }
 

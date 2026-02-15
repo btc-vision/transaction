@@ -3,9 +3,9 @@ import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
 import { MultiSignTransaction } from '../builders/MultiSignTransaction.js';
-import type { ISerializableTransactionState, PrecomputedData } from './interfaces/ISerializableState.js';
+import type { ISerializableTransactionState, PrecomputedData, } from './interfaces/ISerializableState.js';
 import { TransactionSerializer } from './TransactionSerializer.js';
-import { type ReconstructionOptions, TransactionReconstructor } from './TransactionReconstructor.js';
+import { type ReconstructionOptions, TransactionReconstructor, } from './TransactionReconstructor.js';
 import { TransactionStateCapture } from './TransactionStateCapture.js';
 import { isMultiSigSpecificData } from './interfaces/ITypeSpecificData.js';
 import type {

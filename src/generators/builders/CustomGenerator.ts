@@ -1,4 +1,4 @@
-import { type Network, networks, script, type Stack, type XOnlyPublicKey } from '@btc-vision/bitcoin';
+import { type Network, networks, script, type Stack, type XOnlyPublicKey, } from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 
 /**

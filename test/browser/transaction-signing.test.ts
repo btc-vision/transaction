@@ -1,27 +1,27 @@
-import { describe, expect, it, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { networks, payments, toHex } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
+import type {
+    FundingSpecificData,
+    ISerializableTransactionState,
+    ReconstructionOptions,
+    UTXO,
+} from '../../build/opnet.js';
 import {
-    TransactionSerializer,
-    TransactionStateCapture,
-    TransactionReconstructor,
+    ChainId,
+    createAddressRotation,
+    createSignerMap,
+    currentConsensus,
+    EcKeyPair,
+    FundingTransaction,
+    isFundingSpecificData,
+    MessageSigner,
     OfflineTransactionManager,
     SERIALIZATION_FORMAT_VERSION,
-    isFundingSpecificData,
+    TransactionReconstructor,
+    TransactionSerializer,
+    TransactionStateCapture,
     TransactionType,
-    FundingTransaction,
-    EcKeyPair,
-    createSignerMap,
-    createAddressRotation,
-    ChainId,
-    currentConsensus,
-    MessageSigner,
-} from '../../build/opnet.js';
-import type {
-    ReconstructionOptions,
-    ISerializableTransactionState,
-    FundingSpecificData,
-    UTXO,
 } from '../../build/opnet.js';
 
 describe('Browser Transaction Signing', () => {
@@ -85,10 +85,9 @@ describe('Browser Transaction Signing', () => {
             const exportedState = OfflineTransactionManager.exportFunding(params);
             expect(OfflineTransactionManager.validate(exportedState)).toBe(true);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(typeof signedTxHex).toBe('string');
@@ -146,10 +145,9 @@ describe('Browser Transaction Signing', () => {
             const bumpedInspected = OfflineTransactionManager.inspect(bumpedState);
             expect(bumpedInspected.baseParams.feeRate).toBeCloseTo(25, 3);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                bumpedState,
-                { signer: signer2 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(bumpedState, {
+                signer: signer2,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -205,10 +203,9 @@ describe('Browser Transaction Signing', () => {
             const inspected = OfflineTransactionManager.inspect(exportedState);
             expect(inspected.utxos).toHaveLength(3);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -238,10 +235,9 @@ describe('Browser Transaction Signing', () => {
             const fundingData = inspected.typeSpecificData as FundingSpecificData;
             expect(fundingData.splitInputsInto).toBe(3);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -250,9 +246,7 @@ describe('Browser Transaction Signing', () => {
 
     describe('Address Rotation', () => {
         it('should sign with address rotation', async () => {
-            const signerMap = createSignerMap([
-                [defaultAddress, defaultSigner],
-            ]);
+            const signerMap = createSignerMap([[defaultAddress, defaultSigner]]);
 
             const params = {
                 signer: defaultSigner,
@@ -275,10 +269,10 @@ describe('Browser Transaction Signing', () => {
             const inspected = OfflineTransactionManager.inspect(exportedState);
             expect(inspected.addressRotationEnabled).toBe(true);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                exportedState,
-                { signer: defaultSigner, signerMap },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(exportedState, {
+                signer: defaultSigner,
+                signerMap,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -308,10 +302,9 @@ describe('Browser Transaction Signing', () => {
             expect(OfflineTransactionManager.validate(base64State)).toBe(true);
             expect(OfflineTransactionManager.validate(backToBase64)).toBe(true);
 
-            const signedTxHex = await OfflineTransactionManager.importSignAndExport(
-                backToBase64,
-                { signer: signer1 },
-            );
+            const signedTxHex = await OfflineTransactionManager.importSignAndExport(backToBase64, {
+                signer: signer1,
+            });
 
             expect(signedTxHex).toBeDefined();
             expect(/^[0-9a-f]+$/i.test(signedTxHex)).toBe(true);
@@ -366,16 +359,18 @@ describe('Browser Transaction Signing', () => {
                     anchor: true,
                     debugFees: true,
                 },
-                utxos: [{
-                    transactionId: 'a'.repeat(64),
-                    outputIndex: 3,
-                    value: '123456',
-                    scriptPubKeyHex: 'aa',
-                    scriptPubKeyAddress: address1,
-                    redeemScript: 'bb',
-                    witnessScript: 'cc',
-                    nonWitnessUtxo: 'dd',
-                }],
+                utxos: [
+                    {
+                        transactionId: 'a'.repeat(64),
+                        outputIndex: 3,
+                        value: '123456',
+                        scriptPubKeyHex: 'aa',
+                        scriptPubKeyAddress: address1,
+                        redeemScript: 'bb',
+                        witnessScript: 'cc',
+                        nonWitnessUtxo: 'dd',
+                    },
+                ],
                 optionalInputs: [],
                 optionalOutputs: [],
                 addressRotationEnabled: false,
@@ -398,7 +393,10 @@ describe('Browser Transaction Signing', () => {
             const deserialized = TransactionSerializer.deserialize(serialized);
             expect(deserialized.header.formatVersion).toBe(originalState.header.formatVersion);
             expect(deserialized.baseParams.from).toBe(originalState.baseParams.from);
-            expect(deserialized.baseParams.feeRate).toBeCloseTo(originalState.baseParams.feeRate, 3);
+            expect(deserialized.baseParams.feeRate).toBeCloseTo(
+                originalState.baseParams.feeRate,
+                3,
+            );
             expect(deserialized.utxos).toEqual(originalState.utxos);
             expect(deserialized.typeSpecificData).toEqual(originalState.typeSpecificData);
             expect(deserialized.precomputedData).toEqual(originalState.precomputedData);

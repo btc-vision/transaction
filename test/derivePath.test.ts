@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AddressTypes, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import type { Wallet } from '../build/opnet.js';
+import { AddressTypes, MLDSASecurityLevel, Mnemonic } from '../build/opnet.js';
 import { networks } from '@btc-vision/bitcoin';
 
 describe('Wallet.derivePath', () => {

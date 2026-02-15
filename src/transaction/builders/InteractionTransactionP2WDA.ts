@@ -171,7 +171,12 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
     protected override async signInputs(transaction: Psbt): Promise<void> {
         // Sign all inputs
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            await this.signInput(transaction, transaction.data.inputs[i] as PsbtInput, i, this.signer);
+            await this.signInput(
+                transaction,
+                transaction.data.inputs[i] as PsbtInput,
+                i,
+                this.signer,
+            );
         }
 
         // Finalize with appropriate finalizers

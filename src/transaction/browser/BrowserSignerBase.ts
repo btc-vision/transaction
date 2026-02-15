@@ -1,10 +1,5 @@
 import { type Network, Psbt, type Signer } from '@btc-vision/bitcoin';
-import {
-    type MessageHash,
-    type PublicKey,
-    type SchnorrSignature,
-    type Signature,
-} from '@btc-vision/ecpair';
+import { type MessageHash, type PublicKey, type SchnorrSignature, type Signature, } from '@btc-vision/ecpair';
 
 /**
  * Create a custom keypair.

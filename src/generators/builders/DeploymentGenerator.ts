@@ -1,4 +1,11 @@
-import { crypto, type Network, networks, opcodes, type PublicKey, script } from '@btc-vision/bitcoin';
+import {
+    crypto,
+    type Network,
+    networks,
+    opcodes,
+    type PublicKey,
+    script,
+} from '@btc-vision/bitcoin';
 import { Generator } from '../Generator.js';
 import { type Feature, Features } from '../Features.js';
 import type { IChallengeSolution } from '../../epoch/interfaces/IChallengeSolution.js';
