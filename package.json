@@ -168,11 +168,17 @@
         "@eslint/js": "^9.39.2",
         "@noble/curves": "^2.0.1",
         "@noble/hashes": "^2.0.1",
+        "@vitest/browser": "^4.0.18",
         "bech32": "^2.0.0",
         "bip174": "^3.0.0",
         "bip39": "^3.1.0",
+        "browserify-zlib": "^0.2.0",
+        "buffer": "^6.0.3",
         "pako": "^2.1.0",
+        "prettier": "^3.8.1",
+        "process": "^0.11.10",
         "sha.js": "^2.4.12",
+        "stream-browserify": "^3.0.0",
         "typescript": "^5.9.3"
     }
 }
