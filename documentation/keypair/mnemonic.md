@@ -223,6 +223,8 @@ Derives a wallet using OPWallet-compatible derivation paths. This uses the same 
 
 The quantum path is always `m/360'/<coin_type>'/<account>'/<change>/<index>`.
 
+> **Note:** The classical coin type is hardcoded to `0'` regardless of network. The quantum coin type is network-aware: `0` for mainnet, `1` for testnet/regtest.
+
 **Throws:** `Error` for unsupported address types.
 
 ```typescript

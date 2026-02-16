@@ -57,7 +57,7 @@ const result = await factory.createCancellableTransaction(parameters);
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `signer` | `Signer` | Yes | - | The same key pair that created the original transaction |
+| `signer` | `Signer \| UniversalSigner` | Yes | - | The same key pair that created the original transaction |
 | `network` | `Network` | Yes | - | Bitcoin network |
 | `utxos` | `UTXO[]` | Yes | - | The stuck UTXO(s) at the script address, plus additional UTXOs for fees |
 | `from` | `string` | Yes | - | Sender address (must match the original transaction's sender) |
@@ -282,4 +282,4 @@ try {
 
 ---
 
-[< Custom Script Transactions](./custom-script-transactions.md) | [Back to Transaction Building](../transaction-building.md)
+[< Custom Script Transactions](./custom-script-transactions.md) | [Back to README](../README.md)

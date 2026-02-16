@@ -186,7 +186,7 @@ The consolidated transaction system respects all standard Bitcoin policy limits:
 | `calldata` | `Uint8Array` | Yes | -- | ABI-encoded function call data |
 | `challenge` | `IChallengeSolution` | Yes | -- | Epoch challenge solution |
 | `utxos` | `UTXO[]` | Yes | -- | Available UTXOs to spend |
-| `signer` | `Signer` | Yes | -- | Key pair for signing |
+| `signer` | `Signer \| UniversalSigner` | Yes | -- | Key pair for signing |
 | `network` | `Network` | Yes | -- | Bitcoin network configuration |
 | `feeRate` | `number` | Yes | -- | Fee rate in sat/vB |
 | `priorityFee` | `bigint` | Yes | -- | OPNet priority fee in satoshis |
@@ -254,6 +254,7 @@ const calldata = writer.getBuffer();
 const params: IConsolidatedInteractionParameters = {
     from: 'bc1p...sender',
     to: 'bc1p...contract',
+    contract: 'bc1p...contract',  // Required: contract address (same as `to`)
     calldata: calldata,
     utxos: myUtxos,
     signer: keypair,

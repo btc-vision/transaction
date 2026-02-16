@@ -54,7 +54,7 @@ const result = await factory.createBTCTransfer(parameters);
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `signer` | `Signer` | Yes | - | Key pair used to sign inputs |
+| `signer` | `Signer \| UniversalSigner` | Yes | - | Key pair used to sign inputs |
 | `network` | `Network` | Yes | - | Bitcoin network (`networks.bitcoin`, `networks.testnet`, `networks.regtest`) |
 | `utxos` | `UTXO[]` | Yes | - | Available UTXOs to spend |
 | `from` | `string` | Yes | - | Sender address (for change output) |
@@ -66,7 +66,7 @@ const result = await factory.createBTCTransfer(parameters);
 | `splitInputsInto` | `number` | No | `1` | Split the output into N equal UTXOs |
 | `autoAdjustAmount` | `boolean` | No | `false` | Deduct fees from output (send-max mode) |
 | `feeUtxos` | `UTXO[]` | No | `undefined` | Separate UTXOs used exclusively to cover fees |
-| `mldsaSigner` | `MLDSASigner \| null` | No | - | ML-DSA (quantum-resistant) signer |
+| `mldsaSigner` | `QuantumBIP32Interface \| null` | No | - | ML-DSA (quantum-resistant) signer |
 | `optionalOutputs` | `PsbtOutputExtended[]` | No | - | Additional outputs (e.g., OP_RETURN notes) |
 | `note` | `string \| Uint8Array` | No | - | Embed an OP_RETURN note in the transaction |
 
@@ -279,4 +279,4 @@ try {
 
 ---
 
-[< Back to Transaction Building](../transaction-building.md) | [Deployment Transactions >](./deployment-transactions.md)
+[< Back to README](../README.md) | [Deployment Transactions >](./deployment-transactions.md)

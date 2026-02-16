@@ -20,7 +20,14 @@ The `Address` class extends `Uint8Array` (always 32 bytes) and implements `Dispo
   - [toHex()](#tohex)
   - [tweakedToHex()](#tweakedtohex)
   - [toBuffer()](#tobuffer)
+  - [originalPublicKeyBuffer()](#originalpublickeybuffer)
   - [tweakedPublicKeyToBuffer()](#tweakedpublickeytobuffer)
+  - [toUncompressedHex()](#touncompressedhex)
+  - [toUncompressedBuffer()](#touncompressedbuffer)
+  - [toHybridPublicKeyHex()](#tohybridpublickeyhex)
+  - [toHybridPublicKeyBuffer()](#tohybridpublickeybuffer)
+  - [toTweakedHybridPublicKeyHex()](#totweakedhybridpublickeyhex)
+  - [toTweakedHybridPublicKeyBuffer()](#totweakedhybridpublickeybuffer)
   - [p2tr()](#p2tr)
   - [p2wpkh()](#p2wpkh)
   - [p2pkh()](#p2pkh)
@@ -28,6 +35,7 @@ The `Address` class extends `Uint8Array` (always 32 bytes) and implements `Dispo
   - [p2wda()](#p2wda)
   - [p2op()](#p2op)
   - [p2pk()](#p2pk)
+  - [set()](#set)
   - [equals()](#equals)
   - [lessThan() / greaterThan()](#lessthan--greaterthan)
   - [toBigInt()](#tobigint)
@@ -228,6 +236,18 @@ Returns the address content (SHA256 hash of the ML-DSA public key) as a new `Uin
 
 **Returns:** `Uint8Array` (branded as `MLDSAHashedPublicKey`)
 
+### originalPublicKeyBuffer()
+
+```typescript
+originalPublicKeyBuffer(): PublicKey
+```
+
+Returns the original compressed classical public key (33 bytes) as a new `Uint8Array`. This is a copy of the key that was provided to the constructor.
+
+**Returns:** `Uint8Array` (branded as `PublicKey`) -- the 33-byte compressed public key.
+
+**Throws:** `Error` if the legacy public key was not set.
+
 ### tweakedPublicKeyToBuffer()
 
 ```typescript
@@ -237,6 +257,78 @@ tweakedPublicKeyToBuffer(): XOnlyPublicKey
 Returns the classical tweaked x-only public key (32 bytes) as a new `Uint8Array`.
 
 **Returns:** `Uint8Array` (branded as `XOnlyPublicKey`)
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toUncompressedHex()
+
+```typescript
+toUncompressedHex(): string
+```
+
+Returns the uncompressed classical public key (65 bytes, starting with `0x04`) as a `0x`-prefixed hex string.
+
+**Returns:** `string`
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toUncompressedBuffer()
+
+```typescript
+toUncompressedBuffer(): PublicKey
+```
+
+Returns the uncompressed classical public key (65 bytes) as a `Uint8Array`.
+
+**Returns:** `Uint8Array` (branded as `PublicKey`)
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toHybridPublicKeyHex()
+
+```typescript
+toHybridPublicKeyHex(): string
+```
+
+Returns the hybrid public key (derived from decompressing the classical public key) as a `0x`-prefixed hex string.
+
+**Returns:** `string`
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toHybridPublicKeyBuffer()
+
+```typescript
+toHybridPublicKeyBuffer(): HybridPublicKey
+```
+
+Returns the hybrid public key as a `Uint8Array`.
+
+**Returns:** `Uint8Array` (branded as `HybridPublicKey`)
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toTweakedHybridPublicKeyHex()
+
+```typescript
+toTweakedHybridPublicKeyHex(): string
+```
+
+Returns the tweaked hybrid public key (derived from the Taproot-tweaked classical public key) as a `0x`-prefixed hex string.
+
+**Returns:** `string`
+
+**Throws:** `Error` if the legacy public key was not set.
+
+### toTweakedHybridPublicKeyBuffer()
+
+```typescript
+toTweakedHybridPublicKeyBuffer(): Uint8Array
+```
+
+Returns the tweaked hybrid public key as a `Uint8Array`.
+
+**Returns:** `Uint8Array`
 
 **Throws:** `Error` if the legacy public key was not set.
 
@@ -350,6 +442,18 @@ p2pk(): string
 Returns the hex-encoded ML-DSA hash (equivalent to `toHex()`). This is the public-key representation used for Pay-to-Public-Key style outputs.
 
 **Returns:** `string`
+
+### set()
+
+```typescript
+override set(mldsaPublicKey: ArrayLike<number>): void
+```
+
+Overrides `Uint8Array.set()` to set the ML-DSA public key content. If the provided bytes are a raw ML-DSA public key (1312, 1952, or 2592 bytes), it will be hashed with SHA256 and the hash stored. If it is already 32 bytes, it is stored directly.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mldsaPublicKey` | `ArrayLike<number>` | Yes | The ML-DSA public key (raw or hashed). |
 
 ### equals()
 

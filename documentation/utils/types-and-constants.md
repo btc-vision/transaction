@@ -169,17 +169,17 @@ type BlockchainStorage = DeterministicMap<string, PointerStorage>;
 | `u16` | `number` | 2 | `U16_BYTE_LENGTH` |
 | `u32` | `number` | 4 | `U32_BYTE_LENGTH` |
 | `u64` | `bigint` | 8 | `U64_BYTE_LENGTH` |
-| `u128` | `bigint` | 16 | `U128_BYTE_LENGTH` |
-| `u256` | `bigint` | 32 | `U256_BYTE_LENGTH` |
+| u128 (no alias) | `bigint` | 16 | `U128_BYTE_LENGTH` |
+| u256 (no alias) | `bigint` | 32 | `U256_BYTE_LENGTH` |
 | `i8` | `number` | 1 | `I8_BYTE_LENGTH` |
 | `i16` | `number` | 2 | `I16_BYTE_LENGTH` |
 | `i32` | `number` | 4 | `I32_BYTE_LENGTH` |
 | `i64` | `bigint` | 8 | `I64_BYTE_LENGTH` |
-| `i128` | `bigint` | 16 | `I128_BYTE_LENGTH` |
-| `i256` | `bigint` | 32 | `I256_BYTE_LENGTH` |
+| i128 (no alias) | `bigint` | 16 | `I128_BYTE_LENGTH` |
+| i256 (no alias) | `bigint` | 32 | `I256_BYTE_LENGTH` |
 | `Selector` | `number` | 4 | `SELECTOR_BYTE_LENGTH` |
 | `boolean` | `boolean` | 1 | `BOOLEAN_BYTE_LENGTH` |
-| `Address` | `Uint8Array` | 32 | `ADDRESS_BYTE_LENGTH` |
+| `Address` | `Address` (class) | 32 | `ADDRESS_BYTE_LENGTH` |
 | Extended Address | `Uint8Array` | 64 | `EXTENDED_ADDRESS_BYTE_LENGTH` |
 | Schnorr Signature | `Uint8Array` | 64 | `SCHNORR_SIGNATURE_BYTE_LENGTH` |
 | `BufferLike` | `Uint8Array` | Variable | -- |

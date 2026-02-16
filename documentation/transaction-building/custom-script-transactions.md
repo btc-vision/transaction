@@ -57,7 +57,7 @@ The return type is a tuple: `[string, string, UTXO[], UTXO[]]`.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `signer` | `Signer` | Yes | - | Key pair used to sign inputs |
+| `signer` | `Signer \| UniversalSigner` | Yes | - | Key pair used to sign inputs |
 | `network` | `Network` | Yes | - | Bitcoin network |
 | `utxos` | `UTXO[]` | Yes | - | Available UTXOs to fund the transaction |
 | `from` | `string` | Yes | - | Sender address |
@@ -69,7 +69,7 @@ The return type is a tuple: `[string, string, UTXO[], UTXO[]]`.
 | `witnesses` | `Uint8Array[]` | Yes | - | Witness data to satisfy the script |
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte random salt |
 | `annex` | `Uint8Array` | No | - | Optional Taproot annex data (without `0x50` prefix) |
-| `mldsaSigner` | `MLDSASigner \| null` | No | - | ML-DSA signer |
+| `mldsaSigner` | `QuantumBIP32Interface \| null` | No | - | ML-DSA signer |
 
 ## Script and Witness Structure
 

@@ -35,7 +35,9 @@ flowchart TB
     end
 
     subgraph Builders["Transaction Builders"]
+        TT["TweakedTransaction<br/><i>PSBT construction,<br/>Taproot tweaking, signing</i>"]
         TB["TransactionBuilder&lt;T&gt;<br/><i>Abstract base: UTXO management,<br/>fee calculation, outputs</i>"]
+        TT --> TB
         TB --> FT["FundingTransaction<br/>BTC transfers"]
         TB --> DT["DeploymentTransaction<br/>Contract deployment"]
         TB --> IT["InteractionTransaction<br/>Contract calls"]
@@ -43,10 +45,6 @@ flowchart TB
         TB --> CT["CustomScriptTransaction<br/>Custom scripts"]
         TB --> XT["CancelTransaction<br/>TX cancellation"]
         TB --> CI["ConsolidatedInteractionTransaction<br/>CHCT anti-censorship"]
-    end
-
-    subgraph Signing["Signing Layer"]
-        TT["TweakedTransaction<br/><i>PSBT construction,<br/>Taproot tweaking, signing</i>"]
     end
 
     subgraph Generators["Script Generators"]
@@ -63,8 +61,7 @@ flowchart TB
         MS["MessageSigner<br/><i>Schnorr + ML-DSA signing</i>"]
     end
 
-    TF --> TB
-    TB --> TT
+    TF --> TT
     TT --> Generators
     MN --> WL
     WL --> TT
@@ -179,6 +176,7 @@ The `TransactionType` enum defines all supported operations:
 
 | Type | Value | Description | TX Count |
 |------|-------|-------------|----------|
+| `GENERIC` | 0 | Generic transaction (base type) | -- |
 | `FUNDING` | 1 | Simple BTC transfer between addresses | 1 |
 | `DEPLOYMENT` | 2 | Deploy a smart contract (WASM bytecode) | 2 |
 | `INTERACTION` | 3 | Call a function on a deployed contract | 2 |
@@ -262,7 +260,7 @@ wallet.p2tr;          // Taproot address (primary for OPNet)
 wallet.p2wpkh;        // Native SegWit address
 wallet.legacy;        // Legacy P2PKH address
 wallet.segwitLegacy;  // Wrapped SegWit P2SH address
-wallet.p2wda;         // P2WDA address (witness data authentication)
+wallet.p2wda;         // P2WDA address (returns IP2WSHAddress object with .address and .witnessScript)
 ```
 
 ### OPNet Addresses (Protocol Identity)
@@ -313,15 +311,15 @@ Both addresses derive from the same `Wallet`, which is derived from a single BIP
 ### Transaction Building
 
 ```
-TransactionFactory          -- Top-level API (signInteraction, signDeployment, createBTCTransfer)
-  TransactionBuilder<T>     -- Abstract base (UTXO management, fee estimation, outputs)
-    TweakedTransaction      -- PSBT construction, Taproot tweaking, signature orchestration
-      FundingTransaction    -- Simple BTC transfers
-      DeploymentTransaction -- Contract deployment (bytecode + calldata)
-      InteractionTransaction -- Contract function calls (calldata)
-      MultiSignTransaction  -- M-of-N multi-signature operations
-      CustomScriptTransaction -- Custom Bitcoin script execution
-      CancelTransaction     -- Transaction cancellation / recovery
+TransactionFactory                     -- Top-level API (signInteraction, signDeployment, createBTCTransfer)
+  TweakedTransaction                   -- PSBT construction, Taproot tweaking, signature orchestration
+    TransactionBuilder<T>              -- Abstract base (UTXO management, fee estimation, outputs)
+      FundingTransaction               -- Simple BTC transfers
+      DeploymentTransaction            -- Contract deployment (bytecode + calldata)
+      InteractionTransaction           -- Contract function calls (calldata)
+      MultiSignTransaction             -- M-of-N multi-signature operations
+      CustomScriptTransaction          -- Custom Bitcoin script execution
+      CancelTransaction                -- Transaction cancellation / recovery
       ConsolidatedInteractionTransaction -- CHCT anti-censorship system
 ```
 

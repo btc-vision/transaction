@@ -50,7 +50,7 @@ const wallet: Wallet = mnemonic.derive(0);
 console.log('P2TR address:', wallet.p2tr);           // bcrt1p...
 console.log('P2WPKH address:', wallet.p2wpkh);       // bcrt1q...
 console.log('Legacy address:', wallet.legacy);        // m/n...
-console.log('OPNet address:', wallet.address.toHex()); // 64 hex chars (SHA-256 of ML-DSA pubkey)
+console.log('OPNet address:', wallet.address.toHex()); // 0x-prefixed hex (SHA-256 of ML-DSA pubkey)
 
 // --- Derive multiple wallets ---
 const wallets: Wallet[] = mnemonic.deriveMultiple(
@@ -162,7 +162,7 @@ wallet.zeroize();
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `signer` | `UniversalSigner` | Yes | secp256k1 key pair |
+| `signer` | `Signer \| UniversalSigner` | Yes | secp256k1 key pair |
 | `mldsaSigner` | `QuantumBIP32Interface \| null` | Yes | ML-DSA key pair (or `null`) |
 | `network` | `Network` | Yes | Bitcoin network |
 | `from` | `string` | Yes | Sender P2TR address |
@@ -215,8 +215,8 @@ const bytecode: Uint8Array = fs.readFileSync('./my-contract.wasm');
 // in practice, you fetch this from the OPNet node API.
 const rawChallenge: RawChallenge = {
     epochNumber: '1',
-    mldsaPublicKey: wallet.address.toHex(),
-    legacyPublicKey: wallet.address.originalPublicKeyHex(),
+    mldsaPublicKey: toHex(wallet.quantumPublicKey),
+    legacyPublicKey: toHex(wallet.address.originalPublicKey!),
     solution: '0x...challenge_solution_hex...',
     salt: '0x...salt_hex...',
     graffiti: '0x00',
@@ -338,8 +338,8 @@ calldata.writeU256(1_000_000_000n);    // 1 billion smallest units
 // --- Obtain challenge from OPNet API ---
 const rawChallenge: RawChallenge = {
     epochNumber: '1',
-    mldsaPublicKey: wallet.address.toHex(),
-    legacyPublicKey: wallet.address.originalPublicKeyHex(),
+    mldsaPublicKey: toHex(wallet.quantumPublicKey),
+    legacyPublicKey: toHex(wallet.address.originalPublicKey!),
     solution: '0x...challenge_solution_hex...',
     salt: '0x...salt_hex...',
     graffiti: '0x00',
@@ -445,8 +445,8 @@ const wallet = mnemonic.derive(0);
 const message = 'Hello, OPNet!';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-console.log('Signature:', Buffer.from(signed.signature).toString('hex'));
-console.log('Message hash:', Buffer.from(signed.message).toString('hex'));
+console.log('Signature:', toHex(signed.signature));
+console.log('Message hash:', toHex(signed.message));
 
 // --- Verify the signature ---
 const isValid = MessageSigner.verifySignature(

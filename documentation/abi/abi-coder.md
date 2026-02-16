@@ -147,11 +147,11 @@ Each `ABIDataTypes` value maps to a specific TypeScript type at runtime:
 | `BOOL` | `boolean` | 1 byte |
 | `ADDRESS` | `Address` | Compact address |
 | `EXTENDED_ADDRESS` | `Address` | Full public key address |
-| `STRING` | `string` | u16 length prefix + UTF-8 |
-| `BYTES` | `Uint8Array` | u16 length prefix + data |
+| `STRING` | `string` | u32 length prefix + UTF-8 |
+| `BYTES` | `Uint8Array` | u32 length prefix + data |
 | `BYTES4` | `Uint8Array` | Fixed 4 bytes |
 | `BYTES32` | `Uint8Array` | Fixed 32 bytes |
-| `SCHNORR_SIGNATURE` | `SchnorrSignature` | 64-byte Schnorr signature |
+| `SCHNORR_SIGNATURE` | `SchnorrSignature` | 128 bytes (64-byte extended address + 64-byte signature) |
 | `ADDRESS_UINT256_TUPLE` | `AddressMap<bigint>` | Address-keyed map |
 | `EXTENDED_ADDRESS_UINT256_TUPLE` | `ExtendedAddressMap<bigint>` | Extended address-keyed map |
 | `ARRAY_OF_ADDRESSES` | `Address[]` | u16 count prefix |

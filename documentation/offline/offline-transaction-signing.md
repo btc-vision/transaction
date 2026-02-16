@@ -102,12 +102,14 @@ Export a funding (BTC transfer) transaction for offline signing.
 ```typescript
 const state = OfflineTransactionManager.exportFunding({
     signer: onlineSigner,  // Only public key is needed for export
+    mldsaSigner: null,
     network: networks.bitcoin,
     from: 'bc1p...sender',
     to: 'bc1p...receiver',
     utxos: myUtxos,
     feeRate: 10,
     priorityFee: 0n,
+    gasSatFee: 0n,
     amount: 50000n,
 });
 ```
@@ -562,12 +564,14 @@ const watchOnlySigner = EcKeyPair.fromPublicKey(publicKeyHex, networks.bitcoin);
 
 const serializedState = OfflineTransactionManager.exportFunding({
     signer: watchOnlySigner,
+    mldsaSigner: null,
     network: networks.bitcoin,
     from: 'bc1p...sender',
     to: 'bc1p...receiver',
     utxos: fetchedUtxos,
     feeRate: 10,
     priorityFee: 0n,
+    gasSatFee: 0n,
     amount: 50000n,
 });
 
@@ -809,7 +813,7 @@ const signedDeployTx = await OfflineTransactionManager.importSignAndExport(
 
 ## Navigation
 
-- **Related:** [Transaction Building Guide](../transaction-building.md) -- How transactions are constructed
+- **Related:** [Transaction Factory](../transaction-building/transaction-factory.md) -- How transactions are constructed
 - **Related:** [MultiSig Transactions](../transaction-building/multisig-transactions.md) -- Multi-signature transaction details
 - **Related:** [Address Rotation](../signer/address-rotation.md) -- Per-UTXO signing (works with offline signing)
 - **Up:** [README](../README.md) -- Table of Contents

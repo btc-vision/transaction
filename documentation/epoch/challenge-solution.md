@@ -275,9 +275,9 @@ public getSubmission(): ChallengeSubmission | undefined
 
 Returns the challenge submission if present and its signature is valid.
 
-**Returns:** `ChallengeSubmission | undefined` -- The verified submission, or `undefined` if none exists.
+**Returns:** `ChallengeSubmission | undefined` -- The verified submission, or `undefined` if no submission is present.
 
-**Throws:** `Error('No submission provided in request.')` if accessed on a challenge without a submission. `Error('Invalid submission signature.')` if the signature verification fails.
+**Throws:** `Error('Invalid submission signature.')` if the submission exists but its signature verification fails.
 
 #### verifySubmissionSignature
 
@@ -459,4 +459,4 @@ const json = JSON.stringify(raw);
 
 - [EpochValidator](./epoch-validator.md) -- Low-level epoch validation and proof verification
 - [Generators](../generators/generators.md) -- Script generators that embed challenge data in transactions
-- [Transaction Building](../transaction-building.md) -- How challenge solutions are included in transactions
+- [Transaction Factory](../transaction-building/transaction-factory.md) -- How challenge solutions are included in transactions

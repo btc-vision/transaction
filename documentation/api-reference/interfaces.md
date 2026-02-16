@@ -690,18 +690,22 @@ Imported from `src/transaction/offline/TransactionReconstructor.ts`.
 ```typescript
 interface ReconstructionOptions {
     signer: Signer | UniversalSigner;
-    mldsaSigner?: QuantumBIP32Interface | null;
     newFeeRate?: number;
+    newPriorityFee?: bigint;
+    newGasSatFee?: bigint;
     signerMap?: SignerMap;
+    mldsaSigner?: QuantumBIP32Interface | null;
 }
 ```
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `signer` | `Signer \| UniversalSigner` | Yes | The signer to use for signing the reconstructed transaction |
-| `mldsaSigner` | `QuantumBIP32Interface \| null` | No | ML-DSA quantum signer |
 | `newFeeRate` | `number` | No | Override fee rate for fee bumping (RBF) |
+| `newPriorityFee` | `bigint` | No | Override priority fee |
+| `newGasSatFee` | `bigint` | No | Override gas sat fee |
 | `signerMap` | `SignerMap` | No | Address-to-signer mapping for rotation mode |
+| `mldsaSigner` | `QuantumBIP32Interface \| null` | No | ML-DSA quantum signer |
 
 ---
 

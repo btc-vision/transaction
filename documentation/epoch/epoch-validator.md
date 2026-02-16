@@ -40,9 +40,9 @@ import { EpochValidator } from '@btc-vision/transaction';
 
 ## Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `BLOCKS_PER_EPOCH` | `5n` | Number of Bitcoin blocks per OPNet epoch. |
+| Constant | Value | Visibility | Description |
+|----------|-------|------------|-------------|
+| `BLOCKS_PER_EPOCH` | `5n` | `private` | Number of Bitcoin blocks per OPNet epoch. Used internally for block range validation. |
 
 ---
 

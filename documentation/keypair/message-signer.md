@@ -834,7 +834,7 @@ if (walletResult !== null) {
 
 ## Navigation
 
-- [Transaction Building Guide](../transaction-building.md)
-- [Offline Transaction Signing](../offline-transaction-signing.md)
+- [Transaction Building Guide](../transaction-building/transaction-factory.md)
+- [Offline Transaction Signing](../offline/offline-transaction-signing.md)
 - [Quantum Support: Message Signing](../quantum-support/04-message-signing.md)
 - [Documentation Index](../README.md)

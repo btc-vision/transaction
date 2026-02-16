@@ -358,6 +358,6 @@ console.log(`Current block height: ${result}`);
 
 ## Related Documentation
 
-- [Transaction Building](../transaction-building.md) -- How to build and sign transactions
+- [Transaction Factory](../transaction-building/transaction-factory.md) -- How to build and sign transactions
 - [Funding Transactions](../transaction-building/funding-transactions.md) -- BTC transfer and funding flows
 - [Wallet](../keypair/wallet.md) -- Key pair management and address derivation

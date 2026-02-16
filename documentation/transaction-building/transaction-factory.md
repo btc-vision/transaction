@@ -52,7 +52,7 @@ const signer = EcKeyPair.fromWIF('your-private-key-wif', network);
 // const signer = null;
 ```
 
-## Static Methods
+## Methods
 
 ### createBTCTransfer
 
@@ -90,7 +90,7 @@ Deploys a smart contract using the two-transaction model. Produces a funding tra
 
 ```typescript
 public async signDeployment(
-    deploymentParameters: IDeploymentParameters | IDeploymentParametersWithoutSigner,
+    deploymentParameters: IDeploymentParameters,
 ): Promise<DeploymentResult>
 ```
 

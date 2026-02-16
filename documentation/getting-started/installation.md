@@ -226,10 +226,8 @@ flowchart TD
 Run this quick check to confirm everything is wired correctly:
 
 ```typescript
-import { Mnemonic, Wallet, TransactionFactory, version } from '@btc-vision/transaction';
+import { Mnemonic, Wallet, TransactionFactory } from '@btc-vision/transaction';
 import { networks } from '@btc-vision/bitcoin';
-
-console.log('Library version:', version);
 
 // Generate a mnemonic and derive a wallet
 const mnemonic = Mnemonic.generate();
@@ -247,7 +245,6 @@ console.log('TransactionFactory ready');
 Expected output (addresses will vary):
 
 ```
-Library version: 1.8.0
 P2TR address: bc1p...
 P2WPKH address: bc1q...
 Quantum public key length: 1312 bytes

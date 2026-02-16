@@ -149,7 +149,15 @@ enum Features {
 | `EPOCH_SUBMISSION` | `2` | Embeds a signed epoch challenge submission. |
 | `MLDSA_LINK_PUBKEY` | `4` | Embeds an ML-DSA public key linking request with verification data. |
 
-Features are encoded in the script header as a 24-bit bitmask and their data is appended in priority order.
+Features are encoded in the script header as a 24-bit bitmask and their data is appended in priority order defined by `FeaturePriority`:
+
+```typescript
+enum FeaturePriority {
+    ACCESS_LIST = 1,
+    EPOCH_SUBMISSION = 2,
+    MLDSA_LINK_PUBKEY = 3,
+}
+```
 
 ### Feature Interfaces
 
@@ -433,7 +441,7 @@ new HashCommitmentGenerator(publicKey: Uint8Array, network?: Network)
 | `calculateMaxDataPerTx()` | `number` | Maximum data bytes per reveal transaction. |
 | `estimateOutputCount(dataSize)` | `number` | Number of P2WSH outputs needed for a given data size. |
 | `estimateChunkCount(dataSize)` | `number` | Number of 80-byte chunks needed. |
-| `estimateFees(dataSize, feeRate, compressionRatio?)` | Fee estimates | Complete fee estimation for setup + reveal transactions. |
+| `estimateFees(dataSize, feeRate, compressionRatio?)` | `{ compressedSize, outputCount, chunkCount, setupVBytes, revealVBytes, setupFee, revealFee, totalFee, outputsValue, totalCost }` | Complete fee estimation for setup + reveal transactions. |
 
 ### Static Validation Methods
 
@@ -622,7 +630,7 @@ console.log(`Total cost: ${fees.totalCost} sats`);
 
 ## Related Documentation
 
-- [Transaction Building](../transaction-building.md) -- How generators are used in the transaction building pipeline
+- [Transaction Factory](../transaction-building/transaction-factory.md) -- How generators are used in the transaction building pipeline
 - [ChallengeSolution](../epoch/challenge-solution.md) -- Challenge data embedded in scripts
 - [Compressor](../utils/compressor.md) -- Bytecode compression before script embedding
 - [BinaryWriter](../binary/binary-writer.md) -- Calldata encoding for contract interactions

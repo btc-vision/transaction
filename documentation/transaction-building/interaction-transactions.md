@@ -71,8 +71,8 @@ flowchart TB
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `signer` | `Signer` | Yes | - | Key pair used to sign inputs |
-| `mldsaSigner` | `MLDSASigner \| null` | No | - | ML-DSA (quantum-resistant) signer |
+| `signer` | `Signer \| UniversalSigner` | Yes | - | Key pair used to sign inputs |
+| `mldsaSigner` | `QuantumBIP32Interface \| null` | No | - | ML-DSA (quantum-resistant) signer |
 | `network` | `Network` | Yes | - | Bitcoin network |
 | `utxos` | `UTXO[]` | Yes | - | Available UTXOs to fund the interaction |
 | `from` | `string` | Yes | - | Sender address |

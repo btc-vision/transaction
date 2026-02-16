@@ -103,7 +103,7 @@ The constructor throws if `window` is not available (i.e., not in a browser). Th
 | `signData(data, type)` | `Promise<Uint8Array>` | Signs raw data using the specified signature type (`ecdsa` or `schnorr`). |
 | `signTaprootInput(tx, i, sighashTypes)` | `Promise<void>` | Signs a Taproot input by delegating to `unisat.signPsbt()`. |
 | `signInput(tx, i, sighashTypes)` | `Promise<void>` | Signs a non-Taproot input by delegating to `unisat.signPsbt()`. |
-| `multiSignPsbt(transactions)` | `Promise<void>` | Signs multiple PSBTs in a batch by calling `unisat.signPsbt()`. |
+| `multiSignPsbt(transactions)` | `Promise<void>` | Signs PSBTs via `unisat.signPsbt()`. **Note:** Currently only signs the first PSBT in the array despite accepting multiple. |
 
 **Signing details:**
 - `signTaprootInput` sends the entire PSBT to Unisat as hex with `disableTweakSigner: false`.
@@ -156,7 +156,7 @@ The `init()` method:
 | `signData(data, address, protocol)` | `Promise<Uint8Array>` | Signs data via `BitcoinProvider.request('signMessage', ...)`. |
 | `signTaprootInput(tx, i, sighashTypes)` | `Promise<void>` | Signs a Taproot input via `BitcoinProvider.request('signPsbt', ...)`. |
 | `signInput(tx, i, sighashTypes)` | `Promise<void>` | Signs a non-Taproot input. |
-| `multiSignPsbt(transactions)` | `Promise<void>` | Signs multiple PSBTs in batch. |
+| `multiSignPsbt(transactions)` | `Promise<void>` | Signs PSBTs via `BitcoinProvider`. **Note:** Currently only signs the first PSBT in the array despite accepting multiple. |
 
 **Key differences from UnisatSigner:**
 - Xverse uses base64-encoded PSBTs (not hex).
@@ -274,5 +274,5 @@ async function createSigner() {
 ## Related Documentation
 
 - [Web3Provider](./web3-provider.md) -- The interface that wallet implementations fulfill
-- [Transaction Building](../transaction-building.md) -- How transactions are constructed and signed
-- [Offline Transaction Signing](../offline-transaction-signing.md) -- Server-side signing without browser wallets
+- [Transaction Factory](../transaction-building/transaction-factory.md) -- How transactions are constructed and signed
+- [Offline Transaction Signing](../offline/offline-transaction-signing.md) -- Server-side signing without browser wallets

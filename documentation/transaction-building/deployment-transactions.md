@@ -45,8 +45,8 @@ const result = await factory.signDeployment(parameters);
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `signer` | `Signer` | Yes | - | Key pair used to sign the transaction |
-| `mldsaSigner` | `MLDSASigner \| null` | Yes | - | ML-DSA signer (required for deployment; provides the hashed public key) |
+| `signer` | `Signer \| UniversalSigner` | Yes | - | Key pair used to sign the transaction |
+| `mldsaSigner` | `QuantumBIP32Interface \| null` | Yes | - | ML-DSA signer (required for deployment; provides the hashed public key) |
 | `network` | `Network` | Yes | - | Bitcoin network |
 | `utxos` | `UTXO[]` | Yes | - | Available UTXOs to fund the deployment |
 | `from` | `string` | Yes | - | Deployer address |

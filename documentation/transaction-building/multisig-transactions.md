@@ -62,7 +62,7 @@ const psbt = await multiSigTx.signPSBT();
 | `to` | `string` | No | - | Target address |
 | `psbt` | `Psbt` | No | - | Existing PSBT to add signatures to |
 
-Note: The `signer`, `priorityFee`, and `gasSatFee` fields from `ITransactionParameters` are omitted. A dummy signer is used internally since actual signing happens via the PSBT workflow.
+Note: The `signer`, `priorityFee`, `gasSatFee`, `from`, and `to` fields from `ITransactionParameters` are omitted. `from` and `to` are re-declared as optional above. A dummy signer is used internally since actual signing happens via the PSBT workflow. The `mldsaSigner` field is inherited from `ITransactionParameters` (type `QuantumBIP32Interface | null`).
 
 ## Output Structure
 

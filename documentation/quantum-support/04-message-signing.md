@@ -250,9 +250,8 @@ const wallet = mnemonic.derive(0);
 const message = 'Hello, Bitcoin!';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-console.log('Message:', signed.message);
+console.log('Message:', toHex(signed.message));
 console.log('Signature:', toHex(signed.signature));
-console.log('Public Key:', toHex(signed.publicKey));
 console.log('Signature Size:', signed.signature.length);  // 64 bytes (Schnorr)
 ```
 
@@ -263,9 +262,9 @@ console.log('Signature Size:', signed.signature.length);  // 64 bytes (Schnorr)
 const message = 'Verify this Schnorr signature';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-// Verify signature
+// Verify signature (use the keypair's publicKey, not signed.publicKey which doesn't exist on SignedMessage)
 const isValid = MessageSigner.verifySignature(
-    signed.publicKey,
+    wallet.keypair.publicKey,
     signed.message,
     signed.signature
 );
@@ -416,11 +415,11 @@ import { MessageSigner } from '@btc-vision/transaction';
 const longMessage = 'This is a very long message that will be hashed before signing...';
 
 // Automatically hashed to 32 bytes before signing
-const hash = MessageSigner.sha256(longMessage);
+const hash = MessageSigner.sha256(new TextEncoder().encode(longMessage));
 console.log('Message hash:', toHex(hash));
 console.log('Hash length:', hash.length);  // 32 bytes
 
-// Then signed
+// Then signed (signMLDSAMessage accepts string directly and hashes internally)
 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, longMessage);
 ```
 
@@ -429,9 +428,9 @@ const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, longMessage);
 ```typescript
 // You can also sign pre-hashed data
 const message = 'Original message';
-const hash = MessageSigner.sha256(message);
+const hash = MessageSigner.sha256(new TextEncoder().encode(message));
 
-// Sign the hash directly
+// Sign the hash directly (passing Uint8Array)
 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, hash);
 ```
 
@@ -456,9 +455,9 @@ const message = JSON.stringify({
     nonce: crypto.randomBytes(16).toString('hex')
 });
 
-// Verify signatures before trusting
+// Verify signatures before trusting (first param is QuantumBIP32Interface keypair, not raw publicKey)
 const isValid = MessageSigner.verifyMLDSASignature(
-    publicKey,
+    mldsaKeypair,
     message,
     signature
 );
