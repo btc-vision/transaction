@@ -5,6 +5,7 @@ import {
     crypto as bitCrypto,
     type FinalScriptsFunc,
     fromHex,
+    type P2MRPayment,
     type P2TRPayment,
     PaymentType,
     Psbt,
@@ -17,6 +18,7 @@ import {
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import type { TapPayment } from '../shared/TweakedTransaction.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
 import {
     DeploymentGenerator,
@@ -371,7 +373,15 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Get the tap output
      * @protected
      */
-    protected override generateScriptAddress(): P2TRPayment {
+    protected override generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                name: PaymentType.P2MR,
+                network: this.network,
+                scriptTree: this.scriptTree,
+            } as P2MRPayment;
+        }
+
         return {
             name: PaymentType.P2TR,
             internalPubkey: this.internalPubKeyToXOnly(),
@@ -384,7 +394,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
      * Generate the tap data
      * @protected
      */
-    protected override generateTapData(): P2TRPayment {
+    protected override generateTapData(): TapPayment {
         const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -395,6 +405,15 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
         if (!this.scriptTree) {
             throw new Error('Script tree is required');
+        }
+
+        if (this.useP2MR) {
+            return {
+                name: PaymentType.P2MR,
+                network: this.network,
+                scriptTree: this.scriptTree,
+                redeem: selectedRedeem,
+            } as P2MRPayment;
         }
 
         return {

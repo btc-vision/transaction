@@ -64,6 +64,7 @@ const result = await factory.createCancellableTransaction(parameters);
 | `to` | `string` | Yes | - | Recovery address (typically the same as `from`) |
 | `feeRate` | `number` | Yes | - | Fee rate in sat/vB (should be higher than the stuck transaction) |
 | `compiledTargetScript` | `string \| Uint8Array` | Yes | - | The compiled target script from the original interaction/deployment |
+| `useP2MR` | `boolean` | No | `false` | Must match the original transaction's output type. Set `true` if the stuck UTXO is a P2MR output. |
 
 The `compiledTargetScript` is the script that was embedded in the first leaf of the original Taproot tree. It is available from:
 - `InteractionResponse.compiledTargetScript` (after `signInteraction()`)
@@ -279,6 +280,7 @@ try {
 4. **Recover to your own address.** Set `to` to the same address as `from` for straightforward fund recovery.
 5. **Use the same signer.** The cancel transaction must use the same key pair that created the original funding transaction, since the lock leaf requires a signature from the original owner.
 6. **Monitor pending transactions.** Implement a system that tracks pending two-transaction flows and automatically triggers cancellation if the second transaction fails.
+7. **Match the output type.** If the original transaction used P2MR (`useP2MR: true`), the cancel transaction must also use `useP2MR: true` to reconstruct the same script tree.
 
 ---
 

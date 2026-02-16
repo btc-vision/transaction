@@ -57,6 +57,7 @@ const result = await factory.signDeployment(parameters);
 | `calldata` | `Uint8Array` | No | - | Constructor calldata (ABI-encoded constructor arguments) |
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte salt for contract address derivation |
 | `challenge` | `IChallengeSolution` | Yes | - | Epoch challenge solution (proof of work) |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR for the script address. P2MR eliminates the quantum-vulnerable key-path spend. |
 
 ### Constraints
 
@@ -235,6 +236,7 @@ try {
 4. **Broadcast in order.** The funding transaction must confirm (or at least enter the mempool) before the deployment transaction can be accepted.
 5. **Track refund UTXOs.** Use `result.utxos` as inputs for your next transaction.
 6. **Verify contract size.** The 128 KB limit applies to the compressed bytecode including the version prefix.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without exposing an internal public key, making it resistant to quantum key-path attacks. The script address will start with `bc1z` instead of `bc1p`.
 
 ---
 

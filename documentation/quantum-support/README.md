@@ -27,15 +27,16 @@ Complete guide to generating and managing quantum-resistant wallets using BIP39 
 - Advanced usage
 
 ### [3. Address Generation](./03-address-generation.md)
-Learn to generate P2OP and classical Bitcoin addresses for all networks.
+Learn to generate P2OP, P2MR, and classical Bitcoin addresses for all networks.
 
 **Topics covered:**
 - P2OP addresses (Pay-to-OPNet, for contract addresses)
+- P2MR addresses (Pay-to-Merkle-Root, BIP 360, quantum-safe)
 - Classical addresses (P2TR, P2WPKH, P2PKH, P2SH)
 - P2WDA (Witness Data Authentication)
 - Network support (mainnet, testnet, regtest)
 - Address comparison and ordering
-- Time-locked addresses (CSV)
+- Time-locked addresses (CSV, including P2MR CSV)
 - Address caching
 
 ### [4. Message Signing](./04-message-signing.md)

@@ -80,6 +80,7 @@ This implementation adds:
 4. **Message Signing** - ML-DSA and Schnorr signature support
 5. **Address Verification** - Validation for ML-DSA public keys and classical address types
 6. **Security Levels** - Three levels of quantum resistance (LEVEL2, LEVEL3, LEVEL5)
+7. **P2MR (Pay-to-Merkle-Root, BIP 360)** - Quantum-safe output type that commits directly to a Merkle root without a key-path spend. All transaction builders support P2MR via the `useP2MR` flag.
 
 ## Next Steps
 

@@ -21,6 +21,7 @@ Complete reference for all Bitcoin address types supported by the `@btc-vision/t
 | P2WPKH | `bc1q...` (42 chars) | v0 | ~0.68x | Full | Pay-to-Witness-Public-Key-Hash |
 | P2WSH | `bc1q...` (62 chars) | v0 | ~0.68x | Full | Pay-to-Witness-Script-Hash |
 | P2TR | `bc1p...` | v1 | ~0.57x | Full | Pay-to-Taproot |
+| P2MR | `bc1z...` | v2 | ~0.57x | Full | Pay-to-Merkle-Root (BIP 360) |
 | P2OP | `bcrt1p...` / `bc1p...` | v16 | N/A | Contracts only | Pay-to-OPNet |
 | P2WDA | `bc1q...` (P2WSH) | v0 | N/A | Data witness | Pay-to-Witness-Data-Authentication |
 | P2A | Anchor output | N/A | Minimal | Full | Pay-to-Anchor (CPFP) |
@@ -210,12 +211,90 @@ const p2trAddress = AddressGenerator.generateTaprootAddress(xOnlyPubKey, network
 
 ### Role in OPNet
 
-P2TR is the **primary address type** for OPNet:
+P2TR is the **default address type** for OPNet:
 
 - **Contract addresses** are P2TR (Taproot) addresses
 - **User wallets** typically use P2TR for the best fee efficiency
 - **Interaction transactions** embed data in Tapscript leaves
 - **Deployment transactions** use Tapscript for bytecode embedding
+
+> **Quantum Safety:** For quantum-resistant outputs, use **P2MR** (BIP 360) instead. All transaction builders accept `useP2MR: true` to switch from P2TR to P2MR. See the [P2MR section](#p2mr----pay-to-merkle-root-bip-360) below.
+
+---
+
+## P2MR -- Pay-to-Merkle-Root (BIP 360)
+
+A quantum-safe SegWit version 2 output type that commits directly to a Merkle root, eliminating the quantum-vulnerable key-path spend of P2TR.
+
+| Property | Value |
+|----------|-------|
+| Prefix (mainnet) | `bc1z` |
+| Prefix (testnet) | `tb1z` |
+| Prefix (regtest) | `bcrt1z` |
+| Encoding | Bech32m |
+| Address length | 62 characters (mainnet) |
+| Data length | 32 bytes (Merkle root) |
+| Witness version | 2 |
+| Output format | `OP_2 <32-byte merkle_root>` |
+
+### Key Difference from P2TR
+
+P2MR has **no internal public key** and therefore **no key-path spend**. All spending must go through the script-path. This eliminates the quantum attack vector where a quantum computer could derive the private key from the internal public key exposed in the output.
+
+| Feature | P2TR | P2MR |
+|---------|------|------|
+| Internal pubkey | Yes (exposed in output) | No |
+| Key-path spend | Yes | No |
+| Script-path spend | Yes | Yes |
+| Control block size | `33 + 32*m` bytes | `1 + 32*m` bytes |
+| Quantum resistance | Vulnerable (key-path) | Resistant |
+| Address prefix | `bc1p` | `bc1z` |
+
+### Detection
+
+```typescript
+import { isP2MR } from '@btc-vision/bitcoin';
+
+const isP2MROutput = isP2MR(scriptPubKey);
+// true if version=2 and data=32 bytes
+```
+
+### Usage in Transactions
+
+All transaction builders support P2MR via the `useP2MR` flag:
+
+```typescript
+const result = await factory.signInteraction({
+    // ... other params
+    useP2MR: true,   // Use P2MR instead of P2TR
+});
+```
+
+When `useP2MR` is `true`, the transaction builder:
+- Generates P2MR outputs (no internal pubkey)
+- Uses smaller control blocks (32 bytes saved per script-path input)
+- Produces addresses starting with `bc1z` instead of `bc1p`
+- Only supports script-path spending (no key-path)
+
+### Multi-Signature with P2MR
+
+```typescript
+import { P2MR_MS } from '@btc-vision/transaction';
+
+const multisigAddress = P2MR_MS.generateMultiSigAddress(
+    [pubkey1, pubkey2, pubkey3],
+    2,                       // 2-of-3
+    networks.bitcoin,
+);
+// Returns bc1z... address
+```
+
+### CSV Time-Locked P2MR Addresses
+
+```typescript
+const csvAddress = address.toCSVP2MR(144, networks.bitcoin);
+// Returns a P2MR address with a 144-block CSV timelock
+```
 
 ---
 
@@ -367,6 +446,9 @@ switch (type) {
     case AddressTypes.P2TR:
         console.log('Taproot address');
         break;
+    case AddressTypes.P2MR:
+        console.log('Pay-to-Merkle-Root address (quantum-safe)');
+        break;
     case AddressTypes.P2WPKH:
         console.log('Native SegWit address');
         break;
@@ -402,7 +484,8 @@ Address prefixes vary by network:
 | P2PKH | `1` | `m` / `n` | `m` / `n` |
 | P2SH | `3` | `2` | `2` |
 | Bech32 (v0) | `bc1q` | `tb1q` | `bcrt1q` |
-| Bech32m (v1+) | `bc1p` | `tb1p` | `bcrt1p` |
+| Bech32m (v1, P2TR) | `bc1p` | `tb1p` | `bcrt1p` |
+| Bech32m (v2, P2MR) | `bc1z` | `tb1z` | `bcrt1z` |
 
 ---
 
@@ -418,6 +501,7 @@ Different address types require different fields in the `UTXO` interface:
 | P2WPKH | Required | -- | -- | -- |
 | P2WSH | Required | -- | Required | -- |
 | P2TR | Required | -- | -- | -- |
+| P2MR | Required | -- | -- | -- |
 | P2WDA | Required | -- | Required | -- |
 
 ```typescript

@@ -41,6 +41,7 @@ The base interface that provides signing and network configuration. Every transa
 | `txVersion` | `SupportedTransactionVersion` | No | Bitcoin transaction version. Supported values: `1`, `2`, or `3`. Version 2 enables BIP68 relative timelocks; version 3 enables BIP431 features. |
 | `addressRotation` | `AddressRotationConfigBase` | No | Per-UTXO signing configuration. When enabled, different UTXOs can be signed by different signers based on their addresses. See [Address Rotation](#address-rotation-configuration). |
 | `parallelSigning` | `SigningPoolLike \| WorkerPoolConfig` | No | Parallel signing configuration using worker threads. When provided, key-path Taproot inputs are signed in parallel for performance. Falls back to sequential for address rotation, browser, or non-Taproot inputs. |
+| `useP2MR` | `boolean` | No | When `true`, use P2MR (Pay-to-Merkle-Root, BIP 360) instead of P2TR for script-path outputs. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure. Addresses start with `bc1z` instead of `bc1p`. Default: `false` (P2TR). |
 
 ### SupportedTransactionVersion
 

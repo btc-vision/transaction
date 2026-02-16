@@ -1,6 +1,7 @@
 import {
     crypto as bitCrypto,
     type FinalScriptsFunc,
+    type P2MRPayment,
     type P2TRPayment,
     PaymentType,
     Psbt,
@@ -14,6 +15,7 @@ import {
 import { TransactionType } from '../enums/TransactionType.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import type { TapPayment } from '../shared/TweakedTransaction.js';
 import { CustomGenerator } from '../../generators/builders/CustomGenerator.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
@@ -248,7 +250,15 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Get the tap output
      * @protected
      */
-    protected override generateScriptAddress(): P2TRPayment {
+    protected override generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -261,7 +271,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
      * Generate the tap data
      * @protected
      */
-    protected override generateTapData(): P2TRPayment {
+    protected override generateTapData(): TapPayment {
         const selectedRedeem = this.contractSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -272,6 +282,15 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
 
         if (!this.scriptTree) {
             throw new Error('Script tree is required');
+        }
+
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                redeem: selectedRedeem,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
         }
 
         return {

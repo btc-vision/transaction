@@ -2,6 +2,7 @@ import { TransactionType } from '../enums/TransactionType.js';
 import {
     type FinalScriptsFunc,
     fromHex,
+    type P2MRPayment,
     type P2TRPayment,
     PaymentType,
     Psbt,
@@ -10,6 +11,7 @@ import {
     type Taptree,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import type { TapPayment } from '../shared/TweakedTransaction.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
 import type { ICancelTransactionParameters } from '../interfaces/ICancelTransactionParameters.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
@@ -118,7 +120,15 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
     /**
      * Generate the script address (for verification purposes)
      */
-    protected override generateScriptAddress(): P2TRPayment {
+    protected override generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -130,17 +140,7 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
     /**
      * Generate the tap data for spending
      */
-    /*protected override generateTapData(): P2TRPayment {
-        const internalPubkey = this.internalPubKeyToXOnly();
-
-        return {
-            name: PaymentType.P2TR,
-            internalPubkey: internalPubkey,
-            network: this.network,
-            scriptTree: this.scriptTree, // This is crucial for the tweak
-        };
-    }*/
-    protected override generateTapData(): P2TRPayment {
+    protected override generateTapData(): TapPayment {
         const selectedRedeem = this.leftOverFundsScriptRedeem;
 
         if (!selectedRedeem) {
@@ -149,6 +149,15 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
 
         if (!this.scriptTree) {
             throw new Error('Script tree is required');
+        }
+
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                redeem: selectedRedeem,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
         }
 
         return {

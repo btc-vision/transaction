@@ -70,6 +70,7 @@ The return type is a tuple: `[string, string, UTXO[], UTXO[]]`.
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte random salt |
 | `annex` | `Uint8Array` | No | - | Optional Taproot annex data (without `0x50` prefix) |
 | `mldsaSigner` | `QuantumBIP32Interface \| null` | No | - | ML-DSA signer |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the quantum-vulnerable key-path spend. |
 
 ## Script and Witness Structure
 
@@ -274,6 +275,7 @@ try {
 4. **Use annex sparingly.** The Taproot annex is non-standard and may cause issues with some nodes or services.
 5. **Broadcast in order.** The funding transaction must be accepted before the custom script transaction can spend its output.
 6. **Track change UTXOs.** The third element of the return tuple (`nextUTXOs`) contains your new spendable outputs.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR (BIP 360) outputs instead of P2TR, eliminating the quantum-vulnerable internal pubkey.
 
 ---
 

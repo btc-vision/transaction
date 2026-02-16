@@ -15,6 +15,7 @@ OPNet supports multiple address types for different use cases:
 | Address Type | Format | Use Case | Quantum Support |
 |-------------|--------|----------|----------------|
 | **P2OP** | bc1s... (v16) | OPNet contract addresses | ✅ Quantum (contracts only) |
+| **P2MR** | bc1z... (v2) | Quantum-safe user wallets (BIP 360) | ✅ Quantum |
 | **P2QRH** | TBD | Quantum-resistant user addresses | ✅ Quantum (NOT IMPLEMENTED) |
 | **P2TR** | bc1p... (v1) | Taproot, privacy, efficiency | ❌ Classical |
 | **P2WPKH** | bc1q... (v0) | SegWit, standard Bitcoin | ❌ Classical |
@@ -266,6 +267,45 @@ addresses.sort((a, b) => {
 });
 ```
 
+## P2MR Addresses (BIP 360)
+
+P2MR (Pay-to-Merkle-Root) is a quantum-safe SegWit version 2 output type. Unlike P2TR, P2MR commits directly to a Merkle root without an internal public key, eliminating the quantum-vulnerable key-path spend.
+
+### P2MR in Transactions
+
+All transaction builders support P2MR via the `useP2MR` flag:
+
+```typescript
+// Deploy a contract using P2MR
+const result = await factory.signDeployment({
+    // ... other params
+    useP2MR: true,   // Use P2MR instead of P2TR
+});
+// Script address starts with bc1z... instead of bc1p...
+```
+
+### P2MR Multi-Signature
+
+```typescript
+import { P2MR_MS } from '@btc-vision/transaction';
+
+const multisigAddress = P2MR_MS.generateMultiSigAddress(
+    [pubkey1, pubkey2, pubkey3],
+    2,                       // 2-of-3
+    networks.bitcoin,
+);
+console.log('P2MR Multisig:', multisigAddress);
+// Output: bc1z...
+```
+
+### P2MR CSV Time-Locked
+
+```typescript
+const csvP2MR = wallet.address.toCSVP2MR(144, networks.bitcoin);
+console.log('P2MR CSV (144 blocks):', csvP2MR);
+// Output: bc1z...
+```
+
 ## Time-Locked Addresses (CSV)
 
 ### CheckSequenceVerify Addresses
@@ -285,6 +325,15 @@ const addr1Month = wallet.address.toCSV(4320, networks.bitcoin); // ~1 month
 // Valid range: 1 to 65535 blocks
 const minLock = wallet.address.toCSV(1, networks.bitcoin);
 const maxLock = wallet.address.toCSV(65535, networks.bitcoin);
+```
+
+### P2MR CSV Time-Locked
+
+```typescript
+// Create a P2MR time-locked address (quantum-safe CSV)
+const csvP2MR = wallet.address.toCSVP2MR(144, networks.bitcoin);
+console.log('P2MR CSV (1 day):', csvP2MR);
+// Output: bc1z... (no key-path, quantum-safe)
 ```
 
 ## Complete Example

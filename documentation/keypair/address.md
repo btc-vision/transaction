@@ -47,6 +47,7 @@ The `Address` class extends `Uint8Array` (always 32 bytes) and implements `Dispo
   - [toJSON()](#tojson)
   - [toCSV()](#tocsv)
   - [toCSVTweaked()](#tocsvtweaked)
+  - [toCSVP2MR()](#tocsvp2mr)
   - [\[Symbol.dispose\]()](#symboldispose)
 - [Properties](#properties)
 - [Lazy Loading Architecture](#lazy-loading-architecture)
@@ -599,6 +600,28 @@ Generates a P2TR address with a CSV time lock using the tweaked public key.
 | `network` | `Network` | Yes | The Bitcoin network. |
 
 **Returns:** `string` -- the time-locked Taproot address.
+
+### toCSVP2MR()
+
+```typescript
+toCSVP2MR(duration: bigint | number | string, network: Network): string
+```
+
+Generates a P2MR address with a CSV time lock using the tweaked public key. P2MR (BIP 360) commits directly to a Merkle root without an internal public key, providing quantum resistance.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `duration` | `bigint \| number \| string` | Yes | Number of blocks before spending is allowed (1-65535). |
+| `network` | `Network` | Yes | The Bitcoin network. |
+
+**Returns:** `string` -- the time-locked P2MR address (e.g., `bc1z...`).
+
+**Throws:** `Error` if the duration is out of range or the public key is not set.
+
+```typescript
+const csvP2MR = address.toCSVP2MR(144, networks.bitcoin);
+// Returns a bc1z... address with a 144-block CSV timelock
+```
 
 ### \[Symbol.dispose\]()
 

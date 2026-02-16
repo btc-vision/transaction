@@ -189,6 +189,7 @@ interface ITweakedTransactionData {
     readonly txVersion?: SupportedTransactionVersion;
     readonly addressRotation?: AddressRotationConfigBase;
     readonly parallelSigning?: SigningPoolLike | WorkerPoolConfig;
+    readonly useP2MR?: boolean;
 }
 ```
 
@@ -204,6 +205,7 @@ interface ITweakedTransactionData {
 | `txVersion` | `SupportedTransactionVersion` | No | `2` | Bitcoin transaction version (1, 2, or 3) |
 | `addressRotation` | `AddressRotationConfigBase` | No | -- | Per-UTXO signing configuration |
 | `parallelSigning` | `SigningPoolLike \| WorkerPoolConfig` | No | -- | Worker pool for parallel input signing |
+| `useP2MR` | `boolean` | No | `false` | When `true`, use P2MR (Pay-to-Merkle-Root, BIP 360) instead of P2TR. P2MR commits to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure. Outputs use `OP_2 <32-byte merkle_root>` and addresses start with `bc1z`. |
 
 ---
 

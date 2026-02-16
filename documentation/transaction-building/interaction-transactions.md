@@ -86,6 +86,7 @@ flowchart TB
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte random salt |
 | `loadedStorage` | `LoadedStorage` | No | - | Access list for gas optimization |
 | `disableAutoRefund` | `boolean` | No | `false` | Skip the automatic refund output |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates quantum-vulnerable key-path spend. |
 
 ### Constraints
 
@@ -286,6 +287,7 @@ try {
 4. **Track change UTXOs.** Use `result.nextUTXOs` for subsequent transactions.
 5. **Set appropriate fees.** Both `priorityFee` and `gasSatFee` affect how validators prioritize your interaction.
 6. **Handle P2WDA automatically.** If your UTXOs are P2WDA type, the factory automatically uses the single-transaction P2WDA path (no funding transaction needed).
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360). P2MR commits to a Merkle root without an internal pubkey, eliminating the quantum-vulnerable key-path spend of P2TR.
 
 ---
 
