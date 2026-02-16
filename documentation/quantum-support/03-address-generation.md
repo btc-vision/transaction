@@ -16,7 +16,7 @@ OPNet supports multiple address types for different use cases:
 |-------------|--------|----------|----------------|
 | **P2OP** | bc1s... (v16) | OPNet contract addresses | ✅ Quantum (contracts only) |
 | **P2MR** | bc1z... (v2) | Quantum-safe user wallets (BIP 360) | ✅ Quantum |
-| **P2QRH** | TBD | Quantum-resistant user addresses | ✅ Quantum (NOT IMPLEMENTED) |
+| **P2QRH** | TBD | Quantum-resistant hash-based addresses | ✅ Quantum (NOT IMPLEMENTED, separate BIP) |
 | **P2TR** | bc1p... (v1) | Taproot, privacy, efficiency | ❌ Classical |
 | **P2WPKH** | bc1q... (v0) | SegWit, standard Bitcoin | ❌ Classical |
 | **P2PKH** | 1... | Legacy Bitcoin | ❌ Classical |
@@ -37,7 +37,7 @@ OPNet supports multiple address types for different use cases:
 
 The quantum address (`address.toHex()`) is the user's universal public key - a 32-byte hash that can be encoded in various formats like P2OP.
 
-> **Note:** For quantum-resistant user addresses, **P2QRH** (Pay-to-Quantum-Resistant-Hash) will be implemented in the future. P2OP currently only supports quantum for contract addresses.
+> **Note:** For quantum-safe user wallet outputs, use **P2MR** (Pay-to-Merkle-Root, BIP 360) via the `useP2MR` flag on transaction builders. P2MR eliminates the quantum-vulnerable key-path spend by committing directly to a Merkle root. P2OP is used exclusively for contract addresses. **P2QRH** is a separate, unrelated BIP proposal that is not yet implemented.
 
 ## Classical Addresses
 

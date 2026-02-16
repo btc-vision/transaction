@@ -22,7 +22,7 @@ Complete reference for all Bitcoin address types supported by the `@btc-vision/t
 | P2WSH | `bc1q...` (62 chars) | v0 | ~0.68x | Full | Pay-to-Witness-Script-Hash |
 | P2TR | `bc1p...` | v1 | ~0.57x | Full | Pay-to-Taproot |
 | P2MR | `bc1z...` | v2 | ~0.57x | Full | Pay-to-Merkle-Root (BIP 360) |
-| P2OP | `bcrt1p...` / `bc1p...` | v16 | N/A | Contracts only | Pay-to-OPNet |
+| P2OP | `bc1s...` / `bcrt1s...` | v16 | N/A | Contracts only | Pay-to-OPNet |
 | P2WDA | `bc1q...` (P2WSH) | v0 | N/A | Data witness | Pay-to-Witness-Data-Authentication |
 | P2A | Anchor output | N/A | Minimal | Full | Pay-to-Anchor (CPFP) |
 | P2PK | Raw public key | N/A | N/A | Limited | Pay-to-Public-Key |
