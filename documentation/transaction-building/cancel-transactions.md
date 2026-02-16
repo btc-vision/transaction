@@ -4,7 +4,7 @@ Recover funds from stuck or failed transactions using `CancelTransaction`.
 
 ## Overview
 
-A `CancelTransaction` recovers funds that are locked in a Taproot script address from a previous interaction or deployment that failed to confirm or got stuck. It spends the script UTXO via the lock leaf (the second leaf in the Taproot script tree) and sends the funds back to the sender's address.
+A `CancelTransaction` recovers funds that are locked in a script address (P2TR or P2MR) from a previous interaction or deployment that failed to confirm or got stuck. It spends the script UTXO via the lock leaf (the second leaf in the Taproot script tree) and sends the funds back to the sender's address.
 
 ```mermaid
 flowchart LR

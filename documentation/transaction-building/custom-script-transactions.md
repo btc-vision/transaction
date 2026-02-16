@@ -4,12 +4,12 @@ Execute arbitrary Bitcoin scripts using `CustomScriptTransaction`.
 
 ## Overview
 
-`CustomScriptTransaction` allows you to embed and execute arbitrary Bitcoin scripts within a Taproot transaction. It uses a two-transaction model similar to interactions: a funding transaction creates a UTXO at a derived script address, and the custom script transaction spends that UTXO by satisfying the embedded script.
+`CustomScriptTransaction` allows you to embed and execute arbitrary Bitcoin scripts within a Taproot or P2MR transaction. It uses a two-transaction model similar to interactions: a funding transaction creates a UTXO at a derived script address (P2TR or P2MR), and the custom script transaction spends that UTXO by satisfying the embedded script.
 
 ```mermaid
 flowchart LR
     subgraph TX1["Transaction 1: Funding"]
-        U["User UTXOs"] --> SA["Script Address<br/>(P2TR)"]
+        U["User UTXOs"] --> SA["Script Address<br/>(P2TR / P2MR)"]
         U --> Change["Change Output"]
     end
 
@@ -214,6 +214,7 @@ async function executeCustomScript() {
             gasSatFee: 500n,
             script: customScript,
             witnesses,
+            // useP2MR: true,  // Uncomment for quantum-safe P2MR output (bc1z...)
         });
 
     // Broadcast both transactions in order
@@ -275,7 +276,7 @@ try {
 4. **Use annex sparingly.** The Taproot annex is non-standard and may cause issues with some nodes or services.
 5. **Broadcast in order.** The funding transaction must be accepted before the custom script transaction can spend its output.
 6. **Track change UTXOs.** The third element of the return tuple (`nextUTXOs`) contains your new spendable outputs.
-7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR (BIP 360) outputs instead of P2TR, eliminating the quantum-vulnerable internal pubkey.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure.
 
 ---
 

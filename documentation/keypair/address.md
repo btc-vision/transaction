@@ -607,7 +607,7 @@ Generates a P2TR address with a CSV time lock using the tweaked public key.
 toCSVP2MR(duration: bigint | number | string, network: Network): string
 ```
 
-Generates a P2MR address with a CSV time lock using the tweaked public key. P2MR (BIP 360) commits directly to a Merkle root without an internal public key, providing quantum resistance.
+Generates a P2MR address with a CSV time lock. The CSV script uses the tweaked public key for OP_CHECKSIG, but the P2MR output itself commits directly to the Merkle root without exposing an internal public key, providing quantum resistance.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -723,3 +723,4 @@ console.log(burnAddress.toHex());   // '0x0000...0000'
 - [AddressVerificator](./address-verificator.md) -- Address validation utilities
 - [Mnemonic](./mnemonic.md) -- BIP39 + BIP360 quantum wallet derivation
 - [P2WDA Addresses](../addresses/P2WDA.md) -- Pay-to-Witness-Data-Authentication
+- [Address Types Overview](../addresses/address-types.md) -- All supported Bitcoin address types (P2TR, P2MR, P2WPKH, P2PKH, etc.)

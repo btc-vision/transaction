@@ -723,5 +723,5 @@ Represents a P2WSH output with HASH160 commitments to data chunks.
 ## Navigation
 
 - **Previous:** [Transaction Factory](./transaction-factory.md)
-- **Up:** [Transaction Building Guide](../transaction-building.md)
-- **Related:** [Offline Transaction Signing](../offline-transaction-signing.md)
+- **Up:** [README](../README.md)
+- **Related:** [Offline Transaction Signing](../offline/offline-transaction-signing.md)

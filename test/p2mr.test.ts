@@ -8,6 +8,8 @@ import {
     toHex,
     toXOnly,
     type P2MRPayment,
+    type Taptree,
+    type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
@@ -519,7 +521,7 @@ describe('P2MR Support', () => {
         it('should throw if public key is not 32 bytes', () => {
             expect(() =>
                 TimeLockGenerator.generateTimeLockAddressP2MR(
-                    signer.publicKey, // 33 bytes, not x-only
+                    new Uint8Array(33) as XOnlyPublicKey, // 33 bytes, not x-only — intentionally invalid
                     network,
                     10,
                 ),
@@ -693,7 +695,7 @@ describe('P2MR Support', () => {
                 opcodes.OP_CHECKSIG,
             ]);
 
-            const scriptTree = [
+            const scriptTree: Taptree = [
                 { output: witnessScript, version: 192 },
                 {
                     output: script.compile([opcodes.OP_XOR, opcodes.OP_NOP, opcodes.OP_CODESEPARATOR]),

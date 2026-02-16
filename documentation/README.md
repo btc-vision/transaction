@@ -300,9 +300,11 @@ See the [Complete Quantum Support Guide](./quantum-support/README.md) for a full
 
 1. [Introduction](./quantum-support/01-introduction.md) -- ML-DSA overview, security levels (LEVEL2, LEVEL3, LEVEL5)
 2. [Mnemonic & Wallet](./quantum-support/02-mnemonic-and-wallet.md) -- BIP39 + BIP360 derivation
-3. [Address Generation](./quantum-support/03-address-generation.md) -- All address formats
+3. [Address Generation](./quantum-support/03-address-generation.md) -- All address formats, including P2MR
 4. [Message Signing](./quantum-support/04-message-signing.md) -- ML-DSA and Schnorr signatures
-5. [Address Verification](./quantum-support/05-address-verification.md) -- Public key validation
+5. [Address Verification](./quantum-support/05-address-verification.md) -- Public key validation, P2MR detection
+
+For P2MR address details, see also [Address Types Overview](./addresses/address-types.md#p2mr-pay-to-merkle-root-bip-360).
 
 ---
 

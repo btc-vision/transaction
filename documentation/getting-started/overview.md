@@ -81,7 +81,7 @@ sequenceDiagram
     participant Network as Bitcoin Network
 
     User->>FundingTx: 1. Create funding transaction
-    Note over FundingTx: Sends exact amount to<br/>a one-time Taproot address
+    Note over FundingTx: Sends exact amount to<br/>a one-time script address<br/>(P2TR or P2MR)
 
     User->>InteractionTx: 2. Create interaction transaction
     Note over InteractionTx: Spends funding output,<br/>embeds calldata in Tapscript
@@ -293,6 +293,7 @@ console.log(wallet.quantumPublicKey.length);
 flowchart LR
     MLDSA["ML-DSA Public Key<br/>(1312 bytes)"] -->|SHA-256| OPNet["OPNet Address<br/>(32 bytes)"]
     Secp["secp256k1 Public Key<br/>(33 bytes)"] -->|Taproot tweak| P2TR["Bitcoin P2TR<br/>(bc1p...)"]
+    Secp -->|Merkle root| P2MR["Bitcoin P2MR<br/>(bc1z...)"]
 
     subgraph Wallet["Wallet Instance"]
         MLDSA
@@ -302,6 +303,7 @@ flowchart LR
     subgraph Addresses["Derived Addresses"]
         OPNet
         P2TR
+        P2MR
     end
 ```
 

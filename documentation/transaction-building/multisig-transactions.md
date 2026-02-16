@@ -61,7 +61,7 @@ const psbt = await multiSigTx.signPSBT();
 | `from` | `string` | No | - | Source address |
 | `to` | `string` | No | - | Target address |
 | `psbt` | `Psbt` | No | - | Existing PSBT to add signatures to |
-| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the NUMS point internal key. |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the quantum-vulnerable key-path spend (no NUMS point needed). |
 
 Note: The `signer`, `priorityFee`, `gasSatFee`, `from`, and `to` fields from `ITransactionParameters` are omitted. `from` and `to` are re-declared as optional above. A dummy signer is used internally since actual signing happens via the PSBT workflow. The `mldsaSigner` field is inherited from `ITransactionParameters` (type `QuantumBIP32Interface | null`).
 
@@ -365,7 +365,7 @@ try {
 4. **Validate the refund amount.** Ensure `requestedAmount` does not exceed the total UTXO value to avoid a negative refund.
 5. **Check `result.final` after each signature.** If the threshold is met, finalize and broadcast immediately rather than collecting unnecessary extra signatures.
 6. **Keep the NUMS point.** The internal key is a standard NUMS point that ensures only script-path spending. Do not change this.
-7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR (BIP 360), which eliminates the internal pubkey entirely. Use `P2MR_MS.generateMultiSigAddress()` for P2MR multisig address generation.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure. Use `P2MR_MS.generateMultiSigAddress()` for P2MR multisig address generation.
 
 ---
 

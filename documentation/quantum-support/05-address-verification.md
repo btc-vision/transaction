@@ -124,6 +124,11 @@ console.log('P2WPKH type:', p2wpkhType);  // AddressTypes.P2WPKH
 const p2pkh = wallet.p2pkh;
 const p2pkhType = AddressVerificator.detectAddressType(p2pkh, networks.bitcoin);
 console.log('P2PKH type:', p2pkhType);  // AddressTypes.P2PKH
+
+// P2MR Detection (quantum-safe, BIP 360)
+const p2mrAddr = 'bc1z...';  // P2MR address from useP2MR output
+const p2mrType = AddressVerificator.detectAddressType(p2mrAddr, networks.bitcoin);
+console.log('P2MR type:', p2mrType);  // AddressTypes.P2MR
 ```
 
 ### Available Address Types
@@ -134,6 +139,7 @@ enum AddressTypes {
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',  // Script hash (3...)
     P2PK = 'P2PK',                        // Public key
     P2TR = 'P2TR',                        // Taproot (bc1p...)
+    P2MR = 'P2MR',                        // Merkle Root / BIP 360 (bc1z...)
     P2WPKH = 'P2WPKH',                    // SegWit (bc1q...)
     P2WSH = 'P2WSH',                      // SegWit script (bc1q...)
     P2WDA = 'P2WDA',                      // Witness data auth
