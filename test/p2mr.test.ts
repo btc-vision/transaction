@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+    hash256,
     networks,
     opcodes,
     payments,
@@ -7,7 +8,6 @@ import {
     script,
     toHex,
     toXOnly,
-    type P2MRPayment,
     type Taptree,
     type XOnlyPublicKey,
 } from '@btc-vision/bitcoin';
@@ -423,9 +423,8 @@ describe('P2MR Support', () => {
     describe('P2MR CustomScriptTransaction', () => {
         it('should produce a bc1z script address when useP2MR is true', () => {
             const utxo = createTaprootUtxo(taprootAddress, 100_000n);
-            const { crypto: bitCrypto } = require('@btc-vision/bitcoin');
             const fixedRandomBytes = new Uint8Array(32).fill(0x42);
-            const contractSeed = bitCrypto.hash256(fixedRandomBytes);
+            const contractSeed = hash256(fixedRandomBytes);
             const contractSigner = EcKeyPair.fromSeedKeyPair(contractSeed, network);
             const contractXOnly = toXOnly(contractSigner.publicKey);
             const signerXOnly = toXOnly(signer.publicKey);
@@ -667,10 +666,12 @@ describe('P2MR Support', () => {
             expect(p2mr.name).toBe(PaymentType.P2MR);
 
             // P2MR output: OP_2 <32-byte merkle_root> = 34 bytes
-            expect(p2mr.output!.length).toBe(34);
-            expect(p2mr.output![0]).toBe(opcodes.OP_2);
+            const p2mrOutput = p2mr.output;
+            expect(p2mrOutput).toBeDefined();
+            expect(p2mrOutput?.length).toBe(34);
+            expect(p2mrOutput?.[0]).toBe(opcodes.OP_2);
             // 0x20 = 32 (push 32 bytes)
-            expect(p2mr.output![1]).toBe(0x20);
+            expect(p2mrOutput?.[1]).toBe(0x20);
         });
 
         it('P2MR has no internalPubkey in payment', () => {
@@ -680,13 +681,13 @@ describe('P2MR Support', () => {
             ]);
 
             const scriptTree = { output: witnessScript, version: 192 };
-            const p2mr = payments.p2mr({ scriptTree, network }) as P2MRPayment;
+            const p2mr = payments.p2mr({ scriptTree, network });
 
             // P2MR should NOT have internalPubkey
-            expect((p2mr as any).internalPubkey).toBeUndefined();
+            expect('internalPubkey' in p2mr && p2mr.internalPubkey).toBeFalsy();
             // P2MR should have hash (merkle root)
             expect(p2mr.hash).toBeDefined();
-            expect(p2mr.hash!.length).toBe(32);
+            expect(p2mr.hash?.length).toBe(32);
         });
 
         it('P2MR witness is smaller than P2TR witness (no internal pubkey in control block)', () => {
@@ -717,15 +718,19 @@ describe('P2MR Support', () => {
             });
 
             // Both should have witness arrays
-            expect(p2mr.witness).toBeDefined();
-            expect(p2tr.witness).toBeDefined();
-            expect(p2mr.witness!.length).toBeGreaterThan(0);
-            expect(p2tr.witness!.length).toBeGreaterThan(0);
+            const p2mrWitness = p2mr.witness;
+            const p2trWitness = p2tr.witness;
+            expect(p2mrWitness).toBeDefined();
+            expect(p2trWitness).toBeDefined();
+            expect(p2mrWitness?.length).toBeGreaterThan(0);
+            expect(p2trWitness?.length).toBeGreaterThan(0);
 
             // P2MR control block should be 32 bytes smaller (no internal pubkey)
-            const p2mrControlBlock = p2mr.witness![p2mr.witness!.length - 1] as Uint8Array;
-            const p2trControlBlock = p2tr.witness![p2tr.witness!.length - 1] as Uint8Array;
-            expect(p2trControlBlock.length - p2mrControlBlock.length).toBe(32);
+            const p2mrControlBlock = p2mrWitness?.[p2mrWitness.length - 1];
+            const p2trControlBlock = p2trWitness?.[p2trWitness.length - 1];
+            expect(p2mrControlBlock).toBeDefined();
+            expect(p2trControlBlock).toBeDefined();
+            expect((p2trControlBlock?.length ?? 0) - (p2mrControlBlock?.length ?? 0)).toBe(32);
         });
     });
 });

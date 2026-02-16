@@ -212,68 +212,70 @@ describe('Browser Parallel Signing', () => {
 
             // Serialize all concurrently
             const serialized = await Promise.all(
-                states.map(async (state) => TransactionSerializer.serialize(state)),
+                states.map((state) => Promise.resolve(TransactionSerializer.serialize(state))),
             );
 
             // Deserialize all concurrently
             const deserialized = await Promise.all(
-                serialized.map(async (data) => TransactionSerializer.deserialize(data)),
+                serialized.map((data) => Promise.resolve(TransactionSerializer.deserialize(data))),
             );
 
             // Verify all round-tripped correctly
             for (let i = 0; i < states.length; i++) {
-                expect(deserialized[i]!.baseParams.from).toBe(states[i]!.baseParams.from);
-                expect(deserialized[i]!.baseParams.to).toBe(states[i]!.baseParams.to);
+                const d = deserialized[i];
+                const s = states[i];
+                expect(d).toBeDefined();
+                expect(s).toBeDefined();
+                expect(d?.baseParams.from).toBe(s?.baseParams.from);
+                expect(d?.baseParams.to).toBe(s?.baseParams.to);
             }
         });
 
-        it('should handle 10 concurrent serialize/deserialize operations', async () => {
-            const results = await Promise.all(
-                Array.from({ length: 10 }, async (_, i) => {
-                    const state: ISerializableTransactionState = {
-                        header: {
-                            formatVersion: SERIALIZATION_FORMAT_VERSION,
-                            consensusVersion: currentConsensus,
-                            transactionType: TransactionType.FUNDING,
-                            chainId: ChainId.Bitcoin,
-                            timestamp: Date.now() + i,
+        it('should handle 10 concurrent serialize/deserialize operations', () => {
+            const results = Array.from({ length: 10 }, (_, i) => {
+                const state: ISerializableTransactionState = {
+                    header: {
+                        formatVersion: SERIALIZATION_FORMAT_VERSION,
+                        consensusVersion: currentConsensus,
+                        transactionType: TransactionType.FUNDING,
+                        chainId: ChainId.Bitcoin,
+                        timestamp: Date.now() + i,
+                    },
+                    baseParams: {
+                        from: address1,
+                        to: address2,
+                        feeRate: 10 + i,
+                        priorityFee: String(1000 + i),
+                        gasSatFee: '500',
+                        networkName: 'regtest',
+                        txVersion: 2,
+                        anchor: false,
+                    },
+                    utxos: [
+                        {
+                            transactionId: String(i).repeat(64).slice(0, 64),
+                            outputIndex: i,
+                            value: String(100000 + i),
+                            scriptPubKeyHex: 'aa',
+                            scriptPubKeyAddress: address1,
                         },
-                        baseParams: {
-                            from: address1,
-                            to: address2,
-                            feeRate: 10 + i,
-                            priorityFee: String(1000 + i),
-                            gasSatFee: '500',
-                            networkName: 'regtest',
-                            txVersion: 2,
-                            anchor: false,
-                        },
-                        utxos: [
-                            {
-                                transactionId: String(i).repeat(64).slice(0, 64),
-                                outputIndex: i,
-                                value: String(100000 + i),
-                                scriptPubKeyHex: 'aa',
-                                scriptPubKeyAddress: address1,
-                            },
-                        ],
-                        optionalInputs: [],
-                        optionalOutputs: [],
-                        addressRotationEnabled: false,
-                        signerMappings: [],
-                        typeSpecificData: {
-                            type: TransactionType.FUNDING,
-                            amount: String(50000 + i),
-                            splitInputsInto: 1,
-                        } as FundingSpecificData,
-                        precomputedData: {},
-                    };
+                    ],
+                    optionalInputs: [],
+                    optionalOutputs: [],
+                    addressRotationEnabled: false,
+                    signerMappings: [],
+                    typeSpecificData: {
+                        type: TransactionType.FUNDING,
+                        amount: String(50000 + i),
+                        splitInputsInto: 1,
+                    } as FundingSpecificData,
+                    precomputedData: {},
+                };
 
-                    const serialized = TransactionSerializer.serialize(state);
-                    const deserialized = TransactionSerializer.deserialize(serialized);
-                    return { original: state, deserialized };
-                }),
-            );
+                const serialized = TransactionSerializer.serialize(state);
+                const deserialized = TransactionSerializer.deserialize(serialized);
+                return { original: state, deserialized };
+            });
 
             expect(results).toHaveLength(10);
             for (const { original, deserialized } of results) {
@@ -322,18 +324,18 @@ describe('Browser Parallel Signing', () => {
             const exported = allParams.map((p) => OfflineTransactionManager.exportFunding(p));
 
             const [validations, inspections] = await Promise.all([
-                Promise.all(exported.map(async (e) => OfflineTransactionManager.validate(e))),
-                Promise.all(exported.map(async (e) => OfflineTransactionManager.inspect(e))),
+                Promise.all(exported.map((e) => Promise.resolve(OfflineTransactionManager.validate(e)))),
+                Promise.all(exported.map((e) => Promise.resolve(OfflineTransactionManager.inspect(e)))),
             ]);
 
             for (const valid of validations) {
                 expect(valid).toBe(true);
             }
 
-            expect(inspections[0]!.baseParams.from).toBe(defaultAddress);
-            expect(inspections[1]!.baseParams.from).toBe(address1);
-            expect(inspections[2]!.baseParams.from).toBe(address2);
-            expect(inspections[3]!.baseParams.from).toBe(address3);
+            expect(inspections[0]?.baseParams.from).toBe(defaultAddress);
+            expect(inspections[1]?.baseParams.from).toBe(address1);
+            expect(inspections[2]?.baseParams.from).toBe(address2);
+            expect(inspections[3]?.baseParams.from).toBe(address3);
         });
     });
 });

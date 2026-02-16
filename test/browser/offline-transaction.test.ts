@@ -16,7 +16,7 @@ import type {
     SerializedOutput,
     SerializedUTXO,
     UTXO,
-} from '../build/opnet.js';
+} from '../../build/opnet.js';
 import {
     ChainId,
     createAddressRotation,
@@ -36,7 +36,7 @@ import {
     TransactionSerializer,
     TransactionStateCapture,
     TransactionType,
-} from '../build/opnet.js';
+} from '../../build/opnet.js';
 
 describe('Offline Transaction Signing', () => {
     const network = networks.regtest;

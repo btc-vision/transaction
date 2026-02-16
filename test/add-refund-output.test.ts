@@ -64,8 +64,8 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
             priorityFee: 0n,
             gasSatFee: 0n,
             mldsaSigner: null,
-            feeUtxos: opts.feeUtxos,
-            autoAdjustAmount: opts.autoAdjustAmount,
+            ...(opts.feeUtxos !== undefined && { feeUtxos: opts.feeUtxos }),
+            ...(opts.autoAdjustAmount !== undefined && { autoAdjustAmount: opts.autoAdjustAmount }),
         });
     }
 
@@ -95,7 +95,7 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
             const amount = 50_000n;
             const tx = buildFunding({ utxoValue, amount });
 
-            const signed = await tx.signTransaction();
+            await tx.signTransaction();
 
             // transactionFee should be positive
             expect(tx.transactionFee).toBeGreaterThan(0n);
@@ -157,7 +157,9 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
             expect(signed.outs.length).toBe(1);
 
             // The output should be the send amount
-            expect(BigInt(signed.outs[0].value)).toBe(amount);
+            const firstOut = signed.outs[0];
+            expect(firstOut).toBeDefined();
+            expect(BigInt(firstOut?.value ?? 0)).toBe(amount);
 
             // overflowFees should be 0 (no change output)
             expect(tx.overflowFees).toBe(0n);
