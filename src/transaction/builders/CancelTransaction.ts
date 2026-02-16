@@ -36,7 +36,7 @@ export class CancelTransaction extends TransactionBuilder<TransactionType.CANCEL
             gasSatFee: 1n,
             isCancellation: true,
             priorityFee: 1n,
-            calldata: Buffer.alloc(0),
+            calldata: new Uint8Array(0),
         } as unknown as SharedInteractionParameters);
 
         this.contractSecret = new Uint8Array(0);

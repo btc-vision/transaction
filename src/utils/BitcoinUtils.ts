@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
 
+import { toHex } from '@btc-vision/bitcoin';
+
 const hexPattern = /^[0-9a-fA-F]+$/;
 
 /**
@@ -18,15 +20,13 @@ export class BitcoinUtils {
     /**
      * Generates random bytes.
      * @public
-     * @returns {Buffer} The random bytes
+     * @returns {Uint8Array} The random bytes
      */
-    public static rndBytes(): Buffer {
-        const buf = BitcoinUtils.getSafeRandomValues(64);
-
-        return Buffer.from(buf);
+    public static rndBytes(): Uint8Array {
+        return BitcoinUtils.getSafeRandomValues(64);
     }
 
-    public static getSafeRandomValues(length: number): Buffer {
+    public static getSafeRandomValues(length: number): Uint8Array {
         if (
             typeof globalThis.window !== 'undefined' &&
             globalThis.window.crypto &&
@@ -35,12 +35,12 @@ export class BitcoinUtils {
             const array = new Uint8Array(length);
             window.crypto.getRandomValues(array);
 
-            return Buffer.from(array);
+            return array;
         } else if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
             const array = new Uint8Array(length);
             globalThis.crypto.getRandomValues(array);
 
-            return Buffer.from(array);
+            return array;
         } else {
             console.log(
                 `No secure random number generator available. Please upgrade your environment.`,
@@ -59,15 +59,15 @@ export class BitcoinUtils {
 
     /**
      * Hashes the given data
-     * @param {Buffer} data - The data to hash
+     * @param {Uint8Array} data - The data to hash
      * @returns {string} The hashed data
      */
-    public static opnetHash(data: Buffer): string {
+    public static opnetHash(data: Uint8Array): string {
         const hashed = createHash('sha512');
         hashed.update(data);
 
         const hash = hashed.digest();
 
-        return `0x${Buffer.from(hash).toString('hex')}`;
+        return `0x${toHex(new Uint8Array(hash))}`;
     }
 }

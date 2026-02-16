@@ -444,7 +444,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      * Get the tweaked hash
      * @private
      *
-     * @returns {Buffer | undefined} The tweaked hash
+     * @returns {Uint8Array | undefined} The tweaked hash
      */
     public getTweakerHash(): Uint8Array | undefined {
         return this.tapData?.hash;
@@ -803,7 +803,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
     /**
      * Converts the public key to x-only.
      * @protected
-     * @returns {Buffer}
+     * @returns {Uint8Array}
      */
     protected internalPubKeyToXOnly(): XOnlyPublicKey {
         return toXOnly(this.signer.publicKey);
@@ -1199,18 +1199,6 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             }
         }
 
-        /*if (utxo.nonWitnessUtxo && extra) {
-            const witness = Buffer.isBuffer(utxo.nonWitnessUtxo)
-                ? utxo.nonWitnessUtxo
-                : typeof utxo.nonWitnessUtxo === 'string'
-                  ? Buffer.from(utxo.nonWitnessUtxo, 'hex')
-                  : (utxo.nonWitnessUtxo as unknown) instanceof Uint8Array
-                    ? Buffer.from(utxo.nonWitnessUtxo)
-                    : undefined;
-
-            input.nonWitnessUtxo = witness;
-        }*/
-
         return input;
     }
 
@@ -1434,7 +1422,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             if (decompiled[i] === opcodes.OP_CHECKSEQUENCEVERIFY && i > 0) {
                 const csvValue = decompiled[i - 1];
                 if (csvValue instanceof Uint8Array) {
-                    return script.number.decode(csvValue as Buffer);
+                    return script.number.decode(csvValue as unknown as Buffer);
                 } else if (typeof csvValue === 'number') {
                     // Handle OP_N directly
                     if (csvValue === opcodes.OP_0 || csvValue === opcodes.OP_FALSE) {

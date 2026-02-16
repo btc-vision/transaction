@@ -35,7 +35,7 @@ export abstract class SharedInteractionTransaction<
 
     /**
      * Random salt for the interaction
-     * @type {Buffer}
+     * @type {Uint8Array}
      */
     public readonly randomBytes: Uint8Array;
 
@@ -113,7 +113,7 @@ export abstract class SharedInteractionTransaction<
 
     /**
      * Get the contract secret
-     * @returns {Buffer} The contract secret
+     * @returns {Uint8Array} The contract secret
      */
     public getContractSecret(): Uint8Array {
         return this.contractSecret;
@@ -121,7 +121,7 @@ export abstract class SharedInteractionTransaction<
 
     /**
      * Get the random bytes used for the interaction
-     * @returns {Buffer} The random bytes
+     * @returns {Uint8Array} The random bytes
      */
     public getRndBytes(): Uint8Array {
         return this.randomBytes;
@@ -137,7 +137,7 @@ export abstract class SharedInteractionTransaction<
     /**
      * Get the internal pubkey as an x-only key
      * @protected
-     * @returns {Buffer} The internal pubkey as an x-only key
+     * @returns {Uint8Array} The internal pubkey as an x-only key
      */
     protected scriptSignerXOnlyPubKey(): Uint8Array {
         return toXOnly(this.scriptSigner.publicKey);
@@ -247,7 +247,7 @@ export abstract class SharedInteractionTransaction<
      * @param {PsbtInput} input The input
      * @protected
      *
-     * @returns {Buffer[]} The script solution
+     * @returns {Uint8Array[]} The script solution
      */
     protected getScriptSolution(input: PsbtInput): Uint8Array[] {
         if (!input.tapScriptSig) {

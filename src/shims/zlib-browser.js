@@ -1,19 +1,19 @@
 import pako from 'pako';
 
 export function gzipSync(data, options = {}) {
-    return Buffer.from(pako.gzip(data, { level: options.level || 6 }));
+    return new Uint8Array(pako.gzip(data, { level: options.level || 6 }));
 }
 
 export function gunzipSync(data) {
-    return Buffer.from(pako.ungzip(data));
+    return new Uint8Array(pako.ungzip(data));
 }
 
 export function deflateSync(data, options = {}) {
-    return Buffer.from(pako.deflate(data, { level: options.level || 6 }));
+    return new Uint8Array(pako.deflate(data, { level: options.level || 6 }));
 }
 
 export function inflateSync(data) {
-    return Buffer.from(pako.inflate(data));
+    return new Uint8Array(pako.inflate(data));
 }
 
 export default {

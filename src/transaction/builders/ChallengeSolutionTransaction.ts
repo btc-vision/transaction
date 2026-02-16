@@ -7,7 +7,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
     public readonly type: TransactionType.CHALLENGE_SOLUTION = TransactionType.CHALLENGE_SOLUTION;
 
     protected amount: bigint;
-    protected readonly challengeSolution: Buffer;
+    protected readonly challengeSolution: Uint8Array;
 
     constructor(parameters: IChallengeSolutionTransactionParameters) {
         super(parameters);
@@ -27,7 +27,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
 
         if (this.isPubKeyDestination) {
             const pubKeyScript = script.compile([
-                Buffer.from(this.to.replace('0x', ''), 'hex'),
+                fromHex(this.to.replace('0x', '')),
                 opcodes.OP_CHECKSIG,
             ]);
 
@@ -59,13 +59,13 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
     protected override customFinalizerP2SH = (
         inputIndex: number,
         input: PsbtInput,
-        scriptA: Buffer,
+        scriptA: Uint8Array,
         isSegwit: boolean,
         isP2SH: boolean,
         isP2WSH: boolean,
     ): {
-        finalScriptSig: Buffer | undefined;
-        finalScriptWitness: Buffer | undefined;
+        finalScriptSig: Uint8Array | undefined;
+        finalScriptWitness: Uint8Array | undefined;
     } => {
         const inputDecoded = this.inputs[inputIndex];
 

@@ -5,7 +5,7 @@ import type { MemorySlotPointer } from './types.js';
 export class BufferHelper {
     public static readonly EXPECTED_BUFFER_LENGTH: number = 32;
 
-    public static bufferToUint8Array(buffer: Buffer | Uint8Array): Uint8Array {
+    public static bufferToUint8Array(buffer: Uint8Array): Uint8Array {
         const result = new Uint8Array(buffer.byteLength);
         result.set(buffer);
         return result;

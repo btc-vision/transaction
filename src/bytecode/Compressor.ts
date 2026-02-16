@@ -9,19 +9,19 @@ export class Compressor {
 
     /**
      * Compresses the data using gzip.
-     * @param {Uint8Array | Buffer} data The data to compress.
-     * @returns {Buffer} The compressed data.
+     * @param {Uint8Array} data The data to compress.
+     * @returns {Uint8Array} The compressed data.
      */
-    public static compress(data: Uint8Array | Buffer): Buffer {
-        return zlib.gzipSync(data, Compressor.zlibOptions);
+    public static compress(data: Uint8Array): Uint8Array {
+        return new Uint8Array(zlib.gzipSync(data, Compressor.zlibOptions));
     }
 
     /**
      * Decompresses the data using gunzip.
-     * @param {Uint8Array | Buffer} data The data to decompress.
-     * @returns {Buffer} The decompressed data.
+     * @param {Uint8Array} data The data to decompress.
+     * @returns {Uint8Array} The decompressed data.
      */
-    public static decompress(data: Uint8Array | Buffer): Buffer {
-        return zlib.gunzipSync(data, Compressor.zlibOptions);
+    public static decompress(data: Uint8Array): Uint8Array {
+        return new Uint8Array(zlib.gunzipSync(data, Compressor.zlibOptions));
     }
 }

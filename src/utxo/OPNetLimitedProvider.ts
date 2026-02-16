@@ -1,4 +1,4 @@
-import type { Network } from '@btc-vision/bitcoin';
+import { fromBase64, type Network } from '@btc-vision/bitcoin';
 import type { IFundingTransactionParameters } from '../transaction/interfaces/ITransactionParameters.js';
 import { TransactionFactory } from '../transaction/TransactionFactory.js';
 import { Wallet } from '../keypair/Wallet.js';
@@ -120,7 +120,7 @@ export class OPNetLimitedProvider {
                 outputIndex: utxo.outputIndex,
                 value: utxoValue,
                 scriptPubKey: utxo.scriptPubKey,
-                nonWitnessUtxo: Buffer.from(rawHex, 'base64'),
+                nonWitnessUtxo: fromBase64(rawHex),
             });
 
             if (currentAmount > amountRequested) {

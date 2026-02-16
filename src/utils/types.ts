@@ -2,7 +2,7 @@ import { DeterministicMap } from '../deterministic/DeterministicMap.js';
 
 export type MemorySlotPointer = bigint;
 
-export type BufferLike = Uint8Array | Buffer;
+export type BufferLike = Uint8Array;
 
 export type MemorySlotData<T> = T;
 export type PointerStorage = DeterministicMap<MemorySlotPointer, MemorySlotData<bigint>>;

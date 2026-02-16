@@ -129,7 +129,7 @@ export class ChallengeSolution implements IChallengeSolution {
 
     /**
      * Get the preimage challenge
-     * @returns {Buffer} The solution/challenge as a buffer
+     * @returns {Uint8Array} The solution/challenge as a Uint8Array
      */
     public toBuffer(): Uint8Array {
         return this.solution;
@@ -169,7 +169,7 @@ export class ChallengeSolution implements IChallengeSolution {
 
     /**
      * Calculate the expected solution hash for this challenge
-     * @returns {Promise<Buffer>} The calculated solution hash
+     * @returns {Uint8Array} The calculated solution hash
      */
     public calculateSolution(): Uint8Array {
         return EpochValidator.calculateSolution(
