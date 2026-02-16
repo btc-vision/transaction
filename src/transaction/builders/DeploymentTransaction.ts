@@ -209,7 +209,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
     /**
      * Get the random bytes used for the interaction
-     * @returns {Buffer} The random bytes
+     * @returns {Uint8Array} The random bytes
      */
     public getRndBytes(): Uint8Array {
         return this.randomBytes;
@@ -217,7 +217,7 @@ export class DeploymentTransaction extends TransactionBuilder<TransactionType.DE
 
     /**
      * Get the contract bytecode
-     * @returns {Buffer} The contract bytecode
+     * @returns {Uint8Array} The contract bytecode
      */
     public getChallenge(): IChallengeSolution {
         return this.challenge;

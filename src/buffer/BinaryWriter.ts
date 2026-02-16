@@ -206,7 +206,7 @@ export class BinaryWriter implements Disposable {
         }
     }
 
-    public writeBytes(value: Uint8Array | Buffer): void {
+    public writeBytes(value: Uint8Array): void {
         this.allocSafe(value.byteLength);
 
         for (let i = 0; i < value.byteLength; i++) {

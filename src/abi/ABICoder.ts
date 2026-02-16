@@ -20,9 +20,9 @@ export class ABICoder {
     public encodeSelector(selectorIdentifier: string): string {
         // first 4 bytes of sha256 hash of the function signature
         const hash = this.sha256(selectorIdentifier);
-        const selector = Buffer.from(hash.subarray(0, 4)); // 4 bytes
+        const selector = hash.subarray(0, 4); // 4 bytes
 
-        return selector.toString('hex');
+        return Array.from(selector, (b) => b.toString(16).padStart(2, '0')).join('');
     }
 
     public numericSelectorToHex(selector: number): string {
@@ -159,7 +159,7 @@ export class ABICoder {
         return entry;
     }
 
-    private sha256(buffer: Buffer | string | Uint8Array): Buffer {
-        return new shajs.sha256().update(buffer).digest();
+    private sha256(buffer: Uint8Array | string): Uint8Array {
+        return new Uint8Array(new shajs.sha256().update(buffer).digest());
     }
 }

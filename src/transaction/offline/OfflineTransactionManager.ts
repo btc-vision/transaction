@@ -446,7 +446,7 @@ export class OfflineTransactionManager {
      * Check if a public key has already signed a multisig transaction
      *
      * @param serializedState - Base64-encoded multisig state
-     * @param signerPubKey - Public key to check (Buffer or hex string)
+     * @param signerPubKey - Public key to check (Uint8Array or hex string)
      * @returns True if the public key has already signed
      */
     public static multiSigHasSigned(

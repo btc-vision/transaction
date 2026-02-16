@@ -250,9 +250,8 @@ const wallet = mnemonic.derive(0);
 const message = 'Hello, Bitcoin!';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-console.log('Message:', signed.message);
+console.log('Message:', toHex(signed.message));
 console.log('Signature:', toHex(signed.signature));
-console.log('Public Key:', toHex(signed.publicKey));
 console.log('Signature Size:', signed.signature.length);  // 64 bytes (Schnorr)
 ```
 
@@ -263,9 +262,9 @@ console.log('Signature Size:', signed.signature.length);  // 64 bytes (Schnorr)
 const message = 'Verify this Schnorr signature';
 const signed = MessageSigner.signMessage(wallet.keypair, message);
 
-// Verify signature
+// Verify signature (use the keypair's publicKey, not signed.publicKey which doesn't exist on SignedMessage)
 const isValid = MessageSigner.verifySignature(
-    signed.publicKey,
+    wallet.keypair.publicKey,
     signed.message,
     signed.signature
 );
@@ -416,11 +415,11 @@ import { MessageSigner } from '@btc-vision/transaction';
 const longMessage = 'This is a very long message that will be hashed before signing...';
 
 // Automatically hashed to 32 bytes before signing
-const hash = MessageSigner.sha256(longMessage);
+const hash = MessageSigner.sha256(new TextEncoder().encode(longMessage));
 console.log('Message hash:', toHex(hash));
 console.log('Hash length:', hash.length);  // 32 bytes
 
-// Then signed
+// Then signed (signMLDSAMessage accepts string directly and hashes internally)
 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, longMessage);
 ```
 
@@ -429,9 +428,9 @@ const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, longMessage);
 ```typescript
 // You can also sign pre-hashed data
 const message = 'Original message';
-const hash = MessageSigner.sha256(message);
+const hash = MessageSigner.sha256(new TextEncoder().encode(message));
 
-// Sign the hash directly
+// Sign the hash directly (passing Uint8Array)
 const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, hash);
 ```
 
@@ -456,9 +455,9 @@ const message = JSON.stringify({
     nonce: crypto.randomBytes(16).toString('hex')
 });
 
-// Verify signatures before trusting
+// Verify signatures before trusting (first param is QuantumBIP32Interface keypair, not raw publicKey)
 const isValid = MessageSigner.verifyMLDSASignature(
-    publicKey,
+    mldsaKeypair,
     message,
     signature
 );
@@ -610,7 +609,242 @@ console.log(
 );
 ```
 
+## Auto Methods (CRITICAL - Browser/Backend Auto-Detection)
+
+> **This is the MOST important section for production applications.** Auto methods automatically detect whether you're running in a browser (with OP_WALLET extension) or backend (with local keypair) and call the correct underlying method. **ALWAYS use Auto methods unless you have an explicit reason not to.**
+
+### Why Auto Methods Exist
+
+| Environment | Non-Auto Method | Auto Method |
+|-------------|----------------|-------------|
+| **Browser** (OP_WALLET) | `signMessage()` → **CRASHES** (no private key) | `signMessageAuto()` → uses OP_WALLET |
+| **Backend** (local keypair) | `signMessage()` → works | `signMessageAuto()` → uses local keypair |
+| **Browser** (no OP_WALLET) | `signMessage()` → **CRASHES** | `signMessageAuto()` → **throws clear error** |
+
+### Environment Detection Flow
+
+```mermaid
+flowchart TB
+    A["signMessageAuto(message, keypair?)"] --> B{keypair provided?}
+    B -->|Yes| C["Use local keypair<br/>(Backend path)"]
+    B -->|No/null/undefined| D{OP_WALLET available?}
+    D -->|Yes| E["Use OP_WALLET<br/>(Browser path)"]
+    D -->|No| F["Throw Error:<br/>'No keypair provided and<br/>OP_WALLET is not available'"]
+
+    style C fill:#4CAF50,color:white
+    style E fill:#2196F3,color:white
+    style F fill:#f44336,color:white
+```
+
+### signMessageAuto
+
+Auto-detect environment and sign with Schnorr:
+
+```typescript
+import { MessageSigner } from '@btc-vision/transaction';
+
+// BROWSER: Pass no keypair → OP_WALLET signs
+const browserSigned = await MessageSigner.signMessageAuto('Hello, OPNet!');
+
+// BACKEND: Pass keypair → local signing
+const backendSigned = await MessageSigner.signMessageAuto('Hello, OPNet!', wallet.keypair);
+```
+
+#### Signature
+
+```typescript
+async signMessageAuto(
+    message: Uint8Array | string,
+    keypair?: UniversalSigner
+): Promise<SignedMessage>
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message` | `Uint8Array \| string` | Yes | Message to sign |
+| `keypair` | `UniversalSigner` | No | Pass for backend; omit/null for browser (OP_WALLET) |
+
+### tweakAndSignMessageAuto
+
+Auto-detect environment and sign with tweaked Schnorr (Taproot-compatible):
+
+```typescript
+// BROWSER: OP_WALLET handles tweaking internally
+const browserSigned = await MessageSigner.tweakAndSignMessageAuto('Taproot message');
+
+// BACKEND: Local tweaked signing (network required)
+const backendSigned = await MessageSigner.tweakAndSignMessageAuto(
+    'Taproot message',
+    wallet.keypair,
+    networks.bitcoin
+);
+```
+
+#### Signature
+
+```typescript
+async tweakAndSignMessageAuto(
+    message: Uint8Array | string,
+    keypair?: UniversalSigner,
+    network?: Network
+): Promise<SignedMessage>
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message` | `Uint8Array \| string` | Yes | Message to sign |
+| `keypair` | `UniversalSigner` | No | Pass for backend; omit for browser |
+| `network` | `Network` | Backend only | Required when keypair is provided |
+
+### signMLDSAMessageAuto
+
+Auto-detect environment and sign with quantum-resistant ML-DSA:
+
+```typescript
+// BROWSER: OP_WALLET handles ML-DSA signing
+const browserSigned = await MessageSigner.signMLDSAMessageAuto('Quantum message');
+
+// BACKEND: Local ML-DSA signing
+const backendSigned = await MessageSigner.signMLDSAMessageAuto(
+    'Quantum message',
+    wallet.mldsaKeypair
+);
+```
+
+#### Signature
+
+```typescript
+async signMLDSAMessageAuto(
+    message: Uint8Array | string,
+    mldsaKeypair?: QuantumBIP32Interface
+): Promise<MLDSASignedMessage>
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message` | `Uint8Array \| string` | Yes | Message to sign |
+| `mldsaKeypair` | `QuantumBIP32Interface` | No | Pass for backend; omit for browser (OP_WALLET) |
+
+### isOPWalletAvailable
+
+Check if OP_WALLET browser extension is available:
+
+```typescript
+if (MessageSigner.isOPWalletAvailable()) {
+    // Browser with OP_WALLET - can use Auto methods without keypair
+    const signed = await MessageSigner.signMessageAuto('message');
+} else {
+    // Backend or browser without OP_WALLET - must provide keypair
+    const signed = await MessageSigner.signMessageAuto('message', wallet.keypair);
+}
+```
+
+### Complete Auto Method Example
+
+```typescript
+import {
+    MessageSigner,
+    Mnemonic,
+    MLDSASecurityLevel,
+} from '@btc-vision/transaction';
+import { networks } from '@btc-vision/bitcoin';
+
+/**
+ * Universal signing function that works in both browser and backend.
+ * In browser: pass no keypair/mldsaKeypair → OP_WALLET handles signing.
+ * In backend: pass wallet keypairs → local signing.
+ */
+async function signForContract(
+    message: string,
+    keypair?: UniversalSigner,
+    mldsaKeypair?: QuantumBIP32Interface,
+    network?: Network,
+): Promise<{
+    schnorr: SignedMessage;
+    tweaked: SignedMessage;
+    quantum: MLDSASignedMessage;
+}> {
+    // All three Auto methods follow the same pattern:
+    // - keypair provided → backend path (local signing)
+    // - keypair omitted → browser path (OP_WALLET signing)
+    const schnorr = await MessageSigner.signMessageAuto(message, keypair);
+    const tweaked = await MessageSigner.tweakAndSignMessageAuto(message, keypair, network);
+    const quantum = await MessageSigner.signMLDSAMessageAuto(message, mldsaKeypair);
+
+    return { schnorr, tweaked, quantum };
+}
+
+// BACKEND USAGE:
+const network = networks.regtest;
+const mnemonic = Mnemonic.generate(undefined, '', network, MLDSASecurityLevel.LEVEL2);
+const wallet = mnemonic.derive(0);
+
+const backendResult = await signForContract(
+    'Claim airdrop',
+    wallet.keypair,
+    wallet.mldsaKeypair,
+    network,
+);
+
+// BROWSER USAGE (in a React component, for example):
+// No keypair needed - OP_WALLET extension handles everything
+const browserResult = await signForContract('Claim airdrop');
+```
+
+> **Rule of thumb:** If your code might run in both browser and backend, **ALWAYS use Auto methods**. The non-Auto methods (`signMessage`, `signMLDSAMessage`, `tweakAndSignMessage`) are environment-specific and will crash in the wrong context.
+
+---
+
+## OP_WALLET Integration Methods
+
+These methods are used internally by the Auto methods but can also be called directly:
+
+### trySignSchnorrWithOPWallet
+
+```typescript
+async trySignSchnorrWithOPWallet(
+    message: Uint8Array | string
+): Promise<SignedMessage | null>
+```
+
+Returns `null` if OP_WALLET is not available (safe to call in any environment).
+
+### trySignMLDSAWithOPWallet
+
+```typescript
+async trySignMLDSAWithOPWallet(
+    message: Uint8Array | string
+): Promise<MLDSASignedMessage | null>
+```
+
+Returns `null` if OP_WALLET is not available.
+
+### verifyMLDSAWithOPWallet
+
+```typescript
+async verifyMLDSAWithOPWallet(
+    message: Uint8Array | string,
+    signature: MLDSASignedMessage
+): Promise<boolean | null>
+```
+
+Returns `null` if OP_WALLET is not available.
+
+### getMLDSAPublicKeyFromOPWallet
+
+```typescript
+async getMLDSAPublicKeyFromOPWallet(): Promise<Uint8Array | null>
+```
+
+Returns the ML-DSA public key from OP_WALLET, or `null` if unavailable.
+
+---
+
 ## Next Steps
 
 - [Address Verification](./05-address-verification.md) - Validate addresses and public keys
 - [Introduction](./01-introduction.md) - Back to overview
+
+---
+
+[← Previous: Address Generation](./03-address-generation.md) | [Next: Address Verification →](./05-address-verification.md)

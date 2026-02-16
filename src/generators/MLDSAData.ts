@@ -8,12 +8,12 @@ export enum MLDSAPublicKeyMetadata {
 
 export interface MLDSARequestData {
     readonly verifyRequest: boolean;
-    readonly publicKey: Uint8Array | Buffer | null;
-    readonly hashedPublicKey: Uint8Array | Buffer;
+    readonly publicKey: Uint8Array | null;
+    readonly hashedPublicKey: Uint8Array;
     readonly level: MLDSASecurityLevel;
 
-    readonly mldsaSignature: Uint8Array | Buffer | null;
-    readonly legacySignature: Uint8Array | Buffer;
+    readonly mldsaSignature: Uint8Array | null;
+    readonly legacySignature: Uint8Array;
 }
 
 export function getLevelFromPublicKeyLength(length: number): MLDSASecurityLevel {

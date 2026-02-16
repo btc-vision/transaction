@@ -232,9 +232,9 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
     /**
      * @description Converts the witness stack to a script witness
-     * @param {Buffer[]} witness - The witness stack
+     * @param {Uint8Array[]} witness - The witness stack
      * @protected
-     * @returns {Buffer}
+     * @returns {Uint8Array}
      */
     public static witnessStackToScriptWitness(witness: Uint8Array[]): Uint8Array {
         return witnessStackToScriptWitness(witness);
@@ -1159,7 +1159,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Returns the witness of the tap transaction.
      * @protected
-     * @returns {Buffer}
+     * @returns {Uint8Array}
      */
     protected getWitness(): Uint8Array {
         if (!this.tapData || !this.tapData.witness) {
@@ -1176,7 +1176,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
     /**
      * Returns the tap output.
      * @protected
-     * @returns {Buffer}
+     * @returns {Uint8Array}
      */
     protected getTapOutput(): Uint8Array {
         if (!this.tapData || !this.tapData.output) {

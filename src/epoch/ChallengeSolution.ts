@@ -11,15 +11,16 @@ import { Address } from '../keypair/Address.js';
 import { EpochValidator } from './validator/EpochValidator.js';
 import { BinaryWriter } from '../buffer/BinaryWriter.js';
 import { MessageSigner } from '../keypair/MessageSigner.js';
+import { toHex } from '@btc-vision/bitcoin';
 
 export class ChallengeVerification implements IChallengeVerification {
-    public readonly epochHash: Buffer;
-    public readonly epochRoot: Buffer;
-    public readonly targetHash: Buffer;
-    public readonly targetChecksum: Buffer;
+    public readonly epochHash: Uint8Array;
+    public readonly epochRoot: Uint8Array;
+    public readonly targetHash: Uint8Array;
+    public readonly targetChecksum: Uint8Array;
     public readonly startBlock: bigint;
     public readonly endBlock: bigint;
-    public readonly proofs: readonly Buffer[];
+    public readonly proofs: readonly Uint8Array[];
 
     constructor(data: RawChallengeVerification) {
         this.epochHash = stringToBuffer(data.epochHash);
@@ -34,9 +35,9 @@ export class ChallengeVerification implements IChallengeVerification {
 
 export class ChallengeSubmission implements IChallengeSubmission {
     public readonly publicKey: Address;
-    public readonly solution: Buffer;
-    public readonly graffiti: Buffer | undefined;
-    public readonly signature: Buffer;
+    public readonly solution: Uint8Array;
+    public readonly graffiti: Uint8Array | undefined;
+    public readonly signature: Uint8Array;
 
     constructor(
         data: RawChallengeSubmission,
@@ -70,9 +71,9 @@ export class ChallengeSubmission implements IChallengeSubmission {
 export class ChallengeSolution implements IChallengeSolution {
     public readonly epochNumber: bigint;
     public readonly publicKey: Address;
-    public readonly solution: Buffer;
-    public readonly salt: Buffer;
-    public readonly graffiti: Buffer;
+    public readonly solution: Uint8Array;
+    public readonly salt: Uint8Array;
+    public readonly graffiti: Uint8Array;
     public readonly difficulty: number;
     public readonly verification: ChallengeVerification;
 
@@ -128,9 +129,9 @@ export class ChallengeSolution implements IChallengeSolution {
 
     /**
      * Get the preimage challenge
-     * @returns {Buffer} The solution/challenge as a buffer
+     * @returns {Uint8Array} The solution/challenge as a Uint8Array
      */
-    public toBuffer(): Buffer {
+    public toBuffer(): Uint8Array {
         return this.solution;
     }
 
@@ -139,7 +140,7 @@ export class ChallengeSolution implements IChallengeSolution {
      * @returns {string} The solution as a hex string with 0x prefix
      */
     public toHex(): string {
-        return '0x' + this.solution.toString('hex');
+        return '0x' + toHex(this.solution);
     }
 
     /**
@@ -151,24 +152,24 @@ export class ChallengeSolution implements IChallengeSolution {
             mldsaPublicKey: this.publicKey.toHex(),
             legacyPublicKey: this.publicKey.tweakedToHex(),
             solution: this.toHex(),
-            salt: '0x' + this.salt.toString('hex'),
-            graffiti: '0x' + this.graffiti.toString('hex'),
+            salt: '0x' + toHex(this.salt),
+            graffiti: '0x' + toHex(this.graffiti),
             difficulty: this.difficulty,
             verification: {
-                epochHash: '0x' + this.verification.epochHash.toString('hex'),
-                epochRoot: '0x' + this.verification.epochRoot.toString('hex'),
-                targetHash: '0x' + this.verification.targetHash.toString('hex'),
-                targetChecksum: '0x' + this.verification.targetChecksum.toString('hex'),
+                epochHash: '0x' + toHex(this.verification.epochHash),
+                epochRoot: '0x' + toHex(this.verification.epochRoot),
+                targetHash: '0x' + toHex(this.verification.targetHash),
+                targetChecksum: '0x' + toHex(this.verification.targetChecksum),
                 startBlock: this.verification.startBlock.toString(),
                 endBlock: this.verification.endBlock.toString(),
-                proofs: this.verification.proofs.map((p) => '0x' + p.toString('hex')),
+                proofs: this.verification.proofs.map((p) => '0x' + toHex(p)),
             },
         };
     }
 
     /**
      * Calculate the expected solution hash for this challenge
-     * @returns {Promise<Buffer>} The calculated solution hash
+     * @returns {Uint8Array} The calculated solution hash
      */
     public calculateSolution(): Uint8Array {
         return EpochValidator.calculateSolution(

@@ -134,7 +134,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
 
     /**
      * Get the random bytes used for the interaction
-     * @returns {Buffer} The random bytes
+     * @returns {Uint8Array} The random bytes
      */
     public getRndBytes(): Uint8Array {
         return this.randomBytes;

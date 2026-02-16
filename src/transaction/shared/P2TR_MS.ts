@@ -8,7 +8,7 @@ import {
 export class P2TR_MS {
     /**
      * Generate a multi-sig address
-     * @param {Buffer[]} pubKeys - The public keys to use
+     * @param {Uint8Array[]} pubKeys - The public keys to use
      * @param {number} minimumSignatureRequired - The minimum number of signatures required
      * @param {Network} network - The network to use
      * @returns {string} - The generated address

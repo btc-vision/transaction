@@ -152,7 +152,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
     /**
      * Verify if that public key already signed the transaction
      * @param {Psbt} psbt The psbt
-     * @param {Buffer} signerPubKey The signer public key
+     * @param {Uint8Array} signerPubKey The signer public key
      * @returns {boolean} True if the public key signed the transaction
      */
     public static verifyIfSigned(psbt: Psbt, signerPubKey: Uint8Array): boolean {
@@ -265,8 +265,8 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * Partially finalize a P2TR MS transaction
      * @param {number} inputIndex The input index
      * @param {PsbtInput} input The input
-     * @param {Buffer[]} partialSignatures The partial signatures
-     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {Uint8Array[]} partialSignatures The partial signatures
+     * @param {Uint8Array[]} orderedPubKeys The ordered public keys
      * @param {boolean} isFinal If the transaction is final
      */
     public static partialFinalizer = (
@@ -354,7 +354,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * Attempt to finalize the inputs
      * @param {Psbt} psbt The psbt
      * @param {number} startIndex The start index
-     * @param {Buffer[]} orderedPubKeys The ordered public keys
+     * @param {Uint8Array[]} orderedPubKeys The ordered public keys
      * @param {boolean} isFinal If the transaction is final
      * @returns {boolean} True if the inputs were finalized
      */
@@ -586,7 +586,7 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      * @param {PsbtInput} input The input
      * @protected
      *
-     * @returns {Buffer[]} The script solution
+     * @returns {Uint8Array[]} The script solution
      */
     protected getScriptSolution(input: PsbtInput): Uint8Array[] {
         if (!input.tapScriptSig) {
