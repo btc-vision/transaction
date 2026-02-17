@@ -1,6 +1,6 @@
 # AddressVerificator
 
-Provides static utility methods for validating and detecting Bitcoin address types. `AddressVerificator` can identify P2PKH, P2WPKH, P2TR, P2WSH, P2SH, P2OP, and P2WDA addresses, validate public keys (both classical and ML-DSA), and determine whether a P2WSH address is actually a P2WDA address by inspecting its witness script.
+Provides static utility methods for validating and detecting Bitcoin address types. `AddressVerificator` can identify P2PKH, P2WPKH, P2TR, P2MR, P2WSH, P2SH, P2OP, and P2WDA addresses, validate public keys (both classical and ML-DSA), and determine whether a P2WSH address is actually a P2WDA address by inspecting its witness script.
 
 This class is entirely static and is not meant to be instantiated.
 
@@ -52,6 +52,7 @@ enum AddressTypes {
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',
     P2PK                 = 'P2PK',
     P2TR                 = 'P2TR',
+    P2MR                 = 'P2MR',
     P2WPKH               = 'P2WPKH',
     P2WSH                = 'P2WSH',
     P2WDA                = 'P2WDA',
@@ -65,6 +66,7 @@ enum AddressTypes {
 | `P2SH_OR_P2SH_P2WPKH` | Pay-to-Script-Hash or nested SegWit (starts with `3`). Cannot distinguish without the redeem script. |
 | `P2PK` | Pay-to-Public-Key (detected when input is a valid public key hex). |
 | `P2TR` | Pay-to-Taproot (witness version 1, 32-byte program, starts with `bc1p`). |
+| `P2MR` | Pay-to-Merkle-Root / BIP 360 (witness version 2, 32-byte program, starts with `bc1z`). Quantum-safe, no key-path spend. |
 | `P2WPKH` | Pay-to-Witness-Public-Key-Hash (witness version 0, 20-byte program, starts with `bc1q`). |
 | `P2WSH` | Pay-to-Witness-Script-Hash (witness version 0, 32-byte program, starts with `bc1q`). |
 | `P2WDA` | Pay-to-Witness-Data-Authentication (a P2WSH variant with a specific witness script pattern). |
@@ -323,7 +325,7 @@ Detects the type of a Bitcoin address string. Returns `null` if the address type
 Detection order:
 1. Checks if input is a valid public key (`P2PK`).
 2. Attempts base58 decode for `P2PKH` or `P2SH_OR_P2SH_P2WPKH`.
-3. Attempts bech32 decode for `P2OP`, `P2WPKH`, `P2WSH`, or `P2TR`.
+3. Attempts bech32 decode for `P2OP`, `P2WPKH`, `P2WSH`, `P2TR`, or `P2MR`.
 
 ```typescript
 const type = AddressVerificator.detectAddressType('bc1p...', networks.bitcoin);
@@ -394,6 +396,8 @@ function validateUserAddress(input: string): string {
     switch (type) {
         case AddressTypes.P2TR:
             return `Valid Taproot address: ${input}`;
+        case AddressTypes.P2MR:
+            return `Valid P2MR (BIP 360) address: ${input}`;
         case AddressTypes.P2WPKH:
             return `Valid native SegWit address: ${input}`;
         case AddressTypes.P2PKH:

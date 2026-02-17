@@ -39,6 +39,24 @@ export class AddressVerificator {
         return isValidTapRootAddress;
     }
 
+    /**
+     * Validates that the given address is a valid P2MR (BIP 360) address.
+     * Checks for witness version 2 with a 32-byte Merkle root program.
+     */
+    public static isValidP2MRAddress(inAddress: string, network: Network): boolean {
+        if (!inAddress || inAddress.length < 50) return false;
+
+        let isValidP2MR: boolean = false;
+        try {
+            address.toOutputScript(inAddress, network);
+
+            const decodedAddress = address.fromBech32(inAddress);
+            isValidP2MR = decodedAddress.version === 2 && decodedAddress.data.length === 32;
+        } catch {}
+
+        return isValidP2MR;
+    }
+
     public static isP2WPKHAddress(inAddress: string, network: Network): boolean {
         if (!inAddress || inAddress.length < 20 || inAddress.length > 50) return false;
 

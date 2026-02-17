@@ -264,6 +264,7 @@ enum AddressTypes {
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',
     P2PK = 'P2PK',
     P2TR = 'P2TR',
+    P2MR = 'P2MR',
     P2WPKH = 'P2WPKH',
     P2WSH = 'P2WSH',
     P2WDA = 'P2WDA',
@@ -273,10 +274,11 @@ enum AddressTypes {
 | Value | Name | Prefix | Description |
 |-------|------|--------|-------------|
 | `'P2PKH'` | `P2PKH` | `1...` | Pay-to-Public-Key-Hash (legacy) |
-| `'P2OP'` | `P2OP` | `bcrt1p...` / `bc1p...` | Pay-to-OPNet (witness v16, smart contract addresses) |
+| `'P2OP'` | `P2OP` | `bcrt1s...` / `bc1s...` | Pay-to-OPNet (witness v16, smart contract addresses) |
 | `'P2SH_OR_P2SH-P2WPKH'` | `P2SH_OR_P2SH_P2WPKH` | `3...` | Pay-to-Script-Hash or P2SH-wrapped SegWit |
 | `'P2PK'` | `P2PK` | Raw public key | Pay-to-Public-Key (raw, no address encoding) |
 | `'P2TR'` | `P2TR` | `bc1p...` | Pay-to-Taproot (witness v1) |
+| `'P2MR'` | `P2MR` | `bc1z...` | Pay-to-Merkle-Root / BIP 360 (witness v2, quantum-safe) |
 | `'P2WPKH'` | `P2WPKH` | `bc1q...` | Pay-to-Witness-Public-Key-Hash (native SegWit v0) |
 | `'P2WSH'` | `P2WSH` | `bc1q...` (longer) | Pay-to-Witness-Script-Hash (native SegWit v0) |
 | `'P2WDA'` | `P2WDA` | `bc1q...` (P2WSH) | Pay-to-Witness-Data-Authentication (quantum-resistant witness) |

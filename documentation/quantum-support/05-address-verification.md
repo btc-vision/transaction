@@ -136,6 +136,7 @@ console.log('P2MR type:', p2mrType);  // AddressTypes.P2MR
 ```typescript
 enum AddressTypes {
     P2PKH = 'P2PKH',                      // Legacy (1...)
+    P2OP = 'P2OP',                        // OPNet contract (bc1s...)
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',  // Script hash (3...)
     P2PK = 'P2PK',                        // Public key
     P2TR = 'P2TR',                        // Taproot (bc1p...)

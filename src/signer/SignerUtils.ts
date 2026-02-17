@@ -1,5 +1,5 @@
 // Helper functions
-import { isP2TR, type PsbtInput, pubkeyPositionInScript } from '@btc-vision/bitcoin';
+import { isP2MR, isP2TR, type PsbtInput, pubkeyPositionInScript } from '@btc-vision/bitcoin';
 
 export function isTaprootInput(input: PsbtInput): boolean {
     return (
@@ -9,7 +9,8 @@ export function isTaprootInput(input: PsbtInput): boolean {
             input.tapMerkleRoot ||
             (input.tapLeafScript && input.tapLeafScript.length) ||
             (input.tapBip32Derivation && input.tapBip32Derivation.length) ||
-            (input.witnessUtxo && isP2TR(input.witnessUtxo.script))
+            (input.witnessUtxo &&
+                (isP2TR(input.witnessUtxo.script) || isP2MR(input.witnessUtxo.script)))
         )
     );
 }

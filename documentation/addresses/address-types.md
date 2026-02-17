@@ -304,8 +304,9 @@ A custom OPNet-specific address type using witness version 16 for smart contract
 
 | Property | Value |
 |----------|-------|
-| Prefix (mainnet) | `bc1p` (via `bech32Opnet`) |
-| Prefix (regtest) | `bcrt1p` |
+| Prefix (mainnet) | `bc1s` |
+| Prefix (testnet) | `tb1s` |
+| Prefix (regtest) | `bcrt1s` |
 | Encoding | Bech32m |
 | Data length | 21 bytes |
 | Witness version | 16 |
