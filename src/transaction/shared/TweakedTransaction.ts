@@ -1529,7 +1529,9 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 } catch (e) {
                     tweakedSigner = this.getTweakedSigner(false, this.signer);
                     if (!tweakedSigner) {
-                        throw new Error(`Failed to obtain tweaked signer for input ${i}.`);
+                        throw new Error(`Failed to obtain tweaked signer for input ${i}.`, {
+                            cause: e,
+                        });
                     }
 
                     await this.signTaprootInput(tweakedSigner, transaction, i);

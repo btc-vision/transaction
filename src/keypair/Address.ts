@@ -717,7 +717,9 @@ export class Address extends Uint8Array implements Disposable {
                 witnessScript: p2wdaInfo.witnessScript,
             };
         } catch (error) {
-            throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`);
+            throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`, {
+                cause: error,
+            });
         }
     }
 
