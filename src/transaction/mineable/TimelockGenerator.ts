@@ -7,6 +7,7 @@ import bitcoin, {
     type Script,
     script,
     type XOnlyPublicKey,
+    payments,
 } from '@btc-vision/bitcoin';
 import type { IP2WSHAddress } from './IP2WSHAddress.js';
 
@@ -68,6 +69,30 @@ export class TimeLockGenerator {
         }
 
         return taproot.address;
+    }
+
+    /**
+     * Generate a P2MR address with CSV time lock
+     * Note: This uses Schnorr signatures within a P2MR (BIP 360) script tree
+     */
+    public static generateTimeLockAddressP2MR(
+        publicKey: XOnlyPublicKey,
+        network: Network = networks.bitcoin,
+        csvBlocks: number = TimeLockGenerator.CSV_BLOCKS,
+    ): string {
+        if (publicKey.length !== 32) {
+            throw new Error('Public key must be 32 bytes for P2MR');
+        }
+
+        const witnessScript: Script = this.generateTimeLockScript(publicKey, csvBlocks);
+        const scriptTree = { output: witnessScript, version: 192 };
+        const p2mr = payments.p2mr({ scriptTree, network });
+
+        if (!p2mr.address) {
+            throw new Error('Failed to generate P2MR address');
+        }
+
+        return p2mr.address;
     }
 
     private static generateTimeLockScript(

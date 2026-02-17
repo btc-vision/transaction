@@ -878,7 +878,7 @@ export class TransactionFactory {
                         throw error;
                     }
                 } else {
-                    throw new Error('Unknown error during fee estimation');
+                    throw new Error('Unknown error during fee estimation', { cause: error });
                 }
             }
 

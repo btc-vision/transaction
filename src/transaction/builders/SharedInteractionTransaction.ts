@@ -1,5 +1,6 @@
 import {
     type FinalScriptsFunc,
+    type P2MRPayment,
     type P2TRPayment,
     PaymentType,
     Psbt,
@@ -13,6 +14,7 @@ import {
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { isUniversalSigner } from '../../signer/TweakedSigner.js';
 import { MINIMUM_AMOUNT_REWARD, TransactionBuilder } from './TransactionBuilder.js';
+import type { TapPayment } from '../shared/TweakedTransaction.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import { CalldataGenerator } from '../../generators/builders/CalldataGenerator.js';
 import type { SharedInteractionParameters } from '../interfaces/ITransactionParameters.js';
@@ -211,7 +213,15 @@ export abstract class SharedInteractionTransaction<
         }
     }
 
-    protected override generateScriptAddress(): P2TRPayment {
+    protected override generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -220,7 +230,7 @@ export abstract class SharedInteractionTransaction<
         };
     }
 
-    protected override generateTapData(): P2TRPayment {
+    protected override generateTapData(): TapPayment {
         const selectedRedeem = this.scriptSigner
             ? this.targetScriptRedeem
             : this.leftOverFundsScriptRedeem;
@@ -231,6 +241,15 @@ export abstract class SharedInteractionTransaction<
 
         if (!this.scriptTree) {
             throw new Error('Script tree is required');
+        }
+
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                redeem: selectedRedeem,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
         }
 
         return {

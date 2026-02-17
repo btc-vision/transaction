@@ -4,12 +4,12 @@ Deploy smart contracts to the OPNet network using `DeploymentTransaction`.
 
 ## Overview
 
-A `DeploymentTransaction` deploys a compiled smart contract to the Bitcoin blockchain via OPNet. The process produces **two transactions** that must be broadcast in order: a funding transaction that sends BTC to a derived Taproot script address, and a deployment transaction that reveals the contract bytecode in the Taproot witness.
+A `DeploymentTransaction` deploys a compiled smart contract to the Bitcoin blockchain via OPNet. The process produces **two transactions** that must be broadcast in order: a funding transaction that sends BTC to a derived script address (P2TR or P2MR), and a deployment transaction that reveals the contract bytecode in the witness.
 
 ```mermaid
 flowchart LR
     subgraph TX1["Transaction 1: Funding"]
-        U["User UTXOs"] --> SA["Script Address<br/>(P2TR)"]
+        U["User UTXOs"] --> SA["Script Address<br/>(P2TR / P2MR)"]
         U --> Change["Change Output"]
     end
 
@@ -57,6 +57,7 @@ const result = await factory.signDeployment(parameters);
 | `calldata` | `Uint8Array` | No | - | Constructor calldata (ABI-encoded constructor arguments) |
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte salt for contract address derivation |
 | `challenge` | `IChallengeSolution` | Yes | - | Epoch challenge solution (proof of work) |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the quantum-vulnerable key-path spend. |
 
 ### Constraints
 
@@ -190,6 +191,7 @@ async function deployContract() {
         bytecode,
         calldata,
         challenge,
+        // useP2MR: true,  // Uncomment for quantum-safe P2MR output (bc1z...)
     });
 
     // Broadcast both transactions in order
@@ -235,6 +237,7 @@ try {
 4. **Broadcast in order.** The funding transaction must confirm (or at least enter the mempool) before the deployment transaction can be accepted.
 5. **Track refund UTXOs.** Use `result.utxos` as inputs for your next transaction.
 6. **Verify contract size.** The 128 KB limit applies to the compressed bytecode including the version prefix.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure.
 
 ---
 

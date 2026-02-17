@@ -7,6 +7,7 @@ import {
     fromHex,
     getFinalScripts,
     isP2A,
+    isP2MR,
     isP2MS,
     isP2PK,
     isP2PKH,
@@ -17,6 +18,7 @@ import {
     isUnknownSegwitVersion,
     type Network,
     opcodes,
+    type P2MRPayment,
     type P2TRPayment,
     type ParallelSigningResult,
     payments,
@@ -63,6 +65,11 @@ export enum CSVModes {
 }
 
 /**
+ * Union type for P2TR and P2MR payment objects.
+ */
+export type TapPayment = P2TRPayment | P2MRPayment;
+
+/**
  * @description PSBT Transaction processor.
  * */
 export abstract class TweakedTransaction extends Logger implements Disposable {
@@ -104,12 +111,12 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
     /**
      * @description The script data of the transaction
      */
-    protected scriptData: P2TRPayment | null = null;
+    protected scriptData: TapPayment | null = null;
 
     /**
      * @description The tap data of the transaction
      */
-    protected tapData: P2TRPayment | null = null;
+    protected tapData: TapPayment | null = null;
 
     /**
      * @description The inputs of the transaction
@@ -185,6 +192,11 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      */
     protected parallelSigningConfig?: SigningPoolLike | WorkerPoolConfig;
 
+    /**
+     * Whether to use P2MR (Pay-to-Merkle-Root, BIP 360) instead of P2TR.
+     */
+    protected readonly useP2MR: boolean = false;
+
     protected constructor(data: ITweakedTransactionData) {
         super();
 
@@ -218,6 +230,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
 
         if (data.parallelSigning) {
             this.parallelSigningConfig = data.parallelSigning;
+        }
+
+        if (data.useP2MR) {
+            this.useP2MR = true;
         }
     }
 
@@ -574,7 +590,14 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         return tweaked;
     }
 
-    protected generateTapData(): P2TRPayment {
+    protected generateTapData(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -585,9 +608,16 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
     /**
      * Generates the script address.
      * @protected
-     * @returns {Payment}
+     * @returns {TapPayment}
      */
-    protected generateScriptAddress(): P2TRPayment {
+    protected generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
             internalPubkey: this.internalPubKeyToXOnly(),
             network: this.network,
@@ -814,8 +844,20 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      * @protected
      */
     protected internalInit(): void {
-        this.scriptData = payments.p2tr(this.generateScriptAddress());
-        this.tapData = payments.p2tr(this.generateTapData());
+        const scriptParams = this.generateScriptAddress();
+        const tapParams = this.generateTapData();
+
+        if (scriptParams.name === PaymentType.P2MR) {
+            this.scriptData = payments.p2mr(scriptParams);
+        } else {
+            this.scriptData = payments.p2tr(scriptParams);
+        }
+
+        if (tapParams.name === PaymentType.P2MR) {
+            this.tapData = payments.p2mr(tapParams);
+        } else {
+            this.tapData = payments.p2tr(tapParams);
+        }
     }
 
     /**
@@ -1166,6 +1208,25 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             }
         }
 
+        // Handle P2MR (Pay-to-Merkle-Root, BIP 360, SegWit v2)
+        else if (isP2MR(scriptPub)) {
+            // P2MR inputs do not require nonWitnessUtxo, witnessUtxo is sufficient.
+            // P2MR has no internal pubkey (no key-path spend).
+
+            if (this.sighashTypes) {
+                const inputSign = TweakedTransaction.calculateSignHash(this.sighashTypes);
+                if (inputSign) input.sighashType = inputSign;
+            }
+
+            // For the transaction's own script-path input (index 0), set tapMerkleRoot
+            // from this transaction's tap data. External P2MR UTXOs at other indices
+            // do not need tapMerkleRoot set here — their tapLeafScript is sufficient.
+            if (i === 0 && this.tapData?.hash) {
+                (input as PsbtInputExtended & { tapMerkleRoot: Uint8Array }).tapMerkleRoot =
+                    this.tapData.hash;
+            }
+        }
+
         // Handle P2A (Any SegWit version, future versions)
         else if (isP2A(scriptPub)) {
             this.anchorInputIndices.add(i);
@@ -1468,7 +1529,9 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 } catch (e) {
                     tweakedSigner = this.getTweakedSigner(false, this.signer);
                     if (!tweakedSigner) {
-                        throw new Error(`Failed to obtain tweaked signer for input ${i}.`);
+                        throw new Error(`Failed to obtain tweaked signer for input ${i}.`, {
+                            cause: e,
+                        });
                     }
 
                     await this.signTaprootInput(tweakedSigner, transaction, i);

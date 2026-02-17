@@ -64,7 +64,7 @@ console.log('Estimated fees:', transfer.estimatedFees);
 
 ### [Key Pair & Wallet Management](#key-pair--wallet-management-1)
 
-- [Address](./keypair/address.md) -- Quantum-resistant address, P2TR/P2WPKH/P2PKH/P2WDA, `fromString()`
+- [Address](./keypair/address.md) -- Quantum-resistant address, P2TR/P2MR/P2WPKH/P2PKH/P2WDA, `fromString()`
 - [EcKeyPair](./keypair/ec-keypair.md) -- Classical key pairs, WIF, Taproot addresses
 - [Wallet](./keypair/wallet.md) -- Unified classical + quantum wallet, disposable
 - [MessageSigner](./keypair/message-signer.md) -- Message signing (Auto methods, browser/backend detection, ML-DSA, Schnorr, tweaked)
@@ -87,7 +87,7 @@ console.log('Estimated fees:', transfer.estimatedFees);
 
 - [P2OP](./addresses/P2OP.md) -- Pay-to-OPNet contract addresses
 - [P2WDA](./addresses/P2WDA.md) -- Pay-to-Witness-Data-Authentication
-- [Address Types Overview](./addresses/address-types.md) -- All supported Bitcoin address types
+- [Address Types Overview](./addresses/address-types.md) -- All supported Bitcoin address types (including P2MR)
 
 ### [Signer Utilities](#signer-utilities-1)
 
@@ -184,7 +184,7 @@ OPNet uses a **hybrid classical + quantum** key model. Every wallet contains bot
 - **[EcKeyPair](./keypair/ec-keypair.md)** -- Create classical key pairs from WIF strings, private key hex, or random generation.
 - **[Wallet](./keypair/wallet.md)** -- Unified wallet combining classical and quantum keys with address derivation for all formats.
 - **[MessageSigner](./keypair/message-signer.md)** -- Sign and verify messages with automatic backend/browser detection.
-- **[AddressVerificator](./keypair/address-verificator.md)** -- Validate addresses and detect their type (P2TR, P2WPKH, P2PKH, P2WDA, P2OP).
+- **[AddressVerificator](./keypair/address-verificator.md)** -- Validate addresses and detect their type (P2TR, P2MR, P2WPKH, P2PKH, P2WDA, P2OP).
 
 ---
 
@@ -225,7 +225,7 @@ OPNet supports multiple Bitcoin address formats:
 
 - **[P2OP](./addresses/P2OP.md)** -- Pay-to-OPNet, witness v16 addresses used for smart contracts.
 - **[P2WDA](./addresses/P2WDA.md)** -- Pay-to-Witness-Data-Authentication, quantum-authenticated witness addresses.
-- **[Address Types Overview](./addresses/address-types.md)** -- Complete reference for P2TR, P2WPKH, P2PKH, P2SH, and OPNet-specific types.
+- **[Address Types Overview](./addresses/address-types.md)** -- Complete reference for P2TR, P2MR, P2WPKH, P2PKH, P2SH, and OPNet-specific types.
 
 ---
 
@@ -294,15 +294,17 @@ The [Generators](./generators/generators.md) module contains low-level script bu
 
 ## Quantum Support (ML-DSA)
 
-OPNet implements **ML-DSA** (Module-Lattice-Based Digital Signature Algorithm) for post-quantum cryptography. The hybrid architecture pairs classical secp256k1 keys with ML-DSA keys so that transactions are secure against both classical and quantum attacks.
+OPNet implements **ML-DSA** (Module-Lattice-Based Digital Signature Algorithm) for post-quantum cryptography. The hybrid architecture pairs classical secp256k1 keys with ML-DSA keys so that transactions are secure against both classical and quantum attacks. Additionally, **P2MR (Pay-to-Merkle-Root, BIP 360)** provides quantum-safe transaction outputs by committing directly to a Merkle root without a key-path spend.
 
 See the [Complete Quantum Support Guide](./quantum-support/README.md) for a full walkthrough, or jump to a specific topic:
 
 1. [Introduction](./quantum-support/01-introduction.md) -- ML-DSA overview, security levels (LEVEL2, LEVEL3, LEVEL5)
 2. [Mnemonic & Wallet](./quantum-support/02-mnemonic-and-wallet.md) -- BIP39 + BIP360 derivation
-3. [Address Generation](./quantum-support/03-address-generation.md) -- All address formats
+3. [Address Generation](./quantum-support/03-address-generation.md) -- All address formats, including P2MR
 4. [Message Signing](./quantum-support/04-message-signing.md) -- ML-DSA and Schnorr signatures
-5. [Address Verification](./quantum-support/05-address-verification.md) -- Public key validation
+5. [Address Verification](./quantum-support/05-address-verification.md) -- Public key validation, P2MR detection
+
+For P2MR address details, see also [Address Types Overview](./addresses/address-types.md#p2mr-pay-to-merkle-root-bip-360).
 
 ---
 

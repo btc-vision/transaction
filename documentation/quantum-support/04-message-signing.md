@@ -840,6 +840,10 @@ Returns the ML-DSA public key from OP_WALLET, or `null` if unavailable.
 
 ---
 
+## See Also
+
+- [Address Generation](./03-address-generation.md) - P2MR and P2TR address types, including quantum-safe P2MR outputs via `useP2MR`
+
 ## Next Steps
 
 - [Address Verification](./05-address-verification.md) - Validate addresses and public keys

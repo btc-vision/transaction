@@ -4,7 +4,7 @@ Create M-of-N multi-signature transactions using `MultiSignTransaction`.
 
 ## Overview
 
-`MultiSignTransaction` creates Taproot-based multi-signature transactions where M out of N key holders must sign before the transaction is valid. It uses a PSBT (Partially Signed Bitcoin Transaction) workflow to collect signatures from multiple parties.
+`MultiSignTransaction` creates Taproot-based multi-signature transactions where M out of N key holders must sign before the transaction is valid. It uses a PSBT (Partially Signed Bitcoin Transaction) workflow to collect signatures from multiple parties. Supports both P2TR and P2MR (BIP 360) output types.
 
 ```mermaid
 flowchart TB
@@ -61,6 +61,7 @@ const psbt = await multiSigTx.signPSBT();
 | `from` | `string` | No | - | Source address |
 | `to` | `string` | No | - | Target address |
 | `psbt` | `Psbt` | No | - | Existing PSBT to add signatures to |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the quantum-vulnerable key-path spend (no NUMS point needed). |
 
 Note: The `signer`, `priorityFee`, `gasSatFee`, `from`, and `to` fields from `ITransactionParameters` are omitted. `from` and `to` are re-declared as optional above. A dummy signer is used internally since actual signing happens via the PSBT workflow. The `mldsaSigner` field is inherited from `ITransactionParameters` (type `QuantumBIP32Interface | null`).
 
@@ -211,6 +212,36 @@ public static readonly numsPoint: PublicKey = fromHex(
 );
 ```
 
+### P2MR Multi-Signature
+
+When `useP2MR: true` is set, the multisig uses P2MR (BIP 360) instead of P2TR. P2MR eliminates the internal pubkey entirely -- the output commits directly to the Merkle root of the script tree. No NUMS point is needed.
+
+For convenience, the `P2MR_MS` utility class generates P2MR multisig addresses:
+
+```typescript
+import { P2MR_MS } from '@btc-vision/transaction';
+
+const p2mrMultisigAddress = P2MR_MS.generateMultiSigAddress(
+    [pubkeyA, pubkeyB, pubkeyC],
+    2,                       // 2-of-3
+    networks.bitcoin,
+);
+// Returns bc1z... address
+```
+
+Compare with the P2TR equivalent:
+
+```typescript
+import { P2TR_MS } from '@btc-vision/transaction';
+
+const p2trMultisigAddress = P2TR_MS.generateMultiSigAddress(
+    [pubkeyA, pubkeyB, pubkeyC],
+    2,                       // 2-of-3
+    networks.bitcoin,
+);
+// Returns bc1p... address
+```
+
 ## Complete 2-of-3 Example
 
 ```typescript
@@ -334,6 +365,7 @@ try {
 4. **Validate the refund amount.** Ensure `requestedAmount` does not exceed the total UTXO value to avoid a negative refund.
 5. **Check `result.final` after each signature.** If the threshold is met, finalize and broadcast immediately rather than collecting unnecessary extra signatures.
 6. **Keep the NUMS point.** The internal key is a standard NUMS point that ensures only script-path spending. Do not change this.
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure. Use `P2MR_MS.generateMultiSigAddress()` for P2MR multisig address generation.
 
 ---
 

@@ -4,12 +4,12 @@ Call smart contract functions using `InteractionTransaction`.
 
 ## Overview
 
-An `InteractionTransaction` calls a function on a deployed OPNet smart contract. Like deployments, interactions use a **two-transaction model**: a funding transaction sends BTC to a derived Taproot script address, and the interaction transaction spends that UTXO while embedding the calldata in the Taproot witness.
+An `InteractionTransaction` calls a function on a deployed OPNet smart contract. Like deployments, interactions use a **two-transaction model**: a funding transaction sends BTC to a derived script address (P2TR or P2MR), and the interaction transaction spends that UTXO while embedding the calldata in the witness.
 
 ```mermaid
 flowchart LR
     subgraph TX1["Transaction 1: Funding"]
-        U["User UTXOs"] --> SA["Script Address<br/>(P2TR)"]
+        U["User UTXOs"] --> SA["Script Address<br/>(P2TR / P2MR)"]
         U --> Change["Change Output"]
     end
 
@@ -86,6 +86,7 @@ flowchart TB
 | `randomBytes` | `Uint8Array` | No | Auto-generated | 32-byte random salt |
 | `loadedStorage` | `LoadedStorage` | No | - | Access list for gas optimization |
 | `disableAutoRefund` | `boolean` | No | `false` | Skip the automatic refund output |
+| `useP2MR` | `boolean` | No | `false` | Use P2MR (BIP 360) instead of P2TR. Eliminates the quantum-vulnerable key-path spend. |
 
 ### Constraints
 
@@ -239,6 +240,7 @@ async function callContract() {
         calldata,
         contract: contractPubKey,
         challenge,
+        // useP2MR: true,  // Uncomment for quantum-safe P2MR output (bc1z...)
     });
 
     // Broadcast both transactions in order
@@ -286,6 +288,7 @@ try {
 4. **Track change UTXOs.** Use `result.nextUTXOs` for subsequent transactions.
 5. **Set appropriate fees.** Both `priorityFee` and `gasSatFee` affect how validators prioritize your interaction.
 6. **Handle P2WDA automatically.** If your UTXOs are P2WDA type, the factory automatically uses the single-transaction P2WDA path (no funding transaction needed).
+7. **Consider P2MR for quantum safety.** Set `useP2MR: true` to use P2MR outputs (BIP 360) instead of P2TR. P2MR commits directly to a Merkle root without a key-path spend, eliminating quantum-vulnerable internal pubkey exposure.
 
 ---
 

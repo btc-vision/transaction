@@ -93,9 +93,10 @@ export class OPNetLimitedProvider {
         let currentAmount: bigint = 0n;
 
         const amountRequested: bigint = settings.requestedAmount;
+        const rawCache = new Map<number, Uint8Array>();
+
         for (const utxo of meetCriteria) {
             const utxoValue: bigint = BigInt(utxo.value);
-
             if (utxoValue <= 0n) {
                 continue;
             }
@@ -114,19 +115,27 @@ export class OPNetLimitedProvider {
                 );
             }
 
+            let nonWitnessUtxo = rawCache.get(rawIndex);
+            if (nonWitnessUtxo === undefined) {
+                nonWitnessUtxo = fromBase64(rawHex);
+                rawCache.set(rawIndex, nonWitnessUtxo);
+            }
+
             currentAmount += utxoValue;
             finalUTXOs.push({
                 transactionId: utxo.transactionId,
                 outputIndex: utxo.outputIndex,
                 value: utxoValue,
                 scriptPubKey: utxo.scriptPubKey,
-                nonWitnessUtxo: fromBase64(rawHex),
+                nonWitnessUtxo,
             });
 
             if (currentAmount > amountRequested) {
                 break;
             }
         }
+
+        rawCache.clear();
 
         return finalUTXOs;
     }

@@ -119,6 +119,7 @@ export * from './transaction/shared/TweakedTransaction.js';
 export * from './utxo/interfaces/BroadcastResponse.js';
 
 export * from './transaction/shared/P2TR_MS.js';
+export * from './transaction/shared/P2MR_MS.js';
 
 /** Consensus */
 export * from './consensus/Consensus.js';

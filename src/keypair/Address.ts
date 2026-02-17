@@ -717,7 +717,9 @@ export class Address extends Uint8Array implements Disposable {
                 witnessScript: p2wdaInfo.witnessScript,
             };
         } catch (error) {
-            throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`);
+            throw new Error(`Failed to generate P2WDA address: ${(error as Error).message}`, {
+                cause: error,
+            });
         }
     }
 
@@ -784,6 +786,35 @@ export class Address extends Uint8Array implements Disposable {
         // Now we can use your TimeLockGenerator to create the timelocked address
         // Converting bigint to number is safe here because we've already validated the range
         return TimeLockGenerator.generateTimeLockAddressP2TR(
+            this.tweakedPublicKeyToBuffer(),
+            network,
+            n,
+        );
+    }
+
+    /**
+     * Generate a P2MR address with CSV (CheckSequenceVerify) time lock
+     * The resulting address can only be spent after the specified number of blocks
+     * have passed since the UTXO was created. Uses P2MR (BIP 360) instead of P2TR.
+     *
+     * @param {bigint | number | string} duration - The number of blocks that must pass before spending (1-65535)
+     * @param {Network} network - The Bitcoin network to use
+     * @returns {string} The timelocked P2MR address
+     * @throws {Error} If the block number is out of range or public key is not available
+     */
+    public toCSVP2MR(duration: bigint | number | string, network: Network): string {
+        const n = Number(duration);
+
+        if (n < 1 || n > 65535) {
+            throw new Error('CSV block number must be between 1 and 65535');
+        }
+
+        this.ensureLegacyProcessed();
+        if (!this.#tweakedPublicKey) {
+            throw new Error('Cannot create CSV P2MR address: public key not set');
+        }
+
+        return TimeLockGenerator.generateTimeLockAddressP2MR(
             this.tweakedPublicKeyToBuffer(),
             network,
             n,

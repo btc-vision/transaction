@@ -55,6 +55,14 @@ export default defineConfig({
             ], //'worker_threads', 'perf_hooks', 'inspector', 'async_hooks', 'trace_events', 'v8', 'wasi',
         }),
     ],
+    optimizeDeps: {
+        include: [
+            'vite-plugin-node-polyfills/shims/buffer',
+            'vite-plugin-node-polyfills/shims/global',
+            'vite-plugin-node-polyfills/shims/process',
+        ],
+        exclude: ['node:module'],
+    },
     test: {
         globals: true,
         include: [

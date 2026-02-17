@@ -520,7 +520,10 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 const dummyScript = this.tapLeafScript.script;
 
                 // A control block for a 2-leaf tree contains one 32-byte hash.
-                const dummyControlBlock = new Uint8Array(1 + 32 + 32);
+                // P2TR: 33 (version + internal pubkey) + 32 (merkle path) = 65 bytes
+                // P2MR: 1 (version) + 32 (merkle path) = 33 bytes (no internal pubkey)
+                const controlBlockSize = this.useP2MR ? 1 + 32 : 1 + 32 + 32;
+                const dummyControlBlock = new Uint8Array(controlBlockSize);
 
                 return {
                     finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness([

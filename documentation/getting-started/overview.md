@@ -81,7 +81,7 @@ sequenceDiagram
     participant Network as Bitcoin Network
 
     User->>FundingTx: 1. Create funding transaction
-    Note over FundingTx: Sends exact amount to<br/>a one-time Taproot address
+    Note over FundingTx: Sends exact amount to<br/>a one-time script address<br/>(P2TR or P2MR)
 
     User->>InteractionTx: 2. Create interaction transaction
     Note over InteractionTx: Spends funding output,<br/>embeds calldata in Tapscript
@@ -129,10 +129,12 @@ OPNet implements **BIP360** for quantum-resistant key management using ML-DSA (F
 
 | Key Type | Algorithm | Purpose |
 |----------|-----------|---------|
-| Classical | secp256k1 (Schnorr) | Bitcoin transaction signing, P2TR addresses |
+| Classical | secp256k1 (Schnorr) | Bitcoin transaction signing, P2TR/P2MR addresses |
 | Quantum | ML-DSA-44/65/87 | OPNet identity, quantum-resistant signatures |
 
 The quantum public key is hashed (SHA-256) to produce a 32-byte **OPNet address** that serves as the user's identity across the protocol. Classical keys handle the Bitcoin layer; quantum keys handle the OPNet protocol layer.
+
+For quantum-safe transaction outputs, the library supports **P2MR (Pay-to-Merkle-Root, BIP 360)** -- a SegWit version 2 output type that commits directly to a Merkle root without exposing an internal public key. All transaction builders accept a `useP2MR` flag to enable P2MR outputs (`bc1z...` addresses) instead of the default P2TR (`bc1p...`).
 
 ### Dual Environment Support
 
@@ -243,11 +245,12 @@ OPNet uses two complementary address systems:
 
 ### Bitcoin Addresses (On-Chain)
 
-Standard Bitcoin addresses used for transaction inputs and outputs. The library generates Taproot (P2TR) addresses by default:
+Standard Bitcoin addresses used for transaction inputs and outputs. The library generates Taproot (P2TR) addresses by default, with optional P2MR (BIP 360) support:
 
 | Format | Prefix | Example |
 |--------|--------|---------|
 | P2TR (Taproot) | `bc1p` | `bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297` |
+| P2MR (Merkle Root) | `bc1z` | `bc1z...` (quantum-safe, no key-path spend) |
 | P2WPKH (SegWit) | `bc1q` | `bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4` |
 | P2PKH (Legacy) | `1` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa` |
 
@@ -290,6 +293,7 @@ console.log(wallet.quantumPublicKey.length);
 flowchart LR
     MLDSA["ML-DSA Public Key<br/>(1312 bytes)"] -->|SHA-256| OPNet["OPNet Address<br/>(32 bytes)"]
     Secp["secp256k1 Public Key<br/>(33 bytes)"] -->|Taproot tweak| P2TR["Bitcoin P2TR<br/>(bc1p...)"]
+    Secp -->|Merkle root| P2MR["Bitcoin P2MR<br/>(bc1z...)"]
 
     subgraph Wallet["Wallet Instance"]
         MLDSA
@@ -299,6 +303,7 @@ flowchart LR
     subgraph Addresses["Derived Addresses"]
         OPNet
         P2TR
+        P2MR
     end
 ```
 

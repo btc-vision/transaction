@@ -3,6 +3,7 @@ import {
     equals,
     fromHex,
     opcodes,
+    type P2MRPayment,
     type P2TRPayment,
     PaymentType,
     Psbt,
@@ -20,6 +21,7 @@ import {
     toXOnly,
 } from '@btc-vision/bitcoin';
 import { TransactionBuilder } from './TransactionBuilder.js';
+import type { TapPayment } from '../shared/TweakedTransaction.js';
 import { TransactionType } from '../enums/TransactionType.js';
 import type { UpdateInput } from '../interfaces/Tap.js';
 import type { ITransactionParameters } from '../interfaces/ITransactionParameters.js';
@@ -553,16 +555,24 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
      */
     protected override async signInputs(_transaction: Psbt): Promise<void> {}
 
-    protected override generateScriptAddress(): P2TRPayment {
+    protected override generateScriptAddress(): TapPayment {
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
-            internalPubkey: toXOnly(MultiSignTransaction.numsPoint), //this.internalPubKeyToXOnly(),
+            internalPubkey: toXOnly(MultiSignTransaction.numsPoint),
             network: this.network,
             scriptTree: this.scriptTree,
             name: PaymentType.P2TR,
         };
     }
 
-    protected override generateTapData(): P2TRPayment {
+    protected override generateTapData(): TapPayment {
         const selectedRedeem = this.targetScriptRedeem;
         if (!selectedRedeem) {
             throw new Error('Left over funds script redeem is required');
@@ -572,8 +582,17 @@ export class MultiSignTransaction extends TransactionBuilder<TransactionType.MUL
             throw new Error('Script tree is required');
         }
 
+        if (this.useP2MR) {
+            return {
+                network: this.network,
+                scriptTree: this.scriptTree,
+                redeem: selectedRedeem,
+                name: PaymentType.P2MR,
+            } as P2MRPayment;
+        }
+
         return {
-            internalPubkey: toXOnly(MultiSignTransaction.numsPoint), //this.internalPubKeyToXOnly(),
+            internalPubkey: toXOnly(MultiSignTransaction.numsPoint),
             network: this.network,
             scriptTree: this.scriptTree,
             redeem: selectedRedeem,
