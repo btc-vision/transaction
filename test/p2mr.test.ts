@@ -524,7 +524,7 @@ describe('P2MR Support', () => {
                     network,
                     10,
                 ),
-            ).toThrow('Public key must be 32 bytes');
+            ).toThrow('Public key must be 32 bytes for P2MR');
         });
 
         it('should generate different addresses for different CSV block counts', () => {

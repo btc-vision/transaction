@@ -26,7 +26,7 @@ export class P2MR_MS {
         const multiSignParams: MultiSignParameters = {
             network: network,
             utxos: [],
-            pubkeys: pubKeys,
+            pubkeys: publicKeys,
             minimumSignatures: minimumSignatureRequired,
             feeRate: 100,
             receiver: 'a',
