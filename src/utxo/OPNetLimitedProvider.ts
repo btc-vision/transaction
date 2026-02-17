@@ -3,12 +3,7 @@ import type { IFundingTransactionParameters } from '../transaction/interfaces/IT
 import { TransactionFactory } from '../transaction/TransactionFactory.js';
 import { Wallet } from '../keypair/Wallet.js';
 import type { BroadcastResponse } from './interfaces/BroadcastResponse.js';
-import type {
-    FetchUTXOParams,
-    FetchUTXOParamsMultiAddress,
-    RawUTXOResponse,
-    UTXO,
-} from './interfaces/IUTXO.js';
+import type { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO, } from './interfaces/IUTXO.js';
 
 export interface WalletUTXOs {
     readonly confirmed: RawUTXOResponse[];
@@ -93,9 +88,10 @@ export class OPNetLimitedProvider {
         let currentAmount: bigint = 0n;
 
         const amountRequested: bigint = settings.requestedAmount;
+        const rawCache = new Map<number, Uint8Array>();
+
         for (const utxo of meetCriteria) {
             const utxoValue: bigint = BigInt(utxo.value);
-
             if (utxoValue <= 0n) {
                 continue;
             }
@@ -114,19 +110,27 @@ export class OPNetLimitedProvider {
                 );
             }
 
+            let nonWitnessUtxo = rawCache.get(rawIndex);
+            if (nonWitnessUtxo === undefined) {
+                nonWitnessUtxo = fromBase64(rawHex);
+                rawCache.set(rawIndex, nonWitnessUtxo);
+            }
+
             currentAmount += utxoValue;
             finalUTXOs.push({
                 transactionId: utxo.transactionId,
                 outputIndex: utxo.outputIndex,
                 value: utxoValue,
                 scriptPubKey: utxo.scriptPubKey,
-                nonWitnessUtxo: fromBase64(rawHex),
+                nonWitnessUtxo,
             });
 
             if (currentAmount > amountRequested) {
                 break;
             }
         }
+
+        rawCache.clear();
 
         return finalUTXOs;
     }
