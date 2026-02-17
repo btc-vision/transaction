@@ -10,6 +10,7 @@ export enum AddressTypes {
     P2SH_OR_P2SH_P2WPKH = 'P2SH_OR_P2SH-P2WPKH',
     P2PK = 'P2PK',
     P2TR = 'P2TR',
+    P2MR = 'P2MR',
     P2WPKH = 'P2WPKH',
     P2WSH = 'P2WSH',
     P2WDA = 'P2WDA',
@@ -208,6 +209,10 @@ export class AddressVerificator {
 
                 if (decodedBech32.version === 1 && decodedBech32.data.length === 32) {
                     return AddressTypes.P2TR;
+                }
+
+                if (decodedBech32.version === 2 && decodedBech32.data.length === 32) {
+                    return AddressTypes.P2MR;
                 }
             }
         } catch {}
