@@ -3,7 +3,12 @@ import type { IFundingTransactionParameters } from '../transaction/interfaces/IT
 import { TransactionFactory } from '../transaction/TransactionFactory.js';
 import { Wallet } from '../keypair/Wallet.js';
 import type { BroadcastResponse } from './interfaces/BroadcastResponse.js';
-import type { FetchUTXOParams, FetchUTXOParamsMultiAddress, RawUTXOResponse, UTXO, } from './interfaces/IUTXO.js';
+import type {
+    FetchUTXOParams,
+    FetchUTXOParamsMultiAddress,
+    RawUTXOResponse,
+    UTXO,
+} from './interfaces/IUTXO.js';
 
 export interface WalletUTXOs {
     readonly confirmed: RawUTXOResponse[];
