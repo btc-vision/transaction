@@ -124,7 +124,7 @@ export class ConsolidatedInteractionTransaction extends TransactionBuilder<Trans
         }
 
         this.contractAddress = parameters.to;
-        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
+        this.contractSecret = fromHex(parameters.contract.startsWith('0x') ? parameters.contract.slice(2) : parameters.contract);
         this.disableAutoRefund = parameters.disableAutoRefund || false;
         this.maxChunkSize = parameters.maxChunkSize ?? HashCommitmentGenerator.MAX_CHUNK_SIZE;
 

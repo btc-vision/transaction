@@ -66,7 +66,7 @@ export class InteractionTransactionP2WDA extends TransactionBuilder<TransactionT
         }
 
         this.disableAutoRefund = parameters.disableAutoRefund || false;
-        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
+        this.contractSecret = fromHex(parameters.contract.startsWith('0x') ? parameters.contract.slice(2) : parameters.contract);
         this.calldata = Compressor.compress(parameters.calldata);
         this.challenge = parameters.challenge;
         this.randomBytes = parameters.randomBytes || BitcoinUtils.rndBytes();

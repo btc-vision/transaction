@@ -1,5 +1,9 @@
 import { createHash } from 'crypto';
 import { fromHex, toHex } from '@btc-vision/bitcoin';
+
+function stripHexPrefix(str: string): string {
+    return str.startsWith('0x') ? str.slice(2) : str;
+}
 import { BinaryWriter } from '../../buffer/BinaryWriter.js';
 import { BinaryReader } from '../../buffer/BinaryReader.js';
 import type {
@@ -685,9 +689,9 @@ export class TransactionSerializer {
         writer.writeU64(BigInt(challenge.epochNumber));
         writer.writeStringWithLength(challenge.mldsaPublicKey);
         writer.writeStringWithLength(challenge.legacyPublicKey);
-        writer.writeBytesWithLength(fromHex(challenge.solution.replace('0x', '')));
-        writer.writeBytesWithLength(fromHex(challenge.salt.replace('0x', '')));
-        writer.writeBytesWithLength(fromHex(challenge.graffiti.replace('0x', '')));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(challenge.solution)));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(challenge.salt)));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(challenge.graffiti)));
         writer.writeU8(challenge.difficulty);
 
         // Verification
@@ -698,14 +702,14 @@ export class TransactionSerializer {
         if (challenge.submission !== undefined) {
             writer.writeStringWithLength(challenge.submission.mldsaPublicKey);
             writer.writeStringWithLength(challenge.submission.legacyPublicKey);
-            writer.writeBytesWithLength(fromHex(challenge.submission.solution.replace('0x', '')));
+            writer.writeBytesWithLength(fromHex(stripHexPrefix(challenge.submission.solution)));
             writer.writeBoolean(challenge.submission.graffiti !== undefined);
             if (challenge.submission.graffiti !== undefined) {
                 writer.writeBytesWithLength(
-                    fromHex(challenge.submission.graffiti.replace('0x', '')),
+                    fromHex(stripHexPrefix(challenge.submission.graffiti)),
                 );
             }
-            writer.writeBytesWithLength(fromHex(challenge.submission.signature.replace('0x', '')));
+            writer.writeBytesWithLength(fromHex(stripHexPrefix(challenge.submission.signature)));
         }
     }
 
@@ -713,15 +717,15 @@ export class TransactionSerializer {
         writer: BinaryWriter,
         verification: RawChallengeVerification,
     ): void {
-        writer.writeBytesWithLength(fromHex(verification.epochHash.replace('0x', '')));
-        writer.writeBytesWithLength(fromHex(verification.epochRoot.replace('0x', '')));
-        writer.writeBytesWithLength(fromHex(verification.targetHash.replace('0x', '')));
-        writer.writeBytesWithLength(fromHex(verification.targetChecksum.replace('0x', '')));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(verification.epochHash)));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(verification.epochRoot)));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(verification.targetHash)));
+        writer.writeBytesWithLength(fromHex(stripHexPrefix(verification.targetChecksum)));
         writer.writeU64(BigInt(verification.startBlock));
         writer.writeU64(BigInt(verification.endBlock));
         writer.writeU16(verification.proofs.length);
         for (const proof of verification.proofs) {
-            writer.writeBytesWithLength(fromHex(proof.replace('0x', '')));
+            writer.writeBytesWithLength(fromHex(stripHexPrefix(proof)));
         }
     }
 

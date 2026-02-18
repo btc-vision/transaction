@@ -36,8 +36,9 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         if (this.autoAdjustAmount && this.amount >= this.totalInputAmount) {
             // Add a temporary output at full amount to get an accurate fee estimate
             if (this.isPubKeyDestination) {
+                const toHexClean = this.to.startsWith('0x') ? this.to.slice(2) : this.to;
                 const pubKeyScript: Script = script.compile([
-                    fromHex(this.to.replace('0x', '')),
+                    fromHex(toHexClean),
                     opcodes.OP_CHECKSIG,
                 ]);
 
@@ -71,8 +72,9 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         if (this.splitInputsInto > 1) {
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
+            const toHexClean = this.to.startsWith('0x') ? this.to.slice(2) : this.to;
             const pubKeyScript: Script = script.compile([
-                fromHex(this.to.replace('0x', '')),
+                fromHex(toHexClean),
                 opcodes.OP_CHECKSIG,
             ]);
 

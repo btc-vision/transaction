@@ -1261,7 +1261,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             };
         } else if (AddressVerificator.isValidPublicKey(this.from, this.network)) {
             const pubKeyScript = script.compile([
-                fromHex(this.from.replace('0x', '')),
+                fromHex(this.from.startsWith('0x') ? this.from.slice(2) : this.from),
                 opcodes.OP_CHECKSIG,
             ]);
 

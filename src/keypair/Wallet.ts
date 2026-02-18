@@ -38,7 +38,7 @@ export class Wallet implements Disposable {
         this._securityLevel = securityLevel;
 
         const parsedPrivateKey = privateKeyOrWif.startsWith('0x')
-            ? privateKeyOrWif.replace('0x', '')
+            ? privateKeyOrWif.slice(2)
             : privateKeyOrWif;
 
         if (BitcoinUtils.isValidHex(parsedPrivateKey)) {
@@ -48,7 +48,7 @@ export class Wallet implements Disposable {
         }
 
         const parsedMLDSAKey = mldsaPrivateKeyOrBase58.startsWith('0x')
-            ? mldsaPrivateKeyOrBase58.replace('0x', '')
+            ? mldsaPrivateKeyOrBase58.slice(2)
             : mldsaPrivateKeyOrBase58;
 
         if (BitcoinUtils.isValidHex(parsedMLDSAKey)) {
