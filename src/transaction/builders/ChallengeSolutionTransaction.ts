@@ -27,7 +27,7 @@ export class ChallengeSolutionTransaction extends TransactionBuilder<Transaction
 
         if (this.isPubKeyDestination) {
             const pubKeyScript = script.compile([
-                fromHex(this.to.replace('0x', '')),
+                fromHex(this.to.startsWith('0x') ? this.to.slice(2) : this.to),
                 opcodes.OP_CHECKSIG,
             ]);
 

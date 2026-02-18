@@ -30,7 +30,7 @@ export class InteractionTransaction extends SharedInteractionTransaction<Transac
             throw new Error('parameters.contract is required for interaction transaction.');
         }
 
-        this.contractSecret = fromHex(parameters.contract.replace('0x', ''));
+        this.contractSecret = fromHex(parameters.contract.startsWith('0x') ? parameters.contract.slice(2) : parameters.contract);
 
         if (this.contractSecret.length !== 32) {
             throw new Error('Invalid contract secret length. Expected 32 bytes.');
