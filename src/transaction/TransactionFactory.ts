@@ -145,12 +145,15 @@ export class TransactionFactory {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
+
         if (!interactionParameters.from) {
             throw new Error('Field "from" not provided.');
         }
+
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
+
         if (!('signer' in interactionParameters)) {
             throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
