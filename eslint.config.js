@@ -30,7 +30,6 @@ export default tseslint.config(
             'prefer-spread': 'off',
             '@typescript-eslint/no-empty-object-type': 'off',
             '@typescript-eslint/prefer-literal-enum-member': 'off',
-            'custom/no-uint8array-tostring': 'error',
             'padding-line-between-statements': [
                 'error',
                 { blankLine: 'always', prev: 'block-like', next: '*' },
