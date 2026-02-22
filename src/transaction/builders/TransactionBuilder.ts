@@ -698,6 +698,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 `Estimating fees: feeRate=${this.feeRate}, accurate_vSize=${size}, fee=${finalFee}n`,
             );
         }
+
         return finalFee;
     }
 

@@ -36,6 +36,7 @@ export function abiTypeToSelectorString(type: AbiType): string {
         if (!str) {
             throw new Error(`Unknown ABI type: ${type}`);
         }
+
         return str;
     }
 

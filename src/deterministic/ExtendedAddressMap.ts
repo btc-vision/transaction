@@ -51,6 +51,7 @@ export class ExtendedAddressMap<V> implements Disposable {
         if (index === undefined) {
             return undefined;
         }
+
         return this._values[index];
     }
 

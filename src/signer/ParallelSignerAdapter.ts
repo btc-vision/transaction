@@ -13,6 +13,7 @@ export function toParallelKeyPair(signer: UniversalSigner): PsbtParallelKeyPair 
             if (!signer.privateKey) {
                 throw new Error('Signer does not have a private key');
             }
+
             return createPrivateKey(signer.privateKey);
         },
         sign(hash: Uint8Array, lowR?: boolean): Uint8Array {
@@ -22,6 +23,7 @@ export function toParallelKeyPair(signer: UniversalSigner): PsbtParallelKeyPair 
             if (!signer.signSchnorr) {
                 throw new Error('Signer does not support Schnorr signing');
             }
+
             return signer.signSchnorr(hash as Parameters<typeof signer.signSchnorr>[0]);
         },
     };
@@ -42,6 +44,7 @@ export function toTweakedParallelKeyPair(
             if (!tweakedSigner.privateKey) {
                 throw new Error('Tweaked signer does not have a private key');
             }
+
             return createPrivateKey(tweakedSigner.privateKey);
         },
         sign(hash: Uint8Array, lowR?: boolean): Uint8Array {
@@ -51,6 +54,7 @@ export function toTweakedParallelKeyPair(
             if (!tweakedSigner.signSchnorr) {
                 throw new Error('Tweaked signer does not support Schnorr signing');
             }
+
             return tweakedSigner.signSchnorr(
                 hash as Parameters<typeof tweakedSigner.signSchnorr>[0],
             );

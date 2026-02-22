@@ -21,6 +21,7 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> implements Dispo
         for (const [key, value] of map) {
             deterministicMap.set(key, value);
         }
+
         return deterministicMap;
     }
 
@@ -38,6 +39,7 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> implements Dispo
                     right = mid;
                 }
             }
+
             this.#keys.splice(left, 0, key);
         }
 
@@ -96,6 +98,7 @@ export class DeterministicMap<K extends PropertyExtendedKey, V> implements Dispo
                 }
             }
         }
+
         return false;
     }
 

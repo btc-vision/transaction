@@ -207,6 +207,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         if (data.nonWitnessUtxo !== undefined) {
             this.nonWitnessUtxo = data.nonWitnessUtxo;
         }
+
         if (data.unlockScript !== undefined) {
             this.unlockScript = data.unlockScript;
         }
@@ -299,6 +300,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             for (let i = 0; i < count; i++) {
                 vector.push(readVarSlice());
             }
+
             return vector;
         }
 
@@ -515,6 +517,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 return inputSigner;
             }
         }
+
         return this.signer;
     }
 
@@ -574,6 +577,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 this.tweakSigner();
                 return this.tweakedSigner;
             }
+
             return this.getTweakedSigner(useTweakedHash);
         }
 
@@ -1304,6 +1308,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         if (timeUnits > 0xffff) {
             throw new Error(`Time units ${timeUnits} exceeds maximum of 65,535`);
         }
+
         return timeUnits | (1 << 22);
     }
 
@@ -1500,6 +1505,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 }
             }
         }
+
         return 0;
     }
 
@@ -1552,6 +1558,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 }
             }
         }
+
         return false;
     }
 

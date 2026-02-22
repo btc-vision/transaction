@@ -40,6 +40,7 @@ export class ABICoder {
             if (type.length === 1 && firstType !== undefined) {
                 return this.decodeArray(reader, firstType);
             }
+
             return this.decodeTuple(reader, type);
         }
 
@@ -139,6 +140,7 @@ export class ABICoder {
             for (const fieldType of types) {
                 entry.push(this.decodeSingleValue(reader, fieldType));
             }
+
             result.push(entry);
         }
 

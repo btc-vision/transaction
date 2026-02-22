@@ -210,6 +210,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
         } catch {
             // contractSigner may fail for some script types
         }
+
         transaction.signInput(0, this.getSignerKey());
         transaction.finalizeInput(0, this.customFinalizer);
 
@@ -350,6 +351,7 @@ export class CustomScriptTransaction extends TransactionBuilder<TransactionType.
                 prefixed.set(this.annexData, 1);
                 annex = prefixed;
             }
+
             witness.push(annex);
         }
 

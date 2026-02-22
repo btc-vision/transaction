@@ -14,6 +14,7 @@ export class DeterministicSet<T> implements Disposable {
         for (const value of set) {
             deterministicSet.add(value);
         }
+
         return deterministicSet;
     }
 

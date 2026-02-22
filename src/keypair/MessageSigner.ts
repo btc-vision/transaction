@@ -86,6 +86,7 @@ class MessageSignerBase {
             if (walletResult) {
                 return walletResult;
             }
+
             throw new Error('No keypair provided and OP_WALLET is not available.');
         }
 
@@ -102,6 +103,7 @@ class MessageSignerBase {
             if (walletResult) {
                 return walletResult;
             }
+
             throw new Error('No keypair provided and OP_WALLET is not available.');
         }
 
@@ -121,6 +123,7 @@ class MessageSignerBase {
             if (walletResult) {
                 return walletResult;
             }
+
             throw new Error('No ML-DSA keypair provided and OP_WALLET is not available.');
         }
 

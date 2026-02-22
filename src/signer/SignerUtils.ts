@@ -19,12 +19,15 @@ export function getInputRelevantScript(input: PsbtInput): Uint8Array | null {
     if (input.redeemScript) {
         return input.redeemScript;
     }
+
     if (input.witnessScript) {
         return input.witnessScript;
     }
+
     if (input.witnessUtxo) {
         return input.witnessUtxo.script;
     }
+
     if (input.nonWitnessUtxo) {
         // Parse the full transaction from nonWitnessUtxo
         /*const tx = Transaction.fromBuffer(input.nonWitnessUtxo);
@@ -35,6 +38,7 @@ export function getInputRelevantScript(input: PsbtInput): Uint8Array | null {
         }
         return out.script;*/
     }
+
     return null;
 }
 
@@ -53,6 +57,7 @@ export function canSignNonTaprootInput(input: PsbtInput, publicKey: Uint8Array):
     if (script) {
         return pubkeyInScript(publicKey, script);
     }
+
     return false;
 }
 

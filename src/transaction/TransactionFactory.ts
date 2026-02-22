@@ -107,9 +107,11 @@ export class TransactionFactory {
         if (!params.to) {
             throw new Error('Field "to" not provided.');
         }
+
         if (!params.from) {
             throw new Error('Field "from" not provided.');
         }
+
         if (!params.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
@@ -232,9 +234,11 @@ export class TransactionFactory {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
+
         if (!interactionParameters.from) {
             throw new Error('Field "from" not provided.');
         }
+
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
@@ -356,15 +360,19 @@ export class TransactionFactory {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
         }
+
         if (!interactionParameters.from) {
             throw new Error('Field "from" not provided.');
         }
+
         if (!interactionParameters.utxos[0]) {
             throw new Error('Missing at least one UTXO.');
         }
+
         if (!('signer' in interactionParameters)) {
             throw new Error('Field "signer" not provided.');
         }
+
         if (!interactionParameters.challenge) {
             throw new Error('Field "challenge" not provided.');
         }

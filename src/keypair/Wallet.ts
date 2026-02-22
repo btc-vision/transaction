@@ -236,6 +236,7 @@ export class Wallet implements Disposable {
         if (!this._keypair.privateKey) {
             throw new Error('Private key not available');
         }
+
         return toHex(this._keypair.privateKey);
     }
 

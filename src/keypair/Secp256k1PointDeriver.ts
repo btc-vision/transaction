@@ -120,9 +120,11 @@ export class Secp256k1PointDeriver {
             if ((e & 1n) === 1n) {
                 result = (result * cur) % m;
             }
+
             cur = (cur * cur) % m;
             e >>= 1n;
         }
+
         return result;
     }
 
@@ -142,6 +144,7 @@ export class Secp256k1PointDeriver {
         if ((root * root) % prime !== a % prime) {
             return null;
         }
+
         return root;
     }
 
@@ -153,6 +156,7 @@ export class Secp256k1PointDeriver {
         for (const byte of bytes) {
             b = (b << 8n) | BigInt(byte);
         }
+
         return b;
     }
 
@@ -165,6 +169,7 @@ export class Secp256k1PointDeriver {
             bytes[i] = Number(value & 0xffn);
             value >>= 8n;
         }
+
         return bytes;
     }
 }

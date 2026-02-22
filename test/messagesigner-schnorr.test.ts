@@ -241,6 +241,7 @@ describe('MessageSigner Schnorr', () => {
             for (let i = 0; i < 256; i++) {
                 message[i] = i;
             }
+
             const signed = MessageSigner.signMessage(wallet.keypair, message);
 
             expect(signed.signature.length).toBe(64);

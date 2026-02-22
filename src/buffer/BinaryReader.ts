@@ -175,6 +175,7 @@ export class BinaryReader {
         if (!be) {
             bytes = this.reverseBytes(raw);
         }
+
         return BigInt('0x' + this.toHexString(bytes));
     }
 
@@ -188,6 +189,7 @@ export class BinaryReader {
         if (!be) {
             bytes = this.reverseBytes(raw);
         }
+
         return BigInt('0x' + this.toHexString(bytes));
     }
 
@@ -213,6 +215,7 @@ export class BinaryReader {
             // 2's complement
             value = value - twoTo128;
         }
+
         return value;
     }
 
@@ -244,8 +247,10 @@ export class BinaryReader {
                 bytes = new Uint8Array(bytes.subarray(0, i));
                 break;
             }
+
             bytes[i] = b;
         }
+
         return bytes;
     }
 
@@ -346,6 +351,7 @@ export class BinaryReader {
         for (let i: number = 0; i < length; i++) {
             result[i] = this.readBytesWithLength();
         }
+
         return result;
     }
 
@@ -355,6 +361,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readAddress();
         }
+
         return result;
     }
 
@@ -364,6 +371,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU256(be);
         }
+
         return result;
     }
 
@@ -373,6 +381,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU128(be);
         }
+
         return result;
     }
 
@@ -382,6 +391,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU64(be);
         }
+
         return result;
     }
 
@@ -391,6 +401,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU32(be);
         }
+
         return result;
     }
 
@@ -400,6 +411,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU16(be);
         }
+
         return result;
     }
 
@@ -409,6 +421,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readU8();
         }
+
         return result;
     }
 
@@ -418,6 +431,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readStringWithLength(be);
         }
+
         return result;
     }
 
@@ -427,6 +441,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readBytesWithLength(0, be);
         }
+
         return result;
     }
 
@@ -444,8 +459,10 @@ export class BinaryReader {
             if (result.has(address)) {
                 throw new Error('Duplicate address found in map');
             }
+
             result.set(address, value);
         }
+
         return result;
     }
 
@@ -459,6 +476,7 @@ export class BinaryReader {
         for (let i = 0; i < length; i++) {
             result[i] = this.readExtendedAddress();
         }
+
         return result;
     }
 
@@ -479,6 +497,7 @@ export class BinaryReader {
             if (result.has(address)) {
                 throw new Error('Duplicate tweaked address found in map');
             }
+
             result.set(address, value);
         }
 
@@ -514,6 +533,7 @@ export class BinaryReader {
         for (let i = 0; i < bytes.length; i++) {
             out[i] = bytes[bytes.length - 1 - i] as number;
         }
+
         return out;
     }
 

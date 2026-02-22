@@ -285,6 +285,7 @@ export class BinaryWriter implements Disposable {
                 `Invalid Schnorr signature length: expected ${SCHNORR_SIGNATURE_BYTE_LENGTH}, got ${signature.length}`,
             );
         }
+
         this.allocSafe(EXTENDED_ADDRESS_BYTE_LENGTH + SCHNORR_SIGNATURE_BYTE_LENGTH);
         this.writeExtendedAddress(address);
         this.writeBytes(signature);

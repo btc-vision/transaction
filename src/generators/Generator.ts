@@ -126,15 +126,18 @@ export abstract class Generator {
             case Features.ACCESS_LIST: {
                 return this.encodeAccessListFeature(feature as AccessListFeature, finalBuffer);
             }
+
             case Features.EPOCH_SUBMISSION: {
                 return this.encodeChallengeSubmission(
                     feature as EpochSubmissionFeature,
                     finalBuffer,
                 );
             }
+
             case Features.MLDSA_LINK_PUBKEY: {
                 return this.encodeLinkRequest(feature as MLDSALinkRequest, finalBuffer);
             }
+
             default:
                 throw new Error(`Unknown feature type: ${feature.opcode}`);
         }

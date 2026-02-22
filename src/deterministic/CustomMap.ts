@@ -157,6 +157,7 @@ export class CustomMap<K, V> implements Disposable {
                     hash ^= (key as string).charCodeAt(i);
                     hash = Math.imul(hash, 16777619);
                 }
+
                 break;
 
             case 'boolean':
@@ -200,6 +201,7 @@ export class CustomMap<K, V> implements Disposable {
                     // Start with a random-ish position
                     //hash = 0x42424242;
                 }
+
                 break;
 
             case 'function':
@@ -230,6 +232,7 @@ export class CustomMap<K, V> implements Disposable {
             hash ^= bytes[i] as number;
             hash = Math.imul(hash, 16777619);
         }
+
         return hash;
     }
 
@@ -272,6 +275,7 @@ export class CustomMap<K, V> implements Disposable {
         } else if (ArrayBuffer.isView(buffer)) {
             return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
         }
+
         return new Uint8Array(0);
     }
 
@@ -282,6 +286,7 @@ export class CustomMap<K, V> implements Disposable {
             if (this.#keys[index] !== undefined && this.equals(this.#keys[index] as K, key)) {
                 return index;
             }
+
             index = (index + 1) % this.capacity;
         }
 
@@ -295,6 +300,7 @@ export class CustomMap<K, V> implements Disposable {
             if (this.equals(this.#keys[index] as K, key)) {
                 return index; // Key already exists
             }
+
             index = (index + 1) % this.capacity;
         }
 

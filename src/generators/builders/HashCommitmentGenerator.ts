@@ -171,6 +171,7 @@ export class HashCommitmentGenerator extends Logger {
             if (decompiled[lastIdx] !== opcodes.OP_CHECKSIG) {
                 return false;
             }
+
             const pubkey = decompiled[lastIdx - 1];
             if (!(pubkey instanceof Uint8Array) || pubkey.length !== 33) {
                 return false;
@@ -246,6 +247,7 @@ export class HashCommitmentGenerator extends Logger {
             ) {
                 return null;
             }
+
             return decompiled[decompiled.length - 2] as Uint8Array;
         } catch {
             return null;

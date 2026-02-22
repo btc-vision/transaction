@@ -13,12 +13,15 @@ function getGlobal() {
     if (typeof self !== 'undefined') {
         return self;
     }
+
     if (typeof window !== 'undefined') {
         return window;
     }
+
     if (typeof global !== 'undefined') {
         return global;
     }
+
     throw new Error('unable to locate global object');
 }
 
@@ -32,6 +35,7 @@ export function createHash(algo) {
         case 'sha512':
             return sha512.create();
     }
+
     assertArgument(false, 'invalid hashing algorithm name', 'algorithm', algo);
 }
 
@@ -51,9 +55,11 @@ export function randomBytes(length) {
     if (crypto == null) {
         throw new Error('platform does not support secure random numbers');
     }
+
     if (!Number.isInteger(length) || length <= 0 || length > 1024) {
         throw new Error(`invalid length: ${length}`);
     }
+
     const result = new Uint8Array(length);
     crypto.getRandomValues(result);
     return result;

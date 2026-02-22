@@ -273,6 +273,7 @@ export class Mnemonic implements Disposable {
         ) {
             return 1;
         }
+
         return 0;
     }
 }

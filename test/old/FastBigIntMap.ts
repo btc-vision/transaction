@@ -44,6 +44,7 @@ export class FastBigIntMap {
         if (!this.has(key)) {
             this.keyOrder.push(key);
         }
+
         // Store value in the record
         this.items[keyStr] = value;
         return this;
@@ -75,6 +76,7 @@ export class FastBigIntMap {
             this.keyOrder = this.keyOrder.filter((k) => k !== key);
             return true;
         }
+
         return false;
     }
 

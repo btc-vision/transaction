@@ -274,6 +274,7 @@ describe('MessageSigner ML-DSA', () => {
             for (let i = 0; i < 256; i++) {
                 message[i] = i;
             }
+
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
             expect(signed.signature).toBeInstanceOf(Uint8Array);
@@ -668,6 +669,7 @@ describe('MessageSigner ML-DSA', () => {
             for (let i = 0; i < 256; i++) {
                 message[i] = i;
             }
+
             const signed = MessageSigner.signMLDSAMessage(wallet.mldsaKeypair, message);
 
             const isValidLegacyPublicKey = MessageSigner.verifyMLDSASignature(

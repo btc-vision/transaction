@@ -307,6 +307,7 @@ export class TransactionReconstructor {
             if (el.elementType === 'buffer') {
                 return fromHex(el.value as string);
             }
+
             // Opcodes stored as numbers - wrap in array for Stack type
             return [el.value as number] as Stack;
         });
