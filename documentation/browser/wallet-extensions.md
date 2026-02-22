@@ -72,14 +72,14 @@ const signer = new UnisatSigner();
 // Initialize: detects network, fetches public key, derives addresses
 await signer.init();
 
-console.log(signer.network);  // networks.bitcoin | networks.testnet | networks.regtest
+console.log(signer.network);  // networks.bitcoin | networks.testnet | networks.opnetTestnet | networks.regtest
 console.log(signer.p2tr);     // Taproot address (bc1p...)
 console.log(signer.p2wpkh);   // SegWit address (bc1q...)
 ```
 
 The constructor throws if `window` is not available (i.e., not in a browser). The `init()` method:
 
-1. Calls `unisat.getNetwork()` to detect the active network (Mainnet, Testnet, or Regtest).
+1. Calls `unisat.getNetwork()` to detect the active network (Mainnet, Testnet, OpnetTestnet, or Regtest).
 2. Calls `unisat.getPublicKey()` to retrieve the user's public key.
 3. Derives P2TR and P2WPKH addresses from the public key.
 4. Stores the addresses for later use.
@@ -134,7 +134,7 @@ The `init()` method:
 
 1. Calls `BitcoinProvider.request('wallet_connect', null)` to connect.
 2. Finds the payment address from the connection result.
-3. Infers the network from the address prefix (`tb` = testnet, `bc` = mainnet).
+3. Infers the network from the address prefix (`opt` = opnetTestnet, `tb` = testnet, `bc` = mainnet).
 4. Extracts the public key and derives P2TR and P2WPKH addresses.
 
 ### Xverse Properties

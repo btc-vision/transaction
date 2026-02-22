@@ -111,6 +111,7 @@ Native SegWit v0 address for single-key spending. Signature and public key are m
 |----------|-------|
 | Prefix (mainnet) | `bc1q` |
 | Prefix (testnet) | `tb1q` |
+| Prefix (opnetTestnet) | `opt1q` |
 | Prefix (regtest) | `bcrt1q` |
 | Encoding | Bech32 |
 | Address length | 42 characters (mainnet) |
@@ -146,6 +147,7 @@ Native SegWit v0 address for script-based spending. The witness script is commit
 |----------|-------|
 | Prefix (mainnet) | `bc1q` |
 | Prefix (testnet) | `tb1q` |
+| Prefix (opnetTestnet) | `opt1q` |
 | Prefix (regtest) | `bcrt1q` |
 | Encoding | Bech32 |
 | Address length | 62 characters (mainnet) |
@@ -179,6 +181,7 @@ Taproot (SegWit v1) addresses provide the most efficient single-key spending and
 |----------|-------|
 | Prefix (mainnet) | `bc1p` |
 | Prefix (testnet) | `tb1p` |
+| Prefix (opnetTestnet) | `opt1p` |
 | Prefix (regtest) | `bcrt1p` |
 | Encoding | Bech32m |
 | Address length | 62 characters (mainnet) |
@@ -230,6 +233,7 @@ A quantum-safe SegWit version 2 output type that commits directly to a Merkle ro
 |----------|-------|
 | Prefix (mainnet) | `bc1z` |
 | Prefix (testnet) | `tb1z` |
+| Prefix (opnetTestnet) | `opt1z` |
 | Prefix (regtest) | `bcrt1z` |
 | Encoding | Bech32m |
 | Address length | 62 characters (mainnet) |
@@ -480,13 +484,13 @@ switch (type) {
 
 Address prefixes vary by network:
 
-| Type | Mainnet | Testnet | Regtest |
-|------|---------|---------|---------|
-| P2PKH | `1` | `m` / `n` | `m` / `n` |
-| P2SH | `3` | `2` | `2` |
-| Bech32 (v0) | `bc1q` | `tb1q` | `bcrt1q` |
-| Bech32m (v1, P2TR) | `bc1p` | `tb1p` | `bcrt1p` |
-| Bech32m (v2, P2MR) | `bc1z` | `tb1z` | `bcrt1z` |
+| Type | Mainnet | Testnet | OPNet Testnet | Regtest |
+|------|---------|---------|---------------|---------|
+| P2PKH | `1` | `m` / `n` | `m` / `n` | `m` / `n` |
+| P2SH | `3` | `2` | `2` | `2` |
+| Bech32 (v0) | `bc1q` | `tb1q` | `opt1q` | `bcrt1q` |
+| Bech32m (v1, P2TR) | `bc1p` | `tb1p` | `opt1p` | `bcrt1p` |
+| Bech32m (v2, P2MR) | `bc1z` | `tb1z` | `opt1z` | `bcrt1z` |
 
 ---
 

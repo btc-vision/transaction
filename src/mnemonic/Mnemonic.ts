@@ -268,6 +268,7 @@ export class Mnemonic implements Disposable {
     private getCoinType(): number {
         if (
             this._network.bech32 === networks.testnet.bech32 ||
+            this._network.bech32 === networks.opnetTestnet.bech32 ||
             this._network.bech32 === networks.regtest.bech32
         ) {
             return 1;

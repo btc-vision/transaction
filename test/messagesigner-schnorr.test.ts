@@ -648,7 +648,7 @@ describe('MessageSigner Schnorr', () => {
         });
 
         it('should work on different networks', () => {
-            const networks_list = [networks.bitcoin, networks.testnet, networks.regtest];
+            const networks_list = [networks.bitcoin, networks.testnet, networks.opnetTestnet, networks.regtest];
 
             for (const network of networks_list) {
                 const mnemonic = new Mnemonic(testMnemonic, '', network, MLDSASecurityLevel.LEVEL2);

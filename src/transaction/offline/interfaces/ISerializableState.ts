@@ -89,7 +89,7 @@ export interface SerializedBaseParams {
     /** OPNet gas sat fee */
     readonly gasSatFee: string; // bigint as string
     /** Network identifier */
-    readonly networkName: 'mainnet' | 'testnet' | 'regtest';
+    readonly networkName: 'mainnet' | 'testnet' | 'opnetTestnet' | 'regtest';
     /** Transaction version (1, 2, or 3) */
     readonly txVersion: number;
     /** Optional note data (hex) */

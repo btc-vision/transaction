@@ -75,7 +75,7 @@ enum ChainId {
 
 | Value | Name | Description |
 |-------|------|-------------|
-| `0` | `Bitcoin` | Bitcoin mainnet, testnet, or regtest |
+| `0` | `Bitcoin` | Bitcoin mainnet, testnet, opnetTestnet, or regtest |
 | `1` | `Fractal` | Fractal Bitcoin network |
 
 ### Usage

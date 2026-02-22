@@ -1,6 +1,7 @@
 export enum WalletNetworks {
     Mainnet = 'mainnet',
     Testnet = 'testnet',
+    OpnetTestnet = 'opnetTestnet',
     Regtest = 'regtest',
 }
 

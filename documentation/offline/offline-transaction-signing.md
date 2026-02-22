@@ -418,7 +418,7 @@ The serialized format uses the following structure:
 |---------|---------|
 | Magic byte | `0x42` (`'B'` for Bitcoin) |
 | Header | Format version, consensus version, transaction type, chain ID, timestamp |
-| Base params | From, to, fee rate, priority fee, gas sat fee, network, tx version, note, anchor |
+| Base params | From, to, fee rate, priority fee, gas sat fee, network (`mainnet`, `testnet`, `opnetTestnet`, `regtest`), tx version, note, anchor |
 | UTXOs | Primary UTXOs array (u16 count + entries) |
 | Optional inputs | Additional UTXOs (u16 count + entries) |
 | Optional outputs | Additional outputs (u16 count + entries) |

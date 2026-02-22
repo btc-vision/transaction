@@ -416,12 +416,14 @@ export class TransactionReconstructor {
     /**
      * Convert network name to Network object
      */
-    private static nameToNetwork(name: 'mainnet' | 'testnet' | 'regtest'): Network {
+    private static nameToNetwork(name: 'mainnet' | 'testnet' | 'opnetTestnet' | 'regtest'): Network {
         switch (name) {
             case 'mainnet':
                 return networks.bitcoin;
             case 'testnet':
                 return networks.testnet;
+            case 'opnetTestnet':
+                return networks.opnetTestnet;
             case 'regtest':
                 return networks.regtest;
             default:

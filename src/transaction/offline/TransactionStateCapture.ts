@@ -485,9 +485,10 @@ export class TransactionStateCapture {
     /**
      * Convert network to name string
      */
-    private static networkToName(network: Network): 'mainnet' | 'testnet' | 'regtest' {
+    private static networkToName(network: Network): 'mainnet' | 'testnet' | 'opnetTestnet' | 'regtest' {
         if (network.bech32 === 'bc') return 'mainnet';
         if (network.bech32 === 'tb') return 'testnet';
+        if (network.bech32 === 'opt') return 'opnetTestnet';
         return 'regtest';
     }
 

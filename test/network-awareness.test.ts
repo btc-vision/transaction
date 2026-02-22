@@ -89,6 +89,61 @@ describe('Network Awareness', () => {
         });
     });
 
+    describe('opnetTestnet network awareness', () => {
+        it('should generate correct address prefixes for opnetTestnet', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.opnetTestnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+            const wallet = mnemonic.derive(0);
+
+            expect(wallet.p2tr).toMatch(/^opt1/);
+            expect(wallet.p2wpkh).toMatch(/^opt1/);
+        });
+
+        it('should derive same keys as testnet (same BIP32 version bytes)', () => {
+            const mnemonicTestnet = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.testnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+            const mnemonicOpnetTestnet = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.opnetTestnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+
+            const walletTestnet = mnemonicTestnet.derive(0);
+            const walletOpnetTestnet = mnemonicOpnetTestnet.derive(0);
+
+            // Same BIP32 version bytes → same private keys
+            expect(walletOpnetTestnet.toPrivateKeyHex()).toBe(walletTestnet.toPrivateKeyHex());
+            expect(walletOpnetTestnet.quantumPrivateKeyHex).toBe(walletTestnet.quantumPrivateKeyHex);
+
+            // But addresses should differ due to different bech32 prefix
+            expect(walletOpnetTestnet.p2tr).not.toBe(walletTestnet.p2tr);
+            expect(walletOpnetTestnet.p2wpkh).not.toBe(walletTestnet.p2wpkh);
+        });
+
+        it('should preserve opnetTestnet through derivePath', () => {
+            const mnemonic = new Mnemonic(
+                testMnemonic,
+                '',
+                networks.opnetTestnet,
+                MLDSASecurityLevel.LEVEL2,
+            );
+            const parent = mnemonic.derive(0);
+            const child = parent.derivePath('m/0');
+
+            expect(child.network.bech32).toBe('opt');
+            expect(child.p2tr).toMatch(/^opt1/);
+        });
+    });
+
     describe('Testnet and regtest parity', () => {
         it('should derive same keys for testnet and regtest (BIP32 behavior)', () => {
             const mnemonicTestnet = new Mnemonic(

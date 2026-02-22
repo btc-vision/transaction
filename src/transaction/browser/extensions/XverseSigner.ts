@@ -118,11 +118,13 @@ export class XverseSigner extends CustomKeypair {
             throw new Error('Payment address not found');
         }
 
-        const network = payementAddress.address.startsWith('tb')
-            ? networks.testnet
-            : payementAddress.address.startsWith('bc')
-              ? networks.bitcoin
-              : null;
+        const network = payementAddress.address.startsWith('opt')
+            ? networks.opnetTestnet
+            : payementAddress.address.startsWith('tb')
+              ? networks.testnet
+              : payementAddress.address.startsWith('bc')
+                ? networks.bitcoin
+                : null;
 
         if (!network) throw new Error('Network not supported');
 

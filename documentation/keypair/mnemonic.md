@@ -59,7 +59,7 @@ Creates a Mnemonic instance from an existing BIP39 mnemonic phrase.
 |-----------|------|----------|---------|-------------|
 | `phrase` | `string` | Yes | -- | A valid BIP39 mnemonic phrase (12-24 words separated by spaces). |
 | `passphrase` | `string` | No | `''` | An optional BIP39 passphrase for additional entropy. |
-| `network` | `Network` | No | `networks.bitcoin` | The Bitcoin network. Affects coin type in derivation paths (0 for mainnet, 1 for testnet/regtest). |
+| `network` | `Network` | No | `networks.bitcoin` | The Bitcoin network. Affects coin type in derivation paths (0 for mainnet, 1 for testnet/opnetTestnet/regtest). |
 | `securityLevel` | `MLDSASecurityLevel` | No | `MLDSASecurityLevel.LEVEL2` | The ML-DSA security level for quantum key derivation. |
 
 The constructor:
@@ -223,7 +223,7 @@ Derives a wallet using OPWallet-compatible derivation paths. This uses the same 
 
 The quantum path is always `m/360'/<coin_type>'/<account>'/<change>/<index>`.
 
-> **Note:** The classical coin type is hardcoded to `0'` regardless of network. The quantum coin type is network-aware: `0` for mainnet, `1` for testnet/regtest.
+> **Note:** The classical coin type is hardcoded to `0'` regardless of network. The quantum coin type is network-aware: `0` for mainnet, `1` for testnet/opnetTestnet/regtest.
 
 **Throws:** `Error` for unsupported address types.
 
@@ -419,7 +419,7 @@ m/<purpose>'/<coin_type>'/<account>'/<change>/<index>
 ```
 
 - **purpose**: Determined by `BIPStandard` (44, 49, 84, or 86).
-- **coin_type**: `0` for mainnet, `1` for testnet and regtest.
+- **coin_type**: `0` for mainnet, `1` for testnet, opnetTestnet, and regtest.
 - **account**: Account index (hardened).
 - **change**: `0` for receiving addresses, `1` for change addresses.
 - **index**: Address index within the chain.

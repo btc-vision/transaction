@@ -916,7 +916,7 @@ export class TransactionSerializer {
         return bytes;
     }
 
-    private static networkNameToU8(name: 'mainnet' | 'testnet' | 'regtest'): number {
+    private static networkNameToU8(name: 'mainnet' | 'testnet' | 'opnetTestnet' | 'regtest'): number {
         switch (name) {
             case 'mainnet':
                 return 0;
@@ -924,12 +924,14 @@ export class TransactionSerializer {
                 return 1;
             case 'regtest':
                 return 2;
+            case 'opnetTestnet':
+                return 3;
             default:
                 throw new Error(`Unknown network: ${name}`);
         }
     }
 
-    private static u8ToNetworkName(value: number): 'mainnet' | 'testnet' | 'regtest' {
+    private static u8ToNetworkName(value: number): 'mainnet' | 'testnet' | 'opnetTestnet' | 'regtest' {
         switch (value) {
             case 0:
                 return 'mainnet';
@@ -937,6 +939,8 @@ export class TransactionSerializer {
                 return 'testnet';
             case 2:
                 return 'regtest';
+            case 3:
+                return 'opnetTestnet';
             default:
                 throw new Error(`Unknown network value: ${value}`);
         }

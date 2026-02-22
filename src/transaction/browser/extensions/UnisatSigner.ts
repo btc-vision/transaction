@@ -123,6 +123,9 @@ export class UnisatSigner extends CustomKeypair {
             case WalletNetworks.Testnet:
                 this._network = networks.testnet;
                 break;
+            case WalletNetworks.OpnetTestnet:
+                this._network = networks.opnetTestnet;
+                break;
             case WalletNetworks.Regtest:
                 this._network = networks.regtest;
                 break;
