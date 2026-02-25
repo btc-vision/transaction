@@ -36,4 +36,12 @@ export interface ITweakedTransactionData {
      * the quantum-vulnerable internal pubkey. Output: OP_2 <32-byte merkle_root>.
      */
     readonly useP2MR?: boolean;
+
+    /**
+     * When true, the total value of optionalInputs is subtracted from the funding
+     * amount the factory needs to produce. This prevents the funding transaction
+     * from over-provisioning when extra inputs already cover part of the
+     * interaction cost (e.g. a token UTXO that passes through as-is).
+     */
+    readonly subtractExtraUTXOFromAmountRequired?: boolean;
 }

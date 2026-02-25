@@ -265,7 +265,22 @@ export class TransactionFactory {
             async (tx) => {
                 const fee = await tx.estimateTransactionFees();
                 const outputsValue = tx.getTotalOutputValue();
-                return fee + outputsValue;
+                const total = fee + outputsValue;
+
+                if (
+                    interactionParameters.subtractExtraUTXOFromAmountRequired &&
+                    interactionParameters.optionalInputs &&
+                    interactionParameters.optionalInputs.length > 0
+                ) {
+                    const optionalInputValue = interactionParameters.optionalInputs.reduce(
+                        (sum, input) => sum + (input.value satisfies bigint),
+                        0n,
+                    );
+
+                    return total > optionalInputValue ? total - optionalInputValue : 0n;
+                }
+
+                return total;
             },
             'Interaction',
         );
@@ -307,6 +322,7 @@ export class TransactionFactory {
             finalTransaction.getScriptAddress(),
             0,
         );
+
         const newParams: IInteractionParameters = {
             ...interactionParameters,
             utxos: fundingUTXO,
