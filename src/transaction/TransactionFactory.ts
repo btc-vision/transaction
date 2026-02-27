@@ -539,10 +539,6 @@ export class TransactionFactory {
             throw new Error('Field "from" not provided.');
         }
 
-        if (!parameters.utxos[0]) {
-            throw new Error('Missing at least one UTXO.');
-        }
-
         const opWalletInteraction = await this.detectFundingOPWallet(parameters);
         if (opWalletInteraction) {
             return opWalletInteraction;
