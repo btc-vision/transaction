@@ -49,7 +49,12 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const signatureHex = await wallet.signData(messageHex, SignatureType.schnorr);
+        const signatureHex = await wallet.signData(
+            messageHex,
+            SignatureType.schnorr,
+            typeof message === 'string' ? message : undefined,
+        );
+
         return {
             signature: fromHex(signatureHex),
             message: hashedMessage,
@@ -70,7 +75,12 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const signatureHex = await wallet.signData(messageHex, SignatureType.ecdsa);
+        const signatureHex = await wallet.signData(
+            messageHex,
+            SignatureType.ecdsa,
+            typeof message === 'string' ? message : undefined,
+        );
+
         return {
             signature: fromHex(signatureHex),
             message: hashedMessage,
