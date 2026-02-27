@@ -2,6 +2,7 @@ import {
     type MessageHash,
     type PublicKey,
     type SchnorrSignature,
+    type Signature,
     type UniversalSigner,
 } from '@btc-vision/ecpair';
 import { backend } from '../ecc/backend.js';
@@ -11,6 +12,7 @@ import { EcKeyPair } from './EcKeyPair.js';
 import { MLDSASecurityLevel, type QuantumBIP32Interface } from '@btc-vision/bip32';
 import { isOPWallet, type OPWallet } from '../transaction/browser/types/OPWallet.js';
 import type { MLDSASignature } from '../transaction/interfaces/IWeb3ProviderTypes.js';
+import { SignatureType } from '../transaction/browser/types/Unisat.js';
 
 export interface SignedMessage {
     readonly signature: Uint8Array;
@@ -47,7 +49,38 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const signatureHex = await wallet.web3.signSchnorr(messageHex);
+        const signatureHex = await wallet.signData(
+            messageHex,
+            SignatureType.schnorr,
+            typeof message === 'string' ? message : undefined,
+        );
+
+        return {
+            signature: fromHex(signatureHex),
+            message: hashedMessage,
+        };
+    }
+
+    public async trySignECDSAWithOPWallet(
+        message: Uint8Array | string,
+    ): Promise<SignedMessage | null> {
+        const wallet = this.getOPWallet();
+        if (!wallet) {
+            return null;
+        }
+
+        const messageBuffer =
+            typeof message === 'string' ? new TextEncoder().encode(message) : message;
+
+        const hashedMessage = this.sha256(messageBuffer);
+        const messageHex = toHex(hashedMessage);
+
+        const signatureHex = await wallet.signData(
+            messageHex,
+            SignatureType.ecdsa,
+            typeof message === 'string' ? message : undefined,
+        );
+
         return {
             signature: fromHex(signatureHex),
             message: hashedMessage,
@@ -68,7 +101,11 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const result: MLDSASignature = await wallet.web3.signMLDSAMessage(messageHex);
+        const result: MLDSASignature = await wallet.web3.signMLDSAMessage(
+            messageHex,
+            typeof message === 'string' ? message : undefined,
+        );
+
         return {
             signature: fromHex(result.signature),
             message: hashedMessage,
@@ -91,6 +128,22 @@ class MessageSignerBase {
         }
 
         return this.signMessage(keypair, message);
+    }
+
+    public async signMessageECDSAAuto(
+        message: Uint8Array | string,
+        keypair?: UniversalSigner,
+    ): Promise<SignedMessage> {
+        if (!keypair) {
+            const walletResult = await this.trySignECDSAWithOPWallet(message);
+            if (walletResult) {
+                return walletResult;
+            }
+
+            throw new Error('No keypair provided and OP_WALLET is not available.');
+        }
+
+        return this.signECDSA(keypair, message);
     }
 
     public async tweakAndSignMessageAuto(
@@ -194,6 +247,52 @@ class MessageSignerBase {
         };
     }
 
+    public signECDSA(keypair: UniversalSigner, message: Uint8Array | string): SignedMessage {
+        if (typeof message === 'string') {
+            message = new TextEncoder().encode(message);
+        }
+
+        if (!keypair.privateKey) {
+            throw new Error('Private key not found in keypair.');
+        }
+
+        const hashedMessage = this.sha256(message);
+
+        if (!backend.sign) {
+            throw new Error('backend.signSchnorr is not available.');
+        }
+
+        return {
+            signature: backend.sign(hashedMessage as MessageHash, keypair.privateKey),
+            message: hashedMessage,
+        };
+    }
+
+    public verifyECDSASignature(
+        publicKey: Uint8Array | PublicKey,
+        message: Uint8Array | string,
+        signature: Uint8Array | Signature,
+    ): boolean {
+        if (typeof message === 'string') {
+            message = new TextEncoder().encode(message);
+        }
+
+        if (signature.length !== 64) {
+            throw new Error('Invalid signature length.');
+        }
+
+        const hashedMessage = this.sha256(message);
+        if (!backend.verify) {
+            throw new Error('backend.verifySchnorr is not available.');
+        }
+
+        return backend.verify(
+            hashedMessage as MessageHash,
+            publicKey as PublicKey,
+            signature as Signature,
+        );
+    }
+
     public verifySignature(
         publicKey: Uint8Array,
         message: Uint8Array | string,
@@ -208,7 +307,6 @@ class MessageSignerBase {
         }
 
         const hashedMessage = this.sha256(message);
-
         if (!backend.verifySchnorr) {
             throw new Error('backend.verifySchnorr is not available.');
         }

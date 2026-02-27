@@ -23,6 +23,7 @@ import type {
     ICancelTransactionParametersWithoutSigner,
     ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
+    IFundingTransactionParametersWithoutSigner,
     InteractionParametersWithoutSigner,
 } from './interfaces/IWeb3ProviderTypes.js';
 import type { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
@@ -35,6 +36,7 @@ import { CancelTransaction } from './builders/CancelTransaction.js';
 import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
 import type { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
 import type {
+    BitcoinTransferBase,
     CancelledTransaction,
     DeploymentResult,
     InteractionResponse,
@@ -50,12 +52,7 @@ export interface FundingTransactionResponse {
     readonly inputUtxos: UTXO[];
 }
 
-export interface BitcoinTransferBase {
-    readonly tx: string;
-    readonly estimatedFees: bigint;
-    readonly nextUTXOs: UTXO[];
-    readonly inputUtxos: UTXO[];
-}
+export type { BitcoinTransferBase } from './interfaces/ITransactionResponses.js';
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
     readonly original: FundingTransaction;
@@ -529,19 +526,31 @@ export class TransactionFactory {
     /**
      * @description Creates a funding transaction.
      * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
-     * @returns {Promise<BitcoinTransferResponse>} - The signed transaction
+     * @returns {Promise<BitcoinTransferBase>} - The signed transaction
      */
     public async createBTCTransfer(
-        parameters: IFundingTransactionParameters,
-    ): Promise<BitcoinTransferResponse> {
+        parameters: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
+    ): Promise<BitcoinTransferBase> {
+        if (!parameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+
         if (!parameters.from) {
             throw new Error('Field "from" not provided.');
+        }
+
+        const opWalletInteraction = await this.detectFundingOPWallet(parameters);
+        if (opWalletInteraction) {
+            return opWalletInteraction;
+        }
+
+        if (!('signer' in parameters)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
         const resp = await this.createFundTransaction(parameters);
         return {
             estimatedFees: resp.estimatedFees,
-            original: resp.original,
             tx: resp.tx.toHex(),
             nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
             inputUtxos: parameters.utxos,
@@ -598,6 +607,41 @@ export class TransactionFactory {
                 nonWitnessUtxo: nonWitness,
             } as UTXO;
         });
+    }
+
+    /**
+     * Detect and use OP_WALLET for funding transactions if available.
+     *
+     * @param {IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner} fundingParams - The funding transaction parameters
+     * @return {Promise<BitcoinTransferBase | null>} - The funding transaction response or null if OP_WALLET not available
+     */
+    private async detectFundingOPWallet(
+        fundingParams: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
+    ): Promise<BitcoinTransferBase | null> {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = _window.opnet.web3;
+        const result = await opnet.sendBitcoin({
+            ...fundingParams,
+            // @ts-expect-error signer is stripped by the wallet
+            signer: undefined,
+        });
+
+        if (!result) {
+            throw new Error('Could not sign funding transaction.');
+        }
+
+        return {
+            ...result,
+            inputUtxos: result.inputUtxos ?? fundingParams.utxos,
+        };
     }
 
     /**

@@ -54,12 +54,6 @@ export interface Unisat {
     disconnect: () => Promise<void>;
     connect: () => Promise<void>;
 
-    sendBitcoin(
-        toAddress: string,
-        satoshis: number,
-        options: { feeRate: number; memo?: string; memos?: string[] },
-    ): Promise<string>;
-
     requestAccounts(): Promise<string[]>;
 
     getNetwork(): Promise<WalletNetworks>;
@@ -76,7 +70,7 @@ export interface Unisat {
 
     signMessage(message: string | Uint8Array, type?: MessageType): Promise<string>;
 
-    signData(hex: string, type?: SignatureType): Promise<string>;
+    signData(hex: string, type?: SignatureType, originalMessage?: string): Promise<string>;
 
     pushTx(options: { rawtx: string }): Promise<string>;
 

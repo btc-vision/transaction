@@ -1,4 +1,8 @@
-import type { IDeploymentParameters, IInteractionParameters } from './ITransactionParameters.js';
+import type {
+    IDeploymentParameters,
+    IFundingTransactionParameters,
+    IInteractionParameters,
+} from './ITransactionParameters.js';
 import type { ICustomTransactionParameters } from './ICustomTransactionParameters.js';
 import type { ICancelTransactionParameters } from './ICancelTransactionParameters.js';
 import { MLDSASecurityLevel } from '@btc-vision/bip32';
@@ -21,6 +25,11 @@ export type ICustomTransactionWithoutSigner = Omit<
 export type ICancelTransactionParametersWithoutSigner = Omit<
     ICancelTransactionParameters,
     'signer' | 'challenge' | 'network' | 'mldsaSigner'
+>;
+
+export type IFundingTransactionParametersWithoutSigner = Omit<
+    IFundingTransactionParameters,
+    'signer' | 'network' | 'mldsaSigner' | 'gasSatFee'
 >;
 
 export interface BroadcastTransactionOptions {

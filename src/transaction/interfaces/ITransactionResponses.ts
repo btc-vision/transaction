@@ -1,6 +1,13 @@
 import type { RawChallenge } from '../../epoch/interfaces/IChallengeSolution.js';
 import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 
+export interface BitcoinTransferBase {
+    readonly tx: string;
+    readonly estimatedFees: bigint;
+    readonly nextUTXOs: UTXO[];
+    readonly inputUtxos: UTXO[];
+}
+
 export interface DeploymentResult {
     readonly transaction: [string, string];
     readonly contractAddress: string;
