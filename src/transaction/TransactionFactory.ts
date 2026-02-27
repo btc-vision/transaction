@@ -23,6 +23,7 @@ import type {
     ICancelTransactionParametersWithoutSigner,
     ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
+    IFundingTransactionParametersWithoutSigner,
     InteractionParametersWithoutSigner,
 } from './interfaces/IWeb3ProviderTypes.js';
 import type { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
@@ -532,10 +533,27 @@ export class TransactionFactory {
      * @returns {Promise<BitcoinTransferResponse>} - The signed transaction
      */
     public async createBTCTransfer(
-        parameters: IFundingTransactionParameters,
+        parameters: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
     ): Promise<BitcoinTransferResponse> {
+        if (!parameters.to) {
+            throw new Error('Field "to" not provided.');
+        }
+
         if (!parameters.from) {
             throw new Error('Field "from" not provided.');
+        }
+
+        if (!parameters.utxos[0]) {
+            throw new Error('Missing at least one UTXO.');
+        }
+
+        const opWalletInteraction = await this.detectFundingOPWallet(parameters);
+        if (opWalletInteraction) {
+            return opWalletInteraction;
+        }
+
+        if (!('signer' in parameters)) {
+            throw new Error('Field "signer" not provided, OP_WALLET not detected.');
         }
 
         const resp = await this.createFundTransaction(parameters);
@@ -598,6 +616,41 @@ export class TransactionFactory {
                 nonWitnessUtxo: nonWitness,
             } as UTXO;
         });
+    }
+
+    /**
+     * Detect and use OP_WALLET for funding transactions if available.
+     *
+     * @param {IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner} fundingParams - The funding transaction parameters
+     * @return {Promise<BitcoinTransferResponse | null>} - The funding transaction response or null if OP_WALLET not available
+     */
+    private async detectFundingOPWallet(
+        fundingParams: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
+    ): Promise<BitcoinTransferResponse | null> {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        const opnet = _window.opnet.web3;
+        const interaction = await opnet.sendBitcoin({
+            ...fundingParams,
+            // @ts-expect-error no, this is ok
+            signer: undefined,
+        });
+
+        if (!interaction) {
+            throw new Error('Could not sign interaction transaction.');
+        }
+
+        return {
+            ...interaction,
+            inputUtxos: fundingParams.inputUtxos ?? fundingParams.utxos,
+        };
     }
 
     /**
