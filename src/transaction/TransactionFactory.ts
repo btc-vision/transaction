@@ -638,7 +638,10 @@ export class TransactionFactory {
             throw new Error('Could not sign funding transaction.');
         }
 
-        return result;
+        return {
+            ...result,
+            inputUtxos: result.inputUtxos ?? fundingParams.utxos,
+        };
     }
 
     /**
