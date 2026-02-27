@@ -70,7 +70,7 @@ export interface Unisat {
 
     signMessage(message: string | Uint8Array, type?: MessageType): Promise<string>;
 
-    signData(hex: string, type?: SignatureType): Promise<string>;
+    signData(hex: string, type?: SignatureType, originalMessage?: string): Promise<string>;
 
     pushTx(options: { rawtx: string }): Promise<string>;
 
