@@ -1,5 +1,6 @@
 import type { UTXO } from '../../utxo/interfaces/IUTXO.js';
 import type {
+    BitcoinTransferBase,
     CancelledTransaction,
     DeploymentResult,
     InteractionResponse,
@@ -10,11 +11,24 @@ import type {
     ICancelTransactionParametersWithoutSigner,
     ICustomTransactionWithoutSigner,
     IDeploymentParametersWithoutSigner,
+    IFundingTransactionParametersWithoutSigner,
     InteractionParametersWithoutSigner,
     MLDSASignature,
 } from '../interfaces/IWeb3ProviderTypes.js';
 
 export interface Web3Provider {
+    /**
+     * Build, sign, and broadcast a BTC funding transaction.
+     * The wallet provides signer, network, and MLDSA internally.
+     * The confirmation flow is handled by TxOpnetConfirmScreen.
+     *
+     * @param params - Funding transaction parameters (amount, to, feeRate, etc.)
+     * @returns The BitcoinTransferBase with tx hex, fees, and UTXOs
+     */
+    sendBitcoin(
+        params: IFundingTransactionParametersWithoutSigner,
+    ): Promise<BitcoinTransferBase>;
+
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
     ): Promise<InteractionResponse>;
@@ -32,6 +46,25 @@ export interface Web3Provider {
     deployContract(params: IDeploymentParametersWithoutSigner): Promise<DeploymentResult>;
 
     broadcast(transactions: BroadcastTransactionOptions[]): Promise<BroadcastedTransaction[]>;
+
+    /**
+     * Sign a PSBT (Partially Signed Bitcoin Transaction).
+     *
+     * NOT IMPLEMENTED YET — will throw an error if called.
+     */
+    signPsbt(psbtHex: string, options?: object): Promise<string>;
+
+    /**
+     * Sign arbitrary data with ECDSA or Schnorr.
+     *
+     * @param data - Hexadecimal string of data to sign
+     * @param type - Signature algorithm: 'ecdsa' or 'schnorr' (default: 'schnorr')
+     * @param originalMessage - Optional original message (e.g. JSON) for display in the
+     *                          wallet approval UI. When provided, the wallet verifies the
+     *                          SHA-256 hash matches the data being signed.
+     * @returns The signature in hex format
+     */
+    signData(data: string, type?: 'ecdsa' | 'schnorr', originalMessage?: string): Promise<string>;
 
     /**
      * Sign a message using Schnorr signature

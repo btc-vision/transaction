@@ -54,12 +54,6 @@ export interface Unisat {
     disconnect: () => Promise<void>;
     connect: () => Promise<void>;
 
-    sendBitcoin(
-        toAddress: string,
-        satoshis: number,
-        options: { feeRate: number; memo?: string; memos?: string[] },
-    ): Promise<string>;
-
     requestAccounts(): Promise<string[]>;
 
     getNetwork(): Promise<WalletNetworks>;

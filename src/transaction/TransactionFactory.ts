@@ -36,6 +36,7 @@ import { CancelTransaction } from './builders/CancelTransaction.js';
 import { ConsolidatedInteractionTransaction } from './builders/ConsolidatedInteractionTransaction.js';
 import type { IConsolidatedInteractionParameters } from './interfaces/IConsolidatedTransactionParameters.js';
 import type {
+    BitcoinTransferBase,
     CancelledTransaction,
     DeploymentResult,
     InteractionResponse,
@@ -51,12 +52,7 @@ export interface FundingTransactionResponse {
     readonly inputUtxos: UTXO[];
 }
 
-export interface BitcoinTransferBase {
-    readonly tx: string;
-    readonly estimatedFees: bigint;
-    readonly nextUTXOs: UTXO[];
-    readonly inputUtxos: UTXO[];
-}
+export type { BitcoinTransferBase } from './interfaces/ITransactionResponses.js';
 
 export interface BitcoinTransferResponse extends BitcoinTransferBase {
     readonly original: FundingTransaction;
@@ -530,11 +526,11 @@ export class TransactionFactory {
     /**
      * @description Creates a funding transaction.
      * @param {IFundingTransactionParameters} parameters - The funding transaction parameters
-     * @returns {Promise<BitcoinTransferResponse>} - The signed transaction
+     * @returns {Promise<BitcoinTransferBase>} - The signed transaction
      */
     public async createBTCTransfer(
         parameters: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
-    ): Promise<BitcoinTransferResponse> {
+    ): Promise<BitcoinTransferBase> {
         if (!parameters.to) {
             throw new Error('Field "to" not provided.');
         }
@@ -559,7 +555,6 @@ export class TransactionFactory {
         const resp = await this.createFundTransaction(parameters);
         return {
             estimatedFees: resp.estimatedFees,
-            original: resp.original,
             tx: resp.tx.toHex(),
             nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
             inputUtxos: parameters.utxos,
@@ -622,11 +617,11 @@ export class TransactionFactory {
      * Detect and use OP_WALLET for funding transactions if available.
      *
      * @param {IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner} fundingParams - The funding transaction parameters
-     * @return {Promise<BitcoinTransferResponse | null>} - The funding transaction response or null if OP_WALLET not available
+     * @return {Promise<BitcoinTransferBase | null>} - The funding transaction response or null if OP_WALLET not available
      */
     private async detectFundingOPWallet(
         fundingParams: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
-    ): Promise<BitcoinTransferResponse | null> {
+    ): Promise<BitcoinTransferBase | null> {
         if (typeof window === 'undefined') {
             return null;
         }
@@ -637,20 +632,17 @@ export class TransactionFactory {
         }
 
         const opnet = _window.opnet.web3;
-        const interaction = await opnet.sendBitcoin({
+        const result = await opnet.sendBitcoin({
             ...fundingParams,
-            // @ts-expect-error no, this is ok
+            // @ts-expect-error signer is stripped by the wallet
             signer: undefined,
         });
 
-        if (!interaction) {
-            throw new Error('Could not sign interaction transaction.');
+        if (!result) {
+            throw new Error('Could not sign funding transaction.');
         }
 
-        return {
-            ...interaction,
-            inputUtxos: fundingParams.inputUtxos ?? fundingParams.utxos,
-        };
+        return result;
     }
 
     /**
