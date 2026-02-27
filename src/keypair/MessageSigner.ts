@@ -101,7 +101,11 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const result: MLDSASignature = await wallet.web3.signMLDSAMessage(messageHex);
+        const result: MLDSASignature = await wallet.web3.signMLDSAMessage(
+            messageHex,
+            typeof message === 'string' ? message : undefined,
+        );
+
         return {
             signature: fromHex(result.signature),
             message: hashedMessage,

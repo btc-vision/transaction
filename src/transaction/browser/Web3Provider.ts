@@ -25,9 +25,7 @@ export interface Web3Provider {
      * @param params - Funding transaction parameters (amount, to, feeRate, etc.)
      * @returns The BitcoinTransferBase with tx hex, fees, and UTXOs
      */
-    sendBitcoin(
-        params: IFundingTransactionParametersWithoutSigner,
-    ): Promise<BitcoinTransferBase>;
+    sendBitcoin(params: IFundingTransactionParametersWithoutSigner): Promise<BitcoinTransferBase>;
 
     signInteraction(
         interactionParameters: InteractionParametersWithoutSigner,
@@ -74,10 +72,11 @@ export interface Web3Provider {
      * Sign a message using ML-DSA signature
      *
      * @param message - The message to sign as a hexadecimal string
+     * @param [originalMessage] - (Optional) The original message before hashing, used for ML-DSA signature verification. If not provided, the message will be hashed internally.
      * @returns The ML-DSA signature
      * @throws {Error} If signing fails or wallet is not connected
      */
-    signMLDSAMessage(message: string): Promise<MLDSASignature>;
+    signMLDSAMessage(message: string, originalMessage?: string): Promise<MLDSASignature>;
 
     /**
      * Verify an ML-DSA signature
