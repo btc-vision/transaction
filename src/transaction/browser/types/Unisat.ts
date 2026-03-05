@@ -64,6 +64,8 @@ export interface Unisat {
 
     switchNetwork(network: WalletNetworks): Promise<void>;
 
+    switchChain(network: UnisatChainType): Promise<void>;
+
     getPublicKey(): Promise<string>;
 
     getBalance(): Promise<Balance>;
