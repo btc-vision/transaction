@@ -420,7 +420,7 @@ describe('Mnemonic.deriveOPWallet', () => {
         });
     });
 
-    describe('deriveMultipleUnisat', () => {
+    describe('deriveMultipleOPWallet', () => {
         it('should derive multiple wallets', () => {
             const mnemonic = new Mnemonic(
                 testMnemonic,
@@ -429,7 +429,7 @@ describe('Mnemonic.deriveOPWallet', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 5);
+            const wallets = mnemonic.deriveMultipleOPWallet(AddressTypes.P2TR, 5);
 
             expect(wallets.length).toBe(5);
             expect((wallets[0] as Wallet).p2tr).toBeDefined();
@@ -444,7 +444,7 @@ describe('Mnemonic.deriveOPWallet', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 3);
+            const wallets = mnemonic.deriveMultipleOPWallet(AddressTypes.P2TR, 3);
 
             const addresses = wallets.map((w) => w.p2tr);
             const uniqueAddresses = new Set(addresses);
@@ -460,7 +460,7 @@ describe('Mnemonic.deriveOPWallet', () => {
                 MLDSASecurityLevel.LEVEL2,
             );
 
-            const wallets = mnemonic.deriveMultipleUnisat(AddressTypes.P2TR, 2, 5);
+            const wallets = mnemonic.deriveMultipleOPWallet(AddressTypes.P2TR, 2, 5);
             const wallet5 = mnemonic.deriveOPWallet(AddressTypes.P2TR, 5);
 
             expect((wallets[0] as Wallet).p2tr).toBe(wallet5.p2tr);

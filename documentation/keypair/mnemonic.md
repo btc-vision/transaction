@@ -268,10 +268,10 @@ for (const w of wallets) {
 }
 ```
 
-### deriveMultipleUnisat()
+### deriveMultipleOPWallet()
 
 ```typescript
-deriveMultipleUnisat(
+deriveMultipleOPWallet(
     addressType?: AddressTypes,
     count?: number,
     startIndex?: number,

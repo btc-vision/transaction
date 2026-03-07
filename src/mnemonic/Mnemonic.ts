@@ -187,7 +187,7 @@ export class Mnemonic implements Disposable {
         );
     }
 
-    public deriveMultipleUnisat(
+    public deriveMultipleOPWallet(
         addressType: AddressTypes = AddressTypes.P2TR,
         count: number = 5,
         startIndex: number = 0,
