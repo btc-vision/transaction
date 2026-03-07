@@ -20,10 +20,7 @@ import {
 import { TransactionBuilder } from './TransactionBuilder.js';
 import type { TapPayment } from '../shared/TweakedTransaction.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
-import {
-    DeploymentGenerator,
-    versionBuffer,
-} from '../../generators/builders/DeploymentGenerator.js';
+import { DeploymentGenerator, versionBuffer, } from '../../generators/builders/DeploymentGenerator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
@@ -38,7 +35,7 @@ import { type Feature, FeaturePriority, Features } from '../../generators/Featur
 import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
-    public static readonly MAXIMUM_CONTRACT_SIZE = 128 * 1024;
+    public static readonly MAXIMUM_CONTRACT_SIZE = 512 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
