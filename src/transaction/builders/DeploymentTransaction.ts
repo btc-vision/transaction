@@ -20,7 +20,10 @@ import {
 import { TransactionBuilder } from './TransactionBuilder.js';
 import type { TapPayment } from '../shared/TweakedTransaction.js';
 import type { TapLeafScript } from '../interfaces/Tap.js';
-import { DeploymentGenerator, versionBuffer, } from '../../generators/builders/DeploymentGenerator.js';
+import {
+    DeploymentGenerator,
+    versionBuffer,
+} from '../../generators/builders/DeploymentGenerator.js';
 import { EcKeyPair } from '../../keypair/EcKeyPair.js';
 import { BitcoinUtils } from '../../utils/BitcoinUtils.js';
 import { Compressor } from '../../bytecode/Compressor.js';
