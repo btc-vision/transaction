@@ -33,7 +33,7 @@ import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 export abstract class SharedInteractionTransaction<
     T extends TransactionType,
 > extends TransactionBuilder<T> {
-    public static readonly MAXIMUM_CALLDATA_SIZE = 1024 * 1024; // 1MB
+    public static readonly MAXIMUM_CALLDATA_SIZE = 380 * 1024; // 1MB
 
     /**
      * Random salt for the interaction

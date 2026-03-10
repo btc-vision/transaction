@@ -38,7 +38,7 @@ import { type Feature, FeaturePriority, Features } from '../../generators/Featur
 import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
 
 export class DeploymentTransaction extends TransactionBuilder<TransactionType.DEPLOYMENT> {
-    public static readonly MAXIMUM_CONTRACT_SIZE = 512 * 1024;
+    public static readonly MAXIMUM_CONTRACT_SIZE = 1536 * 1024;
 
     public type: TransactionType.DEPLOYMENT = TransactionType.DEPLOYMENT;
 
