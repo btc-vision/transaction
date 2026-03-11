@@ -35,13 +35,16 @@ export class HashCommitmentGenerator extends Logger {
 
     /** Maximum weight per standard transaction */
     public static readonly MAX_STANDARD_WEIGHT: number = 400000;
+
     /** Minimum satoshis per output (dust limit) */
     public static readonly MIN_OUTPUT_VALUE: bigint = 330n;
+
     /**
      * Bytes per hash commitment in witness script.
      * OP_HASH160 (1) + push (1) + hash (20) + OP_EQUALVERIFY (1) = 23 bytes
      */
     private static readonly BYTES_PER_COMMITMENT: number = 23;
+
     /**
      * Fixed overhead in witness serialization:
      * - Stack item count: 1 byte
@@ -50,6 +53,7 @@ export class HashCommitmentGenerator extends Logger {
      * - Script base (pubkey + checksig): 35 bytes
      */
     private static readonly WITNESS_FIXED_OVERHEAD: number = 1 + 73 + 3 + 35;
+
     /**
      * Per-chunk overhead in witness:
      * - Data: 81 bytes (80 + 1 length prefix)
@@ -58,6 +62,7 @@ export class HashCommitmentGenerator extends Logger {
      */
     private static readonly WITNESS_PER_CHUNK_OVERHEAD: number =
         HashCommitmentGenerator.MAX_CHUNK_SIZE + 1 + HashCommitmentGenerator.BYTES_PER_COMMITMENT;
+
     /**
      * Maximum data chunks per P2WSH output.
      * Limited by total witness size: (1650 - 112) / 104 = 14 chunks
@@ -67,6 +72,7 @@ export class HashCommitmentGenerator extends Logger {
             HashCommitmentGenerator.WITNESS_FIXED_OVERHEAD) /
             HashCommitmentGenerator.WITNESS_PER_CHUNK_OVERHEAD,
     );
+
     /** Base weight per input (non-witness): 41 bytes * 4 = 164 */
     private static readonly INPUT_BASE_WEIGHT: number = 164;
 
@@ -82,7 +88,9 @@ export class HashCommitmentGenerator extends Logger {
     public static readonly WEIGHT_PER_INPUT: number =
         HashCommitmentGenerator.INPUT_BASE_WEIGHT +
         HashCommitmentGenerator.INPUT_WITNESS_WEIGHT_MAX;
+
     public override readonly logColor: string = '#4a90d9';
+
     private readonly publicKey: Uint8Array;
     private readonly network: Network;
 
