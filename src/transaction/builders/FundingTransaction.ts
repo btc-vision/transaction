@@ -34,29 +34,43 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
         // When autoAdjustAmount is enabled and the amount would leave no room for fees,
         // estimate the fee first and reduce the output amount accordingly.
         if (this.autoAdjustAmount && this.amount >= this.totalInputAmount) {
-            // Add a temporary output at full amount to get an accurate fee estimate
-            if (this.isPubKeyDestination) {
-                const toHexClean = this.to.startsWith('0x') ? this.to.slice(2) : this.to;
-                const pubKeyScript: Script = script.compile([
-                    fromHex(toHexClean),
-                    opcodes.OP_CHECKSIG,
-                ]);
+            // Add temporary outputs matching the ACTUAL final transaction shape
+            // so the fee estimate accounts for the real vsize.
+            const numOutputs = this.splitInputsInto > 1 ? this.splitInputsInto : 1;
+            const perOutputAmount = this.amount / BigInt(numOutputs);
 
-                this.addOutput({
-                    value: toSatoshi(this.amount),
-                    script: pubKeyScript,
-                });
-            } else {
-                this.addOutput({
-                    value: toSatoshi(this.amount),
-                    address: this.to,
-                });
+            for (let i = 0; i < numOutputs; i++) {
+                if (this.isPubKeyDestination) {
+                    const toHexClean = this.to.startsWith('0x') ? this.to.slice(2) : this.to;
+                    const pubKeyScript: Script = script.compile([
+                        fromHex(toHexClean),
+                        opcodes.OP_CHECKSIG,
+                    ]);
+
+                    this.addOutput({
+                        value: toSatoshi(perOutputAmount),
+                        script: pubKeyScript,
+                    });
+                } else {
+                    this.addOutput({
+                        value: toSatoshi(perOutputAmount),
+                        address: this.to,
+                    });
+                }
+            }
+
+            // If a note is present, add a temporary OP_RETURN since it affects vsize.
+            if (this.note) {
+                this.addOPReturn(this.note);
             }
 
             const estimatedFee = await this.estimateTransactionFees();
 
-            // Remove the temporary output
-            this.outputs.pop();
+            // Remove all temporary outputs.
+            const tempCount = numOutputs + (this.note ? 1 : 0);
+            for (let i = 0; i < tempCount; i++) {
+                this.outputs.pop();
+            }
 
             const adjustedAmount = this.totalInputAmount - estimatedFee;
             if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
