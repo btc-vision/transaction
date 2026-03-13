@@ -345,7 +345,7 @@ export class TransactionFactory {
                 1,
             ),
             challenge: challenge.toRaw(),
-            fundingUTXOs: fundingUTXO,
+            fundingUTXOs: [...fundingUTXO, ...inputs],
             fundingInputUtxos: interactionParameters.utxos,
             compiledTargetScript: toHex(interactionTx.exportCompiledTargetScript()),
         };
