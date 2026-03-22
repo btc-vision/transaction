@@ -182,7 +182,7 @@ export abstract class Generator {
         writer.writeBytes(feature.data.solution);
 
         if (feature.data.graffiti) {
-            writer.writeBytesWithLength(feature.data.graffiti);
+            writer.writeBytes(feature.data.graffiti);
         }
 
         finalBuffer.writeBytesWithLength(writer.getBuffer());
