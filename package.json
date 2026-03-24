@@ -180,7 +180,7 @@
         "bip39": "^3.1.0",
         "pako": "^2.1.0",
         "sha.js": "^2.4.12",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.2"
     },
     "overrides": {
         "vite-plugin-node-polyfills": {
