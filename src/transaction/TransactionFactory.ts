@@ -274,7 +274,10 @@ export class TransactionFactory {
                         0n,
                     );
 
-                    return total > optionalInputValue ? total - optionalInputValue : 0n;
+                    const adjusted = total > optionalInputValue ? total - optionalInputValue : 0n;
+                    return adjusted < TransactionBuilder.MINIMUM_DUST
+                        ? TransactionBuilder.MINIMUM_DUST
+                        : adjusted;
                 }
 
                 return total;
@@ -973,6 +976,10 @@ export class TransactionFactory {
 
         if (!finalPreTransaction) {
             throw new Error(`Failed to converge on ${debugPrefix} funding amount`);
+        }
+
+        if (estimatedFundingAmount === 0n) {
+            throw new Error(`Impossible. Transaction cant be free.`);
         }
 
         return {
