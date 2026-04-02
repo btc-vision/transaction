@@ -177,12 +177,16 @@ export abstract class Generator {
             throw new Error('Invalid signature in challenge submission feature');
         }
 
+        if (feature.data.graffiti && feature.data.graffiti.length > 16) {
+            throw new Error('Invalid epoch submission graffiti length');
+        }
+
         const writer = new BinaryWriter();
         writer.writeBytes(feature.data.publicKey.toBuffer());
         writer.writeBytes(feature.data.solution);
 
         if (feature.data.graffiti) {
-            writer.writeBytesWithLength(feature.data.graffiti);
+            writer.writeBytes(feature.data.graffiti);
         }
 
         finalBuffer.writeBytesWithLength(writer.getBuffer());
