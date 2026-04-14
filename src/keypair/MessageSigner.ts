@@ -11,6 +11,7 @@ import { TweakedSigner } from '../signer/TweakedSigner.js';
 import { EcKeyPair } from './EcKeyPair.js';
 import { MLDSASecurityLevel, type QuantumBIP32Interface } from '@btc-vision/bip32';
 import { isOPWallet, type OPWallet } from '../transaction/browser/types/OPWallet.js';
+import type { Web3Provider } from '../transaction/browser/Web3Provider.js';
 import type { MLDSASignature } from '../transaction/interfaces/IWeb3ProviderTypes.js';
 import { SignatureType } from '../transaction/browser/types/Unisat.js';
 
@@ -37,17 +38,29 @@ class MessageSignerBase {
 
     public async trySignSchnorrWithOPWallet(
         message: Uint8Array | string,
+        walletProvider?: Web3Provider,
     ): Promise<SignedMessage | null> {
+        const messageBuffer =
+            typeof message === 'string' ? new TextEncoder().encode(message) : message;
+        const hashedMessage = this.sha256(messageBuffer);
+        const messageHex = toHex(hashedMessage);
+
+        // If the caller passed an explicit Web3Provider, use its signSchnorr
+        // (the Web3Provider interface supports Schnorr signing directly).
+        if (walletProvider) {
+            const signatureHex = await walletProvider.signSchnorr(messageHex);
+            return {
+                signature: fromHex(signatureHex),
+                message: hashedMessage,
+            };
+        }
+
+        // Fallback to auto-detected window.opnet OPWallet via signData
+        // (preserves backward compatibility with existing callers).
         const wallet = this.getOPWallet();
         if (!wallet) {
             return null;
         }
-
-        const messageBuffer =
-            typeof message === 'string' ? new TextEncoder().encode(message) : message;
-
-        const hashedMessage = this.sha256(messageBuffer);
-        const messageHex = toHex(hashedMessage);
 
         const signatureHex = await wallet.signData(
             messageHex,
@@ -89,9 +102,10 @@ class MessageSignerBase {
 
     public async trySignMLDSAWithOPWallet(
         message: Uint8Array | string,
+        walletProvider?: Web3Provider,
     ): Promise<MLDSASignedMessage | null> {
-        const wallet = this.getOPWallet();
-        if (!wallet) {
+        const web3 = walletProvider ?? this.getOPWallet()?.web3;
+        if (!web3) {
             return null;
         }
 
@@ -101,7 +115,7 @@ class MessageSignerBase {
         const hashedMessage = this.sha256(messageBuffer);
         const messageHex = toHex(hashedMessage);
 
-        const result: MLDSASignature = await wallet.web3.signMLDSAMessage(
+        const result: MLDSASignature = await web3.signMLDSAMessage(
             messageHex,
             typeof message === 'string' ? message : undefined,
         );
@@ -117,14 +131,17 @@ class MessageSignerBase {
     public async signMessageAuto(
         message: Uint8Array | string,
         keypair?: UniversalSigner,
+        walletProvider?: Web3Provider,
     ): Promise<SignedMessage> {
         if (!keypair) {
-            const walletResult = await this.trySignSchnorrWithOPWallet(message);
+            const walletResult = await this.trySignSchnorrWithOPWallet(message, walletProvider);
             if (walletResult) {
                 return walletResult;
             }
 
-            throw new Error('No keypair provided and OP_WALLET is not available.');
+            throw new Error(
+                'No keypair provided and no browser wallet is available for signing.',
+            );
         }
 
         return this.signMessage(keypair, message);
@@ -150,14 +167,17 @@ class MessageSignerBase {
         message: Uint8Array | string,
         keypair?: UniversalSigner,
         network?: Network,
+        walletProvider?: Web3Provider,
     ): Promise<SignedMessage> {
         if (!keypair) {
-            const walletResult = await this.trySignSchnorrWithOPWallet(message);
+            const walletResult = await this.trySignSchnorrWithOPWallet(message, walletProvider);
             if (walletResult) {
                 return walletResult;
             }
 
-            throw new Error('No keypair provided and OP_WALLET is not available.');
+            throw new Error(
+                'No keypair provided and no browser wallet is available for signing.',
+            );
         }
 
         if (!network) {
@@ -170,14 +190,17 @@ class MessageSignerBase {
     public async signMLDSAMessageAuto(
         message: Uint8Array | string,
         mldsaKeypair?: QuantumBIP32Interface,
+        walletProvider?: Web3Provider,
     ): Promise<MLDSASignedMessage> {
         if (!mldsaKeypair) {
-            const walletResult = await this.trySignMLDSAWithOPWallet(message);
+            const walletResult = await this.trySignMLDSAWithOPWallet(message, walletProvider);
             if (walletResult) {
                 return walletResult;
             }
 
-            throw new Error('No ML-DSA keypair provided and OP_WALLET is not available.');
+            throw new Error(
+                'No ML-DSA keypair provided and no browser wallet is available for signing.',
+            );
         }
 
         return this.signMLDSAMessage(mldsaKeypair, message);
@@ -186,9 +209,10 @@ class MessageSignerBase {
     public async verifyMLDSAWithOPWallet(
         message: Uint8Array | string,
         signature: MLDSASignedMessage,
+        walletProvider?: Web3Provider,
     ): Promise<boolean | null> {
-        const wallet = this.getOPWallet();
-        if (!wallet) {
+        const web3 = walletProvider ?? this.getOPWallet()?.web3;
+        if (!web3) {
             return null;
         }
 
@@ -204,16 +228,18 @@ class MessageSignerBase {
             messageHash: toHex(hashedMessage),
         };
 
-        return wallet.web3.verifyMLDSASignature(toHex(hashedMessage), mldsaSignature);
+        return web3.verifyMLDSASignature(toHex(hashedMessage), mldsaSignature);
     }
 
-    public async getMLDSAPublicKeyFromOPWallet(): Promise<Uint8Array | null> {
-        const wallet = this.getOPWallet();
-        if (!wallet) {
+    public async getMLDSAPublicKeyFromOPWallet(
+        walletProvider?: Web3Provider,
+    ): Promise<Uint8Array | null> {
+        const web3 = walletProvider ?? this.getOPWallet()?.web3;
+        if (!web3) {
             return null;
         }
 
-        const publicKeyHex = await wallet.web3.getMLDSAPublicKey();
+        const publicKeyHex = await web3.getMLDSAPublicKey();
         return fromHex(publicKeyHex);
     }
 

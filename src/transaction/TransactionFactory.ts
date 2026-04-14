@@ -27,6 +27,7 @@ import type {
     InteractionParametersWithoutSigner,
 } from './interfaces/IWeb3ProviderTypes.js';
 import type { WindowWithWallets } from './browser/extensions/UnisatSigner.js';
+import type { Web3Provider } from './browser/Web3Provider.js';
 import type { IChallengeSolution, RawChallenge } from '../epoch/interfaces/IChallengeSolution.js';
 import { P2WDADetector } from '../p2wda/P2WDADetector.js';
 import { InteractionTransactionP2WDA } from './builders/InteractionTransactionP2WDA.js';
@@ -100,6 +101,7 @@ export class TransactionFactory {
      */
     public async createCancellableTransaction(
         params: ICancelTransactionParameters | ICancelTransactionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<CancelledTransaction> {
         if (!params.to) {
             throw new Error('Field "to" not provided.');
@@ -113,7 +115,7 @@ export class TransactionFactory {
             throw new Error('Missing at least one UTXO.');
         }
 
-        const opWalletCancel = await this.detectCancelOPWallet(params);
+        const opWalletCancel = await this.detectCancelOPWallet(params, walletProvider);
         if (opWalletCancel) {
             return opWalletCancel;
         }
@@ -227,6 +229,7 @@ export class TransactionFactory {
      */
     public async signInteraction(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<InteractionResponse> {
         if (!interactionParameters.to) {
             throw new Error('Field "to" not provided.');
@@ -240,7 +243,10 @@ export class TransactionFactory {
             throw new Error('Missing at least one UTXO.');
         }
 
-        const opWalletInteraction = await this.detectInteractionOPWallet(interactionParameters);
+        const opWalletInteraction = await this.detectInteractionOPWallet(
+            interactionParameters,
+            walletProvider,
+        );
         if (opWalletInteraction) {
             return opWalletInteraction;
         }
@@ -423,8 +429,12 @@ export class TransactionFactory {
      */
     public async signDeployment(
         deploymentParameters: IDeploymentParameters,
+        walletProvider?: Web3Provider,
     ): Promise<DeploymentResult> {
-        const opWalletDeployment = await this.detectDeploymentOPWallet(deploymentParameters);
+        const opWalletDeployment = await this.detectDeploymentOPWallet(
+            deploymentParameters,
+            walletProvider,
+        );
         if (opWalletDeployment) {
             return opWalletDeployment;
         }
@@ -533,6 +543,7 @@ export class TransactionFactory {
      */
     public async createBTCTransfer(
         parameters: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<BitcoinTransferBase> {
         if (!parameters.to) {
             throw new Error('Field "to" not provided.');
@@ -542,7 +553,7 @@ export class TransactionFactory {
             throw new Error('Field "from" not provided.');
         }
 
-        const opWalletInteraction = await this.detectFundingOPWallet(parameters);
+        const opWalletInteraction = await this.detectFundingOPWallet(parameters, walletProvider);
         if (opWalletInteraction) {
             return opWalletInteraction;
         }
@@ -620,17 +631,13 @@ export class TransactionFactory {
      */
     private async detectFundingOPWallet(
         fundingParams: IFundingTransactionParameters | IFundingTransactionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<BitcoinTransferBase | null> {
-        if (typeof window === 'undefined') {
+        const opnet = walletProvider ?? this.getDefaultBrowserWallet();
+        if (!opnet) {
             return null;
         }
 
-        const _window = window as WindowWithWallets;
-        if (!_window || !_window.opnet || !_window.opnet.web3) {
-            return null;
-        }
-
-        const opnet = _window.opnet.web3;
         const result = await opnet.sendBitcoin({
             ...fundingParams,
             // @ts-expect-error signer is stripped by the wallet
@@ -656,17 +663,13 @@ export class TransactionFactory {
         interactionParameters:
             | ICancelTransactionParameters
             | ICancelTransactionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<CancelledTransaction | null> {
-        if (typeof window === 'undefined') {
+        const opnet = walletProvider ?? this.getDefaultBrowserWallet();
+        if (!opnet) {
             return null;
         }
 
-        const _window = window as WindowWithWallets;
-        if (!_window || !_window.opnet || !_window.opnet.web3) {
-            return null;
-        }
-
-        const opnet = _window.opnet.web3;
         const interaction = await opnet.cancelTransaction({
             ...interactionParameters,
             // @ts-expect-error no, this is ok
@@ -690,17 +693,13 @@ export class TransactionFactory {
      */
     private async detectInteractionOPWallet(
         interactionParameters: IInteractionParameters | InteractionParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<InteractionResponse | null> {
-        if (typeof window === 'undefined') {
+        const opnet = walletProvider ?? this.getDefaultBrowserWallet();
+        if (!opnet) {
             return null;
         }
 
-        const _window = window as WindowWithWallets;
-        if (!_window || !_window.opnet || !_window.opnet.web3) {
-            return null;
-        }
-
-        const opnet = _window.opnet.web3;
         const interaction = await opnet.signInteraction({
             ...interactionParameters,
             // @ts-expect-error no, this is ok
@@ -724,17 +723,13 @@ export class TransactionFactory {
      */
     private async detectDeploymentOPWallet(
         deploymentParameters: IDeploymentParameters | IDeploymentParametersWithoutSigner,
+        walletProvider?: Web3Provider,
     ): Promise<DeploymentResult | null> {
-        if (typeof window === 'undefined') {
+        const opnet = walletProvider ?? this.getDefaultBrowserWallet();
+        if (!opnet) {
             return null;
         }
 
-        const _window = window as WindowWithWallets;
-        if (!_window || !_window.opnet || !_window.opnet.web3) {
-            return null;
-        }
-
-        const opnet = _window.opnet.web3;
         const deployment = await opnet.deployContract({
             ...deploymentParameters,
             // @ts-expect-error no, this is ok
@@ -749,6 +744,24 @@ export class TransactionFactory {
             ...deployment,
             inputUtxos: deployment.inputUtxos ?? deploymentParameters.utxos,
         };
+    }
+
+    /**
+     * Returns the default browser wallet (window.opnet.web3) for backward compatibility
+     * when no explicit walletProvider is passed. Returns null in non-browser
+     * environments or when no OPNet-compatible wallet has injected itself into window.opnet.
+     */
+    private getDefaultBrowserWallet(): Web3Provider | null {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        const _window = window as WindowWithWallets;
+        if (!_window || !_window.opnet || !_window.opnet.web3) {
+            return null;
+        }
+
+        return _window.opnet.web3;
     }
 
     /**
