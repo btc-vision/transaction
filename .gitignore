@@ -409,3 +409,5 @@ yarn.lock
 package-lock.json
 docs/*
 .yarn/
+
+tsconfig.build.tsbuildinfo

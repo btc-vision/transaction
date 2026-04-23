@@ -366,7 +366,7 @@ export class Address extends Uint8Array implements Disposable {
      * Converts the address to a hex string
      * @returns {string} The hex string
      */
-    public toHex(): string {
+    public override toHex(): string {
         return '0x' + toHex(this);
     }
 
