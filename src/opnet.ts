@@ -21,6 +21,7 @@ export * from './generators/Features.js';
 export * from './generators/Generator.js';
 
 export * from './transaction/mineable/TimelockGenerator.js';
+export * from './transaction/mineable/CSVMultisigProvider.js';
 export * from './transaction/mineable/IP2WSHAddress.js';
 export * from './p2wda/P2WDADetector.js';
 
