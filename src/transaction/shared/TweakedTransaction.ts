@@ -4,6 +4,7 @@ import {
     address as bitAddress,
     applySignaturesToPsbt,
     crypto as bitCrypto,
+    equals,
     fromHex,
     getFinalScripts,
     isP2A,
@@ -45,6 +46,10 @@ import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import { canSignNonTaprootInput, isTaprootInput, pubkeyInScript, } from '../../signer/SignerUtils.js';
 import { witnessStackToScriptWitness } from '../utils/WitnessUtils.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
+import {
+    type CSVMultisigAddress,
+    CSVMultisigProvider,
+} from '../mineable/CSVMultisigProvider.js';
 import type { QuantumBIP32Interface } from '@btc-vision/bip32';
 import { MessageSigner } from '../../keypair/MessageSigner.js';
 import { type RotationSigner, type SignerMap } from '../../signer/AddressRotation.js';
@@ -153,6 +158,13 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
      */
     protected csvInputIndices: Set<number> = new Set();
     protected anchorInputIndices: Set<number> = new Set();
+
+    /**
+     * Track P2TR CSV multisig inputs together with the address descriptor needed
+     * to finalize them (tapscript + derived control block + parsed config).
+     * @protected
+     */
+    protected csvMultisigInputs: Map<number, CSVMultisigAddress> = new Map();
 
     protected regenerated: boolean = false;
     protected ignoreSignatureErrors: boolean = false;
@@ -391,6 +403,7 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         delete this.tweakedSigner;
         this.csvInputIndices.clear();
         this.anchorInputIndices.clear();
+        this.csvMultisigInputs.clear();
         this.inputSignerMap.clear();
         this.tweakedSignerCache.clear();
         delete this.parallelSigningConfig;
@@ -450,7 +463,8 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
 
         for (const input of this.inputs) {
             // This would disable CSV! You need to check if the input has CSV
-            if (this.csvInputIndices.has(this.inputs.indexOf(input))) {
+            const idx = this.inputs.indexOf(input);
+            if (this.csvInputIndices.has(idx) || this.csvMultisigInputs.has(idx)) {
                 continue;
             }
 
@@ -1203,8 +1217,12 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
                 if (inputSign) input.sighashType = inputSign;
             }
 
-            // Taproot internal key - use per-input signer in address rotation mode
-            if (this.addressRotationEnabled) {
+            // CSV multisig P2TR: script-path spend with NUMS internal key.
+            // Must come before the default key-path setup below.
+            if (this.processCSVMultisigP2TRInput(utxo, input, i, scriptPub)) {
+                // input fully configured for script-path spend
+            } else if (this.addressRotationEnabled) {
+                // Taproot internal key - use per-input signer in address rotation mode
                 input.tapInternalKey = this.internalPubKeyToXOnlyForInput(i);
             } else {
                 this.tweakSigner();
@@ -1254,8 +1272,10 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         if (i === 0) {
-            // TapLeafScript if available
-            if (this.tapLeafScript) {
+            // TapLeafScript if available — but never clobber a CSV multisig input's
+            // own tapscript; its spend is a script-path that belongs to the UTXO,
+            // not to this transaction's contract leaf.
+            if (this.tapLeafScript && !this.csvMultisigInputs.has(i)) {
                 input.tapLeafScript = [this.tapLeafScript];
             }
 
@@ -1265,6 +1285,58 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         }
 
         return input;
+    }
+
+    /**
+     * Detect + configure a P2TR CSV multisig input for script-path spending.
+     *
+     * UTXOs of this shape carry the tapscript in `witnessScript`. The control
+     * block and internal pubkey are fully determined by the tapscript (single
+     * leaf tree, NUMS internal key) so the caller only needs to provide the
+     * tapscript.
+     *
+     * Returns true when the UTXO was recognized and the input was configured,
+     * false otherwise (caller falls back to the default P2TR key-path setup).
+     */
+    protected processCSVMultisigP2TRInput(
+        utxo: UTXO,
+        input: PsbtInputExtended,
+        i: number,
+        scriptPub: Uint8Array,
+    ): boolean {
+        if (!utxo.witnessScript) return false;
+
+        const tapscript =
+            utxo.witnessScript instanceof Uint8Array
+                ? utxo.witnessScript
+                : fromHex(utxo.witnessScript);
+
+        const addr = CSVMultisigProvider.deriveAddressFromTapscript(tapscript, this.network);
+        if (!addr) return false;
+
+        // Guard against spoofed witnessScripts on P2TR UTXOs from an unrelated
+        // address: the tapscript must hash back to this exact scriptPubKey.
+        if (!equals(addr.scriptPubKey, scriptPub)) {
+            return false;
+        }
+
+        (input as PsbtInputExtended & { tapLeafScript: TapLeafScript[] }).tapLeafScript = [
+            {
+                leafVersion: addr.leafVersion,
+                script: addr.tapscript,
+                controlBlock: addr.controlBlock,
+            },
+        ];
+        input.tapInternalKey = addr.internalPubkey as XOnlyPublicKey;
+
+        // Force a CSV-compatible nSequence so OP_CHECKSEQUENCEVERIFY passes.
+        (input as { sequence: number }).sequence = this.setCSVSequence(
+            addr.config.csvBlocks,
+            this.sequence,
+        );
+
+        this.csvMultisigInputs.set(i, addr);
+        return true;
     }
 
     protected processP2WSHInput(utxo: UTXO, input: PsbtInputExtended, i: number): void {
@@ -1347,6 +1419,19 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             return {
                 finalScriptSig: undefined,
                 finalScriptWitness: Uint8Array.from([0]),
+            };
+        }
+
+        const csvMultisigAddr = this.csvMultisigInputs.get(inputIndex);
+        if (csvMultisigAddr) {
+            const tapSigs = input.tapScriptSig ?? [];
+            const witnessStack = CSVMultisigProvider.buildFinalWitnessFromTapScriptSigs(
+                tapSigs,
+                csvMultisigAddr,
+            );
+            return {
+                finalScriptSig: undefined,
+                finalScriptWitness: witnessStackToScriptWitness(witnessStack),
             };
         }
 

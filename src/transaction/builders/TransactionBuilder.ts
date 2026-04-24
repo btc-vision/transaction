@@ -28,6 +28,7 @@ import { AddressVerificator } from '../../keypair/AddressVerificator.js';
 import { TweakedTransaction } from '../shared/TweakedTransaction.js';
 import { UnisatSigner } from '../browser/extensions/UnisatSigner.js';
 import type { IP2WSHAddress } from '../mineable/IP2WSHAddress.js';
+import { CSVMultisigProvider } from '../mineable/CSVMultisigProvider.js';
 import { P2WDADetector } from '../../p2wda/P2WDADetector.js';
 import {
     type Feature,
@@ -495,6 +496,15 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 return {
                     finalScriptSig: undefined,
                     finalScriptWitness: Uint8Array.from([0]),
+                };
+            }
+
+            const csvMultisigAddr = this.csvMultisigInputs.get(inputIndex);
+            if (csvMultisigAddr) {
+                return {
+                    finalScriptWitness: TransactionBuilder.witnessStackToScriptWitness(
+                        CSVMultisigProvider.buildDummyWitness(csvMultisigAddr),
+                    ),
                 };
             }
 
