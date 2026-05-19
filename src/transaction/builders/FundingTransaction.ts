@@ -33,7 +33,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         // When autoAdjustAmount is enabled and the amount would leave no room for fees,
         // estimate the fee first and reduce the output amount accordingly.
-        if (this.autoAdjustAmount && this.amount >= this.totalInputAmount) {
+        if (this.autoAdjustAmount) {
             // Add temporary outputs matching the ACTUAL final transaction shape
             // so the fee estimate accounts for the real vsize.
             const numOutputs = this.splitInputsInto > 1 ? this.splitInputsInto : 1;
@@ -64,22 +64,29 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
                 this.addOPReturn(this.note);
             }
 
+            // If the transaction need an anchor output, add a temporary anchor since it affects vsize
+            if (this.anchor) {
+                this.addAnchor();
+            }
+
             const estimatedFee = await this.estimateTransactionFees();
 
             // Remove all temporary outputs.
-            const tempCount = numOutputs + (this.note ? 1 : 0);
+            const tempCount = numOutputs + (this.note ? 1 : 0) + (this.anchor ? 1 : 0);
             for (let i = 0; i < tempCount; i++) {
                 this.outputs.pop();
             }
 
-            const adjustedAmount = this.totalInputAmount - estimatedFee;
-            if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
-                throw new Error(
-                    `Insufficient funds: after deducting fee of ${estimatedFee} sats, remaining amount ${adjustedAmount} sats is below minimum dust`,
-                );
-            }
+            if (this.amount + estimatedFee >= this.totalInputAmount) {
+                const adjustedAmount = this.totalInputAmount - estimatedFee;
+                if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
+                    throw new Error(
+                        `Insufficient funds: after deducting fee of ${estimatedFee} sats, remaining amount ${adjustedAmount} sats is below minimum dust`,
+                    );
+                }
 
-            this.amount = adjustedAmount;
+                this.amount = adjustedAmount;
+            }
         }
 
         // Add the primary output(s) first
@@ -87,10 +94,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
             this.splitInputs(this.amount);
         } else if (this.isPubKeyDestination) {
             const toHexClean = this.to.startsWith('0x') ? this.to.slice(2) : this.to;
-            const pubKeyScript: Script = script.compile([
-                fromHex(toHexClean),
-                opcodes.OP_CHECKSIG,
-            ]);
+            const pubKeyScript: Script = script.compile([fromHex(toHexClean), opcodes.OP_CHECKSIG]);
 
             this.addOutput({
                 value: toSatoshi(this.amount),
