@@ -832,7 +832,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         if (this.totalInputAmount < amountNeeded - tolerance) {
             const missingAmount = amountNeeded - this.totalInputAmount - tolerance;
             throw new Error(
-                `Insufficient funds: need at least ${missingAmount} more sats to cover fees.2`,
+                `Insufficient funds: need at least ${missingAmount} more sats to cover fees.`,
             );
         }
 
