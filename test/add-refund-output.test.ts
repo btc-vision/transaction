@@ -205,38 +205,29 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
     });
 
     // ================================================================
-    //  Tolerance: sendBack < 0 but totalInput > amountSpent
+    //  Fee underpayment guard: leftover absorbed into fee must still meet feeRate
     // ================================================================
-    describe('tolerance ,  effective fee is positive but less than estimated', () => {
-        it('should succeed when amount is close to totalInput leaving a small effective fee', async () => {
+    describe('fee underpayment guard', () => {
+        it('should throw when leftover would underpay feeRate (200 sats at feeRate=10)', async () => {
             const utxoValue = 100_000n;
-            // Leave 200 sats for fees ,  less than the estimated fee at high rate
-            // but totalInput > amountSpent so it's valid
             const amount = utxoValue - 200n;
 
             const tx = buildFunding({ utxoValue, amount, feeRate: 10 });
 
-            const signed = await tx.signTransaction();
-
-            expect(signed.ins.length).toBeGreaterThan(0);
-            expect(signed.outs.length).toBeGreaterThan(0);
-
-            // Verify fee is exactly the 200 sats leftover
-            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
-            expect(utxoValue - totalOut).toBe(200n);
+            await expect(tx.signTransaction()).rejects.toThrow(
+                /Insufficient funds for fee/,
+            );
         });
 
-        it('should succeed with very small leftover (1 sat) as long as totalInput > amountSpent', async () => {
+        it('should throw when leftover is a token amount (1 sat) far below feeRate', async () => {
             const utxoValue = 100_000n;
             const amount = utxoValue - 1n;
 
             const tx = buildFunding({ utxoValue, amount, feeRate: 5 });
 
-            const signed = await tx.signTransaction();
-            expect(signed.ins.length).toBeGreaterThan(0);
-
-            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
-            expect(utxoValue - totalOut).toBe(1n);
+            await expect(tx.signTransaction()).rejects.toThrow(
+                /Insufficient funds for fee/,
+            );
         });
     });
 
@@ -532,6 +523,79 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
 
             // Should still have a change output
             expect(signed.outs.length).toBeGreaterThanOrEqual(2);
+        });
+
+        // Regression: trigger must be `amount + fee > totalInput`, not just
+        // `amount >= totalInput`. Previously, an amount one sat below the total
+        // would slip past auto-adjust and silently produce a 1-sat fee instead
+        // of the fee implied by feeRate.
+        it('should auto-adjust when amount + fee exceeds total (amount alone fits)', async () => {
+            const utxoValue = 100_000n;
+            const amount = 99_999n; // 1 sat below total, fee at feeRate=2 will not fit
+            const feeRate = 2;
+
+            const tx = buildFunding({
+                utxoValue,
+                amount,
+                autoAdjustAmount: true,
+                feeRate,
+            });
+
+            const signed = await tx.signTransaction();
+
+            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
+            const fee = utxoValue - totalOut;
+
+            // Primary output must have been trimmed to make room for the fee.
+            const primaryOut = signed.outs.find((o) => BigInt(o.value) > 0n);
+            expect(primaryOut).toBeDefined();
+            expect(BigInt(primaryOut!.value)).toBeLessThan(amount);
+
+            // Paid fee must reflect feeRate, not be silently shaved to a token amount.
+            // A taproot input + taproot output is ~110-150 vbytes, so fee >= ~100 sat at feeRate=2.
+            expect(fee).toBeGreaterThanOrEqual(100n);
+
+            // Nothing lost: total out + fee == total in.
+            expect(totalOut + fee).toBe(utxoValue);
+
+            // No change output — trim consumes all input.
+            expect(signed.outs.length).toBe(1);
+        });
+
+        it('should auto-adjust across a range of near-total amounts', async () => {
+            const utxoValue = 100_000n;
+            const feeRate = 2;
+
+            for (const amount of [99_999n, 99_950n, 99_900n, 99_850n]) {
+                const tx = buildFunding({
+                    utxoValue,
+                    amount,
+                    autoAdjustAmount: true,
+                    feeRate,
+                });
+
+                const signed = await tx.signTransaction();
+                const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
+                const fee = utxoValue - totalOut;
+
+                expect(totalOut).toBeLessThan(amount);
+                expect(fee).toBeGreaterThanOrEqual(100n);
+                expect(totalOut + fee).toBe(utxoValue);
+            }
+        });
+
+        it('should throw when amount + fee exceeds total and autoAdjust is false', async () => {
+            const utxoValue = 100_000n;
+            const amount = 99_999n;
+
+            const tx = buildFunding({
+                utxoValue,
+                amount,
+                autoAdjustAmount: false,
+                feeRate: 2,
+            });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/[Ii]nsufficient funds/);
         });
     });
 });

@@ -31,11 +31,12 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.addInputsFromUTXO();
 
-        // When autoAdjustAmount is enabled and the amount would leave no room for fees,
-        // estimate the fee first and reduce the output amount accordingly.
-        if (this.autoAdjustAmount && this.amount >= this.totalInputAmount) {
-            // Add temporary outputs matching the ACTUAL final transaction shape
-            // so the fee estimate accounts for the real vsize.
+        // When autoAdjustAmount is enabled, estimate the fee against the final
+        // transaction shape and reduce the output amount whenever amount + fee
+        // would exceed the total input. This covers both the send-max case
+        // (amount == totalInput) and the near-total case where amount alone fits
+        // but leaves no room for the requested feeRate.
+        if (this.autoAdjustAmount) {
             const numOutputs = this.splitInputsInto > 1 ? this.splitInputsInto : 1;
             const perOutputAmount = this.amount / BigInt(numOutputs);
 
@@ -59,27 +60,27 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
                 }
             }
 
-            // If a note is present, add a temporary OP_RETURN since it affects vsize.
             if (this.note) {
                 this.addOPReturn(this.note);
             }
 
             const estimatedFee = await this.estimateTransactionFees();
 
-            // Remove all temporary outputs.
             const tempCount = numOutputs + (this.note ? 1 : 0);
             for (let i = 0; i < tempCount; i++) {
                 this.outputs.pop();
             }
 
-            const adjustedAmount = this.totalInputAmount - estimatedFee;
-            if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
-                throw new Error(
-                    `Insufficient funds: after deducting fee of ${estimatedFee} sats, remaining amount ${adjustedAmount} sats is below minimum dust`,
-                );
-            }
+            if (this.amount + estimatedFee > this.totalInputAmount) {
+                const adjustedAmount = this.totalInputAmount - estimatedFee;
+                if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
+                    throw new Error(
+                        `Insufficient funds: after deducting fee of ${estimatedFee} sats, remaining amount ${adjustedAmount} sats is below minimum dust`,
+                    );
+                }
 
-            this.amount = adjustedAmount;
+                this.amount = adjustedAmount;
+            }
         }
 
         // Add the primary output(s) first

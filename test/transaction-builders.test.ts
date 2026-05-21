@@ -177,16 +177,13 @@ describe('Transaction Builders - End-to-End', () => {
             await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds/);
         });
 
-        it('should tolerate small fee estimation shortfalls when effective fee is still positive', async () => {
-            // When amount is close to totalInputAmount but leaves some sats for
-            // fees, the estimated fee may exceed what's available. As long as the
-            // effective fee (totalInputAmount - amountSpent) is positive, the
-            // transaction should succeed ,  the fee is just lower than estimated.
+        it('should throw when leftover fee would underpay feeRate (no autoAdjust)', async () => {
+            // When amount is close to totalInputAmount but leaves less than the
+            // fee implied by feeRate, the transaction must NOT broadcast with an
+            // underpaid fee. Callers wanting send-max behavior must opt in via
+            // autoAdjustAmount=true.
             const utxoValue = 100_000n;
             const utxo = createTaprootUtxo(taprootAddress, utxoValue);
-
-            // Leave 200 sats for fees ,  less than the estimated ~77 sats/vB * ~77 vB
-            // but still a positive effective fee
             const amount = utxoValue - 200n;
 
             const tx = new FundingTransaction({
@@ -195,21 +192,15 @@ describe('Transaction Builders - End-to-End', () => {
                 utxos: [utxo],
                 to: taprootAddress,
                 amount,
-                feeRate: 10, // high fee rate means estimated fee > 200, but effective fee = 200
+                feeRate: 10,
                 priorityFee: 0n,
                 gasSatFee: 0n,
                 mldsaSigner: null,
             });
 
-            // Should NOT throw ,  effective fee is 200 sats (positive), even though
-            // it's less than the estimated fee at feeRate=10
-            const signed = await tx.signTransaction();
-            expect(signed.ins.length).toBeGreaterThan(0);
-            expect(signed.outs.length).toBeGreaterThan(0);
-
-            // Verify fee is exactly what was left over
-            const totalOutputValue = signed.outs.reduce((sum, out) => sum + BigInt(out.value), 0n);
-            expect(utxoValue - totalOutputValue).toBe(200n);
+            await expect(tx.signTransaction()).rejects.toThrow(
+                /Insufficient funds for fee/,
+            );
         });
 
         it('should auto-adjust amount when amount equals total UTXO value with autoAdjustAmount', async () => {

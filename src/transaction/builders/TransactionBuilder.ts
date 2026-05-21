@@ -387,11 +387,28 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong
      */
     public async signPSBT(): Promise<Psbt> {
-        if (await this.signTransaction()) {
-            return this.transaction;
+        if (!this.utxos.length) throw new Error('No UTXOs specified');
+
+        if (
+            this.to &&
+            !this.isPubKeyDestination &&
+            !EcKeyPair.verifyContractAddress(this.to, this.network)
+        ) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
         }
 
-        throw new Error('Could not sign transaction');
+        if (this.signed) throw new Error('Transaction is already signed');
+        this.signed = true;
+
+        await this.buildTransaction();
+
+        const built = await this.internalBuildTransaction(this.transaction);
+        if (!built) throw new Error('Could not sign transaction');
+        if (this.regenerated) throw new Error('Transaction was regenerated');
+
+        return this.transaction;
     }
 
     /**
@@ -807,6 +824,16 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             if (this.totalInputAmount <= amountSpent) {
                 throw new Error(
                     `Insufficient funds: need ${amountSpent + feeWithoutChange} sats but only have ${this.totalInputAmount} sats`,
+                );
+            }
+
+            // No change output: the leftover (totalInput - amountSpent) becomes
+            // the on-chain fee. If it would undershoot the fee implied by feeRate,
+            // throw rather than silently broadcast an underpaid transaction.
+            const leftover = this.totalInputAmount - amountSpent;
+            if (leftover < feeWithoutChange) {
+                throw new Error(
+                    `Insufficient funds for fee: need ${feeWithoutChange} sats at feeRate ${this.feeRate}, but only ${leftover} sats remain after outputs.`,
                 );
             }
 
