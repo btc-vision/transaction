@@ -212,6 +212,30 @@ describe('Transaction Builders - End-to-End', () => {
             expect(utxoValue - totalOutputValue).toBe(1110n);
         });
 
+        it('should throw when leftover fee would underpay feeRate (no autoAdjust)', async () => {
+            // When amount is close to totalInputAmount but leaves less than the
+            // fee implied by feeRate, the transaction must NOT broadcast with an
+            // underpaid fee. Callers wanting send-max behavior must opt in via
+            // autoAdjustAmount=true.
+            const utxoValue = 100_000n;
+            const utxo = createTaprootUtxo(taprootAddress, utxoValue);
+            const amount = utxoValue - 200n;
+
+            const tx = new FundingTransaction({
+                signer,
+                network,
+                utxos: [utxo],
+                to: taprootAddress,
+                amount,
+                feeRate: 10,
+                priorityFee: 0n,
+                gasSatFee: 0n,
+                mldsaSigner: null,
+            });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds for fee/);
+        });
+
         it('should auto-adjust amount when amount equals total UTXO value with autoAdjustAmount', async () => {
             const utxoValue = 100_000n;
             const utxo = createTaprootUtxo(taprootAddress, utxoValue);

@@ -3,9 +3,10 @@ import { ChainId } from '../../../network/ChainId.js';
 import type { TypeSpecificData } from './ITypeSpecificData.js';
 
 /**
- * Format version for serialization compatibility
+ * Format version for serialization compatibility.
+ * v2 adds the optional `partialPsbtBase64` field on the top-level state.
  */
-export const SERIALIZATION_FORMAT_VERSION = 1;
+export const SERIALIZATION_FORMAT_VERSION = 2;
 
 /**
  * Magic byte for identifying serialized transaction state
@@ -138,4 +139,11 @@ export interface ISerializableTransactionState {
     readonly typeSpecificData: TypeSpecificData;
     /** Pre-computed data for deterministic rebuild */
     readonly precomputedData: PrecomputedData;
+    /**
+     * Partial PSBT (base64) carrying signatures collected so far.
+     * Used by collaborative flows like CSV multisig where multiple cosigners
+     * accumulate signatures across hops before finalization.
+     * Only present once at least one signing hop has run.
+     */
+    readonly partialPsbtBase64?: string;
 }

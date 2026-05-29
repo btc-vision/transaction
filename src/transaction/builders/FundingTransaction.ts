@@ -31,8 +31,11 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
 
         this.addInputsFromUTXO();
 
-        // When autoAdjustAmount is enabled and the amount would leave no room for fees,
-        // estimate the fee first and reduce the output amount accordingly.
+        // When autoAdjustAmount is enabled, estimate the fee against the final
+        // transaction shape and reduce the output amount whenever amount + fee
+        // would exceed the total input. This covers both the send-max case
+        // (amount == totalInput) and the near-total case where amount alone fits
+        // but leaves no room for the requested feeRate.
         if (this.autoAdjustAmount) {
             // Add temporary outputs matching the ACTUAL final transaction shape
             // so the fee estimate accounts for the real vsize.
@@ -59,12 +62,10 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
                 }
             }
 
-            // If a note is present, add a temporary OP_RETURN since it affects vsize.
             if (this.note) {
                 this.addOPReturn(this.note);
             }
 
-            // If the transaction need an anchor output, add a temporary anchor since it affects vsize
             if (this.anchor) {
                 this.addAnchor();
             }
@@ -77,7 +78,7 @@ export class FundingTransaction extends TransactionBuilder<TransactionType.FUNDI
                 this.outputs.pop();
             }
 
-            if (this.amount + estimatedFee >= this.totalInputAmount) {
+            if (this.amount + estimatedFee > this.totalInputAmount) {
                 const adjustedAmount = this.totalInputAmount - estimatedFee;
                 if (adjustedAmount < TransactionBuilder.MINIMUM_DUST) {
                     throw new Error(

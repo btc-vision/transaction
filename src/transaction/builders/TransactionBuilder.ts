@@ -392,11 +392,28 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong
      */
     public async signPSBT(): Promise<Psbt> {
-        if (await this.signTransaction()) {
-            return this.transaction;
+        if (!this.utxos.length) throw new Error('No UTXOs specified');
+
+        if (
+            this.to &&
+            !this.isPubKeyDestination &&
+            !EcKeyPair.verifyContractAddress(this.to, this.network)
+        ) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
         }
 
-        throw new Error('Could not sign transaction');
+        if (this.signed) throw new Error('Transaction is already signed');
+        this.signed = true;
+
+        await this.buildTransaction();
+
+        const built = await this.internalBuildTransaction(this.transaction);
+        if (!built) throw new Error('Could not sign transaction');
+        if (this.regenerated) throw new Error('Transaction was regenerated');
+
+        return this.transaction;
     }
 
     /**
@@ -811,7 +828,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
 
             if (expectRefund && sendBackAmount < 0n) {
                 throw new Error(
-                    `Insufficient funds: need at least ${-sendBackAmount} more sats to cover fees.`,
+                    `Insufficient funds for fee: need at least ${-sendBackAmount} more sats to cover fees.`,
                 );
             }
         }
@@ -832,7 +849,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         if (this.totalInputAmount < amountNeeded - tolerance) {
             const missingAmount = amountNeeded - this.totalInputAmount - tolerance;
             throw new Error(
-                `Insufficient funds: need at least ${missingAmount} more sats to cover fees.`,
+                `Insufficient funds for fee: need at least ${missingAmount} more sats to cover fees.`,
             );
         }
 

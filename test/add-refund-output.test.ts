@@ -207,6 +207,29 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
     });
 
     // ================================================================
+    //  Fee underpayment guard: leftover absorbed into fee must still meet feeRate
+    // ================================================================
+    describe('fee underpayment guard', () => {
+        it('should throw when leftover would underpay feeRate (200 sats at feeRate=10)', async () => {
+            const utxoValue = 100_000n;
+            const amount = utxoValue - 200n;
+
+            const tx = buildFunding({ utxoValue, amount, feeRate: 10 });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds for fee/);
+        });
+
+        it('should throw when leftover is a token amount (1 sat) far below feeRate', async () => {
+            const utxoValue = 100_000n;
+            const amount = utxoValue - 1n;
+
+            const tx = buildFunding({ utxoValue, amount, feeRate: 5 });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds for fee/);
+        });
+    });
+
+    // ================================================================
     //  Tolerance: sendBack < 0 but totalInput > amountSpent
     // ================================================================
     describe('tolerance ,  effective fee is positive but is a little bit less than estimated UTXO available', () => {
