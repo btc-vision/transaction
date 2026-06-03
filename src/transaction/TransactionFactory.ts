@@ -556,7 +556,7 @@ export class TransactionFactory {
             estimatedFees: resp.estimatedFees,
             tx: resp.tx.toHex(),
             nextUTXOs: this.getAllNewUTXOs(resp.original, resp.tx, parameters.from),
-            inputUtxos: parameters.utxos,
+            inputUtxos: [...parameters.utxos, ...(parameters.feeUtxos ?? [])],
         };
     }
 
