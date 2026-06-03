@@ -52,6 +52,7 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
         feeRate?: number;
         feeUtxos?: UTXO[];
         autoAdjustAmount?: boolean;
+        debugFees?: boolean;
     }) {
         const utxo = createTaprootUtxo(taprootAddress, opts.utxoValue);
         return new FundingTransaction({
@@ -64,6 +65,7 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
             priorityFee: 0n,
             gasSatFee: 0n,
             mldsaSigner: null,
+            debugFees: !!opts.debugFees,
             ...(opts.feeUtxos !== undefined && { feeUtxos: opts.feeUtxos }),
             ...(opts.autoAdjustAmount !== undefined && { autoAdjustAmount: opts.autoAdjustAmount }),
         });
@@ -205,14 +207,37 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
     });
 
     // ================================================================
+    //  Fee underpayment guard: leftover absorbed into fee must still meet feeRate
+    // ================================================================
+    describe('fee underpayment guard', () => {
+        it('should throw when leftover would underpay feeRate (200 sats at feeRate=10)', async () => {
+            const utxoValue = 100_000n;
+            const amount = utxoValue - 200n;
+
+            const tx = buildFunding({ utxoValue, amount, feeRate: 10 });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds for fee/);
+        });
+
+        it('should throw when leftover is a token amount (1 sat) far below feeRate', async () => {
+            const utxoValue = 100_000n;
+            const amount = utxoValue - 1n;
+
+            const tx = buildFunding({ utxoValue, amount, feeRate: 5 });
+
+            await expect(tx.signTransaction()).rejects.toThrow(/Insufficient funds for fee/);
+        });
+    });
+
+    // ================================================================
     //  Tolerance: sendBack < 0 but totalInput > amountSpent
     // ================================================================
-    describe('tolerance ,  effective fee is positive but less than estimated', () => {
-        it('should succeed when amount is close to totalInput leaving a small effective fee', async () => {
+    describe('tolerance ,  effective fee is positive but is a little bit less than estimated UTXO available', () => {
+        it('should succeed when amount+fees is close to totalInput', async () => {
             const utxoValue = 100_000n;
             // Leave 200 sats for fees ,  less than the estimated fee at high rate
             // but totalInput > amountSpent so it's valid
-            const amount = utxoValue - 200n;
+            const amount = utxoValue - 1109n;
 
             const tx = buildFunding({ utxoValue, amount, feeRate: 10 });
 
@@ -223,20 +248,80 @@ describe('addRefundOutput ,  deterministic fee estimation', () => {
 
             // Verify fee is exactly the 200 sats leftover
             const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
-            expect(utxoValue - totalOut).toBe(200n);
+            expect(utxoValue - totalOut).toBe(1109n);
+            expect(tx.transactionFee).toBe(1109n);
         });
 
-        it('should succeed with very small leftover (1 sat) as long as totalInput > amountSpent', async () => {
+        // Const real fees = 555n, dust = 330n
+        const shouldSucceed: [
+            delta: bigint,
+            succeed: boolean,
+            overflow: bigint,
+            message: string,
+        ][] = [
+            [0n, false, 0n, 'amount equal utxoValue'],
+            [1n, false, 0n, 'amount equal utxoValue less 1'],
+
+            // Check fees bondary
+            [553n, false, 0n, 'amount equal utxoValue less 553 (real fees - 2)'],
+            [554n, true, 0n, 'amount equal utxoValue less 554 (real fees - 1)'],
+            [555n, true, 0n, 'amount equal utxoValue less 555 (real fees)'],
+            [556n, true, 0n, 'amount equal utxoValue less 556 (real fees + 1)'],
+
+            // Check fees+dust bondaries
+            [555n + 329n, true, 0n, 'amount equal utxoValue less 884 (real fees + dust - 1)'],
+            [555n + 330n, true, 0n, 'amount equal utxoValue less 885 (real fees + dust)'],
+            [555n + 331n, true, 0n, 'amount equal utxoValue less 886 (real fees + dust + 1)'],
+
+            // If there is really a refund, a refund output section will be added
+            // to the tx, with a vbsize of 43 vbytes * 5 feeRate --> 215...
+            // Check the new fees+refund_section+dust boundaries
+            [
+                555n + 43n * 5n + 329n,
+                true,
+                0n,
+                'amount equal utxoValue less 1109 (real fees + refund + dust - 1)',
+            ],
+            [
+                555n + 43n * 5n + 330n,
+                true,
+                330n,
+                'amount equal utxoValue less 1110 (real fees + refund + dust)',
+            ],
+            [
+                555n + 43n * 5n + 331n,
+                true,
+                331n,
+                'amount equal utxoValue less 1111 (real fees + refund + dust + 1)',
+            ],
+        ];
+        it('should succeed with very small diff from calculated fees (1 sat)', async () => {
             const utxoValue = 100_000n;
-            const amount = utxoValue - 1n;
 
-            const tx = buildFunding({ utxoValue, amount, feeRate: 5 });
+            let tx: FundingTransaction | undefined = undefined;
+            for (const [delta, shouldSuccess, overflow, message] of shouldSucceed) {
+                let succeed = false;
+                try {
+                    const amount = utxoValue - delta;
 
-            const signed = await tx.signTransaction();
-            expect(signed.ins.length).toBeGreaterThan(0);
+                    tx = buildFunding({ utxoValue, amount, feeRate: 5, debugFees: false });
 
-            const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
-            expect(utxoValue - totalOut).toBe(1n);
+                    const signed = await tx.signTransaction();
+                    expect(signed.ins.length).toBeGreaterThan(0);
+
+                    const totalOut = signed.outs.reduce((sum, o) => sum + BigInt(o.value), 0n);
+
+                    //console.log('DELTA', utxoValue, totalOut, delta, overflow, tx.estimatedFees, tx.overflowFees,);
+                    expect(utxoValue - totalOut).toBe(delta - overflow);
+                    succeed = true;
+                } catch (e) {
+                    //console.log('E', e);
+                    succeed = false;
+                }
+
+                expect(succeed, message).toBe(shouldSuccess);
+                expect(tx?.overflowFees, message).toBe(overflow);
+            }
         });
     });
 

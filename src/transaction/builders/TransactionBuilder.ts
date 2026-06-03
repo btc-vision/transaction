@@ -46,6 +46,11 @@ export const MINIMUM_AMOUNT_REWARD: bigint = 330n; //540n;
 export const MINIMUM_AMOUNT_CA: bigint = 297n;
 export const ANCHOR_SCRIPT = fromHex('51024e73');
 
+// Tolerance for fees
+// Less than 1 is percentage: 0.10 equals +- 10%
+// 1 or more is satoshis, 5 equals +- 5 sat
+export const TOLERANCE = 1;
+
 /**
  * Allows to build a transaction like you would on Ethereum.
  * @description The transaction builder class
@@ -387,11 +392,28 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
      * @throws {Error} - If something went wrong
      */
     public async signPSBT(): Promise<Psbt> {
-        if (await this.signTransaction()) {
-            return this.transaction;
+        if (!this.utxos.length) throw new Error('No UTXOs specified');
+
+        if (
+            this.to &&
+            !this.isPubKeyDestination &&
+            !EcKeyPair.verifyContractAddress(this.to, this.network)
+        ) {
+            throw new Error(
+                'Invalid contract address. The contract address must be a taproot address.',
+            );
         }
 
-        throw new Error('Could not sign transaction');
+        if (this.signed) throw new Error('Transaction is already signed');
+        this.signed = true;
+
+        await this.buildTransaction();
+
+        const built = await this.internalBuildTransaction(this.transaction);
+        if (!built) throw new Error('Could not sign transaction');
+        if (this.regenerated) throw new Error('Transaction was regenerated');
+
+        return this.transaction;
     }
 
     /**
@@ -804,17 +826,31 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
                 );
             }
 
-            if (this.totalInputAmount <= amountSpent) {
-                throw new Error(
-                    `Insufficient funds: need ${amountSpent + feeWithoutChange} sats but only have ${this.totalInputAmount} sats`,
-                );
-            }
-
             if (expectRefund && sendBackAmount < 0n) {
                 throw new Error(
-                    `Insufficient funds: need at least ${-sendBackAmount} more sats to cover fees.`,
+                    `Insufficient funds for fee: need at least ${-sendBackAmount} more sats to cover fees.`,
                 );
             }
+        }
+
+        const amountNeeded = amountSpent + this.transactionFee;
+
+        const tolerance: bigint =
+            TOLERANCE < 1
+                ? BigInt(Math.ceil(Number(this.transactionFee) * TOLERANCE))
+                : BigInt(Math.ceil(TOLERANCE));
+
+        if (this.totalInputAmount < amountSpent) {
+            throw new Error(
+                `Insufficient funds: need ${amountNeeded} sats but only have ${this.totalInputAmount} sats`,
+            );
+        }
+
+        if (this.totalInputAmount < amountNeeded - tolerance) {
+            const missingAmount = amountNeeded - this.totalInputAmount - tolerance;
+            throw new Error(
+                `Insufficient funds for fee: need at least ${missingAmount} more sats to cover fees.`,
+            );
         }
 
         if (this.debugFees) {

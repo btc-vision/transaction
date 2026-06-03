@@ -769,11 +769,27 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
             }
         }
 
+        let allFinalized = true;
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this) as FinalScriptsFunc);
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch (e) {
+                // CSV multisig inputs may legitimately be below threshold during
+                // a collaborative signing hop. Leave them unfinalized so the
+                // partial PSBT can travel to the next cosigner.
+                if (this.csvMultisigInputs.has(i)) {
+                    allFinalized = false;
+                    continue;
+                }
+
+                throw e;
+            }
         }
 
-        this.finalized = true;
+        this.finalized = allFinalized;
     }
 
     /**
@@ -1509,12 +1525,24 @@ export abstract class TweakedTransaction extends Logger implements Disposable {
         // then, we sign all the remaining inputs with the wallet signer.
         await signer.multiSignPsbt([transaction]);
 
-        // Then, we finalize every input.
+        let allFinalized = true;
         for (let i = 0; i < transaction.data.inputs.length; i++) {
-            transaction.finalizeInput(i, this.customFinalizerP2SH.bind(this) as FinalScriptsFunc);
+            try {
+                transaction.finalizeInput(
+                    i,
+                    this.customFinalizerP2SH.bind(this) as FinalScriptsFunc,
+                );
+            } catch (e) {
+                if (this.csvMultisigInputs.has(i)) {
+                    allFinalized = false;
+                    continue;
+                }
+
+                throw e;
+            }
         }
 
-        this.finalized = true;
+        this.finalized = allFinalized;
     }
 
     protected isCSVScript(decompiled: (number | Uint8Array)[]): boolean {

@@ -67,6 +67,9 @@ export class TransactionSerializer {
         // Write precomputed data
         this.writePrecomputedData(writer, state.precomputedData);
 
+        // v2: partial PSBT (empty string when absent)
+        writer.writeStringWithLength(state.partialPsbtBase64 ?? '');
+
         // Get buffer and calculate checksum
         const dataBuffer = writer.getBuffer();
         const checksum = this.calculateChecksum(dataBuffer);
@@ -128,6 +131,13 @@ export class TransactionSerializer {
         // Read precomputed data
         const precomputedData = this.readPrecomputedData(reader);
 
+        // v2+: partial PSBT (collaborative signing carryover)
+        let partialPsbtBase64: string | undefined;
+        if (header.formatVersion >= 2) {
+            const stored = reader.readStringWithLength();
+            partialPsbtBase64 = stored.length > 0 ? stored : undefined;
+        }
+
         return {
             header,
             baseParams,
@@ -138,6 +148,7 @@ export class TransactionSerializer {
             signerMappings,
             typeSpecificData,
             precomputedData,
+            ...(partialPsbtBase64 !== undefined ? { partialPsbtBase64 } : {}),
         };
     }
 

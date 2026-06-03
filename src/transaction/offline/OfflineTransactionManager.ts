@@ -1,4 +1,4 @@
-import { fromHex, Psbt, type PsbtInput, type Signer, toHex } from '@btc-vision/bitcoin';
+import { fromHex, Psbt, type PsbtInput, type Signer, toHex, toXOnly } from '@btc-vision/bitcoin';
 import { type UniversalSigner } from '@btc-vision/ecpair';
 import { TransactionType } from '../enums/TransactionType.js';
 import { TransactionBuilder } from '../builders/TransactionBuilder.js';
@@ -14,6 +14,21 @@ import type {
     IInteractionParameters,
     ITransactionParameters,
 } from '../interfaces/ITransactionParameters.js';
+import { CSVMultisigProvider } from '../mineable/CSVMultisigProvider.js';
+
+/**
+ * Per-input CSV multisig signing status.
+ */
+export interface CSVMultisigInputStatus {
+    /** PSBT input index */
+    readonly inputIndex: number;
+    /** Threshold required to spend this input */
+    readonly required: number;
+    /** Number of distinct cosigner signatures collected so far */
+    readonly collected: number;
+    /** Hex-encoded x-only pubkeys of the cosigners that have signed */
+    readonly signers: string[];
+}
 
 /**
  * Export options for offline transaction signing
@@ -625,5 +640,180 @@ export class OfflineTransactionManager {
         };
 
         return TransactionSerializer.toBase64(newState);
+    }
+
+    /**
+     * Inspect collaborative signing progress on all CSV multisig inputs.
+     * Returns an empty array when no partial PSBT has been produced yet.
+     */
+    public static csvMultisigGetStatus(serializedState: string): CSVMultisigInputStatus[] {
+        const state = TransactionSerializer.fromBase64(serializedState);
+        if (!state.partialPsbtBase64) return [];
+
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+        const psbt = Psbt.fromBase64(state.partialPsbtBase64, { network });
+        return this.computeCSVMultisigStatus(state, psbt, network);
+    }
+
+    /**
+     * Add the given signer's contribution to every CSV multisig input it can sign.
+     * No-op for inputs whose tapscript does not contain the signer's x-only pubkey.
+     *
+     * First call (no partial PSBT yet) builds the PSBT from the funding params
+     * using the provided signer as the builder's signer. Subsequent calls load
+     * the carried PSBT and add the signer's tapScriptSig where applicable.
+     */
+    public static async addCSVMultisigSignature(
+        serializedState: string,
+        signer: Signer | UniversalSigner,
+    ): Promise<{
+        state: string;
+        final: boolean;
+        perInput: CSVMultisigInputStatus[];
+    }> {
+        const state = TransactionSerializer.fromBase64(serializedState);
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+
+        let psbt: Psbt;
+
+        if (state.partialPsbtBase64) {
+            psbt = Psbt.fromBase64(state.partialPsbtBase64, { network });
+            this.addSignerToCSVInputs(psbt, signer, network);
+        } else {
+            const builder = this.importForSigning(serializedState, { signer });
+            psbt = await builder.signPSBT();
+            // Best-effort: ensure the signer's contribution is recorded on every
+            // CSV input where they're a cosigner (the builder already attempts
+            // this, but this guards against builds that bailed early).
+            this.addSignerToCSVInputs(psbt, signer, network);
+        }
+
+        const perInput = this.computeCSVMultisigStatus(state, psbt, network);
+        const final = perInput.length > 0 && perInput.every((s) => s.collected >= s.required);
+
+        const newState: ISerializableTransactionState = {
+            ...state,
+            partialPsbtBase64: psbt.toBase64(),
+        };
+
+        return {
+            state: TransactionSerializer.toBase64(newState),
+            final,
+            perInput,
+        };
+    }
+
+    /**
+     * Finalize every CSV multisig input on the partial PSBT and extract the
+     * raw transaction hex. Throws if any input is still below its threshold.
+     */
+    public static csvMultisigFinalize(serializedState: string): string {
+        const state = TransactionSerializer.fromBase64(serializedState);
+        if (!state.partialPsbtBase64) {
+            throw new Error('No partial PSBT in state — call addCSVMultisigSignature first');
+        }
+
+        const network = TransactionReconstructor['nameToNetwork'](state.baseParams.networkName);
+        const psbt = Psbt.fromBase64(state.partialPsbtBase64, { network });
+
+        for (let i = 0; i < psbt.data.inputs.length; i++) {
+            const input = psbt.data.inputs[i] as PsbtInput;
+            if (!input.tapLeafScript || input.tapLeafScript.length === 0) continue;
+
+            const leaf = input.tapLeafScript[0];
+            if (!leaf) continue;
+
+            const addr = CSVMultisigProvider.deriveAddressFromTapscript(leaf.script, network);
+            if (!addr) continue;
+
+            CSVMultisigProvider.finalizePsbtInput(psbt, i, network, addr);
+        }
+
+        return psbt.extractTransaction(true, true).toHex();
+    }
+
+    /**
+     * Sign every CSV multisig input whose tapscript contains the signer's
+     * x-only pubkey and does not yet carry a signature from that pubkey.
+     */
+    private static addSignerToCSVInputs(
+        psbt: Psbt,
+        signer: Signer | UniversalSigner,
+        network: import('@btc-vision/bitcoin').Network,
+    ): void {
+        const signerXOnly = toXOnly(signer.publicKey);
+        const signerXOnlyHex = toHex(signerXOnly);
+
+        for (let i = 0; i < psbt.data.inputs.length; i++) {
+            const input = psbt.data.inputs[i] as PsbtInput;
+            if (!input.tapLeafScript || input.tapLeafScript.length === 0) continue;
+
+            const leaf = input.tapLeafScript[0];
+            if (!leaf) continue;
+
+            const addr = CSVMultisigProvider.deriveAddressFromTapscript(leaf.script, network);
+            if (!addr) continue;
+
+            const isCosigner = addr.config.pubkeys.some(
+                (pk) => toHex(pk as Uint8Array) === signerXOnlyHex,
+            );
+            if (!isCosigner) continue;
+
+            const alreadySigned = (input.tapScriptSig ?? []).some(
+                (s) => toHex(s.pubkey) === signerXOnlyHex,
+            );
+            if (alreadySigned) continue;
+
+            psbt.signTaprootInput(i, signer);
+        }
+    }
+
+    /**
+     * Build per-input status for every CSV multisig input.
+     *
+     * Walks state.utxos so we can detect CSV multisig inputs even after the
+     * builder has already finalized them (which clears tapLeafScript). For
+     * partially-signed inputs the signers list reflects collected tapScriptSig
+     * entries; for finalized inputs collected is set to the threshold.
+     */
+    private static computeCSVMultisigStatus(
+        state: ISerializableTransactionState,
+        psbt: Psbt,
+        network: import('@btc-vision/bitcoin').Network,
+    ): CSVMultisigInputStatus[] {
+        const result: CSVMultisigInputStatus[] = [];
+
+        for (let i = 0; i < state.utxos.length; i++) {
+            const utxo = state.utxos[i];
+            if (!utxo?.witnessScript) continue;
+
+            const tapscript = fromHex(utxo.witnessScript);
+            const addr = CSVMultisigProvider.deriveAddressFromTapscript(tapscript, network);
+            if (!addr) continue;
+
+            const input = psbt.data.inputs[i] as PsbtInput | undefined;
+            if (!input) continue;
+
+            if (input.finalScriptWitness) {
+                // Already finalized — by construction it carried >= threshold sigs.
+                result.push({
+                    inputIndex: i,
+                    required: addr.config.threshold,
+                    collected: addr.config.threshold,
+                    signers: [],
+                });
+                continue;
+            }
+
+            const tapSigs = input.tapScriptSig ?? [];
+            result.push({
+                inputIndex: i,
+                required: addr.config.threshold,
+                collected: tapSigs.length,
+                signers: tapSigs.map((s) => toHex(s.pubkey)),
+            });
+        }
+
+        return result;
     }
 }
