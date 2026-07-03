@@ -14,16 +14,35 @@ export class EpochValidator {
     }
 
     /**
-     * Calculate mining preimage
+     * Calculate mining preimage.
+     *
+     * When useConcatenatedPreimage is false the legacy XOR construction is used
+     * (checksumRoot ^ publicKey ^ salt). That construction is malleable: a
+     * miner can set salt == publicKey to force preimage == checksumRoot (max
+     * difficulty for free), or transform any solution to another key via
+     * salt' = publicKey' ^ publicKey ^ salt. When useConcatenatedPreimage is true
+     * the preimage is the 96-byte concatenation checksumRoot || publicKey || salt,
+     * which removes both (the SHA-1 proof-of-work over it is unchanged).
+     *
+     * The switch is a consensus rule: callers pass useConcatenatedPreimage =
+     * (epochBlockHeight >= activationHeight) using the activation height for the
+     * network they are on (opnet-node exposes it as
+     * consensusEpochPatches.PREIMAGE_CONCAT_PATCH_BLOCK_HEIGHT). The value MUST be
+     * identical across opnet-node, this library and the mining pool.
      */
     public static calculatePreimage(
         checksumRoot: Uint8Array,
         publicKey: Uint8Array,
         salt: Uint8Array,
+        useConcatenatedPreimage: boolean = false,
     ): Uint8Array {
         // Ensure all are 32 bytes
         if (checksumRoot.length !== 32 || publicKey.length !== 32 || salt.length !== 32) {
             throw new Error('All inputs must be 32 bytes');
+        }
+
+        if (useConcatenatedPreimage) {
+            return this.concatenatePreimage(checksumRoot, publicKey, salt);
         }
 
         const preimage = new Uint8Array(32);
@@ -33,6 +52,30 @@ export class EpochValidator {
         }
 
         return preimage;
+    }
+
+    /**
+     * Non-malleable mining preimage: the 96-byte concatenation
+     * checksumRoot || publicKey || salt. The public key sits in its own segment,
+     * so a miner-chosen salt can neither cancel it nor be transformed to
+     * re-attribute another miner's solution. The SHA-1 proof-of-work over it is
+     * unchanged.
+     */
+    public static concatenatePreimage(
+        checksumRoot: Uint8Array,
+        publicKey: Uint8Array,
+        salt: Uint8Array,
+    ): Uint8Array {
+        if (checksumRoot.length !== 32 || publicKey.length !== 32 || salt.length !== 32) {
+            throw new Error('All inputs must be 32 bytes');
+        }
+
+        const message = new Uint8Array(96);
+        message.set(checksumRoot, 0);
+        message.set(publicKey, 32);
+        message.set(salt, 64);
+
+        return message;
     }
 
     /**
@@ -69,13 +112,18 @@ export class EpochValidator {
     /**
      * Verify an epoch solution using IPreimage
      */
-    public static verifySolution(challenge: IChallengeSolution, log: boolean = false): boolean {
+    public static verifySolution(
+        challenge: IChallengeSolution,
+        log: boolean = false,
+        useHashedPreimage: boolean = false,
+    ): boolean {
         try {
             const verification = challenge.verification;
             const calculatedPreimage = this.calculatePreimage(
                 verification.targetChecksum,
                 challenge.publicKey.toBuffer(),
                 challenge.salt,
+                useHashedPreimage,
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
@@ -118,7 +166,10 @@ export class EpochValidator {
     /**
      * Validate epoch winner from raw data
      */
-    public static validateEpochWinner(epochData: RawChallenge): boolean {
+    public static validateEpochWinner(
+        epochData: RawChallenge,
+        useHashedPreimage: boolean = false,
+    ): boolean {
         try {
             const epochNumber = BigInt(epochData.epochNumber);
             const publicKey = Address.fromString(
@@ -143,6 +194,7 @@ export class EpochValidator {
                 verification.targetChecksum,
                 publicKey.toBuffer(),
                 salt,
+                useHashedPreimage,
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
@@ -172,8 +224,11 @@ export class EpochValidator {
     /**
      * Validate epoch winner from Preimage instance
      */
-    public static validateChallengeSolution(challenge: IChallengeSolution): boolean {
-        return this.verifySolution(challenge);
+    public static validateChallengeSolution(
+        challenge: IChallengeSolution,
+        useHashedPreimage: boolean = false,
+    ): boolean {
+        return this.verifySolution(challenge, false, useHashedPreimage);
     }
 
     /**
@@ -187,8 +242,14 @@ export class EpochValidator {
         targetChecksum: Uint8Array,
         publicKey: Uint8Array,
         salt: Uint8Array,
+        useHashedPreimage: boolean = false,
     ): Uint8Array {
-        const preimage = this.calculatePreimage(targetChecksum, publicKey, salt);
+        const preimage = this.calculatePreimage(
+            targetChecksum,
+            publicKey,
+            salt,
+            useHashedPreimage,
+        );
         return this.sha1(preimage);
     }
 
