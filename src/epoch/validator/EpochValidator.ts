@@ -115,7 +115,7 @@ export class EpochValidator {
     public static verifySolution(
         challenge: IChallengeSolution,
         log: boolean = false,
-        useHashedPreimage: boolean = false,
+        useConcatenatedPreimage: boolean = false,
     ): boolean {
         try {
             const verification = challenge.verification;
@@ -123,7 +123,7 @@ export class EpochValidator {
                 verification.targetChecksum,
                 challenge.publicKey.toBuffer(),
                 challenge.salt,
-                useHashedPreimage,
+                useConcatenatedPreimage,
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
@@ -168,7 +168,7 @@ export class EpochValidator {
      */
     public static validateEpochWinner(
         epochData: RawChallenge,
-        useHashedPreimage: boolean = false,
+        useConcatenatedPreimage: boolean = false,
     ): boolean {
         try {
             const epochNumber = BigInt(epochData.epochNumber);
@@ -194,7 +194,7 @@ export class EpochValidator {
                 verification.targetChecksum,
                 publicKey.toBuffer(),
                 salt,
-                useHashedPreimage,
+                useConcatenatedPreimage,
             );
 
             const computedSolution = this.sha1(calculatedPreimage);
@@ -226,9 +226,9 @@ export class EpochValidator {
      */
     public static validateChallengeSolution(
         challenge: IChallengeSolution,
-        useHashedPreimage: boolean = false,
+        useConcatenatedPreimage: boolean = false,
     ): boolean {
-        return this.verifySolution(challenge, false, useHashedPreimage);
+        return this.verifySolution(challenge, false, useConcatenatedPreimage);
     }
 
     /**
@@ -242,13 +242,13 @@ export class EpochValidator {
         targetChecksum: Uint8Array,
         publicKey: Uint8Array,
         salt: Uint8Array,
-        useHashedPreimage: boolean = false,
+        useConcatenatedPreimage: boolean = false,
     ): Uint8Array {
         const preimage = this.calculatePreimage(
             targetChecksum,
             publicKey,
             salt,
-            useHashedPreimage,
+            useConcatenatedPreimage,
         );
         return this.sha1(preimage);
     }
