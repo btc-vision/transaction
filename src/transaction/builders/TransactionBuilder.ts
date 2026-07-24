@@ -983,8 +983,25 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
         const mldsaSigner = this.mldsaSigner;
         const legacySignature = this.generateLegacySignature();
 
+        // Reveal by default. The legacy Schnorr signature only proves ownership of
+        // the Bitcoin key being linked; it says nothing about the claimed
+        // hashedPublicKey. Without the ML-DSA public key and a signature over it,
+        // a link request carries no proof that the sender knows a preimage for
+        // that hash, so a node cannot safely create a NEW identity from it.
+        //
+        // Defaulting to false made every caller responsible for remembering, and
+        // callers do forget: opwallet never set this anywhere, and its deployment
+        // screen calls signDeployment() directly, bypassing any controller-level
+        // fix. Revealing when it was not needed only costs bytes (ML-DSA-44:
+        // 1312-byte key + 2420-byte signature); not revealing when it was needed
+        // gets the transaction rejected.
+        //
+        // Callers that KNOW the key is already linked on-chain should pass false
+        // explicitly to avoid paying for the reveal on every interaction.
+        const shouldReveal = parameters.revealMLDSAPublicKey ?? true;
+
         let mldsaSignature: Uint8Array | null = null;
-        if (parameters.revealMLDSAPublicKey) {
+        if (shouldReveal) {
             mldsaSignature = this.generateMLDSASignature();
         }
 
@@ -992,7 +1009,7 @@ export abstract class TransactionBuilder<T extends TransactionType> extends Twea
             priority: FeaturePriority.MLDSA_LINK_PUBKEY,
             opcode: Features.MLDSA_LINK_PUBKEY,
             data: {
-                verifyRequest: !!parameters.revealMLDSAPublicKey,
+                verifyRequest: shouldReveal,
                 publicKey: mldsaSigner.publicKey,
                 hashedPublicKey: this.hashedPublicKey,
                 level: getLevelFromPublicKeyLength(mldsaSigner.publicKey.length),
